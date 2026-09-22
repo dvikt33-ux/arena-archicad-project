@@ -23,7 +23,10 @@ function New-Dirs {
         (Join-Path $ArenaRoot 'outbox'),
         (Join-Path $ArenaRoot 'results'),
         (Join-Path $ArenaRoot 'inbox\.done'),
-        (Join-Path $ArenaRoot 'outbox\.dead')
+        (Join-Path $ArenaRoot 'outbox\.dead'),
+        (Join-Path $ArenaRoot 'held'),
+        (Join-Path $ArenaRoot 'approve'),
+        (Join-Path $ArenaRoot 'mailbox-staging')
     )
     foreach ($p in $paths) {
         if (-not (Test-Path -LiteralPath $p)) {
@@ -94,7 +97,7 @@ function Read-State {
     if ($null -eq $s -or ($s.PSObject.Properties.Name -notcontains 'last_seq')) {
         throw 'state schema invalid (missing last_seq)'
     }
-    $st = @{ last_seq = [int]$s.last_seq; tasks = @{} }
+    $st = @{ last_seq = [int]$s.last_seq; tasks = @{}; mailbox = @{ seen = @{}; rejected_seqs = @() } }
     if ($s.PSObject.Properties.Name -notcontains 'tasks') { return $st }
     foreach ($p in $s.tasks.PSObject.Properties) {
         $v = $p.Value
@@ -110,6 +113,32 @@ function Read-State {
             pid         = if ($names -contains 'pid')         { $v.pid }         else { $null }
             started     = if ($names -contains 'started')     { $v.started }     else { '' }
             updated     = if ($names -contains 'updated')     { $v.updated }     else { '' }
+            task_id     = if ($names -contains 'task_id')     { [string]$v.task_id } else { '' }
+            source      = if ($names -contains 'source')      { [string]$v.source } else { '' }
+        }
+    }
+    if ($s.PSObject.Properties.Name -contains 'mailbox' -and $null -ne $s.mailbox) {
+        $mb = $s.mailbox
+        $mbNames = @($mb.PSObject.Properties.Name)
+        if ($mbNames -contains 'seen' -and $null -ne $mb.seen) {
+            foreach ($sp in @($mb.seen.PSObject.Properties)) {
+                $sv = $sp.Value
+                $sn = @($sv.PSObject.Properties.Name)
+                $st.mailbox.seen[$sp.Name] = @{
+                    seq         = if ($sn -contains 'seq') { $sv.seq } else { $null }
+                    disposition = if ($sn -contains 'disposition') { [string]$sv.disposition } else { '' }
+                    reason      = if ($sn -contains 'reason') { [string]$sv.reason } else { '' }
+                }
+            }
+        }
+        if ($mbNames -contains 'rejected_seqs' -and $null -ne $mb.rejected_seqs) {
+            $rawSeqs = $mb.rejected_seqs
+            $items = @()
+            if ($rawSeqs -is [System.Array]) { $items = @($rawSeqs) } else { $items = @($rawSeqs) }
+            foreach ($item in $items) {
+                $text = [string]$item
+                if ($text -match '^[1-9][0-9]{0,8}$') { $st.mailbox.rejected_seqs += [int]$text }
+            }
         }
     }
     return $st
@@ -117,12 +146,62 @@ function Read-State {
 
 function Save-State {
     param([string]$StatePath, $State)
-    $obj = [ordered]@{ last_seq = [int]$State.last_seq; tasks = [ordered]@{} }
-    foreach ($k in $State.tasks.Keys) {
+    $seen = [ordered]@{}
+    $rejected = @()
+    if ($State.mailbox) {
+        if ($State.mailbox.seen) {
+            foreach ($k in @($State.mailbox.seen.Keys)) { $seen[$k] = $State.mailbox.seen[$k] }
+        }
+        if ($State.mailbox.rejected_seqs) { $rejected = @($State.mailbox.rejected_seqs) }
+    }
+    $obj = [ordered]@{
+        last_seq = [int]$State.last_seq
+        tasks    = [ordered]@{}
+        mailbox  = [ordered]@{ seen = $seen; rejected_seqs = $rejected }
+    }
+    foreach ($k in @($State.tasks.Keys)) {
         $obj.tasks[$k] = $State.tasks[$k]
     }
     $json = $obj | ConvertTo-Json -Depth 12 -Compress
     Write-FileAtomic $StatePath $json
+}
+
+function Invoke-NativeTimed {
+    # Runs a command already on PATH. On timeout the bridge continues; the
+    # command text is never taken from a remote task.
+    param([string]$Command, [string[]]$ArgumentList, [int]$TimeoutMs = 30000)
+    if ($TimeoutMs -lt 1000) { $TimeoutMs = 1000 }
+    if ($TimeoutMs -gt 60000) { $TimeoutMs = 60000 }
+    $ps = [powershell]::Create()
+    try {
+        $null = $ps.AddScript({
+            param($cmd, $argList)
+            $out = @(& $cmd @argList 2>&1)
+            $code = $LASTEXITCODE
+            if ($null -eq $code) { $code = 1 }
+            $text = (@($out) | ForEach-Object {
+                if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() }
+                else { "$_" }
+            }) -join "`n"
+            [pscustomobject]@{ Code = [int]$code; Text = $text.Trim() }
+        }).AddArgument($Command).AddArgument($ArgumentList)
+        $handle = $ps.BeginInvoke()
+        if (-not $handle.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+            try { $ps.Stop() } catch { }
+            return [pscustomobject]@{ Code = 124; Text = '' }
+        }
+        $result = @($ps.EndInvoke($handle))
+        if ($result.Count -lt 1 -or $null -eq $result[0]) {
+            return [pscustomobject]@{ Code = 1; Text = '' }
+        }
+        return $result[0]
+    }
+    catch {
+        return [pscustomobject]@{ Code = 1; Text = '' }
+    }
+    finally {
+        $ps.Dispose()
+    }
 }
 
 function Get-SeedLastSeq {

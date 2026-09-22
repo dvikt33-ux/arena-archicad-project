@@ -63,6 +63,7 @@ if ($isWin) {
     Write-AsciiCrlf (Join-Path $shimDir 'git.cmd') @(
         '@echo off',
         'setlocal EnableExtensions',
+        'if defined FAKE_GIT_LOG >>"%FAKE_GIT_LOG%" echo %*',
         'echo %* | findstr /I /C:"--version" >nul',
         'if not errorlevel 1 goto version',
         'echo %* | findstr /I /C:"rev-parse" >nul',
@@ -137,6 +138,7 @@ if ($isWin) {
 else {
     $gitSh = @(
         '#!/bin/sh',
+        'if [ -n "$FAKE_GIT_LOG" ]; then echo "$*" >> "$FAKE_GIT_LOG"; fi',
         'if [ "$1" = "-C" ]; then shift 2; fi',
         'if [ "$FAKE_GIT_FAIL" = "1" ]; then',
         '  case "$1" in',
@@ -463,6 +465,8 @@ Assert ($patchCount -eq 1) "exactly one PATCH (actual=$patchCount)"
 Assert (-not (Test-Path -LiteralPath (Join-Path $bigOut '4.json'))) 'outbox removed after PATCH'
 Remove-Item Env:FAKE_GH_POST_FILE -ErrorAction SilentlyContinue
 Remove-Item Env:FAKE_GH_GET_FILE -ErrorAction SilentlyContinue
+
+. (Join-Path $here 'mailbox-checks.ps1')
 
 Write-Host ''
 Write-Host 'ALL SMOKE TESTS PASSED'

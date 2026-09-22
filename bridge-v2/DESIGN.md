@@ -181,8 +181,8 @@ function Write-FileAtomic($Path, $Text) {
 
 ## 11. Что откладывается (после v2 core, по решению пользователя)
 
-- Обратный канал ChatGPT→локалка: приватный mailbox-репо + HMAC(seq+nonce+ts),
-  подпись в DPAPI/Credential Manager; публичный Issue — только safe-выводы.
+- Обратный канал: код есть, live выключен. Транспорт — приватный mailbox,
+  доверие — автор коммита через GitHub API, не HMAC в чате. См. MAILBOX.md.
 - Подпись конвертов; проверка `author==owner` у комментариев (M-11) — временно
   остаётся ручной/на стороне ChatGPT.
 - Таймаут `gh` через job+kill (в v2 — backoff; жёсткий таймаут можно добавить

@@ -5,11 +5,14 @@
 # Run must return native command output (stdout+stderr merged). No shell strings,
 # no user input reaches these invocations — arguments are fixed constants.
 $script:Actions = @{
-    GIT_VERSION = @{ Public = $true;  OkExit = @(0);    Run = { param($wd) & git --version 2>&1 } }
-    GIT_STATUS  = @{ Public = $true;  OkExit = @(0);    Run = { param($wd) & git -C $wd status 2>&1 } }
-    GIT_LOG10   = @{ Public = $true;  OkExit = @(0);    Run = { param($wd) & git -C $wd log --oneline -10 2>&1 } }
+    # Critical = $false: these read-only actions run without a prompt.
+    # A future mutating action must set Critical = $true or it will be held.
+    # ArgNames is empty: remote args are rejected, and Run never receives them.
+    GIT_VERSION = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git --version 2>&1 } }
+    GIT_STATUS  = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd status 2>&1 } }
+    GIT_LOG10   = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd log --oneline -10 2>&1 } }
     # git diff exits 1 when there ARE changes — that is success, not failure.
-    GIT_DIFF    = @{ Public = $false; OkExit = @(0, 1); Run = { param($wd) & git -C $wd diff 2>&1 } }
+    GIT_DIFF    = @{ Public = $false; Critical = $false; ArgNames = @(); OkExit = @(0, 1); Run = { param($wd) & git -C $wd diff 2>&1 } }
 }
 
 function Invoke-Action {

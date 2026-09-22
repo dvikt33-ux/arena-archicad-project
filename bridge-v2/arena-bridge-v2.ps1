@@ -30,6 +30,7 @@ $ErrorActionPreference = 'Continue'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'arena-common.ps1')
 . (Join-Path $here 'actions.ps1')
+. (Join-Path $here 'mailbox.ps1')
 
 function Get-BridgeSetting {
     param($Bound, [string]$Name, [string]$EnvName, [scriptblock]$Default)
@@ -64,6 +65,8 @@ $script:OutboxDir  = Join-Path $script:ArenaRoot 'outbox'
 $script:ResultsDir = Join-Path $script:ArenaRoot 'results'
 $script:DoneDir    = Join-Path $script:InboxDir '.done'
 $script:DeadDir    = Join-Path $script:OutboxDir '.dead'
+$script:HeldDir    = Join-Path $script:ArenaRoot 'held'
+$script:ApproveDir = Join-Path $script:ArenaRoot 'approve'
 $script:StatePath  = Join-Path $script:ArenaRoot 'state.json'
 $script:AuditPath  = Join-Path $script:ArenaRoot ('audit-' + (Get-Date -Format 'yyyy-MM-dd') + '.jsonl')
 
@@ -416,11 +419,18 @@ foreach ($k in @($script:State.tasks.Keys)) {
         $pub = Build-PublicBody $seq $action 'FAILED' $null "$($t['reason'])"
         $msg = [ordered]@{ seq = $seq; action = $action; status = 'FAILED'; public = $true; public_body = $pub; attempts = 0 }
         Write-FileAtomic (Join-Path $script:OutboxDir "$seq.json") ($msg | ConvertTo-Json -Depth 6 -Compress)
+        if ($seq -gt [int]$script:State.last_seq) { $script:State.last_seq = $seq }
         Write-Audit @{ ev = 'RECOVERED'; seq = $seq; action = $action }
         $recoveredAny = $true
     }
 }
 if ($recoveredAny) { Save-State $script:StatePath $script:State }
+
+Initialize-MailboxFromConfig
+if ($null -eq $script:State.mailbox) {
+    $script:State.mailbox = @{ seen = @{}; rejected_seqs = @() }
+}
+$script:ActionPolicy = Get-ActionPolicyFromTable
 
 Write-Output ("ARENA_BRIDGE_LAST_SEQ=" + $script:State.last_seq)
 Write-Output ("ARENA_BRIDGE_LEGACY=" + $script:LegacyStateFile)
@@ -431,12 +441,19 @@ Write-Host "WorkDir:  $script:WorkDir"
 Write-Host "State:    $script:StatePath (last_seq=$($script:State.last_seq))"
 Write-Host "Legacy:   $script:LegacyStateFile"
 Write-Host "Inbox:    $script:InboxDir"
+if ($script:MailboxEnabled) {
+    Write-Host "Mailbox:  $script:MailboxRepo (poll $($script:MailboxPollSec)s, no prompt)"
+}
+else {
+    Write-Host 'Mailbox:  disabled'
+}
 Write-Host 'Press Ctrl+C to stop.'
 
 # ================= main loop =================
 while ($true) {
     try {
         Publish-Outbox
+        Invoke-MailboxSync
 
         $files = @(Get-ChildItem -LiteralPath $script:InboxDir -Filter '*.json' -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.BaseName -match '^\d+$' } |
@@ -454,6 +471,18 @@ while ($true) {
                 Write-Audit @{ ev = 'GAP'; have = $script:State.last_seq; saw = $seq }
                 Write-Host "GAP: expecting $($script:State.last_seq + 1), found $seq (waiting for missing tasks)"
                 break
+            }
+            $existing = $script:State.tasks["$seq"]
+            if ($existing) {
+                $st = [string]$existing['state']
+                $terminal = @('RUNNING', 'COMPLETED', 'PENDING_PUBLISH', 'PUBLISHED', 'FAILED', 'BLOCKED')
+                $entered = $false
+                foreach ($x in $terminal) { if ($st -eq $x) { $entered = $true } }
+                if ($entered) {
+                    Move-InboxFileAside $f 'already-ran'
+                    Write-Audit @{ ev = 'DUP_STATE'; seq = $seq; state = $st }
+                    continue
+                }
             }
             Process-Task $f $seq
         }

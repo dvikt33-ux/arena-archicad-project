@@ -63,40 +63,17 @@ if (-not (Test-Path -LiteralPath $stageDir)) {
     New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 }
 
-function Get-ProducerNextSeq {
-    $last = 0
-    if (Test-Path -LiteralPath $statePath) {
-        $last = [int](Read-State $statePath).last_seq
+$heldReservation = $false
+if ($Seq -lt 1) {
+    try {
+        $Seq = Reserve-TaskSeq -ArenaRoot $ArenaRoot -ProducerId 'mailbox-put'
     }
-    else {
-        $legacy = $script:LegacyStateFile
-        if (-not [string]::IsNullOrWhiteSpace($env:ARENA_BRIDGE_LEGACY_STATE_FILE)) {
-            $legacy = $env:ARENA_BRIDGE_LEGACY_STATE_FILE
-        }
-        $last = Get-SeedLastSeq $legacy
+    catch {
+        Write-Host 'REFUSED: seq'
+        exit 8
     }
-    $max = $last
-    foreach ($dir in @($inboxDir, $stageDir)) {
-        if (-not (Test-Path -LiteralPath $dir)) { continue }
-        $files = @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File -ErrorAction SilentlyContinue)
-        foreach ($f in $files) {
-            if ($f.BaseName -notmatch '^[1-9][0-9]{0,8}$') { continue }
-            $n = [int]$f.BaseName
-            if ($n -gt $max) { $max = $n }
-        }
-    }
-    $next = $max + 1
-    for ($i = 0; $i -lt 100; $i++) {
-        $name = "$next.json"
-        $inInbox = Test-Path -LiteralPath (Join-Path $inboxDir $name)
-        $inStage = Test-Path -LiteralPath (Join-Path $stageDir $name)
-        if (-not $inInbox -and -not $inStage) { return $next }
-        $next++
-    }
-    return 0
+    $heldReservation = $true
 }
-
-if ($Seq -lt 1) { $Seq = Get-ProducerNextSeq }
 if ($Seq -lt 1 -or $Seq -gt 999999999) {
     Write-Host 'REFUSED: seq'
     exit 8
@@ -120,6 +97,7 @@ if ([string]::IsNullOrWhiteSpace($json)) {
     exit 8
 }
 Write-FileAtomic $dest $json
+if ($heldReservation) { Complete-TaskReservation -ArenaRoot $ArenaRoot -Seq $Seq }
 Write-Host ("MAILBOX_QUEUED seq=" + $Seq + " task_id=" + $taskId + " action=" + $canonical)
 
 if ($DryRun -or -not $Push) { exit 0 }

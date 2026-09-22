@@ -26,7 +26,8 @@ function New-Dirs {
         (Join-Path $ArenaRoot 'outbox\.dead'),
         (Join-Path $ArenaRoot 'held'),
         (Join-Path $ArenaRoot 'approve'),
-        (Join-Path $ArenaRoot 'mailbox-staging')
+        (Join-Path $ArenaRoot 'mailbox-staging'),
+        (Join-Path $ArenaRoot 'reservations')
     )
     foreach ($p in $paths) {
         if (-not (Test-Path -LiteralPath $p)) {
@@ -212,4 +213,236 @@ function Get-SeedLastSeq {
     $n = 0
     if ($raw -match '^\d+$') { $n = [int]$raw }
     return $n
+}
+function Get-SeqLeaseSeconds {
+    # A reservation older than this, with no inbox file, is abandoned.
+    # It is not executed. Default 120 seconds. Tests can shorten it.
+    $raw = [Environment]::GetEnvironmentVariable('ARENA_SEQ_LEASE_SEC')
+    if ($raw -match '^[0-9]+$') {
+        $n = [int]$raw
+        if ($n -gt 3600) { return 3600 }
+        return $n
+    }
+    return 120
+}
+
+function Test-ReservationExpired {
+    param([string]$Path, [int]$LeaseSeconds)
+    # Unreadable or undated reservations are expired so a corrupt lease cannot
+    # block the queue. Abandonment is REJECTED, never execution.
+    $raw = ''
+    try { $raw = [System.IO.File]::ReadAllText($Path) } catch { return $true }
+    $m = [regex]::Match($raw, '"created"\s*:\s*"([^"]+)"')
+    if (-not $m.Success) { return $true }
+    $parsed = [datetime]::MinValue
+    $styles = [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal
+    $ok = [datetime]::TryParseExact(
+        $m.Groups[1].Value,
+        'yyyy-MM-ddTHH:mm:ssZ',
+        [System.Globalization.CultureInfo]::InvariantCulture,
+        $styles,
+        [ref]$parsed)
+    if (-not $ok) { return $true }
+    $age = ([datetime]::UtcNow - $parsed.ToUniversalTime()).TotalSeconds
+    if ($age -ge $LeaseSeconds) { return $true }
+    return $false
+}
+
+function Reserve-TaskSeq {
+    # One allocator for the router, the mailbox producer, and mailbox import.
+    # The reservation file is created with CreateNew, so two processes cannot
+    # take the same seq. The remote filename is not an execution slot.
+    param([string]$ArenaRoot, [string]$ProducerId = 'producer')
+    if ([string]::IsNullOrWhiteSpace($ArenaRoot)) { throw 'reserve: no root' }
+    $safeProducer = 'producer'
+    if ($ProducerId -match '^[A-Za-z0-9_-]{1,32}$') { $safeProducer = $ProducerId }
+    $mutex = $null
+    $acquired = $false
+    try {
+        try {
+            $mutex = New-Object System.Threading.Mutex($false, 'Local\ArenaBridge.Seq.v2')
+            try {
+                $acquired = $mutex.WaitOne(15000)
+            }
+            catch [System.Threading.AbandonedMutexException] {
+                $acquired = $true
+            }
+        }
+        catch {
+            $mutex = $null
+            $acquired = $false
+        }
+        if ($null -ne $mutex -and -not $acquired) { throw 'reserve: lock timeout' }
+        $inbox = Join-Path $ArenaRoot 'inbox'
+        $stage = Join-Path $ArenaRoot 'mailbox-staging'
+        $resDir = Join-Path $ArenaRoot 'reservations'
+        foreach ($d in @($inbox, $stage, $resDir)) {
+            if (-not (Test-Path -LiteralPath $d)) {
+                New-Item -ItemType Directory -Path $d -Force | Out-Null
+            }
+        }
+        $max = 0
+        $statePath = Join-Path $ArenaRoot 'state.json'
+        if (Test-Path -LiteralPath $statePath) {
+            $max = [int](Read-State $statePath).last_seq
+        }
+        else {
+            $legacy = $script:LegacyStateFile
+            $legacyEnv = [Environment]::GetEnvironmentVariable('ARENA_BRIDGE_LEGACY_STATE_FILE')
+            if (-not [string]::IsNullOrWhiteSpace($legacyEnv)) { $legacy = $legacyEnv }
+            if (-not [string]::IsNullOrWhiteSpace($legacy)) { $max = Get-SeedLastSeq $legacy }
+        }
+        foreach ($dir in @($inbox, $stage, $resDir)) {
+            $files = @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File -ErrorAction SilentlyContinue)
+            foreach ($f in $files) {
+                if ($f.BaseName -match '^[1-9][0-9]{0,8}$') {
+                    $n = [int]$f.BaseName
+                    if ($n -gt $max) { $max = $n }
+                }
+            }
+        }
+        for ($i = 1; $i -le 1000; $i++) {
+            $seq = $max + $i
+            if ($seq -lt 1 -or $seq -gt 999999999) { break }
+            $name = "$seq.json"
+            $inboxPath = Join-Path $inbox $name
+            $stagePath = Join-Path $stage $name
+            $resPath = Join-Path $resDir $name
+            if ((Test-Path -LiteralPath $inboxPath) -or (Test-Path -LiteralPath $stagePath) -or (Test-Path -LiteralPath $resPath)) {
+                continue
+            }
+            $created = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+            $json = '{"seq":' + $seq + ',"producer":"' + $safeProducer + '","created":"' + $created + '"}'
+            $fs = $null
+            try {
+                $fs = New-Object System.IO.FileStream($resPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+                $fs.Write($bytes, 0, $bytes.Length)
+                $fs.Close()
+                $fs = $null
+                return $seq
+            }
+            catch {
+                if ($null -ne $fs) {
+                    try { $fs.Dispose() } catch { }
+                    $fs = $null
+                }
+                continue
+            }
+        }
+        throw 'reserve: no free seq'
+    }
+    finally {
+        if ($acquired -and $null -ne $mutex) {
+            try { $mutex.ReleaseMutex() } catch { }
+        }
+        if ($null -ne $mutex) {
+            try { $mutex.Dispose() } catch { }
+        }
+    }
+}
+
+function Complete-TaskReservation {
+    param([string]$ArenaRoot, [int]$Seq)
+    if ([string]::IsNullOrWhiteSpace($ArenaRoot) -or $Seq -lt 1) { return }
+    $path = Join-Path (Join-Path $ArenaRoot 'reservations') ("$Seq.json")
+    if (Test-Path -LiteralPath $path) {
+        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Resolve-ExpiredReservations {
+    # Walk only the next missing seq. A live reservation holds the slot.
+    # An expired one becomes REJECTED with no execution, then the next task can run.
+    # A gap with no reservation is left alone so the local inbox still waits.
+    param([string]$ArenaRoot, $State, [string]$StatePath)
+    if ($null -eq $State -or [string]::IsNullOrWhiteSpace($ArenaRoot)) { return $State }
+    $resDir = Join-Path $ArenaRoot 'reservations'
+    if (-not (Test-Path -LiteralPath $resDir)) { return $State }
+    $lease = Get-SeqLeaseSeconds
+    $any = $false
+    $guard = 0
+    while ($guard -lt 1000) {
+        $guard++
+        $next = [int]$State.last_seq + 1
+        if ($next -lt 1) { break }
+        $inbox = Join-Path (Join-Path $ArenaRoot 'inbox') ("$next.json")
+        $res = Join-Path $resDir ("$next.json")
+        if (Test-Path -LiteralPath $inbox) {
+            if (Test-Path -LiteralPath $res) {
+                Remove-Item -LiteralPath $res -Force -ErrorAction SilentlyContinue
+            }
+            break
+        }
+        if (-not (Test-Path -LiteralPath $res)) { break }
+        if (-not (Test-ReservationExpired -Path $res -LeaseSeconds $lease)) { break }
+        if ($null -eq $State.tasks) { $State.tasks = @{} }
+        $State.tasks["$next"] = @{
+            action  = ''
+            state   = 'REJECTED'
+            status  = 'REJECTED'
+            reason  = 'reservation-abandoned'
+            updated = (Get-Date -Format o)
+        }
+        $State.last_seq = $next
+        Remove-Item -LiteralPath $res -Force -ErrorAction SilentlyContinue
+        Write-Host ("REJECTED [" + $next + "]: reservation-abandoned")
+        $any = $true
+    }
+    if ($any -and -not [string]::IsNullOrWhiteSpace($StatePath)) {
+        Save-State $StatePath $State
+    }
+    return $State
+}
+
+function Protect-PublicText {
+    # Last gate before a body can be stored for a public Issue. Fixed status
+    # words stay. Paths, token-shaped strings, and secret assignments do not.
+    param([string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return '' }
+    $safe = $Text
+    $safe = [regex]::Replace($safe, '[A-Za-z]:\\[^\s\r\n]+', '[redacted]')
+    $safe = [regex]::Replace($safe, '\\\\[^\s\r\n]+', '[redacted]')
+    $safe = [regex]::Replace($safe, '/(?:home|Users|tmp|var|private|opt|root)/[^\s\r\n]+', '[redacted]')
+    $safe = [regex]::Replace($safe, '(?i)\b(?:ghp_|github_pat_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]+', '[redacted]')
+    $safe = [regex]::Replace($safe, '(?i)\b(?:sk-|xox[baprs]-|AKIA)[A-Za-z0-9]+', '[redacted]')
+    $safe = [regex]::Replace($safe, '(?i)\b(?:password|secret|token|api_key)\s*=\s*\S+', '[redacted]')
+    return $safe
+}
+
+function Get-PublicResultText {
+    # Builds the only result text that may be published. Never returns raw stdout.
+    param([string]$Mode, [string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Mode) -or $Mode -eq 'none') { return '' }
+    if ($null -eq $Text) { $Text = '' }
+    if ($Mode -eq 'version') {
+        $m = [regex]::Match($Text, '(?m)^git version [0-9][0-9A-Za-z._-]{0,40}\s*$')
+        if (-not $m.Success) { return '' }
+        return $m.Value.Trim()
+    }
+    if ($Mode -eq 'status-summary') {
+        $branch = 'withheld'
+        $bm = [regex]::Match($Text, '(?m)^On branch ([A-Za-z0-9._/-]{1,64})\s*$')
+        if ($bm.Success) {
+            $candidate = $bm.Groups[1].Value
+            if ($candidate -notmatch '\.\.' -and $candidate -notmatch '[\\:]') { $branch = $candidate }
+        }
+        $tree = 'dirty'
+        if ($Text -match 'working tree clean') { $tree = 'clean' }
+        return ("branch: " + $branch + "`r`nworking tree: " + $tree)
+    }
+    if ($Mode -eq 'log-summary') {
+        $lines = @()
+        $split = $Text -split "`r`n|`n"
+        foreach ($line in @($split)) {
+            $trim = ([string]$line).Trim()
+            if ($trim -notmatch '^[0-9a-f]{7,40} [A-Za-z0-9 ._()/-]{1,80}$') { continue }
+            if ($trim -match '[\\:]|/(?:home|Users|tmp|var)/|(?i)password|secret|token|ghp_') { continue }
+            $lines += $trim
+            if ($lines.Count -ge 10) { break }
+        }
+        if ($lines.Count -eq 0) { return '' }
+        return ($lines -join "`r`n")
+    }
+    return ''
 }

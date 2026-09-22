@@ -124,18 +124,21 @@ function Build-PublicBody {
     $now = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $marker = "<!-- arena-task:$Seq -->"
     $head = "[LOCAL RESULT $Seq] $marker"
+    $text = ''
     if ($null -ne $Res -and -not $OmitResult) {
         $out = [string]$Res.Output
         if ($out.Length -gt 60000) { $out = $out.Substring(0, 60000) + "`r`n[truncated]" }
-        return "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nEXIT CODE:`r`n$($Res.ExitCode)`r`n`r`nRESULT:`r`n$out"
+        $text = "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nEXIT CODE:`r`n$($Res.ExitCode)`r`n`r`nRESULT:`r`n$out"
     }
-    if ($OmitResult) {
-        return "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nRESULT:`r`n(result not published: action is local-only)"
+    elseif ($OmitResult) {
+        $text = "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nRESULT:`r`n(result not published: action is local-only)"
     }
-    return "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nREASON:`r`n$Reason"
+    else {
+        $text = "$head`r`n`r`nTASK ID:`r`n$Seq`r`n`r`nACTION:`r`n$Action`r`n`r`nTIME:`r`n$now`r`n`r`nSTATUS:`r`n$Status`r`n`r`nREASON:`r`n$Reason"
+    }
+    return (Protect-PublicText $text)
 }
 
-# ---- inbox file handling ----
 function Move-InboxFileAside {
     param($File, [string]$Tag)
     $name = $File.BaseName + '.' + $Tag + '.' + [guid]::NewGuid().ToString('N').Substring(0, 8) + '.json'
@@ -359,11 +362,21 @@ function Process-Task {
     # COMPLETED persisted AFTER execution.
     Set-TaskState $Seq @{ action = $action; state = 'COMPLETED'; status = $status; exit = $res.ExitCode; result_file = $resultFile }
 
-    if ($script:Actions[$action].Public) {
-        $pub = Build-PublicBody $Seq $action $status $res ''
+    $mode = 'none'
+    if ($script:Actions[$action].ContainsKey('PublicResult')) {
+        $mode = [string]$script:Actions[$action].PublicResult
+    }
+    if (-not $script:Actions[$action].Public) { $mode = 'none' }
+    $safeText = ''
+    if ($mode -ne 'none') {
+        $safeText = Get-PublicResultText -Mode $mode -Text ([string]$res.Output)
+    }
+    if ($mode -eq 'none' -or [string]::IsNullOrWhiteSpace($safeText)) {
+        $pub = Build-PublicBody $Seq $action $status $res '' -OmitResult
     }
     else {
-        $pub = Build-PublicBody $Seq $action $status $res '' -OmitResult
+        $safeRes = [pscustomobject]@{ ExitCode = $res.ExitCode; Output = $safeText }
+        $pub = Build-PublicBody $Seq $action $status $safeRes ''
     }
 
     $msg = [ordered]@{ seq = $Seq; action = $action; status = $status; public = [bool]$script:Actions[$action].Public; public_body = $pub; attempts = 0 }
@@ -431,6 +444,7 @@ if ($null -eq $script:State.mailbox) {
     $script:State.mailbox = @{ seen = @{}; rejected_seqs = @() }
 }
 $script:ActionPolicy = Get-ActionPolicyFromTable
+$script:State = Resolve-ExpiredReservations -ArenaRoot $script:ArenaRoot -State $script:State -StatePath $script:StatePath
 
 Write-Output ("ARENA_BRIDGE_LAST_SEQ=" + $script:State.last_seq)
 Write-Output ("ARENA_BRIDGE_LEGACY=" + $script:LegacyStateFile)
@@ -452,6 +466,7 @@ Write-Host 'Press Ctrl+C to stop.'
 # ================= main loop =================
 while ($true) {
     try {
+        $script:State = Resolve-ExpiredReservations -ArenaRoot $script:ArenaRoot -State $script:State -StatePath $script:StatePath
         Publish-Outbox
         Invoke-MailboxSync
 
@@ -468,6 +483,9 @@ while ($true) {
                 continue
             }
             if ($seq -gt $script:State.last_seq + 1) {
+                # No inbox file and no expired reservation for the missing seq: wait.
+                # Smoke checks [5] and [6] depend on this. A live reservation holds
+                # the slot the same way. An expired one was already REJECTED above.
                 Write-Audit @{ ev = 'GAP'; have = $script:State.last_seq; saw = $seq }
                 Write-Host "GAP: expecting $($script:State.last_seq + 1), found $seq (waiting for missing tasks)"
                 break
@@ -475,7 +493,7 @@ while ($true) {
             $existing = $script:State.tasks["$seq"]
             if ($existing) {
                 $st = [string]$existing['state']
-                $terminal = @('RUNNING', 'COMPLETED', 'PENDING_PUBLISH', 'PUBLISHED', 'FAILED', 'BLOCKED')
+                $terminal = @('RUNNING', 'COMPLETED', 'PENDING_PUBLISH', 'PUBLISHED', 'FAILED', 'BLOCKED', 'REJECTED')
                 $entered = $false
                 foreach ($x in $terminal) { if ($st -eq $x) { $entered = $true } }
                 if ($entered) {

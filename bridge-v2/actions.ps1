@@ -1,18 +1,20 @@
 # actions.ps1 — action table + executor + repo guard for Arena Bridge v2.
 # Dot-source after arena-common.ps1.
 
-# Action table: action_id -> { Public = may publish to public Issue; Run = scriptblock($WorkDir) }.
+# Action table: action_id -> { Public; PublicResult; Run = scriptblock($WorkDir) }.
 # Run must return native command output (stdout+stderr merged). No shell strings,
 # no user input reaches these invocations — arguments are fixed constants.
+# PublicResult is the only result text that may reach a public Issue.
+# Raw stdout is never published. none omits the result.
 $script:Actions = @{
     # Critical = $false: these read-only actions run without a prompt.
     # A future mutating action must set Critical = $true or it will be held.
     # ArgNames is empty: remote args are rejected, and Run never receives them.
-    GIT_VERSION = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git --version 2>&1 } }
-    GIT_STATUS  = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd status 2>&1 } }
-    GIT_LOG10   = @{ Public = $true;  Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd log --oneline -10 2>&1 } }
+    GIT_VERSION = @{ Public = $true;  PublicResult = 'version';        Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git --version 2>&1 } }
+    GIT_STATUS  = @{ Public = $true;  PublicResult = 'status-summary'; Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd status 2>&1 } }
+    GIT_LOG10   = @{ Public = $true;  PublicResult = 'log-summary';     Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd log --oneline -10 2>&1 } }
     # git diff exits 1 when there ARE changes — that is success, not failure.
-    GIT_DIFF    = @{ Public = $false; Critical = $false; ArgNames = @(); OkExit = @(0, 1); Run = { param($wd) & git -C $wd diff 2>&1 } }
+    GIT_DIFF    = @{ Public = $false; PublicResult = 'none';            Critical = $false; ArgNames = @(); OkExit = @(0, 1); Run = { param($wd) & git -C $wd diff 2>&1 } }
 }
 
 function Invoke-Action {

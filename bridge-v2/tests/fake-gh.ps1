@@ -77,6 +77,24 @@ if ($line -match '/commits') {
     [Console]::Out.WriteLine('[]')
     exit 0
 }
+if ($line -match '/collaborators') {
+    if ($env:FAKE_GH_COLLAB_FAIL -eq '1') { exit 1 }
+    if (-not [string]::IsNullOrWhiteSpace($dir)) {
+        $f = Join-Path $dir 'collaborators.json'
+        if (Test-Path -LiteralPath $f) { Write-RawFile $f; exit 0 }
+    }
+    [Console]::Out.WriteLine('[{"login":"dvikt33-ux","permissions":{"admin":true,"maintain":true,"push":true,"triage":true,"pull":true}}]')
+    exit 0
+}
+if ($line -match '/keys') {
+    if ($env:FAKE_GH_KEYS_FAIL -eq '1') { exit 1 }
+    if (-not [string]::IsNullOrWhiteSpace($dir)) {
+        $f = Join-Path $dir 'keys.json'
+        if (Test-Path -LiteralPath $f) { Write-RawFile $f; exit 0 }
+    }
+    [Console]::Out.WriteLine('[]')
+    exit 0
+}
 if ($line -match 'repos/' -and $line -notmatch '/contents/' -and $line -notmatch '/commits' -and $line -notmatch '/issues' -and $line -notmatch '/comments') {
     if (-not [string]::IsNullOrWhiteSpace($dir)) {
         $f = Join-Path $dir 'repo.json'

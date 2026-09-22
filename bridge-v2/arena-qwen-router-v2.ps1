@@ -162,34 +162,22 @@ catch {
 }
 
 try {
-    $lastSeq = 0
-    if (Test-Path -LiteralPath $statePath) {
-        try {
-            $lastSeq = [int](Read-State $statePath).last_seq
-        }
-        catch {
-            Write-Host "FATAL: state.json unreadable: $($_.Exception.Message)"
-            exit 7
-        }
+    $seq = 0
+    try {
+        $seq = Reserve-TaskSeq -ArenaRoot $ArenaRoot -ProducerId 'router'
     }
-    else {
-        # Same seed rule as the bridge, so seq stays monotonic across first runs.
-        $lastSeq = Get-SeedLastSeq $script:LegacyStateFile
+    catch {
+        Write-Host "FATAL: could not reserve seq: $($_.Exception.Message)"
+        exit 7
     }
-
-    $maxInbox = 0
-    Get-ChildItem -LiteralPath $inboxDir -Filter '*.json' -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.BaseName -match '^\d+$' } |
-        ForEach-Object { $n = [int]$_.BaseName; if ($n -gt $maxInbox) { $maxInbox = $n } }
-
-    $seq = [Math]::Max($lastSeq, $maxInbox) + 1
-    for ($i = 0; $i -lt 100; $i++) {
-        if (-not (Test-Path -LiteralPath (Join-Path $inboxDir "$seq.json"))) { break }
-        $seq++
+    if ($seq -lt 1) {
+        Write-Host 'FATAL: could not reserve seq'
+        exit 7
     }
 
     $envObj = [ordered]@{ seq = $seq; action = $action; ts = (Get-Date -Format o); request = $request }
     Write-FileAtomic (Join-Path $inboxDir "$seq.json") ($envObj | ConvertTo-Json -Depth 5 -Compress)
+    Complete-TaskReservation -ArenaRoot $ArenaRoot -Seq $seq
 
     Write-Host 'SENT TO BRIDGE:'
     Write-Host "$seq|$action"

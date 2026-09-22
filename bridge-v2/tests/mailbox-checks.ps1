@@ -65,10 +65,19 @@ function Set-MailConfig {
 }
 
 function Set-RepoFixture {
-    param([string]$Dir, [bool]$Private, [string]$FullName)
+    param(
+        [string]$Dir,
+        [bool]$Private,
+        [string]$FullName,
+        [bool]$Fork = $false,
+        [string]$Owner = 'dvikt33-ux'
+    )
     $flag = 'false'
     if ($Private) { $flag = 'true' }
-    Write-Utf8 (Join-Path $Dir 'repo.json') ('{"full_name":"' + $FullName + '","private":' + $flag + '}')
+    $forkFlag = 'false'
+    if ($Fork) { $forkFlag = 'true' }
+    $json = '{"full_name":"' + $FullName + '","private":' + $flag + ',"fork":' + $forkFlag + ',"owner":{"login":"' + $Owner + '"}}'
+    Write-Utf8 (Join-Path $Dir 'repo.json') $json
 }
 
 function Set-RemoteTask {
@@ -156,20 +165,29 @@ Assert ($r.Out -match 'MAILBOX rejected \[14\] unknown-action') 'unknown action 
 Assert ([int](Get-MailState $box).last_seq -eq 13) 'unknown action did not advance seq'
 Assert ((Read-Log $env:FAKE_GIT_LOG) -notmatch 'status') 'unknown action did not run git'
 
-Write-Host '[16] forged author is not executed'
+Write-Host '[16] spoofed author login does not authorize when a writer is extra'
 Reset-Logs
 $forged = New-Envelope 14 'GIT_STATUS' '33333333-3333-3333-3333-333333333333'
-Set-RemoteTask $mailDir 14 $forged 'attacker' 'attacker'
+Set-RemoteTask $mailDir 14 $forged 'dvikt33-ux' 'dvikt33-ux'
+$extra = '[{"login":"dvikt33-ux","permissions":{"admin":true,"maintain":true,"push":true,"triage":true,"pull":true}},{"login":"attacker","permissions":{"admin":false,"maintain":false,"push":true,"triage":false,"pull":true}}]'
+Write-Utf8 (Join-Path $mailDir 'collaborators.json') $extra
 $r = Invoke-Bridge -NoGithub -ArenaRoot $box
-Assert ($r.Out -match 'MAILBOX rejected \[14\] forged-author') 'forged author rejected'
-Assert ([int](Get-MailState $box).last_seq -eq 13) 'forged task did not run'
+Remove-Item -LiteralPath (Join-Path $mailDir 'collaborators.json') -Force -ErrorAction SilentlyContinue
+Assert ($r.Out -match 'MAILBOX refused extra-writer') 'extra writer refused'
+Assert ($r.Out -notmatch 'MAILBOX accepted') 'spoofed source did not accept a task'
+Assert ([int](Get-MailState $box).last_seq -eq 13) 'spoofed source did not run'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'spoofed source did not run git'
 
-Write-Host '[16b] untrusted committer is not executed'
+Write-Host '[16b] a deploy key is not authorization'
 Reset-Logs
 $bot = New-Envelope 14 'GIT_STATUS' '44444444-4444-4444-4444-444444444444'
-Set-RemoteTask $mailDir 14 $bot 'dvikt33-ux' 'someone-else'
+Set-RemoteTask $mailDir 14 $bot 'dvikt33-ux' 'dvikt33-ux'
+Write-Utf8 (Join-Path $mailDir 'keys.json') '[{"id":1,"key":"ssh-ed25519 AAAA","read_only":true}]'
 $r = Invoke-Bridge -NoGithub -ArenaRoot $box
-Assert ($r.Out -match 'untrusted-committer') 'foreign committer rejected'
+Remove-Item -LiteralPath (Join-Path $mailDir 'keys.json') -Force -ErrorAction SilentlyContinue
+Assert ($r.Out -match 'MAILBOX refused deploy-key') 'deploy key refused'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'deploy key did not run git'
+Assert ([int](Get-MailState $box).last_seq -eq 13) 'deploy key did not advance seq'
 
 Write-Host '[21] bad args are not a shell command'
 Reset-Logs
@@ -238,28 +256,48 @@ $r = Invoke-Bridge -NoGithub -ArenaRoot $box
 Assert ([int](Get-MailState $box).last_seq -eq 13) 'old seq left last_seq unchanged'
 Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'old seq did not run git again'
 
-Write-Host '[19] gap is not executed; the next seq runs; the later one waits'
-Reset-Logs
-$env15 = New-Envelope 15 'GIT_LOG10' '99999999-9999-9999-9999-999999999999'
-Set-RemoteTask $mailDir 15 $env15
-Set-Index $mailDir @('15.json')
-$r = Invoke-Bridge -NoGithub -ArenaRoot $box
-Assert ($r.Out -match 'MAILBOX GAP: expecting 14, saw 15') 'gap detected'
-Assert ([int](Get-MailState $box).last_seq -eq 13) 'gap did not execute'
-Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'gap did not run git'
-$env14 = New-Envelope 14 'GIT_VERSION' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-Set-RemoteTask $mailDir 14 $env14 'dvikt33-ux' 'web-flow'
+Write-Host '[19] a rejected remote task does not block the next valid task'
+$gapRoot = New-MailRoot 12
+$badId = '99999999-9999-9999-9999-999999999999'
+$goodId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+$created19 = (Get-Date).ToUniversalTime().AddMinutes(-1).ToString('yyyy-MM-ddTHH:mm:ssZ')
+$expires19 = (Get-Date).ToUniversalTime().AddMinutes(60).ToString('yyyy-MM-ddTHH:mm:ssZ')
+$bad19 = '{"schema":1,"seq":14,"task_id":"' + $badId + '","action":"GIT_STATUS","args":{},"author":"dvikt33-ux","shell":"powershell -Command calc","created_at":"' + $created19 + '","expires_at":"' + $expires19 + '"}'
+$good19 = New-Envelope 15 'GIT_VERSION' $goodId
+Set-RemoteTask $mailDir 14 $bad19
+Set-RemoteTask $mailDir 15 $good19
 Set-Index $mailDir @('14.json', '15.json')
 Reset-Logs
-$r = Invoke-Bridge -NoGithub -ArenaRoot $box
-Assert ($r.Out -match 'COMPLETED \[14\]: GIT_VERSION') 'next seq ran'
-Assert ($r.Out -notmatch 'COMPLETED \[15\]') 'later seq waited'
-Assert ([int](Get-MailState $box).last_seq -eq 14) 'seq advanced only to 14'
+$r = Invoke-Bridge -NoGithub -ArenaRoot $gapRoot
+Assert ($r.Out -match 'MAILBOX rejected \[14\] unknown-field') 'bad remote seq rejected'
+Assert ($r.Out -notmatch 'powershell') 'shell text is not printed'
+Assert ($r.Out -notmatch 'calc') 'shell payload is not printed'
+Assert ($r.Out -match 'COMPLETED \[13\]: GIT_VERSION') 'valid next remote task executed'
+Assert ([int](Get-MailState $gapRoot).last_seq -eq 13) 'queue advanced only for the valid task'
+$gapGit = Read-Log $env:FAKE_GIT_LOG
+Assert ($gapGit -match '--version') 'valid action ran'
+Assert ($gapGit -notmatch 'status') 'rejected task did not run git status'
+$gapSeen = (Get-MailState $gapRoot).mailbox.seen.PSObject.Properties[$badId].Value
+Assert ([string]$gapSeen.disposition -eq 'rejected') 'rejected task is terminal'
+Assert ([string]$gapSeen.reason -eq 'unknown-field') 'rejected reason recorded'
+$gapAuditPath = Join-Path $gapRoot ('audit-' + (Get-Date -Format 'yyyy-MM-dd') + '.jsonl')
+$gapAudit = ''
+if (Test-Path -LiteralPath $gapAuditPath) { $gapAudit = [System.IO.File]::ReadAllText($gapAuditPath) }
+Assert ($gapAudit -notmatch 'calc') 'audit does not contain the shell payload'
+Assert ($gapAudit -notmatch 'powershell') 'audit does not contain the shell text'
+
+Write-Host '[19b] replay of a rejected task does not change the result'
+$mutated = New-Envelope 14 'GIT_STATUS' $badId
+Set-RemoteTask $mailDir 14 $mutated
+Set-Index $mailDir @('14.json', '15.json')
 Reset-Logs
-$r = Invoke-Bridge -NoGithub -ArenaRoot $box
-Assert ($r.Out -match 'COMPLETED \[15\]: GIT_LOG10') 'later seq ran on the next pass'
-Assert ([int](Get-MailState $box).last_seq -eq 15) 'seq advanced to 15'
-Assert ((Read-Log $env:FAKE_GIT_LOG) -match 'log') 'only the waiting action ran'
+$r = Invoke-Bridge -NoGithub -ArenaRoot $gapRoot
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'replay did not run git'
+Assert ([int](Get-MailState $gapRoot).last_seq -eq 13) 'replay did not advance seq'
+$gapSeen2 = (Get-MailState $gapRoot).mailbox.seen.PSObject.Properties[$badId].Value
+Assert ([string]$gapSeen2.reason -eq 'unknown-field') 'replay did not change the reason'
+Assert ([string]$gapSeen2.disposition -eq 'rejected') 'replay stayed rejected'
+Set-Index $mailDir @('13.json')
 
 Write-Host '[24] publish after execution does not run the action again'
 Reset-Logs
@@ -480,6 +518,207 @@ foreach ($name in $names) {
     if ($text -match 'powershell(\.exe)?\s+-Command') { throw "ASSERT FAILED: powershell -Command in $name" }
 }
 Write-Host '  ok: no remote command execution in scripts'
+
+
+Write-Host '[36] commit author is not the allow decision'
+Set-MailConfig $cfg $true $mailRepo
+Set-RepoFixture $mailDir $true $mailRepo
+Remove-Item -LiteralPath (Join-Path $mailDir 'collaborators.json') -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath (Join-Path $mailDir 'keys.json') -Force -ErrorAction SilentlyContinue
+$authorRoot = New-MailRoot 90
+$authorEnv = New-Envelope 91 'GIT_STATUS' 'abababab-abab-abab-abab-abababababab'
+Set-RemoteTask $mailDir 91 $authorEnv 'attacker' 'attacker'
+Set-Index $mailDir @('91.json')
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $authorRoot
+Assert ($r.Out -match 'COMPLETED \[91\]: GIT_STATUS') 'clean permissions run the task even if commit author is spoofed'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -match 'status') 'git ran without consulting commit author'
+
+Write-Host '[41] unreadable collaborators refuse the poll'
+$unread = New-MailRoot 12
+$env41 = New-Envelope 13 'GIT_STATUS' 'cdcdcdcd-cdcd-cdcd-cdcd-cdcdcdcdcdcd'
+Set-RemoteTask $mailDir 13 $env41
+Set-Index $mailDir @('13.json')
+$env:FAKE_GH_COLLAB_FAIL = '1'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $unread
+Remove-Item Env:FAKE_GH_COLLAB_FAIL -ErrorAction SilentlyContinue
+Assert ($r.Out -match 'MAILBOX refused collaborators-unreadable') 'unreadable collaborators refuse'
+Assert ([int](Get-MailState $unread).last_seq -eq 12) 'unreadable collaborators did not execute'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'unreadable collaborators did not run git'
+
+Write-Host '[44] unreadable deploy keys refuse the poll'
+$env:FAKE_GH_KEYS_FAIL = '1'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $unread
+Remove-Item Env:FAKE_GH_KEYS_FAIL -ErrorAction SilentlyContinue
+Assert ($r.Out -match 'MAILBOX refused keys-unreadable') 'unreadable keys refuse'
+Assert ([int](Get-MailState $unread).last_seq -eq 12) 'unreadable keys did not execute'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'unreadable keys did not run git'
+
+Write-Host '[43] a fork is not a mailbox'
+Set-RepoFixture $mailDir $true $mailRepo -Fork $true
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $unread
+Set-RepoFixture $mailDir $true $mailRepo
+Assert ($r.Out -match 'MAILBOX refused fork') 'fork refused'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'fork did not run git'
+
+Write-Host '[46] owner must be the expected account'
+Set-RepoFixture $mailDir $true $mailRepo -Owner 'attacker'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $unread
+Set-RepoFixture $mailDir $true $mailRepo
+Assert ($r.Out -match 'MAILBOX refused owner-mismatch') 'wrong owner refused'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'wrong owner did not run git'
+
+Write-Host '[47] a missing fork field fails closed'
+Write-Utf8 (Join-Path $mailDir 'repo.json') ('{"full_name":"' + $mailRepo + '","private":true,"owner":{"login":"dvikt33-ux"}}')
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $unread
+Set-RepoFixture $mailDir $true $mailRepo
+Assert ($r.Out -match 'MAILBOX refused fork-unknown') 'missing fork field refused'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'missing fork field did not run git'
+
+Write-Host '[45] a pull-only collaborator is not an extra writer'
+$pull = '[{"login":"dvikt33-ux","permissions":{"admin":true,"maintain":true,"push":true,"triage":true,"pull":true}},{"login":"reviewer","permissions":{"admin":false,"maintain":false,"push":false,"triage":true,"pull":true}}]'
+Write-Utf8 (Join-Path $mailDir 'collaborators.json') $pull
+$pullRoot = New-MailRoot 92
+$pullEnv = New-Envelope 93 'GIT_VERSION' 'bcbcbcbc-bcbc-bcbc-bcbc-bcbcbcbcbcbc'
+Set-RemoteTask $mailDir 93 $pullEnv
+Set-Index $mailDir @('93.json')
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $pullRoot
+Remove-Item -LiteralPath (Join-Path $mailDir 'collaborators.json') -Force -ErrorAction SilentlyContinue
+Assert ($r.Out -match 'COMPLETED \[93\]: GIT_VERSION') 'pull-only collaborator does not block the owner'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -match '--version') 'pull-only case still ran the allowlisted action'
+
+Write-Host '[38] two producers cannot take the same seq'
+Set-MailConfig $cfg $false $mailRepo
+$raceRoot = New-MailRoot 12
+$commonPath = Join-Path $root 'arena-common.ps1'
+$raceScript = {
+    param($CommonPath, $RootDir, $Producer)
+    . $CommonPath
+    $seq = Reserve-TaskSeq -ArenaRoot $RootDir -ProducerId $Producer
+    $dir = Join-Path $RootDir 'inbox'
+    $path = Join-Path $dir ($seq.ToString() + '.json')
+    $fs = $null
+    try {
+        $fs = New-Object System.IO.FileStream($path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes(('{"seq":' + $seq + ',"producer":"' + $Producer + '"}'))
+        $fs.Write($bytes, 0, $bytes.Length)
+        $fs.Close()
+        $fs = $null
+    }
+    catch {
+        if ($null -ne $fs) { try { $fs.Dispose() } catch { } }
+        throw
+    }
+    Complete-TaskReservation -ArenaRoot $RootDir -Seq $seq
+    return $seq
+}
+$jobA = Start-Job -ScriptBlock $raceScript -ArgumentList $commonPath, $raceRoot, 'prod-a'
+$jobB = Start-Job -ScriptBlock $raceScript -ArgumentList $commonPath, $raceRoot, 'prod-b'
+Wait-Job -Job $jobA, $jobB -Timeout 60 | Out-Null
+if ($jobA.State -ne 'Completed' -or $jobB.State -ne 'Completed') {
+    $errA = ''
+    $errB = ''
+    try { $errA = (Receive-Job $jobA -ErrorAction SilentlyContinue | Out-String) } catch { $errA = "$_" }
+    try { $errB = (Receive-Job $jobB -ErrorAction SilentlyContinue | Out-String) } catch { $errB = "$_" }
+    throw "ASSERT FAILED: reserve jobs a=$($jobA.State) b=$($jobB.State) ea=$errA eb=$errB"
+}
+$seqA = [int](Receive-Job $jobA)
+$seqB = [int](Receive-Job $jobB)
+Remove-Job -Job $jobA, $jobB -Force
+Assert ($seqA -ne $seqB) "two producers got different seqs ($seqA,$seqB)"
+Assert ($seqA -gt 12 -and $seqB -gt 12) 'reserved seqs continue from last_seq'
+$fileA = Get-Content -LiteralPath (Join-Path $raceRoot ("inbox/" + $seqA + ".json")) -Raw
+$fileB = Get-Content -LiteralPath (Join-Path $raceRoot ("inbox/" + $seqB + ".json")) -Raw
+Assert ($fileA -match 'prod-a' -and $fileB -match 'prod-b') 'each producer wrote only its own seq'
+Assert (-not (Test-Path -LiteralPath (Join-Path $raceRoot 'reservations/13.json'))) 'completed reservations do not linger on seq 13'
+
+Write-Host '[39] an expired reservation is not executed and does not block the next task'
+$crashRoot = New-MailRoot 12
+$crashRes = Join-Path $crashRoot 'reservations'
+New-Item -ItemType Directory -Path $crashRes -Force | Out-Null
+Write-Utf8 (Join-Path $crashRes '13.json') '{"seq":13,"producer":"crashed","created":"2020-01-01T00:00:00Z"}'
+Write-Utf8 (Join-Path $crashRoot 'inbox/14.json') '{"seq":14,"action":"GIT_VERSION","ts":"2026-09-22T12:00:00Z","request":"local"}'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $crashRoot
+$crashState = Get-MailState $crashRoot
+Assert ([string]$crashState.tasks.'13'.status -eq 'REJECTED') 'abandoned reservation is terminal'
+Assert ([string]$crashState.tasks.'13'.reason -eq 'reservation-abandoned') 'abandoned reason'
+Assert ([int]$crashState.last_seq -eq 14) 'next task was not blocked'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -match '--version') 'next task ran'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -notmatch 'status') 'abandoned slot did not run a command'
+Assert (-not (Test-Path -LiteralPath (Join-Path $crashRoot 'results/result-13.txt'))) 'abandoned slot has no result body'
+
+Write-Host '[40] a live reservation holds the slot'
+$liveRoot = New-MailRoot 12
+$liveRes = Join-Path $liveRoot 'reservations'
+New-Item -ItemType Directory -Path $liveRes -Force | Out-Null
+$liveStamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+Write-Utf8 (Join-Path $liveRes '13.json') ('{"seq":13,"producer":"live","created":"' + $liveStamp + '"}')
+Write-Utf8 (Join-Path $liveRoot 'inbox/14.json') '{"seq":14,"action":"GIT_VERSION","ts":"2026-09-22T12:00:00Z","request":"local"}'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $liveRoot
+Assert ([int](Get-MailState $liveRoot).last_seq -eq 12) 'live reservation did not skip ahead'
+Assert (Test-Path -LiteralPath (Join-Path $liveRoot 'inbox/14.json')) 'later local file still waiting'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'live reservation did not execute the later file'
+Assert ($r.Out -notmatch 'reservation-abandoned') 'live reservation was not abandoned'
+
+Write-Host '[42] public GIT_STATUS is a summary; GIT_DIFF stays unpublished'
+$pubRoot = New-MailRoot 0
+$statusFile = Join-Path $tmp 'dirty-status.txt'
+$secret = ('gh' + 'p_') + ('a' * 36)
+$statusText = "On branch main`r`nChanges not staged for commit:`r`n`tmodified:   C:\Users\secret\repo\token.txt`r`npassword=hunter2`r`n" + $secret + "`r`n"
+Write-Utf8 $statusFile $statusText
+$env:FAKE_GIT_STATUS_FILE = $statusFile
+Write-Utf8 (Join-Path $pubRoot 'inbox/1.json') '{"seq":1,"action":"GIT_STATUS","ts":"2026-09-22T12:00:00Z","request":"local"}'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $pubRoot
+Remove-Item Env:FAKE_GIT_STATUS_FILE -ErrorAction SilentlyContinue
+$pubRaw = [System.IO.File]::ReadAllText((Join-Path $pubRoot 'outbox/1.json'))
+$pubObj = $pubRaw | ConvertFrom-Json
+Assert ($pubObj.public_body -match 'working tree: dirty') 'status public body is a summary'
+Assert ($pubObj.public_body -match 'branch: main') 'safe branch name is kept'
+Assert ($pubObj.public_body -notmatch 'On branch') 'raw status stdout is not published'
+Assert ($pubObj.public_body -notmatch 'C:\\Users') 'absolute path is not published'
+Assert ($pubObj.public_body -notmatch 'token\.txt') 'sensitive file name is not published'
+Assert ($pubObj.public_body -notmatch 'hunter2') 'secret assignment is not published'
+Assert ($pubObj.public_body -notmatch 'password') 'secret assignment label is not published'
+Assert ($pubObj.public_body -notmatch ([regex]::Escape($secret))) 'token-shaped text is not published'
+Assert ($pubRaw -notmatch 'C:\\\\Users') 'absolute path is not in the outbox file'
+$localPub = [System.IO.File]::ReadAllText((Join-Path $pubRoot 'results/result-1.txt'))
+Assert ($localPub -match 'token\.txt') 'local result still has the raw status'
+Write-Utf8 (Join-Path $pubRoot 'inbox/2.json') '{"seq":2,"action":"GIT_DIFF","ts":"2026-09-22T12:00:00Z","request":"local"}'
+$r = Invoke-Bridge -NoGithub -ArenaRoot $pubRoot
+$diffObj = Get-Content -LiteralPath (Join-Path $pubRoot 'outbox/2.json') -Raw | ConvertFrom-Json
+Assert ($diffObj.public -eq $false) 'GIT_DIFF remains unpublished'
+Assert ($diffObj.public_body -match 'local-only') 'GIT_DIFF public body omits the diff'
+Assert ($diffObj.public_body -notmatch 'fake-diff-line') 'diff text is not published'
+. (Join-Path $root 'arena-common.ps1')
+$logSummary = Get-PublicResultText -Mode 'log-summary' -Text ("abc1234 ok subject`n0123abcd see C:\Users\secret\x")
+Assert ($logSummary -match 'abc1234 ok subject') 'safe log line can be summarized'
+Assert ($logSummary -notmatch 'C:') 'log summary drops a path line'
+Assert ($logSummary -notmatch 'secret') 'log summary drops a sensitive name'
+
+Write-Host '[48] producers share the reservation function'
+$routerText = [System.IO.File]::ReadAllText((Join-Path $root 'arena-qwen-router-v2.ps1'))
+$putText = [System.IO.File]::ReadAllText((Join-Path $root 'arena-mailbox-put.ps1'))
+$mailText = [System.IO.File]::ReadAllText((Join-Path $root 'mailbox.ps1'))
+Assert ($routerText -match 'Reserve-TaskSeq') 'router reserves a seq'
+Assert ($putText -match 'Reserve-TaskSeq') 'mailbox producer reserves a seq'
+Assert ($mailText -match 'Reserve-TaskSeq') 'mailbox import reserves a seq'
+Assert ($mailText -notmatch 'Test-MailboxTrust') 'commit author is not the allow function'
+Assert ($routerText -notmatch 'maxInbox') 'router no longer allocates a seq on its own'
+
+Set-Index $mailDir @()
+Set-MailConfig $cfg $false $mailRepo
+Remove-Item Env:FAKE_GH_COLLAB_FAIL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_KEYS_FAIL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GIT_STATUS_FILE -ErrorAction SilentlyContinue
 
 Remove-Item Env:ARENA_MAILBOX_CONFIG -ErrorAction SilentlyContinue
 Remove-Item Env:FAKE_GH_FAIL -ErrorAction SilentlyContinue

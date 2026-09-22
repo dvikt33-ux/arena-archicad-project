@@ -155,36 +155,48 @@ function Invoke-GhApi {
     return [pscustomobject]@{ Code = $code; Text = $text.Trim() }
 }
 
-function Get-JsonId {
+function Test-CommentId {
+    # GitHub comment ids no longer fit in Int32 (Issue #1 ids are ~5.7e9).
+    # Keep them as digit strings so Windows PowerShell 5.1 cannot overflow them.
+    param([string]$Id)
+    if ([string]::IsNullOrWhiteSpace($Id)) { return $false }
+    return ($Id -match '^\d+$' -and $Id -ne '0')
+}
+
+function Get-CommentIdFromText {
+    # Accept either a bare id (`gh` --jq .id) or a comment object.
+    # The comment id is the first "id" field; user.id comes later.
     param([string]$Text)
-    if ([string]::IsNullOrWhiteSpace($Text)) { return 0 }
-    $id = 0
-    if ([int]::TryParse($Text.Trim(), [ref]$id) -and $id -gt 0) { return $id }
-    try {
-        $parsed = $Text | ConvertFrom-Json
-        if ($null -ne $parsed -and [int]::TryParse([string]$parsed.id, [ref]$id) -and $id -gt 0) { return $id }
-    }
-    catch { }
-    return 0
+    if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
+    $trim = $Text.Trim()
+    if ($trim -match '^\d+$' -and $trim -ne '0') { return $trim }
+    $m = [regex]::Match($Text, '"id"\s*:\s*"?(\d+)"?')
+    if ($m.Success -and $m.Groups[1].Value -ne '0') { return $m.Groups[1].Value }
+    return ''
 }
 
 function Get-CommentIdByMarker {
+    # Returns the comment id as a digit string, or '' if none.
+    # Do not ConvertFrom-Json the id: on Windows PowerShell 5.1 a number above
+    # Int32.MaxValue becomes a Double, and [int]::TryParse then fails even
+    # though gh exited 0. That failure used to POST a duplicate comment.
     param([int]$Seq)
     $marker = "<!-- arena-task:$Seq -->"
-    $r = Invoke-GhApi @('api', "repos/$script:Repo/issues/$script:Issue/comments")
-    if ($r.Code -ne 0 -or [string]::IsNullOrWhiteSpace($r.Text) -or $r.Text -eq '[]') { return 0 }
-    $parsed = $null
-    try { $parsed = $r.Text | ConvertFrom-Json } catch { return 0 }
-    foreach ($c in @($parsed)) {
-        if ($null -eq $c) { continue }
-        $body = ''
-        if ($c.PSObject.Properties.Name -contains 'body') { $body = [string]$c.body }
-        if ($body.Contains($marker)) {
-            $id = 0
-            if ([int]::TryParse([string]$c.id, [ref]$id) -and $id -gt 0) { return $id }
-        }
-    }
-    return 0
+    $r = Invoke-GhApi @('api', "repos/$script:Repo/issues/$script:Issue/comments?per_page=100")
+    if ($r.Code -ne 0 -or [string]::IsNullOrWhiteSpace($r.Text) -or $r.Text.Trim() -eq '[]') { return '' }
+    $idx = $r.Text.IndexOf($marker)
+    if ($idx -lt 0) { return '' }
+    $before = $r.Text.Substring(0, $idx)
+    # Comment shape is "id", then "user": { "id": ... }, then "body" with the marker.
+    # The id immediately before "user" is the comment id, not the nested user id.
+    $userIdx = $before.LastIndexOf('"user"')
+    $head = $before
+    if ($userIdx -ge 0) { $head = $before.Substring(0, $userIdx) }
+    $found = [regex]::Matches($head, '"id"\s*:\s*"?(\d+)"?')
+    if ($found.Count -eq 0) { return '' }
+    $id = $found[$found.Count - 1].Groups[1].Value
+    if (-not (Test-CommentId $id)) { return '' }
+    return $id
 }
 
 function Publish-Comment {
@@ -194,16 +206,23 @@ function Publish-Comment {
     Write-FileAtomic $payloadPath $payload
     try {
         $existing = Get-CommentIdByMarker $Seq
-        if ($existing -gt 0) {
+        if (Test-CommentId $existing) {
             $r = Invoke-GhApi @('api', '-X', 'PATCH', "repos/$script:Repo/issues/comments/$existing", '--input', $payloadPath)
-            if ($r.Code -eq 0) { return [pscustomobject]@{ Ok = $true; Id = $existing; Via = 'PATCH' } }
+            if ($r.Code -eq 0) { return [pscustomobject]@{ Ok = $true; Id = [string]$existing; Via = 'PATCH' } }
+            # The marker is already on the issue. A failed PATCH must not fall
+            # through to POST, or every retry adds another identical comment.
             return [pscustomobject]@{ Ok = $false; Code = $r.Code }
         }
         $r = Invoke-GhApi @('api', '-X', 'POST', "repos/$script:Repo/issues/$script:Issue/comments", '--input', $payloadPath)
         if ($r.Code -eq 0) {
-            $id = Get-JsonId $r.Text
-            if ($id -gt 0) { return [pscustomobject]@{ Ok = $true; Id = $id; Via = 'POST' } }
-            return [pscustomobject]@{ Ok = $false; Code = $r.Code }
+            $id = Get-CommentIdFromText $r.Text
+            if (-not (Test-CommentId $id)) {
+                # gh exited 0 but the body was not recognized. The comment may
+                # already exist; look it up before any retry creates a duplicate.
+                $id = Get-CommentIdByMarker $Seq
+            }
+            if (Test-CommentId $id) { return [pscustomobject]@{ Ok = $true; Id = [string]$id; Via = 'POST' } }
+            return [pscustomobject]@{ Ok = $false; Code = 0 }
         }
         return [pscustomobject]@{ Ok = $false; Code = $r.Code }
     }
@@ -232,7 +251,7 @@ function Publish-Outbox {
             $t = $script:State.tasks["$seq"]
             if ($t) {
                 $t['state'] = 'PUBLISHED'
-                $t['comment_id'] = $r.Id
+                $t['comment_id'] = [string]$r.Id
                 $t['updated'] = (Get-Date -Format o)
                 Save-State $script:StatePath $script:State
             }
@@ -252,7 +271,9 @@ function Publish-Outbox {
             else {
                 $backoffMs = [int][Math]::Min(60000, 2000 * [Math]::Pow(2, $attempts))
                 Write-Audit @{ ev = 'PUBLISH_RETRY'; seq = $seq; code = $r.Code; attempt = $attempts; backoff_ms = $backoffMs }
-                Write-Host "PUBLISH RETRY [$seq] attempt $attempts (code $($r.Code))"
+                $why = "code $($r.Code)"
+                if ([string]$r.Code -eq '0') { $why = 'code 0, comment id not recognized' }
+                Write-Host "PUBLISH RETRY [$seq] attempt $attempts ($why)"
                 Start-Sleep -Milliseconds $backoffMs
             }
         }

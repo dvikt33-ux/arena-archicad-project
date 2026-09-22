@@ -102,17 +102,34 @@ if ($isWin) {
         'echo fake-diff-line',
         'exit /b 0'
     )
+    # FAKE_GH_POST_FILE / FAKE_GH_GET_FILE let a test return a real GitHub
+    # comment object (id larger than Int32) without putting "<" into cmd.exe.
     Write-AsciiCrlf (Join-Path $shimDir 'gh.cmd') @(
         '@echo off',
         'setlocal EnableExtensions',
         '>>"%FAKE_GH_LOG%" echo %*',
-        'echo %* | findstr /I /C:"-X PATCH" >nul',
-        'if not errorlevel 1 goto okid',
         'echo %* | findstr /I /C:"-X POST" >nul',
-        'if not errorlevel 1 goto okid',
+        'if not errorlevel 1 goto dopost',
+        'echo %* | findstr /I /C:"-X PATCH" >nul',
+        'if not errorlevel 1 goto dobody',
+        'if "%FAKE_GH_SEEN%"=="" goto empty',
+        'if not exist "%FAKE_GH_SEEN%" goto empty',
+        'if "%FAKE_GH_GET_FILE%"=="" goto empty',
+        'if not exist "%FAKE_GH_GET_FILE%" goto empty',
+        'type "%FAKE_GH_GET_FILE%"',
+        'exit /b 0',
+        ':empty',
         'echo []',
         'exit /b 0',
-        ':okid',
+        ':dopost',
+        'if not "%FAKE_GH_SEEN%"=="" echo seen>"%FAKE_GH_SEEN%"',
+        'goto dobody',
+        ':dobody',
+        'if "%FAKE_GH_POST_FILE%"=="" goto smallid',
+        'if not exist "%FAKE_GH_POST_FILE%" goto smallid',
+        'type "%FAKE_GH_POST_FILE%"',
+        'exit /b 0',
+        ':smallid',
         'echo {"id":999}',
         'exit /b 0'
     )
@@ -142,9 +159,29 @@ else {
 #!/bin/sh
 echo "$*" >> "$FAKE_GH_LOG"
 case "$*" in
-  *"-X POST"*|*"-X PATCH"*) printf '%s\n' '{"id":999}'; exit 0;;
+  *"-X POST"*)
+    if [ -n "$FAKE_GH_SEEN" ]; then : > "$FAKE_GH_SEEN"; fi
+    if [ -n "$FAKE_GH_POST_FILE" ] && [ -f "$FAKE_GH_POST_FILE" ]; then
+      cat "$FAKE_GH_POST_FILE"
+      exit 0
+    fi
+    printf '%s\n' '{"id":999}'
+    exit 0
+    ;;
+  *"-X PATCH"*)
+    if [ -n "$FAKE_GH_POST_FILE" ] && [ -f "$FAKE_GH_POST_FILE" ]; then
+      cat "$FAKE_GH_POST_FILE"
+      exit 0
+    fi
+    printf '%s\n' '{"id":999}'
+    exit 0
+    ;;
 esac
-echo '[]'
+if [ -n "$FAKE_GH_SEEN" ] && [ -f "$FAKE_GH_SEEN" ] && [ -n "$FAKE_GH_GET_FILE" ] && [ -f "$FAKE_GH_GET_FILE" ]; then
+  cat "$FAKE_GH_GET_FILE"
+  exit 0
+fi
+printf '%s\n' '[]'
 exit 0
 '@
     $gitShim = Join-Path $shimDir 'git'
@@ -346,6 +383,86 @@ Assert ($r.Out -match 'FATAL') 'FATAL message printed'
 # 12. audit log exists
 $audit = Get-ChildItem -LiteralPath $arenaRoot -Filter 'audit-*.jsonl' -File | Select-Object -First 1
 Assert ($null -ne $audit -and $audit.Length -gt 0) 'audit log written'
+
+# 13. GitHub comment ids are larger than Int32. gh exit 0 plus an unrecognized
+# id used to retry the POST and duplicate <!-- arena-task:N --> in Issue #1.
+Write-Host '[13] large comment id is success, second publish is PATCH'
+$bigRoot = Join-Path $tmp 'BigIdBridge'
+$bigOut = Join-Path $bigRoot 'outbox'
+$bigState = Join-Path $bigRoot 'state.json'
+New-Item -ItemType Directory -Path $bigOut -Force | Out-Null
+$utf8 = New-Object System.Text.UTF8Encoding $false
+$stateJson = '{"last_seq":4,"tasks":{"4":{"action":"GIT_STATUS","state":"PENDING_PUBLISH","status":"COMPLETED","exit":0}}}'
+[System.IO.File]::WriteAllText($bigState, $stateJson, $utf8)
+$outJson = (@{
+    seq = 4
+    action = 'GIT_STATUS'
+    status = 'COMPLETED'
+    public = $true
+    public_body = "[LOCAL RESULT 4] <!-- arena-task:4 -->`r`n`r`nSTATUS:`r`nCOMPLETED"
+    attempts = 0
+} | ConvertTo-Json -Depth 5 -Compress)
+[System.IO.File]::WriteAllText((Join-Path $bigOut '4.json'), $outJson, $utf8)
+$postFile = Join-Path $tmp 'gh-post.json'
+$getFile = Join-Path $tmp 'gh-get.json'
+$seenFile = Join-Path $tmp 'gh-seen'
+$postBody = @'
+{
+  "url": "https://api.github.com/repos/dvikt33-ux/arena-archicad-project/issues/comments/5781348704",
+  "id": 5781348704,
+  "user": { "login": "dvikt33-ux", "id": 327351075 },
+  "body": "[LOCAL RESULT 4] <!-- arena-task:4 -->"
+}
+'@
+$getBody = @'
+[
+  {
+    "id": 111,
+    "user": { "login": "older", "id": 1 },
+    "body": "older comment"
+  },
+  {
+    "id": 5781348704,
+    "user": { "login": "dvikt33-ux", "id": 327351075 },
+    "body": "[LOCAL RESULT 4] <!-- arena-task:4 -->"
+  }
+]
+'@
+[System.IO.File]::WriteAllText($postFile, $postBody.Trim() + "`n", $utf8)
+[System.IO.File]::WriteAllText($getFile, $getBody.Trim() + "`n", $utf8)
+if (Test-Path -LiteralPath $seenFile) { Remove-Item -LiteralPath $seenFile -Force }
+$env:FAKE_GH_POST_FILE = $postFile
+$env:FAKE_GH_GET_FILE = $getFile
+$env:FAKE_GH_SEEN = $seenFile
+$env:FAKE_GH_LOG = Join-Path $tmp 'gh-bigid.log'
+if (Test-Path -LiteralPath $env:FAKE_GH_LOG) { Remove-Item -LiteralPath $env:FAKE_GH_LOG -Force }
+$r = Invoke-Bridge -ArenaRoot $bigRoot
+Assert ($r.Code -eq 0) "large-id publish exit 0 (actual=$($r.Code))"
+if ($r.Out -match 'PUBLISH RETRY') { throw "ASSERT FAILED: no retry after gh exit 0: $($r.Out)" }; Write-Host '  ok: no retry after gh exit 0'
+Assert ($r.Out -match 'PUBLISHED \[4\] via POST id=5781348704') 'published with the comment id, not the user id'
+$bigObj = Get-Content -LiteralPath $bigState -Raw | ConvertFrom-Json
+$bigTask = $bigObj.tasks.PSObject.Properties['4'].Value
+Assert ([string]$bigTask.state -eq 'PUBLISHED') 'task 4 state=PUBLISHED'
+Assert ([string]$bigTask.comment_id -eq '5781348704') "comment_id stored in full (actual=$($bigTask.comment_id))"
+Assert (-not (Test-Path -LiteralPath (Join-Path $bigOut '4.json'))) 'outbox 4.json removed'
+$log1 = Get-Content -LiteralPath $env:FAKE_GH_LOG -Raw
+$postCount = ([regex]::Matches($log1, '-X POST')).Count
+$patchCount = ([regex]::Matches($log1, '-X PATCH')).Count
+Assert ($postCount -eq 1) "exactly one POST (actual=$postCount)"
+Assert ($patchCount -eq 0) 'first publish does not PATCH'
+[System.IO.File]::WriteAllText((Join-Path $bigOut '4.json'), $outJson, $utf8)
+$r = Invoke-Bridge -ArenaRoot $bigRoot
+Assert ($r.Code -eq 0) 'republish exit 0'
+if ($r.Out -match 'PUBLISH RETRY') { throw "ASSERT FAILED: republish does not retry: $($r.Out)" }; Write-Host '  ok: republish does not retry'
+Assert ($r.Out -match 'PUBLISHED \[4\] via PATCH id=5781348704') 'republish updates the existing comment'
+$log2 = Get-Content -LiteralPath $env:FAKE_GH_LOG -Raw
+$postCount = ([regex]::Matches($log2, '-X POST')).Count
+$patchCount = ([regex]::Matches($log2, '-X PATCH')).Count
+Assert ($postCount -eq 1) "still exactly one POST (actual=$postCount)"
+Assert ($patchCount -eq 1) "exactly one PATCH (actual=$patchCount)"
+Assert (-not (Test-Path -LiteralPath (Join-Path $bigOut '4.json'))) 'outbox removed after PATCH'
+Remove-Item Env:FAKE_GH_POST_FILE -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_GET_FILE -ErrorAction SilentlyContinue
 
 Write-Host ''
 Write-Host 'ALL SMOKE TESTS PASSED'

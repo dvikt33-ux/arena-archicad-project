@@ -11,13 +11,18 @@
 
 [CmdletBinding()]
 param(
-    [string]$WorkDir   = "$env:USERPROFILE\Documents\arena-archicad-project",
-    [string]$Repo      = 'dvikt33-ux/arena-archicad-project',
-    [string]$Issue     = '1',
-    [string]$ArenaRoot = (Join-Path $env:LOCALAPPDATA 'ArenaBridge'),
-    [int]   $PollMs    = 1000,
+    # Empty means "not passed". Resolved after dot-source: explicit arg, then
+    # env var, then the Windows default. Env vars exist so Windows PowerShell 5.1
+    # tests do not have to put paths-with-spaces on the powershell.exe command line.
+    [string]$WorkDir,
+    [string]$Repo,
+    [string]$Issue,
+    [string]$ArenaRoot,
+    [int]   $PollMs = 1000,
     [switch]$Once,
-    [switch]$NoGithub
+    [switch]$NoGithub,
+    [string]$LegacyStateFile,
+    [string]$LegacyTaskFile
 )
 
 $ErrorActionPreference = 'Continue'
@@ -26,22 +31,43 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'arena-common.ps1')
 . (Join-Path $here 'actions.ps1')
 
-$script:WorkDir   = $WorkDir
-$script:Repo      = $Repo
-$script:Issue     = $Issue
+function Get-BridgeSetting {
+    param($Bound, [string]$Name, [string]$EnvName, [scriptblock]$Default)
+    if ($null -ne $Bound -and $Bound.ContainsKey($Name)) {
+        $v = [string]$Bound[$Name]
+        if (-not [string]::IsNullOrWhiteSpace($v)) { return $v }
+    }
+    $ev = [Environment]::GetEnvironmentVariable($EnvName)
+    if (-not [string]::IsNullOrWhiteSpace($ev)) { return $ev }
+    if ($null -ne $Default) { return [string](& $Default) }
+    return ''
+}
+
+$script:WorkDir = Get-BridgeSetting $PSBoundParameters 'WorkDir' 'ARENA_BRIDGE_WORKDIR' {
+    Join-Path (Join-Path $script:UserProfile 'Documents') 'arena-archicad-project'
+}
+$script:Repo = Get-BridgeSetting $PSBoundParameters 'Repo' 'ARENA_BRIDGE_REPO' { 'dvikt33-ux/arena-archicad-project' }
+$script:Issue = Get-BridgeSetting $PSBoundParameters 'Issue' 'ARENA_BRIDGE_ISSUE' { '1' }
+$script:ArenaRoot = Get-BridgeSetting $PSBoundParameters 'ArenaRoot' 'ARENA_BRIDGE_ROOT' {
+    $base = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($base)) { $base = $script:UserProfile }
+    Join-Path $base 'ArenaBridge'
+}
+$script:LegacyStateFile = Get-BridgeSetting $PSBoundParameters 'LegacyStateFile' 'ARENA_BRIDGE_LEGACY_STATE_FILE' { $script:LegacyStateFile }
+$script:LegacyTaskFile = Get-BridgeSetting $PSBoundParameters 'LegacyTaskFile' 'ARENA_BRIDGE_LEGACY_TASK_FILE' { $script:LegacyTaskFile }
 $script:PollMs    = $PollMs
 $script:Once      = [bool]$Once
 $script:NoGithub  = [bool]$NoGithub
 
-$script:InboxDir   = Join-Path $ArenaRoot 'inbox'
-$script:OutboxDir  = Join-Path $ArenaRoot 'outbox'
-$script:ResultsDir = Join-Path $ArenaRoot 'results'
+$script:InboxDir   = Join-Path $script:ArenaRoot 'inbox'
+$script:OutboxDir  = Join-Path $script:ArenaRoot 'outbox'
+$script:ResultsDir = Join-Path $script:ArenaRoot 'results'
 $script:DoneDir    = Join-Path $script:InboxDir '.done'
 $script:DeadDir    = Join-Path $script:OutboxDir '.dead'
-$script:StatePath  = Join-Path $ArenaRoot 'state.json'
-$script:AuditPath  = Join-Path $ArenaRoot ('audit-' + (Get-Date -Format 'yyyy-MM-dd') + '.jsonl')
+$script:StatePath  = Join-Path $script:ArenaRoot 'state.json'
+$script:AuditPath  = Join-Path $script:ArenaRoot ('audit-' + (Get-Date -Format 'yyyy-MM-dd') + '.jsonl')
 
-New-Dirs $ArenaRoot
+New-Dirs $script:ArenaRoot
 
 # ---- single instance ----
 $script:Mutex = [System.Threading.Mutex]::new($false, 'Local\ArenaBridge.v2')
@@ -117,34 +143,73 @@ function Move-InboxFileAside {
 }
 
 # ---- publish ----
+# gh is invoked with simple arguments only. Windows PowerShell 5.1 re-parses
+# the command line of a native/.cmd process, so a jq program containing "|" or
+# a body containing "<!-- -->" and newlines is not safe to pass as an argument.
+# The body goes to a JSON file; the response is parsed in PowerShell.
+function Invoke-GhApi {
+    param([string[]]$GhArgs)
+    $out = @(& gh @GhArgs 2>$null)
+    $code = $LASTEXITCODE
+    $text = (@($out) | ForEach-Object { "$_" }) -join "`n"
+    return [pscustomobject]@{ Code = $code; Text = $text.Trim() }
+}
+
+function Get-JsonId {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return 0 }
+    $id = 0
+    if ([int]::TryParse($Text.Trim(), [ref]$id) -and $id -gt 0) { return $id }
+    try {
+        $parsed = $Text | ConvertFrom-Json
+        if ($null -ne $parsed -and [int]::TryParse([string]$parsed.id, [ref]$id) -and $id -gt 0) { return $id }
+    }
+    catch { }
+    return 0
+}
+
 function Get-CommentIdByMarker {
     param([int]$Seq)
     $marker = "<!-- arena-task:$Seq -->"
-    $q = ".[] | select(.body | contains(`"$marker`")) | .id"
-    $ids = (& gh api "repos/$script:Repo/issues/$script:Issue/comments" --jq $q 2>$null)
-    if ($LASTEXITCODE -ne 0) { return 0 }
-    $first = ($ids | Select-Object -First 1)
-    if ($null -eq $first) { return 0 }
-    $id = 0
-    if ([int]::TryParse(("$first").Trim(), [ref]$id)) { return $id }
+    $r = Invoke-GhApi @('api', "repos/$script:Repo/issues/$script:Issue/comments")
+    if ($r.Code -ne 0 -or [string]::IsNullOrWhiteSpace($r.Text) -or $r.Text -eq '[]') { return 0 }
+    $parsed = $null
+    try { $parsed = $r.Text | ConvertFrom-Json } catch { return 0 }
+    foreach ($c in @($parsed)) {
+        if ($null -eq $c) { continue }
+        $body = ''
+        if ($c.PSObject.Properties.Name -contains 'body') { $body = [string]$c.body }
+        if ($body.Contains($marker)) {
+            $id = 0
+            if ([int]::TryParse([string]$c.id, [ref]$id) -and $id -gt 0) { return $id }
+        }
+    }
     return 0
 }
 
 function Publish-Comment {
     param([int]$Seq, [string]$Body)
-    $existing = Get-CommentIdByMarker $Seq
-    if ($existing -gt 0) {
-        $out = (& gh api -X PATCH "repos/$script:Repo/issues/comments/$existing" -f "body=$Body" --jq '.id' 2>$null)
-        if ($LASTEXITCODE -eq 0) { return [pscustomobject]@{ Ok = $true; Id = $existing; Via = 'PATCH' } }
-        return [pscustomobject]@{ Ok = $false; Code = $LASTEXITCODE }
+    $payloadPath = Join-Path $script:ArenaRoot ('publish-' + [guid]::NewGuid().ToString('N') + '.json')
+    $payload = @{ body = $Body } | ConvertTo-Json -Depth 5 -Compress
+    Write-FileAtomic $payloadPath $payload
+    try {
+        $existing = Get-CommentIdByMarker $Seq
+        if ($existing -gt 0) {
+            $r = Invoke-GhApi @('api', '-X', 'PATCH', "repos/$script:Repo/issues/comments/$existing", '--input', $payloadPath)
+            if ($r.Code -eq 0) { return [pscustomobject]@{ Ok = $true; Id = $existing; Via = 'PATCH' } }
+            return [pscustomobject]@{ Ok = $false; Code = $r.Code }
+        }
+        $r = Invoke-GhApi @('api', '-X', 'POST', "repos/$script:Repo/issues/$script:Issue/comments", '--input', $payloadPath)
+        if ($r.Code -eq 0) {
+            $id = Get-JsonId $r.Text
+            if ($id -gt 0) { return [pscustomobject]@{ Ok = $true; Id = $id; Via = 'POST' } }
+            return [pscustomobject]@{ Ok = $false; Code = $r.Code }
+        }
+        return [pscustomobject]@{ Ok = $false; Code = $r.Code }
     }
-    $out = (& gh api -X POST "repos/$script:Repo/issues/$script:Issue/comments" -f "body=$Body" --jq '.id' 2>$null)
-    if ($LASTEXITCODE -eq 0) {
-        $id = 0
-        [int]::TryParse(("$out").Trim(), [ref]$id)
-        return [pscustomobject]@{ Ok = $true; Id = $id; Via = 'POST' }
+    finally {
+        Remove-Item -LiteralPath $payloadPath -Force -ErrorAction SilentlyContinue
     }
-    return [pscustomobject]@{ Ok = $false; Code = $LASTEXITCODE }
 }
 
 function Publish-Outbox {
@@ -185,7 +250,7 @@ function Publish-Outbox {
                 Write-Host "PUBLISH DEAD-LETTER [$seq] (code $($r.Code))"
             }
             else {
-                $backoffMs = [Math]::Min(60000, 2000 * [Math]::Pow(2, $attempts))
+                $backoffMs = [int][Math]::Min(60000, 2000 * [Math]::Pow(2, $attempts))
                 Write-Audit @{ ev = 'PUBLISH_RETRY'; seq = $seq; code = $r.Code; attempt = $attempts; backoff_ms = $backoffMs }
                 Write-Host "PUBLISH RETRY [$seq] attempt $attempts (code $($r.Code))"
                 Start-Sleep -Milliseconds $backoffMs
@@ -293,6 +358,7 @@ $script:State = $null
 if (Test-Path -LiteralPath $script:StatePath) {
     try { $script:State = Read-State $script:StatePath }
     catch {
+        Write-Output "FATAL: $($_.Exception.Message)"
         Write-Host "FATAL: $($_.Exception.Message)"
         Write-Host "Fix or remove '$script:StatePath', then restart."
         exit 6
@@ -335,10 +401,14 @@ foreach ($k in @($script:State.tasks.Keys)) {
 }
 if ($recoveredAny) { Save-State $script:StatePath $script:State }
 
+Write-Output ("ARENA_BRIDGE_LAST_SEQ=" + $script:State.last_seq)
+Write-Output ("ARENA_BRIDGE_LEGACY=" + $script:LegacyStateFile)
+Write-Output ("ARENA_BRIDGE_STATE=" + $script:StatePath)
 Write-Host 'Arena Bridge v2 is running.'
 Write-Host "Repo:     $script:Repo"
 Write-Host "WorkDir:  $script:WorkDir"
 Write-Host "State:    $script:StatePath (last_seq=$($script:State.last_seq))"
+Write-Host "Legacy:   $script:LegacyStateFile"
 Write-Host "Inbox:    $script:InboxDir"
 Write-Host 'Press Ctrl+C to stop.'
 

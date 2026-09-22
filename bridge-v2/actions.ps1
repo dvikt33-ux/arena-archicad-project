@@ -25,6 +25,24 @@ function Invoke-Action {
     return [pscustomobject]@{ ExitCode = $exit; Output = $text }
 }
 
+function Convert-ToFullPath {
+    # git on Windows prints forward slashes. GetFullPath normalizes them.
+    # Do not require the path to exist — callers decide what a missing path means.
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return '' }
+    $p = $Path.Trim().Trim('"').Trim("'")
+    if ($env:OS -eq 'Windows_NT') { $p = $p -replace '/', '\' }
+    try { return [System.IO.Path]::GetFullPath($p) } catch { return $p }
+}
+
+function Test-SamePath {
+    param([string]$A, [string]$B)
+    $fa = (Convert-ToFullPath $A).TrimEnd('\', '/')
+    $fb = (Convert-ToFullPath $B).TrimEnd('\', '/')
+    if ($env:OS -eq 'Windows_NT') { return ($fa -ieq $fb) }
+    return ($fa -eq $fb)
+}
+
 function Test-RepoGuard {
     # Fail-closed identity check of the working repo. Returns $null on success,
     # otherwise a fixed reason string (never raw values, so it is safe to publish).
@@ -46,9 +64,12 @@ function Test-RepoGuard {
     $topLine = "$($topOut | Select-Object -First 1)".Trim()
     if ([string]::IsNullOrWhiteSpace($topLine)) { return 'rev-parse-failed' }
 
-    $resTop  = Resolve-Path -LiteralPath $topLine -ErrorAction SilentlyContinue
-    $resWork = Resolve-Path -LiteralPath $WorkDir -ErrorAction SilentlyContinue
-    if (-not $resTop -or -not $resWork -or ($resTop.Path -ne $resWork.Path)) { return 'toplevel-mismatch' }
+    $topFull  = Convert-ToFullPath $topLine
+    $workFull = Convert-ToFullPath $WorkDir
+    if ([string]::IsNullOrWhiteSpace($topFull) -or -not (Test-Path -LiteralPath $topFull -PathType Container)) {
+        return 'toplevel-mismatch'
+    }
+    if (-not (Test-SamePath $topFull $workFull)) { return 'toplevel-mismatch' }
 
     $originOut = @(& git -C $WorkDir remote get-url origin 2>$null)
     $originExit = $LASTEXITCODE

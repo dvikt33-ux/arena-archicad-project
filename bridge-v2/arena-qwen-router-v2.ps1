@@ -22,6 +22,54 @@ $ErrorActionPreference = 'Continue'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $here 'arena-common.ps1')
 
+# Same override as the bridge, so a test can sandbox the v1 seed file.
+if (-not [string]::IsNullOrWhiteSpace($env:ARENA_BRIDGE_LEGACY_STATE_FILE)) {
+    $script:LegacyStateFile = $env:ARENA_BRIDGE_LEGACY_STATE_FILE
+}
+if (-not [string]::IsNullOrWhiteSpace($env:ARENA_BRIDGE_LEGACY_TASK_FILE)) {
+    $script:LegacyTaskFile = $env:ARENA_BRIDGE_LEGACY_TASK_FILE
+}
+
+function Invoke-JsonPost {
+    # Windows PowerShell 5.1 Invoke-RestMethod encodes -Body with the system
+    # ANSI code page and ignores charset=utf-8. HttpWebRequest sends real UTF-8,
+    # which matters for Russian requests on a ru-RU machine.
+    param([string]$Uri, [string]$Json, [int]$TimeoutSec = 60)
+    $req = [System.Net.HttpWebRequest][System.Net.WebRequest]::Create($Uri)
+    $req.Method = 'POST'
+    $req.ContentType = 'application/json; charset=utf-8'
+    $req.Timeout = $TimeoutSec * 1000
+    $req.ReadWriteTimeout = $TimeoutSec * 1000
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Json)
+    $req.ContentLength = $bytes.Length
+    $stream = $req.GetRequestStream()
+    try { $stream.Write($bytes, 0, $bytes.Length) }
+    finally { $stream.Dispose() }
+    $resp = $null
+    try {
+        $resp = $req.GetResponse()
+    }
+    catch [System.Net.WebException] {
+        $detail = $_.Exception.Message
+        $http = $_.Exception.Response
+        if ($http) {
+            try {
+                $errReader = New-Object System.IO.StreamReader($http.GetResponseStream())
+                $detail = $errReader.ReadToEnd()
+                $errReader.Dispose()
+            }
+            catch { }
+            $http.Close()
+        }
+        throw $detail
+    }
+    $reader = New-Object System.IO.StreamReader($resp.GetResponseStream(), [System.Text.Encoding]::UTF8)
+    try { $text = $reader.ReadToEnd() }
+    finally { $reader.Dispose(); $resp.Close() }
+    if ([string]::IsNullOrWhiteSpace($text)) { throw 'empty response' }
+    return ($text | ConvertFrom-Json)
+}
+
 $inboxDir  = Join-Path $ArenaRoot 'inbox'
 $statePath = Join-Path $ArenaRoot 'state.json'
 New-Dirs $ArenaRoot
@@ -66,12 +114,7 @@ BLOCKED
 } | ConvertTo-Json -Depth 6
 
 try {
-    $response = Invoke-RestMethod `
-        -Uri $ApiUrl `
-        -Method Post `
-        -ContentType 'application/json; charset=utf-8' `
-        -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) `
-        -TimeoutSec 60
+    $response = Invoke-JsonPost -Uri $ApiUrl -Json $body -TimeoutSec 60
 }
 catch {
     Write-Host 'QWEN API ERROR:'

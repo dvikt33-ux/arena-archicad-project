@@ -9,8 +9,11 @@ $script:ActionIds = @('GIT_VERSION', 'GIT_STATUS', 'GIT_DIFF', 'GIT_LOG10')
 $script:UserProfile = $env:USERPROFILE
 if ([string]::IsNullOrWhiteSpace($script:UserProfile)) { $script:UserProfile = $env:HOME }
 if ([string]::IsNullOrWhiteSpace($script:UserProfile)) { $script:UserProfile = [System.IO.Path]::GetTempPath() }
-$script:LegacyStateFile = Join-Path $script:UserProfile 'Documents\arena-bridge-last-task.txt'
-$script:LegacyTaskFile  = Join-Path $script:UserProfile 'Documents\arena-bridge-task.txt'
+# Two Join-Path calls: Windows PowerShell 5.1 treats '\' in the child as a
+# separator, PowerShell 7 on Linux does too, but a single child with '\' is
+# easy to get wrong. Keep the v1 files exactly where v1 wrote them.
+$script:LegacyStateFile = Join-Path (Join-Path $script:UserProfile 'Documents') 'arena-bridge-last-task.txt'
+$script:LegacyTaskFile  = Join-Path (Join-Path $script:UserProfile 'Documents') 'arena-bridge-task.txt'
 
 function New-Dirs {
     param([string]$ArenaRoot)

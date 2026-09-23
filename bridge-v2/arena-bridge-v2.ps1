@@ -468,6 +468,7 @@ while ($true) {
     try {
         $script:State = Resolve-ExpiredReservations -ArenaRoot $script:ArenaRoot -State $script:State -StatePath $script:StatePath
         Publish-Outbox
+        Restore-AcceptedMailboxTasks
         Invoke-MailboxSync
 
         $files = @(Get-ChildItem -LiteralPath $script:InboxDir -Filter '*.json' -File -ErrorAction SilentlyContinue |

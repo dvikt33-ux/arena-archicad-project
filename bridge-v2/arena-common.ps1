@@ -277,7 +277,7 @@ function Reserve-TaskSeq {
     # open a permanent gap in the local inbox.
     # The reservation file is created with CreateNew, so two processes cannot
     # take the same seq.
-    param([string]$ArenaRoot, [string]$ProducerId = 'producer')
+    param([string]$ArenaRoot, [string]$ProducerId = 'producer', [string]$TaskId = '')
     if ([string]::IsNullOrWhiteSpace($ArenaRoot)) { throw 'reserve: no root' }
     $safeProducer = 'producer'
     if ($ProducerId -match '^[A-Za-z0-9_-]{1,32}$') { $safeProducer = $ProducerId }
@@ -335,7 +335,12 @@ function Reserve-TaskSeq {
                 continue
             }
             $created = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
-            $json = '{"seq":' + $seq + ',"producer":"' + $safeProducer + '","created":"' + $created + '"}'
+            $taskField = ''
+            $reserveId = ('' + $TaskId).ToLowerInvariant()
+            if ($reserveId -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+                $taskField = ',"task_id":"' + $reserveId + '"'
+            }
+            $json = '{"seq":' + $seq + ',"producer":"' + $safeProducer + '"' + $taskField + ',"created":"' + $created + '"}'
             $fs = $null
             try {
                 $fs = New-Object System.IO.FileStream($resPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)

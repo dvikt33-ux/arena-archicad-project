@@ -363,6 +363,110 @@ public sealed class SliceTests : IDisposable
     }
 
     [Fact]
+    public void Stored_canonical_job_and_deadline_block_a_mutated_replay()
+    {
+        var host = new AgentHost(Options(Permit(80, 81, 82, 83, 84, 85, 86)));
+        var stored = host.Run(new[] { Env(80, "FILE_WRITE_ATOMIC", "{\"path\":\"kept-job.txt\",\"content_utf8\":\"A\"}", job: 1) })[0];
+        Assert.Equal("COMPLETED", stored.State);
+        Assert.Equal(Id(1), stored.JobId);
+        var mutatedJob = host.Run(new[]
+        {
+            Env(80, "FILE_READ", "{\"path\":\"kept-job.txt\"}", job: 2, deadline: "2026-09-23T19:00:00Z"),
+            Env(81, "FILE_WRITE_ATOMIC", "{\"path\":\"other-job.txt\",\"content_utf8\":\"B\"}", job: 2, deadline: "2026-09-23T19:00:00Z")
+        });
+        Assert.False(mutatedJob[0].Executed);
+        Assert.Equal(Id(1), mutatedJob[0].JobId);
+        Assert.Equal("FILE_WRITE_ATOMIC", mutatedJob[0].Action);
+        Assert.Equal("COMPLETED", mutatedJob[0].State);
+        Assert.Equal("job-mismatch", mutatedJob[1].Reason);
+        Assert.False(mutatedJob[1].Executed);
+        Assert.False(File.Exists(Path.Combine(_ws, "other-job.txt")));
+        var mutatedDeadline = host.Run(new[]
+        {
+            Env(80, "FILE_READ", "{\"path\":\"kept-job.txt\"}", job: 1, deadline: "2026-09-23T19:00:00Z"),
+            Env(82, "FILE_WRITE_ATOMIC", "{\"path\":\"other-deadline.txt\",\"content_utf8\":\"C\"}", job: 2, deadline: "2026-09-23T19:00:00Z")
+        });
+        Assert.Equal(Id(1), mutatedDeadline[0].JobId);
+        Assert.Equal("job-mismatch", mutatedDeadline[1].Reason);
+        Assert.False(mutatedDeadline[1].Executed);
+        Assert.False(File.Exists(Path.Combine(_ws, "other-deadline.txt")));
+        var alignedDeadline = host.Run(new[]
+        {
+            Env(80, "FILE_READ", "{\"path\":\"kept-job.txt\"}", job: 1, deadline: "2026-09-23T19:00:00Z"),
+            Env(83, "FILE_WRITE_ATOMIC", "{\"path\":\"aligned.txt\",\"content_utf8\":\"D\"}", job: 1, deadline: "2026-09-23T19:00:00Z")
+        });
+        Assert.Equal("bad-deadline", alignedDeadline[1].Reason);
+        Assert.False(alignedDeadline[1].Executed);
+        Assert.False(File.Exists(Path.Combine(_ws, "aligned.txt")));
+        var same = host.Run(new[] { Env(84, "FILE_WRITE_ATOMIC", "{\"path\":\"same-job.txt\",\"content_utf8\":\"E\"}", job: 1) })[0];
+        Assert.Equal("COMPLETED", same.State);
+        Assert.Equal("E", File.ReadAllText(Path.Combine(_ws, "same-job.txt")));
+        host.SeedRunning(Id(85), Id(1), Id(85), "FILE_HASH", "", "missing-seed.txt");
+        var unverified = host.Run(new[]
+        {
+            Env(85, "FILE_HASH", "{\"path\":\"missing-seed.txt\"}", job: 1),
+            Env(86, "FILE_WRITE_ATOMIC", "{\"path\":\"unverified.txt\",\"content_utf8\":\"F\"}", job: 1)
+        });
+        Assert.False(unverified[0].Executed);
+        Assert.Equal("bad-deadline", unverified[1].Reason);
+        Assert.False(unverified[1].Executed);
+        Assert.False(File.Exists(Path.Combine(_ws, "unverified.txt")));
+    }
+
+    [Fact]
+    public void Patch_rejects_invalid_utf8_without_writing()
+    {
+        var host = new AgentHost(Options(Permit(87)));
+        var raw = new byte[] { 0xFF, 0xFE, 0x61 };
+        var path = Path.Combine(_ws, "bad-patch.txt");
+        File.WriteAllBytes(path, raw);
+        var hash = Sha(raw);
+        var patch = "ARENA-PATCH/1\\n@@\\n-a\\n+b\\n";
+        var result = host.Run(new[] { Env(87, "FILE_APPLY_PATCH", "{\"path\":\"bad-patch.txt\",\"expected_sha256\":\"" + hash + "\",\"patch_utf8\":\"" + patch + "\"}") })[0];
+        Assert.Equal("FAILED", result.State);
+        Assert.Equal("bad-encoding", result.Reason);
+        Assert.Equal(raw, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void Parent_file_is_a_terminal_result_and_is_not_replaced()
+    {
+        var host = new AgentHost(Options(Permit(88)));
+        var parent = Path.Combine(_ws, "parent");
+        var original = new byte[] { 1, 2, 3 };
+        File.WriteAllBytes(parent, original);
+        var result = host.Run(new[] { Env(88, "FILE_WRITE_ATOMIC", "{\"path\":\"parent/child.txt\",\"content_utf8\":\"no\"}") })[0];
+        Assert.Equal("REJECTED", result.State);
+        Assert.Equal("path-not-directory", result.Reason);
+        Assert.False(result.Executed);
+        Assert.Equal(original, File.ReadAllBytes(parent));
+        Assert.False(Directory.Exists(parent));
+        Assert.False(File.Exists(Path.Combine(parent, "child.txt")));
+    }
+
+    [Fact]
+    public void Profile_inside_workspace_or_alias_does_not_launch()
+    {
+        var built = Profile("exit", "3", 2000, 1024);
+        var inside = Path.Combine(_ws, "profile.json");
+        File.Copy(built.Path, inside);
+        var sha = Sha(File.ReadAllBytes(inside));
+        var host = new AgentHost(Options(Permit(89), inside, sha));
+        var result = host.Run(new[] { Env(89, "PROFILE_RUN", "{}") })[0];
+        Assert.Equal("REJECTED", result.State);
+        Assert.Equal("profile-mismatch", result.Reason);
+        Assert.False(result.Executed);
+        var alias = Path.Combine(_root, "ws-alias");
+        CreateAlias(alias, _ws);
+        var aliased = Path.Combine(alias, "profile.json");
+        var host2 = new AgentHost(Options(Permit(90), aliased, sha));
+        var aliasedResult = host2.Run(new[] { Env(90, "PROFILE_RUN", "{}") })[0];
+        Assert.Equal("REJECTED", aliasedResult.State);
+        Assert.Equal("profile-mismatch", aliasedResult.Reason);
+        Assert.False(aliasedResult.Executed);
+    }
+
+    [Fact]
     public void File_read_returns_bounded_text()
     {
         var host = new AgentHost(Options(Permit(65, 66, 67, 68)));

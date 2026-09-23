@@ -6,6 +6,7 @@ internal sealed class StepRow
 {
     public required string StepId { get; init; }
     public required string JobId { get; init; }
+    public string JobDeadline { get; init; } = "";
     public required string RequestId { get; init; }
     public required string Action { get; init; }
     public required string State { get; init; }
@@ -39,6 +40,7 @@ internal sealed class StepStore : IDisposable
             CREATE TABLE IF NOT EXISTS steps (
               step_id TEXT PRIMARY KEY,
               job_id TEXT NOT NULL,
+              job_deadline TEXT NOT NULL DEFAULT '',
               request_id TEXT NOT NULL,
               action TEXT NOT NULL,
               state TEXT NOT NULL,
@@ -51,6 +53,25 @@ internal sealed class StepStore : IDisposable
               updated TEXT NOT NULL
             );
             """);
+        if (!HasColumn("job_deadline"))
+        {
+            Exec("ALTER TABLE steps ADD COLUMN job_deadline TEXT NOT NULL DEFAULT '';");
+        }
+    }
+
+    private bool HasColumn(string name)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "PRAGMA table_info(steps);";
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            if (string.Equals(reader.GetString(1), name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public string JournalMode()
@@ -61,7 +82,7 @@ internal sealed class StepStore : IDisposable
     public StepRow? Find(string stepId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT step_id, job_id, request_id, action, state, reason, sha256, target_path, exec_count, model_text, output FROM steps WHERE step_id = @id";
+        cmd.CommandText = "SELECT step_id, job_id, job_deadline, request_id, action, state, reason, sha256, target_path, exec_count, model_text, output FROM steps WHERE step_id = @id";
         cmd.Parameters.AddWithValue("@id", stepId);
         using var reader = cmd.ExecuteReader();
         if (!reader.Read())
@@ -90,8 +111,8 @@ internal sealed class StepStore : IDisposable
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO steps (step_id, job_id, request_id, action, state, reason, sha256, target_path, exec_count, model_text, output, updated)
-            VALUES (@step, @job, @req, @action, @state, @reason, @sha, @path, @exec, @model, @output, @updated)
+            INSERT INTO steps (step_id, job_id, job_deadline, request_id, action, state, reason, sha256, target_path, exec_count, model_text, output, updated)
+            VALUES (@step, @job, @deadline, @req, @action, @state, @reason, @sha, @path, @exec, @model, @output, @updated)
             ON CONFLICT(step_id) DO NOTHING
             """;
         Bind(cmd, row);
@@ -103,7 +124,6 @@ internal sealed class StepStore : IDisposable
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
             UPDATE steps SET
-              job_id = @job,
               request_id = @req,
               action = @action,
               state = @state,
@@ -124,6 +144,7 @@ internal sealed class StepStore : IDisposable
     {
         cmd.Parameters.AddWithValue("@step", row.StepId);
         cmd.Parameters.AddWithValue("@job", row.JobId);
+        cmd.Parameters.AddWithValue("@deadline", row.JobDeadline);
         cmd.Parameters.AddWithValue("@req", row.RequestId);
         cmd.Parameters.AddWithValue("@action", row.Action);
         cmd.Parameters.AddWithValue("@state", row.State);
@@ -156,15 +177,16 @@ internal sealed class StepStore : IDisposable
         {
             StepId = reader.GetString(0),
             JobId = reader.GetString(1),
-            RequestId = reader.GetString(2),
-            Action = reader.GetString(3),
-            State = reader.GetString(4),
-            Reason = reader.GetString(5),
-            Sha256 = reader.GetString(6),
-            TargetPath = reader.GetString(7),
-            ExecCount = reader.GetInt32(8),
-            UntrustedModelText = reader.GetString(9),
-            Output = reader.GetString(10)
+            JobDeadline = reader.GetString(2),
+            RequestId = reader.GetString(3),
+            Action = reader.GetString(4),
+            State = reader.GetString(5),
+            Reason = reader.GetString(6),
+            Sha256 = reader.GetString(7),
+            TargetPath = reader.GetString(8),
+            ExecCount = reader.GetInt32(9),
+            UntrustedModelText = reader.GetString(10),
+            Output = reader.GetString(11)
         };
     }
 

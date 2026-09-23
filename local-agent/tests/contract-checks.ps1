@@ -32,7 +32,9 @@ $needles = @(
     'read-limit',
     'bad-encoding',
     'exit-code',
-    'journal_mode=WAL'
+    'journal_mode=WAL',
+    'path-not-directory',
+    'io-failed'
 )
 foreach ($needle in $needles) {
     if ($text.IndexOf($needle) -lt 0) { throw ('contract missing ' + $needle) }

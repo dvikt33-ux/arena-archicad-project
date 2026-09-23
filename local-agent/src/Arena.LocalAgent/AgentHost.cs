@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Arena.LocalAgent;
@@ -64,16 +65,39 @@ public sealed class AgentHost
             }
             var jobs = new HashSet<string>(StringComparer.Ordinal);
             var deadlines = new HashSet<DateTime>();
-            foreach (var outcome in parsed)
+            var deadlineUnverified = false;
+            for (var i = 0; i < parsed.Count; i++)
             {
+                var outcome = parsed[i];
                 if (!outcome.Ok || outcome.Envelope is null)
                 {
+                    continue;
+                }
+                if (already[i] is StepRow storedRow)
+                {
+                    jobs.Add(storedRow.JobId);
+                    if (!TryReadDeadline(storedRow.JobDeadline, out var storedDeadline))
+                    {
+                        deadlineUnverified = true;
+                    }
+                    else
+                    {
+                        deadlines.Add(storedDeadline);
+                    }
                     continue;
                 }
                 jobs.Add(outcome.Envelope.JobId);
                 deadlines.Add(outcome.Envelope.JobDeadline);
             }
-            var batchReason = jobs.Count > 1 ? "job-mismatch" : deadlines.Count > 1 ? "bad-deadline" : null;
+            string? batchReason = null;
+            if (jobs.Count > 1)
+            {
+                batchReason = "job-mismatch";
+            }
+            else if (deadlineUnverified || deadlines.Count > 1)
+            {
+                batchReason = "bad-deadline";
+            }
             var canonical = new Dictionary<string, int>(StringComparer.Ordinal);
             var deferred = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             var pending = new List<int>();
@@ -108,7 +132,7 @@ public sealed class AgentHost
                 var step = outcome.Envelope;
                 if (batchReason is not null)
                 {
-                    results[i] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", batchReason, "", "", 0, "", false);
+                    results[i] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", batchReason, "", "", 0, "", false, "", FormatDeadline(step.JobDeadline));
                     canonical[step.StepId] = i;
                     continue;
                 }
@@ -241,7 +265,7 @@ public sealed class AgentHost
 
     private StepResult Dispatch(StepStore store, BoundWorkspace workspace, StepEnvelope step)
     {
-        var claimed = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", "", 0, "", true);
+        var claimed = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", "", 0, "", true, "", FormatDeadline(step.JobDeadline));
         if (!claimed.Executed)
         {
             return claimed;
@@ -273,15 +297,22 @@ public sealed class AgentHost
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", decision.Reason, "", "", 0, "", false);
         }
         var modelText = AskModel();
-        return step.Action switch
+        try
         {
-            "FILE_READ" => ReadOrHash(store, workspace, step, modelText),
-            "FILE_HASH" => ReadOrHash(store, workspace, step, modelText),
-            "FILE_WRITE_ATOMIC" => WriteAtomic(store, workspace, step, modelText),
-            "FILE_APPLY_PATCH" => ApplyPatch(store, workspace, step, modelText),
-            "PROFILE_RUN" => RunProfile(store, workspace, step, modelText),
-            _ => Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "unknown-action", "", "", 0, modelText, false)
-        };
+            return step.Action switch
+            {
+                "FILE_READ" => ReadOrHash(store, workspace, step, modelText),
+                "FILE_HASH" => ReadOrHash(store, workspace, step, modelText),
+                "FILE_WRITE_ATOMIC" => WriteAtomic(store, workspace, step, modelText),
+                "FILE_APPLY_PATCH" => ApplyPatch(store, workspace, step, modelText),
+                "PROFILE_RUN" => RunProfile(store, workspace, step, modelText),
+                _ => Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "unknown-action", "", "", 0, modelText, false)
+            };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "FAILED", "io-failed", "", "", 0, modelText, false);
+        }
     }
 
     private string AskModel()
@@ -396,7 +427,10 @@ public sealed class AgentHost
         {
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "CONFLICT", "conflict-hash", currentHash, path, 0, modelText, false);
         }
-        var fileText = Utf8.NoBom.GetString(currentBytes);
+        if (!Utf8.TryDecode(currentBytes, out var fileText))
+        {
+            return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "FAILED", "bad-encoding", currentHash, path, 0, modelText, false);
+        }
         if (!Patcher.TryApply(fileText, Arg(step, "patch_utf8"), out var patched, out reason))
         {
             var state = reason == "patch-mismatch" ? "CONFLICT" : "REJECTED";
@@ -426,6 +460,10 @@ public sealed class AgentHost
         if (string.IsNullOrWhiteSpace(_options.ProfilePath) || string.IsNullOrWhiteSpace(_options.ProfileSha256))
         {
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "profile-missing", "", "", 0, modelText, false);
+        }
+        if (ProfileInsideWorkspace(workspace.Root, _options.ProfilePath))
+        {
+            return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "profile-mismatch", "", "", 0, modelText, false);
         }
         if (!ProfileRunner.TryLoad(_options.ProfilePath, _options.ProfileSha256, out var profile, out var reason) || profile is null)
         {
@@ -527,13 +565,86 @@ public sealed class AgentHost
         return step.Args[name].GetString() ?? "";
     }
 
-    private static StepResult Persist(StepStore store, string? stepId, string? jobId, string? requestId, string action, string state, string reason, string sha, string path, int execCount, string modelText, bool executed, string output = "")
+    private static bool ProfileInsideWorkspace(string workspaceRoot, string profilePath)
+    {
+        try
+        {
+            var full = Path.GetFullPath(profilePath);
+            if (BoundWorkspace.IsUnder(workspaceRoot, full))
+            {
+                return true;
+            }
+            return BoundWorkspace.IsUnder(workspaceRoot, ResolveAlias(full));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return true;
+        }
+    }
+
+    private static string ResolveAlias(string full)
+    {
+        var root = Path.GetPathRoot(full) ?? "";
+        var current = root;
+        var rest = full.Length > root.Length ? full.Substring(root.Length) : "";
+        var parts = rest.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < parts.Length; i++)
+        {
+            current = current.Length == 0 ? parts[i] : Path.Combine(current, parts[i]);
+            if (!File.Exists(current) && !Directory.Exists(current))
+            {
+                return full;
+            }
+            if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) == 0)
+            {
+                continue;
+            }
+            var target = File.ResolveLinkTarget(current, returnFinalTarget: true);
+            if (target is null)
+            {
+                return full;
+            }
+            var remainder = string.Join(Path.DirectorySeparatorChar.ToString(), parts.Skip(i + 1));
+            var combined = remainder.Length == 0 ? target.FullName : Path.Combine(target.FullName, remainder);
+            return Path.GetFullPath(combined);
+        }
+        return full;
+    }
+
+    private static string FormatDeadline(DateTime value)
+    {
+        var utc = value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+        return utc.ToString("o", CultureInfo.InvariantCulture);
+    }
+
+    private static bool TryReadDeadline(string text, out DateTime utc)
+    {
+        utc = default;
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+        if (!DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+        {
+            return false;
+        }
+        utc = parsed.Kind == DateTimeKind.Local ? parsed.ToUniversalTime() : parsed;
+        return true;
+    }
+
+    private static StepResult Persist(StepStore store, string? stepId, string? jobId, string? requestId, string action, string state, string reason, string sha, string path, int execCount, string modelText, bool executed, string output = "", string jobDeadline = "")
     {
         var id = stepId ?? "";
         var row = new StepRow
         {
             StepId = id,
             JobId = jobId ?? "",
+            JobDeadline = jobDeadline,
             RequestId = requestId ?? "",
             Action = action,
             State = state,
@@ -618,6 +729,7 @@ internal static class StepRowExtensions
         {
             StepId = row.StepId,
             JobId = row.JobId,
+            JobDeadline = row.JobDeadline,
             RequestId = row.RequestId,
             Action = row.Action,
             State = state,

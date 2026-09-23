@@ -21,12 +21,17 @@ internal sealed class BoundWorkspace
             reason = "path-escape";
             return false;
         }
-        foreach (var part in parts)
+        for (var i = 0; i < parts.Count; i++)
         {
-            current = Path.Combine(current, part);
+            current = Path.Combine(current, parts[i]);
             if (IsReparse(current))
             {
                 reason = "path-escape";
+                return false;
+            }
+            if (i < parts.Count - 1 && File.Exists(current) && !Directory.Exists(current))
+            {
+                reason = "path-not-directory";
                 return false;
             }
         }
@@ -131,7 +136,7 @@ internal sealed class BoundWorkspace
             WriteCount++;
             return true;
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             reason = "conflict-exists";
             TryDelete(tmp);
@@ -167,9 +172,22 @@ internal sealed class BoundWorkspace
                 reason = "path-escape";
                 return false;
             }
+            if (File.Exists(walk) && !Directory.Exists(walk))
+            {
+                reason = "path-not-directory";
+                return false;
+            }
             if (!Directory.Exists(walk))
             {
-                Directory.CreateDirectory(walk);
+                try
+                {
+                    Directory.CreateDirectory(walk);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    reason = "io-failed";
+                    return false;
+                }
             }
         }
         return true;

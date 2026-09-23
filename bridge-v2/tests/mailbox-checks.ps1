@@ -722,6 +722,8 @@ $raceGo = Join-Path $tmp 'race-go.txt'
 # Start-Job persists results under the synthetic USERPROFILE on Windows
 # PowerShell 5.1 and then Receive-Job throws Persistence Path does not exist.
 # Two real processes still contend on Reserve-TaskSeq. No job persistence.
+# Ready is written only after the worker is loaded. Go then falls straight
+# into Reserve-TaskSeq, so script load time is not inside the race.
 $raceBody = @'
 param(
     [string]$CommonPath,
@@ -733,19 +735,26 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 try {
-    [System.IO.File]::WriteAllText($ReadyFile, 'ready')
+    . $CommonPath
+    if ($Producer -notmatch '^[A-Za-z0-9_-]{1,32}$') { throw 'bad producer' }
+    $dir = Join-Path $RootDir 'inbox'
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    $resDir = Join-Path $RootDir 'reservations'
+    if (-not (Test-Path -LiteralPath $resDir)) {
+        New-Item -ItemType Directory -Path $resDir -Force | Out-Null
+    }
+    if (-not (Get-Command Reserve-TaskSeq -ErrorAction SilentlyContinue)) {
+        throw 'Reserve-TaskSeq was not loaded'
+    }
+    [System.IO.File]::WriteAllText($ReadyFile, 'loaded')
     $deadline = [datetime]::UtcNow.AddSeconds(30)
     while (-not (Test-Path -LiteralPath $GoFile)) {
         if ([datetime]::UtcNow -gt $deadline) { throw 'go signal timed out' }
         Start-Sleep -Milliseconds 20
     }
-    . $CommonPath
-    if ($Producer -notmatch '^[A-Za-z0-9_-]{1,32}$') { throw 'bad producer' }
     $seq = Reserve-TaskSeq -ArenaRoot $RootDir -ProducerId $Producer
-    $dir = Join-Path $RootDir 'inbox'
-    if (-not (Test-Path -LiteralPath $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
     $path = Join-Path $dir ($seq.ToString() + '.json')
     $fs = $null
     try {
@@ -861,6 +870,9 @@ try {
         if ($exitedEarly) { throw 'ASSERT FAILED: race child exited before the go signal' }
         Start-Sleep -Milliseconds 20
     }
+    $readyTextA = [System.IO.File]::ReadAllText($readyA).Trim()
+    $readyTextB = [System.IO.File]::ReadAllText($readyB).Trim()
+    Assert ($readyTextA -eq 'loaded' -and $readyTextB -eq 'loaded') 'both children loaded before the go signal'
     [System.IO.File]::WriteAllText($raceGo, 'go')
     $exitDeadline = [datetime]::UtcNow.AddSeconds(60)
     while ($true) {

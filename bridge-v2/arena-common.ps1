@@ -98,7 +98,7 @@ function Read-State {
     if ($null -eq $s -or ($s.PSObject.Properties.Name -notcontains 'last_seq')) {
         throw 'state schema invalid (missing last_seq)'
     }
-    $st = @{ last_seq = [int]$s.last_seq; tasks = @{}; mailbox = @{ seen = @{}; rejected_seqs = @() } }
+    $st = @{ last_seq = [int]$s.last_seq; tasks = @{}; mailbox = @{ seen = @{}; rejected_seqs = @(); remote_files = @{} } }
     if ($s.PSObject.Properties.Name -notcontains 'tasks') { return $st }
     foreach ($p in $s.tasks.PSObject.Properties) {
         $v = $p.Value
@@ -141,6 +141,21 @@ function Read-State {
                 if ($text -match '^[1-9][0-9]{0,8}$') { $st.mailbox.rejected_seqs += [int]$text }
             }
         }
+        if ($mbNames -contains 'remote_files' -and $null -ne $mb.remote_files) {
+            foreach ($rp in @($mb.remote_files.PSObject.Properties)) {
+                $rv = $rp.Value
+                if ($null -eq $rv) { continue }
+                $rn = @($rv.PSObject.Properties.Name)
+                $exec = 0
+                if ($rn -contains 'exec_seq' -and ("$($rv.exec_seq)" -match '^[0-9]+$')) { $exec = [int]$rv.exec_seq }
+                $st.mailbox.remote_files[$rp.Name] = @{
+                    sha         = if ($rn -contains 'sha') { [string]$rv.sha } else { '' }
+                    disposition = if ($rn -contains 'disposition') { [string]$rv.disposition } else { '' }
+                    task_id     = if ($rn -contains 'task_id') { [string]$rv.task_id } else { '' }
+                    exec_seq    = $exec
+                }
+            }
+        }
     }
     return $st
 }
@@ -149,16 +164,20 @@ function Save-State {
     param([string]$StatePath, $State)
     $seen = [ordered]@{}
     $rejected = @()
+    $remote = [ordered]@{}
     if ($State.mailbox) {
         if ($State.mailbox.seen) {
             foreach ($k in @($State.mailbox.seen.Keys)) { $seen[$k] = $State.mailbox.seen[$k] }
         }
         if ($State.mailbox.rejected_seqs) { $rejected = @($State.mailbox.rejected_seqs) }
+        if ($State.mailbox.remote_files) {
+            foreach ($k in @($State.mailbox.remote_files.Keys)) { $remote[$k] = $State.mailbox.remote_files[$k] }
+        }
     }
     $obj = [ordered]@{
         last_seq = [int]$State.last_seq
         tasks    = [ordered]@{}
-        mailbox  = [ordered]@{ seen = $seen; rejected_seqs = $rejected }
+        mailbox  = [ordered]@{ seen = $seen; rejected_seqs = $rejected; remote_files = $remote }
     }
     foreach ($k in @($State.tasks.Keys)) {
         $obj.tasks[$k] = $State.tasks[$k]
@@ -249,9 +268,12 @@ function Test-ReservationExpired {
 }
 
 function Reserve-TaskSeq {
-    # One allocator for the router, the mailbox producer, and mailbox import.
+    # One allocator for the router and mailbox import.
+    # The mailbox producer must not call this. A remote id is not an execution slot.
+    # mailbox-staging is not scanned. A leftover numeric staging file must not
+    # open a permanent gap in the local inbox.
     # The reservation file is created with CreateNew, so two processes cannot
-    # take the same seq. The remote filename is not an execution slot.
+    # take the same seq.
     param([string]$ArenaRoot, [string]$ProducerId = 'producer')
     if ([string]::IsNullOrWhiteSpace($ArenaRoot)) { throw 'reserve: no root' }
     $safeProducer = 'producer'
@@ -274,9 +296,8 @@ function Reserve-TaskSeq {
         }
         if ($null -ne $mutex -and -not $acquired) { throw 'reserve: lock timeout' }
         $inbox = Join-Path $ArenaRoot 'inbox'
-        $stage = Join-Path $ArenaRoot 'mailbox-staging'
         $resDir = Join-Path $ArenaRoot 'reservations'
-        foreach ($d in @($inbox, $stage, $resDir)) {
+        foreach ($d in @($inbox, $resDir)) {
             if (-not (Test-Path -LiteralPath $d)) {
                 New-Item -ItemType Directory -Path $d -Force | Out-Null
             }
@@ -292,7 +313,7 @@ function Reserve-TaskSeq {
             if (-not [string]::IsNullOrWhiteSpace($legacyEnv)) { $legacy = $legacyEnv }
             if (-not [string]::IsNullOrWhiteSpace($legacy)) { $max = Get-SeedLastSeq $legacy }
         }
-        foreach ($dir in @($inbox, $stage, $resDir)) {
+        foreach ($dir in @($inbox, $resDir)) {
             $files = @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -File -ErrorAction SilentlyContinue)
             foreach ($f in $files) {
                 if ($f.BaseName -match '^[1-9][0-9]{0,8}$') {
@@ -306,9 +327,8 @@ function Reserve-TaskSeq {
             if ($seq -lt 1 -or $seq -gt 999999999) { break }
             $name = "$seq.json"
             $inboxPath = Join-Path $inbox $name
-            $stagePath = Join-Path $stage $name
             $resPath = Join-Path $resDir $name
-            if ((Test-Path -LiteralPath $inboxPath) -or (Test-Path -LiteralPath $stagePath) -or (Test-Path -LiteralPath $resPath)) {
+            if ((Test-Path -LiteralPath $inboxPath) -or (Test-Path -LiteralPath $resPath)) {
                 continue
             }
             $created = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')

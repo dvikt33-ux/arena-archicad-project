@@ -441,7 +441,7 @@ if ($recoveredAny) { Save-State $script:StatePath $script:State }
 
 Initialize-MailboxFromConfig
 if ($null -eq $script:State.mailbox) {
-    $script:State.mailbox = @{ seen = @{}; rejected_seqs = @() }
+    $script:State.mailbox = @{ seen = @{}; rejected_seqs = @(); remote_files = @{} }
 }
 $script:ActionPolicy = Get-ActionPolicyFromTable
 $script:State = Resolve-ExpiredReservations -ArenaRoot $script:ArenaRoot -State $script:State -StatePath $script:StatePath

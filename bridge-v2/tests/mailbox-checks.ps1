@@ -94,6 +94,56 @@ function Set-RemoteTask {
     Write-Utf8 (Join-Path $Dir ("content-$Seq.json")) $content
     $commit = '[{"sha":"c' + $Seq + '","author":{"login":"' + $Author + '","id":1},"committer":{"login":"' + $Committer + '","id":2}}]'
     Write-Utf8 (Join-Path $Dir ("commit-$Seq.json")) $commit
+    Update-IndexSha $Dir ("$Seq.json") (Get-ListedSha $Envelope)
+}
+
+function Set-RemoteNamed {
+    param([string]$Dir, [string]$Name, [string]$Envelope)
+    $id = $Name
+    if ($id.EndsWith('.json')) { $id = $id.Substring(0, $id.Length - 5) }
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Envelope)
+    $b64 = [Convert]::ToBase64String($bytes)
+    $sha = Get-ListedSha $Envelope
+    $content = '{"type":"file","encoding":"base64","size":' + $bytes.Length + ',"path":"inbox/' + $id + '.json","sha":"' + $sha + '","content":"' + $b64 + '"}'
+    Write-Utf8 (Join-Path $Dir ("content-" + $id + ".json")) $content
+    Update-IndexSha $Dir ($id + '.json') $sha
+}
+
+function Get-ListedSha {
+    param([string]$Text)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes([string]$Text)
+        $hash = $sha256.ComputeHash($bytes)
+        $hex = ([System.BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant()
+        return $hex.Substring(0, 40)
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+function Update-IndexSha {
+    param([string]$Dir, [string]$Name, [string]$BlobSha)
+    $path = Join-Path $Dir 'index.json'
+    if (-not (Test-Path -LiteralPath $path)) { return }
+    $raw = [System.IO.File]::ReadAllText($path)
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw.Trim() -eq '[]') { return }
+    $obj = $raw | ConvertFrom-Json
+    $items = @()
+    if ($obj -is [System.Array]) { $items = @($obj) } elseif ($null -ne $obj) { $items = @($obj) }
+    $out = @()
+    foreach ($it in $items) {
+        if ($null -eq $it) { continue }
+        $n = [string]$it.name
+        $listed = ''
+        if (@($it.PSObject.Properties.Name) -contains 'sha') { $listed = [string]$it.sha }
+        if ($n -eq $Name) { $listed = $BlobSha }
+        $out += '{"name":"' + $n + '","path":"inbox/' + $n + '","type":"file","size":80,"sha":"' + $listed + '"}'
+    }
+    $json = '[]'
+    if ($out.Count -gt 0) { $json = '[' + ($out -join ',') + ']' }
+    Write-Utf8 $path $json
 }
 
 function Set-Index {
@@ -101,7 +151,8 @@ function Set-Index {
     $items = @()
     foreach ($n in @($Names)) {
         if ([string]::IsNullOrWhiteSpace($n)) { continue }
-        $items += '{"name":"' + $n + '","path":"inbox/' + $n + '","type":"file","size":80}'
+        $sha = Get-ListedSha $n
+        $items += '{"name":"' + $n + '","path":"inbox/' + $n + '","type":"file","size":80,"sha":"' + $sha + '"}'
     }
     $json = '[]'
     if ($items.Count -gt 0) { $json = '[' + ($items -join ',') + ']' }
@@ -221,6 +272,7 @@ $badBytes = [System.Text.Encoding]::UTF8.GetBytes('{')
 $badB64 = [Convert]::ToBase64String($badBytes)
 Write-Utf8 (Join-Path $mailDir 'content-14.json') ('{"type":"file","encoding":"base64","size":1,"path":"inbox/14.json","sha":"bad","content":"' + $badB64 + '"}')
 Write-Utf8 (Join-Path $mailDir 'commit-14.json') '[{"sha":"bad","author":{"login":"dvikt33-ux","id":1},"committer":{"login":"dvikt33-ux","id":2}}]'
+Update-IndexSha $mailDir '14.json' (Get-ListedSha 'corrupt-json')
 $r = Invoke-Bridge -NoGithub -ArenaRoot $box
 Assert ($r.Out -match 'bad-json') 'corrupt JSON rejected'
 Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'corrupt JSON did not run git'
@@ -496,10 +548,18 @@ $putOut = & $runner -NoProfile -File $put -Action 'GIT_STATUS' -DryRun -ArenaRoo
 $putCode = $LASTEXITCODE
 $putText = @($putOut | ForEach-Object { "$_" }) -join "`n"
 Assert ($putCode -eq 0) "producer dry-run exit 0 (actual=$putCode text=$putText)"
-Assert ($putText -match 'MAILBOX_QUEUED seq=15 ') 'producer continued numbering and did not overwrite seq 14'
-$staged = Get-Content -LiteralPath (Join-Path $prod 'mailbox-staging/15.json') -Raw | ConvertFrom-Json
+Assert ($putText -match 'MAILBOX_QUEUED task_id=[0-9a-f-]{36} action=GIT_STATUS remote=inbox/[0-9a-f-]{36}\.json') 'producer queued by task id and did not take an exec seq'
+Assert ($putText -notmatch 'seq=15') 'producer did not print an execution seq'
+$stagedFiles = @(Get-ChildItem -LiteralPath (Join-Path $prod 'mailbox-staging') -Filter '*.json' -File)
+Assert ($stagedFiles.Count -eq 1) 'producer staged one file'
+Assert ($stagedFiles[0].Name -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$') 'staging name is the task id'
+Assert ($stagedFiles[0].Name -ne '15.json') 'staging is not exec seq 15'
+$staged = Get-Content -LiteralPath $stagedFiles[0].FullName -Raw | ConvertFrom-Json
 Assert ([string]$staged.action -eq 'GIT_STATUS') 'staged action is the allowlist id'
+Assert ([int]$staged.seq -eq 1) 'envelope seq is a placeholder, not the local slot'
 Assert (@($staged.args.PSObject.Properties).Count -eq 0) 'staged args are empty'
+$inbox14 = Get-Content -LiteralPath (Join-Path $prod 'inbox/14.json') -Raw
+Assert ($inbox14 -match '"seq":14') 'inbox 14 was not overwritten'
 Reset-Logs
 $denyOut = & $runner -NoProfile -File $put -Action 'powershell -Command calc' -DryRun -ArenaRoot $prod 2>&1
 $denyCode = $LASTEXITCODE
@@ -709,10 +769,12 @@ $routerText = [System.IO.File]::ReadAllText((Join-Path $root 'arena-qwen-router-
 $putText = [System.IO.File]::ReadAllText((Join-Path $root 'arena-mailbox-put.ps1'))
 $mailText = [System.IO.File]::ReadAllText((Join-Path $root 'mailbox.ps1'))
 Assert ($routerText -match 'Reserve-TaskSeq') 'router reserves a seq'
-Assert ($putText -match 'Reserve-TaskSeq') 'mailbox producer reserves a seq'
+Assert ($putText -notmatch 'Reserve-TaskSeq') 'mailbox producer does not reserve an exec seq'
 Assert ($mailText -match 'Reserve-TaskSeq') 'mailbox import reserves a seq'
 Assert ($mailText -notmatch 'Test-MailboxTrust') 'commit author is not the allow function'
 Assert ($routerText -notmatch 'maxInbox') 'router no longer allocates a seq on its own'
+
+. (Join-Path $here 'phase0-checks.ps1')
 
 Set-Index $mailDir @()
 Set-MailConfig $cfg $false $mailRepo
@@ -721,5 +783,14 @@ Remove-Item Env:FAKE_GH_KEYS_FAIL -ErrorAction SilentlyContinue
 Remove-Item Env:FAKE_GIT_STATUS_FILE -ErrorAction SilentlyContinue
 
 Remove-Item Env:ARENA_MAILBOX_CONFIG -ErrorAction SilentlyContinue
+Remove-Item Env:ARENA_MAILBOX_FAULT -ErrorAction SilentlyContinue
+Remove-Item Env:ARENA_MAILBOX_LIST_WARN_AT -ErrorAction SilentlyContinue
 Remove-Item Env:FAKE_GH_FAIL -ErrorAction SilentlyContinue
 Remove-Item Env:FAKE_GH_SLEEP_SEC -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_COLLAB_FULL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_COLLAB_ALL_FULL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_COLLAB_PAGE2_FAIL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_KEYS_FULL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_KEYS_ALL_FULL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_KEYS_PAGE2_FAIL -ErrorAction SilentlyContinue
+Remove-Item Env:FAKE_GH_DELETE_FAIL -ErrorAction SilentlyContinue

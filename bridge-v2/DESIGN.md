@@ -185,6 +185,8 @@ function Write-FileAtomic($Path, $Text) {
   Разрешение — права репозитория (private, не форк, точное имя, нет лишнего
   writer и deploy key), не текст GitHub и не автор коммита. Подпись не
   подделывается. См. MAILBOX.md и AUTONOMY.md.
+  Remote-имя — `inbox/<task_id>.json`, не exec seq. Staging не занимает локальную дыру.
+  Пагинация прав обязательна и не доказывает exclusive writer. `archive/` не очередь.
 - Проверка `author==owner` у комментариев публичного Issue (M-11) — не источник
   команд. Issue по-прежнему только для уже разрешённых результатов.
 - Таймаут `gh` через job+kill (в v2 — backoff; жёсткий таймаут можно добавить

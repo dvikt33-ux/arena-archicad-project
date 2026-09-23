@@ -129,6 +129,9 @@ function Read-State {
                     seq         = if ($sn -contains 'seq') { $sv.seq } else { $null }
                     disposition = if ($sn -contains 'disposition') { [string]$sv.disposition } else { '' }
                     reason      = if ($sn -contains 'reason') { [string]$sv.reason } else { '' }
+                    action      = if ($sn -contains 'action') { [string]$sv.action } else { '' }
+                    content_sha = if ($sn -contains 'content_sha') { [string]$sv.content_sha } else { '' }
+                    body_sha    = if ($sn -contains 'body_sha') { [string]$sv.body_sha } else { '' }
                 }
             }
         }

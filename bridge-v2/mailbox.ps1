@@ -86,6 +86,14 @@ function New-MailboxEnvelopeJson {
 
 function Get-ActionPolicyFromTable {
     # Missing Critical fails closed (held, not auto-run). Only ActionIds are offered.
+    $forcedHold = @{}
+    $holdRaw = [Environment]::GetEnvironmentVariable('ARENA_MAILBOX_HOLD_ACTIONS')
+    if (-not [string]::IsNullOrWhiteSpace($holdRaw)) {
+        foreach ($part in ($holdRaw -split ',')) {
+            $token = $part.Trim().ToUpperInvariant()
+            if ($token -match '^[A-Z0-9_]+$') { $forcedHold[$token] = $true }
+        }
+    }
     $policy = @{}
     foreach ($id in @($script:ActionIds)) {
         if (-not $script:Actions.ContainsKey($id)) { continue }
@@ -94,6 +102,8 @@ function Get-ActionPolicyFromTable {
         if ($a.ContainsKey('ArgNames') -and $null -ne $a.ArgNames) { $names = @($a.ArgNames) }
         $critical = $true
         if ($a.ContainsKey('Critical')) { $critical = [bool]$a.Critical }
+        # Test hook only. Empty unless a smoke sets it. Does not add an action.
+        if ($forcedHold.ContainsKey($id)) { $critical = $true }
         $policy[$id] = @{ Critical = $critical; ArgNames = $names }
     }
     return $policy
@@ -463,11 +473,38 @@ function Test-MailboxTaskSeen {
 }
 
 function Remember-Mailbox {
-    param([string]$TaskId, [int]$Seq, [string]$Disposition, [string]$Reason)
+    param(
+        [string]$TaskId,
+        [int]$Seq,
+        [string]$Disposition,
+        [string]$Reason,
+        [string]$Action = '',
+        [string]$ContentSha = '',
+        [string]$BodySha = ''
+    )
     Ensure-MailboxState
     $id = ('' + $TaskId).ToLowerInvariant()
     if ($id -match $script:MailboxTaskIdPattern) {
-        $script:State.mailbox.seen[$id] = @{ seq = $Seq; disposition = $Disposition; reason = $Reason }
+        $prev = $null
+        if ($script:State.mailbox.seen.ContainsKey($id)) { $prev = $script:State.mailbox.seen[$id] }
+        $keepAction = $Action
+        $keepContent = ''
+        $keepBody = ''
+        if (-not [string]::IsNullOrWhiteSpace($ContentSha)) { $keepContent = $ContentSha.ToLowerInvariant() }
+        if (-not [string]::IsNullOrWhiteSpace($BodySha)) { $keepBody = $BodySha.ToLowerInvariant() }
+        if ($null -ne $prev) {
+            if ([string]::IsNullOrWhiteSpace($keepAction) -and $prev.ContainsKey('action')) { $keepAction = [string]$prev.action }
+            if ([string]::IsNullOrWhiteSpace($keepContent) -and $prev.ContainsKey('content_sha')) { $keepContent = [string]$prev.content_sha }
+            if ([string]::IsNullOrWhiteSpace($keepBody) -and $prev.ContainsKey('body_sha')) { $keepBody = [string]$prev.body_sha }
+        }
+        $script:State.mailbox.seen[$id] = @{
+            seq         = $Seq
+            disposition = $Disposition
+            reason      = $Reason
+            action      = $keepAction
+            content_sha = $keepContent
+            body_sha    = $keepBody
+        }
     }
     # A non-numeric remote name has no execution slot. Do not record seq 0 as rejected.
     if ($Disposition -eq 'rejected' -and $Seq -ge 1) {
@@ -722,9 +759,8 @@ function Test-MailboxRemoteSettled {
     $disp = [string]$rec.disposition
     if ($disp -eq 'rejected' -or $disp -eq 'duplicate') { return $true }
     if ($disp -eq 'held') {
-        $tid = [string]$rec.task_id
-        if (Test-MailboxApproved $tid $script:ApproveDir) { return $false }
-        return $true
+        # Held is not terminal. Do not offer it to remote cleanup, approved or not.
+        return $false
     }
     if ($disp -eq 'accepted') {
         $seq = 0
@@ -768,15 +804,92 @@ function Invoke-MailboxRemoteCleanup {
     return $true
 }
 
+function Get-MailboxBodySha {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+        $hash = $hasher.ComputeHash($bytes)
+        return ([System.BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $hasher.Dispose() }
+}
+
+function Get-MailboxNameTaskId {
+    param([string]$Name)
+    if ($Name -match '^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.json$') {
+        return $Matches[1]
+    }
+    return ''
+}
+
+function Save-MailboxAcceptedBody {
+    # Freeze the envelope that was accepted. A later remote edit must not replace it.
+    param([string]$TaskId, [string]$RawText)
+    $id = ('' + $TaskId).ToLowerInvariant()
+    if ($id -notmatch $script:MailboxTaskIdPattern) { return $false }
+    if ([string]::IsNullOrWhiteSpace($RawText)) { return $false }
+    if ([string]::IsNullOrWhiteSpace($script:ArenaRoot)) { return $false }
+    $dir = Join-Path $script:ArenaRoot 'mailbox-accepted'
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    $path = Join-Path $dir ($id + '.json')
+    if (Test-Path -LiteralPath $path) {
+        $seen = Get-MailboxSeen $id
+        if ($seen -and [string]$seen.disposition -eq 'accepted') { return $true }
+    }
+    Write-FileAtomic $path $RawText
+    return (Test-Path -LiteralPath $path)
+}
+
+function Read-MailboxAcceptedBody {
+    param([string]$TaskId)
+    $fail = @{ Ok = $false; Text = ''; Envelope = $null }
+    $id = ('' + $TaskId).ToLowerInvariant()
+    if ($id -notmatch $script:MailboxTaskIdPattern) { return $fail }
+    if ([string]::IsNullOrWhiteSpace($script:ArenaRoot)) { return $fail }
+    $path = Join-Path (Join-Path $script:ArenaRoot 'mailbox-accepted') ($id + '.json')
+    if (-not (Test-Path -LiteralPath $path)) { return $fail }
+    $text = ''
+    try { $text = [System.IO.File]::ReadAllText($path) } catch { return $fail }
+    $parsed = ConvertFrom-MailboxJson $text
+    if (-not $parsed.Ok) { return $fail }
+    return @{ Ok = $true; Text = $text; Envelope = $parsed.Value }
+}
+
+function Find-MailboxOwnedReservation {
+    # The next gap, only if this process reserved it and the lease is still live.
+    param([string]$ArenaRoot, [int]$ExpectedSeq)
+    if ($ExpectedSeq -lt 1 -or [string]::IsNullOrWhiteSpace($ArenaRoot)) { return 0 }
+    $path = Join-Path (Join-Path $ArenaRoot 'reservations') ("$ExpectedSeq.json")
+    if (-not (Test-Path -LiteralPath $path)) { return 0 }
+    $raw = ''
+    try { $raw = [System.IO.File]::ReadAllText($path) } catch { return 0 }
+    if ($raw -notmatch '"producer"\s*:\s*"mailbox"') { return 0 }
+    if (Test-ReservationExpired -Path $path -LeaseSeconds (Get-SeqLeaseSeconds)) { return 0 }
+    return $ExpectedSeq
+}
+
 function Import-MailboxEnvelope {
     # Remote filename is not the execution slot. Disposition is durable before
     # any remote delete. A reappearing task_id does not allocate a second slot.
+    # Once accepted, the stored envelope is the task. Current time and a later
+    # remote body do not reopen that decision.
     param($Envelope, [int]$FileSeq, [string]$RawText, [string]$RemoteName = '', [string]$RemoteSha = '')
     $earlyId = ''
     if ($null -ne $Envelope -and -not ($Envelope -is [System.Array])) {
         $earlyNames = @($Envelope.PSObject.Properties.Name)
         if ($earlyNames -contains 'task_id') {
             $earlyId = ([string]$Envelope.task_id).Trim().ToLowerInvariant()
+        }
+    }
+    $nameId = Get-MailboxNameTaskId $RemoteName
+    if ($nameId -ne '') {
+        $seenByName = Get-MailboxSeen $nameId
+        if ($seenByName -and [string]$seenByName.disposition -eq 'accepted') {
+            $earlyId = $nameId
         }
     }
     if ($earlyId -match $script:MailboxTaskIdPattern) {
@@ -787,16 +900,59 @@ function Import-MailboxEnvelope {
             return
         }
     }
-    $decision = Get-RemoteDecision $Envelope $script:ActionPolicy ([datetime]::UtcNow) $RawText
-    $taskId = $earlyId
-    if (-not $decision.Ok) {
-        Reject-MailboxTask -Seq $FileSeq -TaskId $taskId -Reason $decision.Reason -Label $RemoteName
-        Remember-MailboxRemote $RemoteName $RemoteSha 'rejected' $taskId 0
-        Invoke-MailboxRemoteCleanup $RemoteName $RemoteSha
-        return
+    $recoverAccepted = $false
+    $decision = $null
+    $seenForAccept = $null
+    if ($earlyId -match $script:MailboxTaskIdPattern) {
+        $seenForAccept = Get-MailboxSeen $earlyId
     }
+    if ($seenForAccept -and [string]$seenForAccept.disposition -eq 'accepted') {
+        $recoverAccepted = $true
+        $stored = Read-MailboxAcceptedBody $earlyId
+        if (-not $stored.Ok) {
+            Write-Audit @{ ev = 'MAILBOX_RETRY'; reason = 'missing-accepted-body' }
+            Write-Host ("MAILBOX retry [" + $RemoteName + "] missing-accepted-body")
+            return
+        }
+        $createdBound = ConvertFrom-MailboxTime (Get-MailboxRawField $stored.Text 'created_at')
+        $when = [datetime]::UtcNow
+        if ($null -ne $createdBound) { $when = $createdBound }
+        $decision = Get-RemoteDecision $stored.Envelope $script:ActionPolicy $when $stored.Text
+        if (-not $decision.Ok) {
+            Write-Audit @{ ev = 'MAILBOX_RETRY'; reason = 'accepted-body-invalid' }
+            Write-Host ("MAILBOX retry [" + $RemoteName + "] accepted-body-invalid")
+            return
+        }
+        $listed = ''
+        if (-not [string]::IsNullOrWhiteSpace($RemoteSha)) { $listed = $RemoteSha.ToLowerInvariant() }
+        $pinned = ''
+        if ($seenForAccept.ContainsKey('content_sha')) { $pinned = ([string]$seenForAccept.content_sha).ToLowerInvariant() }
+        $pinnedBody = ''
+        if ($seenForAccept.ContainsKey('body_sha')) { $pinnedBody = ([string]$seenForAccept.body_sha).ToLowerInvariant() }
+        $remoteBody = ''
+        if (-not [string]::IsNullOrWhiteSpace($RawText)) { $remoteBody = Get-MailboxBodySha $RawText }
+        $changed = $false
+        if ($listed -ne '' -and $pinned -ne '' -and $listed -ne $pinned) { $changed = $true }
+        if ($remoteBody -ne '' -and $pinnedBody -ne '' -and $remoteBody -ne $pinnedBody) { $changed = $true }
+        if ($changed) {
+            Write-Audit @{ ev = 'MAILBOX_CONTENT_CHANGED'; task_id = $earlyId }
+            Write-Host ("MAILBOX accepted-content-changed [" + $RemoteName + "]")
+        }
+        $RawText = $stored.Text
+    }
+    else {
+        $decision = Get-RemoteDecision $Envelope $script:ActionPolicy ([datetime]::UtcNow) $RawText
+        if (-not $decision.Ok) {
+            Reject-MailboxTask -Seq $FileSeq -TaskId $earlyId -Reason $decision.Reason -Label $RemoteName
+            Remember-MailboxRemote $RemoteName $RemoteSha 'rejected' $earlyId 0
+            Invoke-MailboxRemoteCleanup $RemoteName $RemoteSha
+            return
+        }
+    }
+    $taskId = $earlyId
+    if ($taskId -notmatch $script:MailboxTaskIdPattern) { $taskId = $decision.TaskId }
     $numericName = $RemoteName -match '^[1-9][0-9]{0,8}\.json$'
-    if ($numericName -and $decision.Seq -ne $FileSeq) {
+    if (-not $recoverAccepted -and $numericName -and $decision.Seq -ne $FileSeq) {
         Reject-MailboxTask -Seq $FileSeq -TaskId $decision.TaskId -Reason 'seq-filename-mismatch' -Label $RemoteName
         Remember-MailboxRemote $RemoteName $RemoteSha 'rejected' $decision.TaskId 0
         Invoke-MailboxRemoteCleanup $RemoteName $RemoteSha
@@ -901,7 +1057,14 @@ function Import-MailboxEnvelope {
     }
     if (-not $resumeAlloc) {
         Invoke-MailboxFault 'before-accept'
-        Remember-Mailbox $decision.TaskId 0 'accepted' ''
+        $bound = Save-MailboxAcceptedBody $decision.TaskId $RawText
+        if (-not $bound) {
+            Write-Audit @{ ev = 'MAILBOX_RETRY'; seq = $FileSeq; reason = 'accepted-body' }
+            Write-Host ("MAILBOX retry [" + $FileSeq + "] accepted-body")
+            return
+        }
+        $bodySha = Get-MailboxBodySha $RawText
+        Remember-Mailbox $decision.TaskId 0 'accepted' '' $decision.Action $RemoteSha $bodySha
         Remember-MailboxRemote $RemoteName $RemoteSha 'accepted' $decision.TaskId 0
         Invoke-MailboxFault 'after-accept'
     }
@@ -909,13 +1072,25 @@ function Import-MailboxEnvelope {
         Invoke-MailboxFault 'after-accept'
     }
     $execSeq = 0
-    try {
-        $execSeq = Reserve-TaskSeq -ArenaRoot $script:ArenaRoot -ProducerId 'mailbox'
+    $adopted = $false
+    if ($resumeAlloc) {
+        $gap = [int]$script:State.last_seq + 1
+        $owned = Find-MailboxOwnedReservation $script:ArenaRoot $gap
+        if ($owned -ge 1) {
+            $execSeq = $owned
+            $adopted = $true
+        }
     }
-    catch {
-        Write-Audit @{ ev = 'MAILBOX_RETRY'; seq = $FileSeq; reason = 'reserve-failed' }
-        Write-Host ("MAILBOX retry [" + $FileSeq + "] reserve-failed")
-        return
+    if (-not $adopted) {
+        try {
+            $execSeq = Reserve-TaskSeq -ArenaRoot $script:ArenaRoot -ProducerId 'mailbox'
+        }
+        catch {
+            Write-Audit @{ ev = 'MAILBOX_RETRY'; seq = $FileSeq; reason = 'reserve-failed' }
+            Write-Host ("MAILBOX retry [" + $FileSeq + "] reserve-failed")
+            return
+        }
+        Invoke-MailboxFault 'after-reserve-before-seq-persist'
     }
     Remember-Mailbox $decision.TaskId $execSeq 'accepted' ''
     Remember-MailboxRemote $RemoteName $RemoteSha 'accepted' $decision.TaskId $execSeq
@@ -1031,11 +1206,15 @@ function Invoke-MailboxSync {
                 $en = @($cand.Envelope.PSObject.Properties.Name)
                 if ($en -contains 'task_id') { $tid = [string]$cand.Envelope.task_id }
             }
-            $skipReject = $false
-            if (-not [string]::IsNullOrWhiteSpace($tid)) {
-                $prev = Get-MailboxSeen $tid
-                if ($prev -and [string]$prev.disposition -eq 'rejected') { $skipReject = $true }
+            if ([string]::IsNullOrWhiteSpace($tid)) { $tid = Get-MailboxNameTaskId $name }
+            $prev = $null
+            if (-not [string]::IsNullOrWhiteSpace($tid)) { $prev = Get-MailboxSeen $tid }
+            if ($prev -and [string]$prev.disposition -eq 'accepted') {
+                Import-MailboxEnvelope $cand.Envelope $fileSeq $cand.Text $name $sha
+                continue
             }
+            $skipReject = $false
+            if ($prev -and [string]$prev.disposition -eq 'rejected') { $skipReject = $true }
             if (-not $skipReject) { Reject-MailboxTask -Seq $fileSeq -TaskId $tid -Reason $cand.Reason -Label $name }
             Remember-MailboxRemote $name $sha 'rejected' $tid 0
             Invoke-MailboxRemoteCleanup $name $sha

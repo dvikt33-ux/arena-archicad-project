@@ -29,7 +29,7 @@ function Get-SeenProp {
 
 function Clear-PhaseEnv {
     foreach ($name in @(
-        'ARENA_MAILBOX_FAULT', 'ARENA_MAILBOX_LIST_WARN_AT',
+        'ARENA_MAILBOX_FAULT', 'ARENA_MAILBOX_LIST_WARN_AT', 'ARENA_MAILBOX_HOLD_ACTIONS',
         'FAKE_GH_COLLAB_FULL', 'FAKE_GH_COLLAB_ALL_FULL', 'FAKE_GH_COLLAB_PAGE2_FAIL',
         'FAKE_GH_KEYS_FULL', 'FAKE_GH_KEYS_ALL_FULL', 'FAKE_GH_KEYS_PAGE2_FAIL',
         'FAKE_GH_DELETE_FAIL', 'FAKE_GH_FAIL'
@@ -384,6 +384,117 @@ Assert ($r.Out -match 'unknown-field') 'fault field is an unknown field'
 Assert ($r.Out -notmatch 'mailbox-fault:') 'task field did not trip the local hook'
 Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'fault field did not run git'
 Assert ([int](Get-MailState $fieldRoot).last_seq -eq 12) 'fault field did not execute'
+
+Write-Host '[66] accepted task survives an expired transport envelope'
+$expId = '21212121-2121-2121-2121-212121212121'
+$expEnv = New-Envelope 1 'GIT_STATUS' $expId
+Set-RemoteNamed $mailDir $expId $expEnv
+Set-Index $mailDir @($expId + '.json')
+$expRoot = New-MailRoot 700
+$env:ARENA_MAILBOX_FAULT = 'after-accept'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $expRoot
+Clear-PhaseEnv
+Assert ($r.Out -match 'mailbox-fault:after-accept') 'expiry setup stopped after accept'
+$storedPath = Join-Path $expRoot ('mailbox-accepted/' + $expId + '.json')
+Assert (Test-Path -LiteralPath $storedPath) 'accepted envelope was stored'
+$storedRaw = [System.IO.File]::ReadAllText($storedPath)
+$pastCreated = (Get-Date).ToUniversalTime().AddMinutes(-30).ToString('yyyy-MM-ddTHH:mm:ssZ')
+$pastExpires = (Get-Date).ToUniversalTime().AddMinutes(-5).ToString('yyyy-MM-ddTHH:mm:ssZ')
+$storedRaw = [regex]::Replace($storedRaw, '"created_at":"[^"]*"', ('"created_at":"' + $pastCreated + '"'))
+$storedRaw = [regex]::Replace($storedRaw, '"expires_at":"[^"]*"', ('"expires_at":"' + $pastExpires + '"'))
+Write-Utf8 $storedPath $storedRaw
+$expiredRemote = New-Envelope 1 'GIT_STATUS' $expId -CreatedOffsetMin -180 -ExpiresOffsetMin -60
+Set-RemoteNamed $mailDir $expId $expiredRemote
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $expRoot
+Assert ($r.Out -match 'COMPLETED \[701\]: GIT_STATUS') 'expired accepted task still ran'
+Assert ($r.Out -notmatch 'MAILBOX rejected \[.*\] expired') 'expired transport envelope did not reject'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 1) 'expired accepted task ran git once'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $expRoot
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 0) 'expired accepted task did not run again'
+
+Write-Host '[67] a changed remote body does not replace the accepted task'
+$chgId = '22222222-2222-2222-2222-222222222222'
+Set-RemoteNamed $mailDir $chgId (New-Envelope 1 'GIT_VERSION' $chgId)
+Set-Index $mailDir @($chgId + '.json')
+$chgRoot = New-MailRoot 710
+$env:ARENA_MAILBOX_FAULT = 'after-accept'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $chgRoot
+Clear-PhaseEnv
+Assert ($r.Out -match 'mailbox-fault:after-accept') 'content setup stopped after accept'
+Set-RemoteNamed $mailDir $chgId (New-Envelope 1 'GIT_DIFF' $chgId)
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $chgRoot
+Assert ($r.Out -match 'MAILBOX accepted-content-changed') 'changed remote body was noticed'
+Assert ($r.Out -match 'COMPLETED \[711\]: GIT_VERSION') 'stored GIT_VERSION still ran'
+Assert ($r.Out -notmatch 'COMPLETED \[.*\]: GIT_DIFF') 'replacement GIT_DIFF did not run'
+Assert ($r.Out -notmatch 'GIT_DIFF') 'replacement action was not echoed'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG '--version') -eq 1) 'stored action ran once'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'diff') -eq 0) 'replacement action did not run git'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $chgRoot
+Assert ((Count-LogLines $env:FAKE_GIT_LOG '--version') -eq 0) 'stored action did not run again'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'diff') -eq 0) 'replacement still did not run'
+
+Write-Host '[68] a held task is not deleted before approval'
+$heldId = '23232323-2323-2323-2323-232323232323'
+Set-RemoteNamed $mailDir $heldId (New-Envelope 1 'GIT_STATUS' $heldId)
+Set-Index $mailDir @($heldId + '.json')
+$heldRoot = New-MailRoot 720
+$env:ARENA_MAILBOX_HOLD_ACTIONS = 'GIT_STATUS'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $heldRoot
+Assert ($r.Out -match 'MAILBOX held \[') 'critical test hook held the task'
+Assert ($r.Out -notmatch 'COMPLETED') 'held task did not run'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'held task did not run git'
+Assert ((Read-Log $env:FAKE_GH_LOG) -notmatch 'DELETE') 'first held poll did not clean up'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $heldRoot
+Assert ($r.Out -notmatch 'COMPLETED') 'second held poll did not run'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'second held poll did not run git'
+Assert ((Read-Log $env:FAKE_GH_LOG) -notmatch 'DELETE') 'held remote was not deleted'
+$approveDir = Join-Path $heldRoot 'approve'
+New-Item -ItemType Directory -Path $approveDir -Force | Out-Null
+Write-Utf8 (Join-Path $approveDir $heldId) $heldId
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $heldRoot
+Clear-PhaseEnv
+Assert ($r.Out -match 'COMPLETED \[721\]: GIT_STATUS') 'approved held task continued'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 1) 'approved held task ran once'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $heldRoot
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 0) 'approved held task did not run again'
+
+Write-Host '[69] crash after reserve reuses that reservation'
+$resId = '24242424-2424-2424-2424-242424242424'
+Set-RemoteNamed $mailDir $resId (New-Envelope 1 'GIT_STATUS' $resId)
+Set-Index $mailDir @($resId + '.json')
+$resRoot = New-MailRoot 800
+$env:ARENA_MAILBOX_FAULT = 'after-reserve-before-seq-persist'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $resRoot
+Clear-PhaseEnv
+Assert ($r.Out -match 'mailbox-fault:after-reserve-before-seq-persist') 'fault stopped after reserve'
+$resSeen = Get-SeenProp $resRoot $resId
+Assert ($null -ne $resSeen -and [string]$resSeen.disposition -eq 'accepted') 'reserve fault kept accepted'
+Assert ([int]$resSeen.seq -eq 0) 'reserve fault did not persist exec seq'
+Assert (Test-Path -LiteralPath (Join-Path $resRoot 'reservations/801.json')) 'reservation 801 was left open'
+Assert (-not (Test-Path -LiteralPath (Join-Path $resRoot 'inbox/801.json'))) 'reserve fault wrote no inbox'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'reserve fault did not run git'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $resRoot
+Assert ($r.Out -match 'COMPLETED \[801\]: GIT_STATUS') 'restart reused reservation 801'
+Assert ($r.Out -notmatch 'reservation-abandoned') 'live reservation was not abandoned'
+Assert ($r.Out -notmatch 'COMPLETED \[802\]') 'restart did not skip to 802'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 1) 'reused reservation ran once'
+Assert (-not (Test-Path -LiteralPath (Join-Path $resRoot 'reservations/801.json'))) 'reused reservation was closed'
+Assert ([int](Get-MailState $resRoot).last_seq -eq 801) 'queue did not skip the reserved slot'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $resRoot
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 0) 'reused reservation did not run again'
 
 Clear-PhaseEnv
 Set-Index $mailDir @()

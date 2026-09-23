@@ -31,14 +31,59 @@ New-Item -ItemType Directory -Path $notARepo -Force | Out-Null
 New-Item -ItemType Directory -Path $shimDir -Force | Out-Null
 
 # A real v1 machine has these files. The suite must still start at last_seq=0.
+# The synthetic profile is not a Windows profile. Child PowerShell processes
+# must not resolve ModuleAnalysisCache relative to the repo.
 $fakeProfile = Join-Path $tmp 'FakeProfile'
 $fakeDocs = Join-Path $fakeProfile 'Documents'
-New-Item -ItemType Directory -Path $fakeDocs -Force | Out-Null
+$fakeLocal = Join-Path (Join-Path $fakeProfile 'AppData') 'Local'
+$fakeRoaming = Join-Path (Join-Path $fakeProfile 'AppData') 'Roaming'
+$cacheDir = Join-Path $tmp 'ps-cache'
+$localPs = Join-Path (Join-Path (Join-Path $fakeLocal 'Microsoft') 'Windows') 'PowerShell'
+$roamingPs = Join-Path (Join-Path (Join-Path $fakeRoaming 'Microsoft') 'Windows') 'PowerShell'
+foreach ($d in @($fakeDocs, $localPs, $roamingPs, $cacheDir)) {
+    New-Item -ItemType Directory -Path $d -Force | Out-Null
+}
 $ascii = [System.Text.Encoding]::ASCII
 [System.IO.File]::WriteAllText((Join-Path $fakeDocs 'arena-bridge-last-task.txt'), "17`r`n", $ascii)
 [System.IO.File]::WriteAllText((Join-Path $fakeDocs 'arena-bridge-task.txt'), "GIT_STATUS`r`n", $ascii)
 $env:USERPROFILE = $fakeProfile
 $env:HOME = $fakeProfile
+$env:LOCALAPPDATA = $fakeLocal
+$env:APPDATA = $fakeRoaming
+$env:PSModuleAnalysisCachePath = Join-Path $cacheDir 'ModuleAnalysisCache'
+
+function Clear-SmokeCacheLeak {
+    # Child processes should write the cache under $tmp. If a relative cache
+    # still appears, remove it so the repo working tree stays clean.
+    $bases = @()
+    try { $bases += (Get-Location).Path } catch { }
+    $bases += $here
+    $bases += $root
+    $bases += (Split-Path -Parent $root)
+    $seen = @{}
+    foreach ($base in $bases) {
+        if ([string]::IsNullOrWhiteSpace($base)) { continue }
+        if ($seen.ContainsKey($base)) { continue }
+        $seen[$base] = $true
+        $win = Join-Path (Join-Path $base 'Microsoft') 'Windows'
+        $psDir = Join-Path $win 'PowerShell'
+        $cache = Join-Path $psDir 'ModuleAnalysisCache'
+        if (-not (Test-Path -LiteralPath $cache)) { continue }
+        Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue
+        foreach ($dir in @($psDir, $win, (Join-Path $base 'Microsoft'))) {
+            if (-not (Test-Path -LiteralPath $dir)) { continue }
+            $left = @(Get-ChildItem -LiteralPath $dir -Force -ErrorAction SilentlyContinue)
+            if ($left.Count -eq 0) {
+                Remove-Item -LiteralPath $dir -Force -ErrorAction SilentlyContinue
+            }
+        }
+        $script:SmokeCacheLeak = $base
+    }
+}
+trap {
+    Clear-SmokeCacheLeak
+    break
+}
 
 $missingLegacy = Join-Path $tmp 'missing-legacy-state.txt'
 $missingTask = Join-Path $tmp 'missing-legacy-task.txt'
@@ -474,6 +519,10 @@ Remove-Item Env:FAKE_GH_GET_FILE -ErrorAction SilentlyContinue
 
 . (Join-Path $here 'mailbox-checks.ps1')
 
+Clear-SmokeCacheLeak
+if ($script:SmokeCacheLeak) {
+    throw ("ASSERT FAILED: module cache leaked into " + $script:SmokeCacheLeak)
+}
 Write-Host ''
 Write-Host 'ALL SMOKE TESTS PASSED'
 Write-Host "sandbox left at: $tmp"

@@ -717,16 +717,41 @@ Write-Host '[38] two producers cannot take the same seq'
 Set-MailConfig $cfg $false $mailRepo
 $raceRoot = New-MailRoot 12
 $commonPath = Join-Path $root 'arena-common.ps1'
-$raceScript = {
-    param($CommonPath, $RootDir, $Producer)
+$raceScriptPath = Join-Path $tmp 'race-reserve.ps1'
+$raceGo = Join-Path $tmp 'race-go.txt'
+# Start-Job persists results under the synthetic USERPROFILE on Windows
+# PowerShell 5.1 and then Receive-Job throws Persistence Path does not exist.
+# Two real processes still contend on Reserve-TaskSeq. No job persistence.
+$raceBody = @'
+param(
+    [string]$CommonPath,
+    [string]$RootDir,
+    [string]$Producer,
+    [string]$ResultFile,
+    [string]$ReadyFile,
+    [string]$GoFile
+)
+$ErrorActionPreference = 'Stop'
+try {
+    [System.IO.File]::WriteAllText($ReadyFile, 'ready')
+    $deadline = [datetime]::UtcNow.AddSeconds(30)
+    while (-not (Test-Path -LiteralPath $GoFile)) {
+        if ([datetime]::UtcNow -gt $deadline) { throw 'go signal timed out' }
+        Start-Sleep -Milliseconds 20
+    }
     . $CommonPath
+    if ($Producer -notmatch '^[A-Za-z0-9_-]{1,32}$') { throw 'bad producer' }
     $seq = Reserve-TaskSeq -ArenaRoot $RootDir -ProducerId $Producer
     $dir = Join-Path $RootDir 'inbox'
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
     $path = Join-Path $dir ($seq.ToString() + '.json')
     $fs = $null
     try {
         $fs = New-Object System.IO.FileStream($path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes(('{"seq":' + $seq + ',"producer":"' + $Producer + '"}'))
+        $payload = '{"seq":' + $seq + ',"producer":"' + $Producer + '"}'
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
         $fs.Write($bytes, 0, $bytes.Length)
         $fs.Close()
         $fs = $null
@@ -736,28 +761,150 @@ $raceScript = {
         throw
     }
     Complete-TaskReservation -ArenaRoot $RootDir -Seq $seq
-    return $seq
+    [System.IO.File]::WriteAllText($ResultFile, ([string]$seq))
+    exit 0
 }
-$jobA = Start-Job -ScriptBlock $raceScript -ArgumentList $commonPath, $raceRoot, 'prod-a'
-$jobB = Start-Job -ScriptBlock $raceScript -ArgumentList $commonPath, $raceRoot, 'prod-b'
-Wait-Job -Job $jobA, $jobB -Timeout 60 | Out-Null
-if ($jobA.State -ne 'Completed' -or $jobB.State -ne 'Completed') {
+catch {
+    $msg = $_.Exception.Message
+    try { [System.IO.File]::WriteAllText($ResultFile, ('ERROR: ' + $msg)) } catch { }
+    [Console]::Error.WriteLine($msg)
+    exit 1
+}
+'@
+[System.IO.File]::WriteAllText($raceScriptPath, $raceBody)
+
+function ConvertTo-RaceArgument {
+    param([string]$Text)
+    if ($null -eq $Text) { $Text = '' }
+    return ('"' + $Text.Replace('"', '\"') + '"')
+}
+
+function Start-RaceProducer {
+    param(
+        [string]$Producer,
+        [string]$ResultFile,
+        [string]$ReadyFile
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $runner
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $used = $false
+    $argProp = $psi.GetType().GetProperty('ArgumentList')
+    if ($null -ne $argProp) {
+        $list = $argProp.GetValue($psi, $null)
+        if ($null -ne $list) {
+            foreach ($arg in @(
+                    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $raceScriptPath,
+                    $commonPath, $raceRoot, $Producer, $ResultFile, $ReadyFile, $raceGo
+                )) {
+                [void]$list.Add([string]$arg)
+            }
+            $used = $true
+        }
+    }
+    if (-not $used) {
+        $parts = @(
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+            (ConvertTo-RaceArgument $raceScriptPath),
+            (ConvertTo-RaceArgument $commonPath),
+            (ConvertTo-RaceArgument $raceRoot),
+            (ConvertTo-RaceArgument $Producer),
+            (ConvertTo-RaceArgument $ResultFile),
+            (ConvertTo-RaceArgument $ReadyFile),
+            (ConvertTo-RaceArgument $raceGo)
+        )
+        $psi.Arguments = ($parts -join ' ')
+    }
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    $started = $false
+    try { $started = $proc.Start() } catch { $started = $false }
+    if (-not $started) { throw 'race process did not start' }
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+    return @{ Proc = $proc; OutTask = $stdoutTask; ErrTask = $stderrTask }
+}
+
+function Stop-RaceProducer {
+    param($Handle)
+    if ($null -eq $Handle -or $null -eq $Handle.Proc) { return }
+    try {
+        if (-not $Handle.Proc.HasExited) {
+            try { $Handle.Proc.Kill() } catch { }
+            try { $null = $Handle.Proc.WaitForExit(5000) } catch { }
+        }
+    }
+    catch { }
+    try { $Handle.Proc.Dispose() } catch { }
+}
+
+$resultA = Join-Path $tmp 'race-a.txt'
+$resultB = Join-Path $tmp 'race-b.txt'
+$readyA = Join-Path $tmp 'race-a.ready'
+$readyB = Join-Path $tmp 'race-b.ready'
+Remove-Item -LiteralPath $raceGo, $resultA, $resultB, $readyA, $readyB -Force -ErrorAction SilentlyContinue
+$handleA = $null
+$handleB = $null
+try {
+    $handleA = Start-RaceProducer -Producer 'prod-a' -ResultFile $resultA -ReadyFile $readyA
+    $handleB = Start-RaceProducer -Producer 'prod-b' -ResultFile $resultB -ReadyFile $readyB
+    Assert ($handleA.Proc.Id -ne $handleB.Proc.Id) 'race started two processes'
+    Assert ($handleA.Proc.Id -ne $PID -and $handleB.Proc.Id -ne $PID) 'race children are not the test process'
+    $readyDeadline = [datetime]::UtcNow.AddSeconds(20)
+    while (-not ((Test-Path -LiteralPath $readyA) -and (Test-Path -LiteralPath $readyB))) {
+        if ([datetime]::UtcNow -gt $readyDeadline) { throw 'ASSERT FAILED: race children were not ready together' }
+        $exitedEarly = $false
+        try { if ($handleA.Proc.HasExited -or $handleB.Proc.HasExited) { $exitedEarly = $true } } catch { $exitedEarly = $true }
+        if ($exitedEarly) { throw 'ASSERT FAILED: race child exited before the go signal' }
+        Start-Sleep -Milliseconds 20
+    }
+    [System.IO.File]::WriteAllText($raceGo, 'go')
+    $exitDeadline = [datetime]::UtcNow.AddSeconds(60)
+    while ($true) {
+        $aDone = $false
+        $bDone = $false
+        try { $aDone = $handleA.Proc.HasExited } catch { $aDone = $true }
+        try { $bDone = $handleB.Proc.HasExited } catch { $bDone = $true }
+        if ($aDone -and $bDone) { break }
+        if ([datetime]::UtcNow -gt $exitDeadline) { throw 'ASSERT FAILED: race children timed out' }
+        Start-Sleep -Milliseconds 50
+    }
+    $codeA = 1
+    $codeB = 1
+    try { $codeA = [int]$handleA.Proc.ExitCode } catch { $codeA = 1 }
+    try { $codeB = [int]$handleB.Proc.ExitCode } catch { $codeB = 1 }
     $errA = ''
     $errB = ''
-    try { $errA = (Receive-Job $jobA -ErrorAction SilentlyContinue | Out-String) } catch { $errA = "$_" }
-    try { $errB = (Receive-Job $jobB -ErrorAction SilentlyContinue | Out-String) } catch { $errB = "$_" }
-    throw "ASSERT FAILED: reserve jobs a=$($jobA.State) b=$($jobB.State) ea=$errA eb=$errB"
+    try { $errA = [string]$handleA.ErrTask.Result } catch { $errA = '' }
+    try { $errB = [string]$handleB.ErrTask.Result } catch { $errB = '' }
+    $rawA = ''
+    $rawB = ''
+    if (Test-Path -LiteralPath $resultA) { $rawA = [System.IO.File]::ReadAllText($resultA).Trim() }
+    if (Test-Path -LiteralPath $resultB) { $rawB = [System.IO.File]::ReadAllText($resultB).Trim() }
+    if ($codeA -ne 0 -or $rawA -notmatch '^[0-9]+$') {
+        throw ('ASSERT FAILED: producer A failed code=' + $codeA + ' result=[' + $rawA + '] err=[' + $errA + ']')
+    }
+    if ($codeB -ne 0 -or $rawB -notmatch '^[0-9]+$') {
+        throw ('ASSERT FAILED: producer B failed code=' + $codeB + ' result=[' + $rawB + '] err=[' + $errB + ']')
+    }
+    $seqA = [int]$rawA
+    $seqB = [int]$rawB
 }
-$seqA = [int](Receive-Job $jobA)
-$seqB = [int](Receive-Job $jobB)
-Remove-Job -Job $jobA, $jobB -Force
+finally {
+    Stop-RaceProducer $handleA
+    Stop-RaceProducer $handleB
+}
 Assert ($seqA -ne $seqB) "two producers got different seqs ($seqA,$seqB)"
 Assert ($seqA -gt 12 -and $seqB -gt 12) 'reserved seqs continue from last_seq'
-$fileA = Get-Content -LiteralPath (Join-Path $raceRoot ("inbox/" + $seqA + ".json")) -Raw
-$fileB = Get-Content -LiteralPath (Join-Path $raceRoot ("inbox/" + $seqB + ".json")) -Raw
+$fileA = Get-Content -LiteralPath (Join-Path $raceRoot ('inbox/' + $seqA + '.json')) -Raw
+$fileB = Get-Content -LiteralPath (Join-Path $raceRoot ('inbox/' + $seqB + '.json')) -Raw
 Assert ($fileA -match 'prod-a' -and $fileB -match 'prod-b') 'each producer wrote only its own seq'
 Assert (-not (Test-Path -LiteralPath (Join-Path $raceRoot 'reservations/13.json'))) 'completed reservations do not linger on seq 13'
-
+Assert (-not (Test-Path -LiteralPath (Join-Path $raceRoot ('reservations/' + $seqA + '.json')))) 'producer A reservation was closed'
+Assert (-not (Test-Path -LiteralPath (Join-Path $raceRoot ('reservations/' + $seqB + '.json')))) 'producer B reservation was closed'
 Write-Host '[39] an expired reservation is not executed and does not block the next task'
 $crashRoot = New-MailRoot 12
 $crashRes = Join-Path $crashRoot 'reservations'

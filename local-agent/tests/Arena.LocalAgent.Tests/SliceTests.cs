@@ -267,16 +267,16 @@ public sealed class SliceTests : IDisposable
         Environment.SetEnvironmentVariable("GH_TOKEN", "not-a-real-secret-value");
         try
         {
-            var env = Profile("import os; print(os.environ.get('GH_TOKEN',''))", 2000, 1024);
+            var env = Profile("env", "GH_TOKEN", 2000, 1024);
             var host = new AgentHost(Options(Permit(34), env.Path, env.Sha));
             var result = host.Run(new[] { Env(34, "PROFILE_RUN", "{}") })[0];
             Assert.Equal("COMPLETED", result.State);
             Assert.DoesNotContain("not-a-real-secret-value", result.Output);
-            var slow = Profile("import time; time.sleep(5)", 400, 1024);
+            var slow = Profile("sleep", "5000", 400, 1024);
             var host2 = new AgentHost(Options(Permit(35), slow.Path, slow.Sha));
             var timed = host2.Run(new[] { Env(35, "PROFILE_RUN", "{}") })[0];
             Assert.Equal("timeout", timed.Reason);
-            var flood = Profile("print('x' * 200000)", 2000, 64);
+            var flood = Profile("flood", "200000", 2000, 64);
             var host3 = new AgentHost(Options(Permit(36), flood.Path, flood.Sha));
             var limited = host3.Run(new[] { Env(36, "PROFILE_RUN", "{}") })[0];
             Assert.Equal("stdout-limit", limited.Reason);
@@ -315,6 +315,175 @@ public sealed class SliceTests : IDisposable
         });
         var agent = agentHost.Run(new[] { Env(39, "FILE_READ", "{\"path\":\"CONTRACT.md\"}") })[0];
         Assert.Equal("workspace-forbidden", agent.Reason);
+    }
+
+    [Fact]
+    public void Duplicate_step_in_one_call_executes_once()
+    {
+        var host = new AgentHost(Options(Permit(61)));
+        var results = host.Run(new[]
+        {
+            Env(61, "FILE_WRITE_ATOMIC", "{\"path\":\"once.txt\",\"content_utf8\":\"one\"}"),
+            Env(61, "FILE_WRITE_ATOMIC", "{\"path\":\"twice.txt\",\"content_utf8\":\"two\"}")
+        });
+        Assert.True(results[0].Executed);
+        Assert.Equal("COMPLETED", results[0].State);
+        Assert.False(results[1].Executed);
+        Assert.Equal(results[0].Action, results[1].Action);
+        Assert.Equal(results[0].Sha256, results[1].Sha256);
+        Assert.Equal("one", File.ReadAllText(Path.Combine(_ws, "once.txt")));
+        Assert.False(File.Exists(Path.Combine(_ws, "twice.txt")));
+    }
+
+    [Fact]
+    public void Stored_job_blocks_a_new_step_from_another_job()
+    {
+        var host = new AgentHost(Options(Permit(62, 63, 70)));
+        var first = host.Run(new[] { Env(62, "FILE_WRITE_ATOMIC", "{\"path\":\"a.txt\",\"content_utf8\":\"A\"}", job: 1) })[0];
+        Assert.Equal("COMPLETED", first.State);
+        var mixed = host.Run(new[]
+        {
+            Env(62, "FILE_READ", "{\"path\":\"a.txt\"}", job: 1),
+            Env(63, "FILE_WRITE_ATOMIC", "{\"path\":\"b.txt\",\"content_utf8\":\"B\"}", job: 2)
+        });
+        Assert.False(mixed[0].Executed);
+        Assert.Equal("FILE_WRITE_ATOMIC", mixed[0].Action);
+        Assert.Equal("COMPLETED", mixed[0].State);
+        Assert.Equal("job-mismatch", mixed[1].Reason);
+        Assert.False(mixed[1].Executed);
+        Assert.False(File.Exists(Path.Combine(_ws, "b.txt")));
+        var deadline = host.Run(new[]
+        {
+            Env(62, "FILE_READ", "{\"path\":\"a.txt\"}"),
+            Env(70, "FILE_WRITE_ATOMIC", "{\"path\":\"latejob.txt\",\"content_utf8\":\"x\"}", deadline: "2026-09-23T19:00:00Z")
+        });
+        Assert.False(deadline[0].Executed);
+        Assert.Equal("bad-deadline", deadline[1].Reason);
+        Assert.False(File.Exists(Path.Combine(_ws, "latejob.txt")));
+    }
+
+    [Fact]
+    public void File_read_returns_bounded_text()
+    {
+        var host = new AgentHost(Options(Permit(65, 66, 67, 68)));
+        var bytes = Utf8("a\r\nb");
+        File.WriteAllBytes(Path.Combine(_ws, "note.txt"), bytes);
+        var read = host.Run(new[] { Env(65, "FILE_READ", "{\"path\":\"note.txt\"}") })[0];
+        Assert.Equal("COMPLETED", read.State);
+        Assert.Equal("a\r\nb", read.Output);
+        Assert.Equal(Sha(bytes), read.Sha256);
+        var hashed = host.Run(new[] { Env(66, "FILE_HASH", "{\"path\":\"note.txt\"}") })[0];
+        Assert.Equal("", hashed.Output);
+        Assert.Equal(read.Sha256, hashed.Sha256);
+        var big = new byte[AgentInfo.FileReadLimit + 1];
+        File.WriteAllBytes(Path.Combine(_ws, "big.bin"), big);
+        var limited = host.Run(new[] { Env(67, "FILE_READ", "{\"path\":\"big.bin\"}") })[0];
+        Assert.Equal("read-limit", limited.Reason);
+        Assert.Equal("FAILED", limited.State);
+        Assert.Equal("", limited.Output);
+        File.WriteAllBytes(Path.Combine(_ws, "bad.bin"), new byte[] { 0xFF });
+        var bad = host.Run(new[] { Env(68, "FILE_READ", "{\"path\":\"bad.bin\"}") })[0];
+        Assert.Equal("bad-encoding", bad.Reason);
+        Assert.Equal("", bad.Output);
+    }
+
+    [Fact]
+    public void Profile_nonzero_exit_is_failure()
+    {
+        var env = Profile("exit", "3", 2000, 1024);
+        var host = new AgentHost(Options(Permit(69), env.Path, env.Sha));
+        var result = host.Run(new[] { Env(69, "PROFILE_RUN", "{}") })[0];
+        Assert.Equal("FAILED", result.State);
+        Assert.Equal("exit-code", result.Reason);
+        Assert.NotEqual("COMPLETED", result.State);
+    }
+
+    [Fact]
+    public void Store_uses_wal()
+    {
+        var host = new AgentHost(Options(Permit(64)));
+        host.Run(new[] { Env(64, "FILE_HASH", "{\"path\":\"missing.txt\"}") });
+        Assert.Equal("wal", host.JournalMode());
+    }
+
+    [Fact]
+    public void Workspace_reparse_ancestor_is_forbidden()
+    {
+        var tree = Path.Combine(_root, "forbidden-tree");
+        var realWs = Path.Combine(tree, "ws");
+        Directory.CreateDirectory(realWs);
+        File.WriteAllText(Path.Combine(realWs, "secret.txt"), "no");
+        var alias = Path.Combine(_root, "alias-parent");
+        CreateAlias(alias, tree);
+        var host = new AgentHost(new AgentOptions
+        {
+            DataDirectory = _data,
+            WorkspaceRoot = Path.Combine(alias, "ws"),
+            ForbiddenRoots = new[] { tree, _repo, _agent },
+            Authorizer = Permit(71),
+            Clock = _clock
+        });
+        var result = host.Run(new[] { Env(71, "FILE_WRITE_ATOMIC", "{\"path\":\"secret.txt\",\"content_utf8\":\"yes\"}") })[0];
+        Assert.Equal("workspace-forbidden", result.Reason);
+        Assert.False(result.Executed);
+        Assert.Equal("no", File.ReadAllText(Path.Combine(realWs, "secret.txt")));
+    }
+
+    [Fact]
+    public void Concurrent_callers_execute_a_step_once()
+    {
+        var gate = new GateAuthorizer(Id(60));
+        var host = new AgentHost(Options(gate));
+        var results = new StepResult[2];
+        var errors = new Exception?[2];
+        var start = new Barrier(2);
+        var threads = new Thread[2];
+        threads[0] = new Thread(() =>
+        {
+            try
+            {
+                start.SignalAndWait();
+                results[0] = host.Run(new[] { Env(60, "FILE_WRITE_ATOMIC", "{\"path\":\"race-a.txt\",\"content_utf8\":\"A\"}") })[0];
+            }
+            catch (Exception ex)
+            {
+                errors[0] = ex;
+            }
+        });
+        threads[1] = new Thread(() =>
+        {
+            try
+            {
+                start.SignalAndWait();
+                results[1] = host.Run(new[] { Env(60, "FILE_WRITE_ATOMIC", "{\"path\":\"race-b.txt\",\"content_utf8\":\"B\"}") })[0];
+            }
+            catch (Exception ex)
+            {
+                errors[1] = ex;
+            }
+        });
+        threads[0].Start();
+        threads[1].Start();
+        var saw = SpinWait.SpinUntil(() => Volatile.Read(ref gate.Entries) >= 1, 5000);
+        var both = SpinWait.SpinUntil(() => Volatile.Read(ref gate.Entries) >= 2, 1000);
+        gate.Release.Set();
+        Assert.True(threads[0].Join(10000));
+        Assert.True(threads[1].Join(10000));
+        Assert.True(saw);
+        Assert.False(both);
+        Assert.Null(errors[0]);
+        Assert.Null(errors[1]);
+        var executed = (results[0].Executed ? 1 : 0) + (results[1].Executed ? 1 : 0);
+        Assert.Equal(1, executed);
+        var winner = results[0].Executed ? 0 : 1;
+        var winnerPath = winner == 0 ? "race-a.txt" : "race-b.txt";
+        var loserPath = winner == 0 ? "race-b.txt" : "race-a.txt";
+        Assert.Equal(winner == 0 ? "A" : "B", File.ReadAllText(Path.Combine(_ws, winnerPath)));
+        Assert.False(File.Exists(Path.Combine(_ws, loserPath)));
+        var again = host.Run(new[] { Env(60, "FILE_WRITE_ATOMIC", "{\"path\":\"race-c.txt\",\"content_utf8\":\"C\"}") })[0];
+        Assert.False(again.Executed);
+        Assert.Equal("COMPLETED", again.State);
+        Assert.False(File.Exists(Path.Combine(_ws, "race-c.txt")));
     }
 
     [Fact]
@@ -399,16 +568,90 @@ public sealed class SliceTests : IDisposable
             + ",\"expires_at\":\"" + (expires ?? "2026-09-23T18:00:00Z") + "\",\"job_deadline\":\"" + (deadline ?? "2026-09-23T18:00:00Z") + "\"}";
     }
 
-    private (string Path, string Sha) Profile(string python, int timeout, int limit)
+    private (string Path, string Sha) Profile(string mode, string arg, int timeout, int limit)
     {
         var dir = Path.Combine(_root, "profile-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
-        var exe = "/usr/bin/python3";
+        var sourceDir = Path.GetDirectoryName(FindChildDll())!;
+        foreach (var name in new[] { "Arena.LocalAgent.TestChild.dll", "Arena.LocalAgent.TestChild.runtimeconfig.json", "Arena.LocalAgent.TestChild.deps.json" })
+        {
+            File.Copy(Path.Combine(sourceDir, name), Path.Combine(dir, name), true);
+        }
+        var exe = FindDotnetHost();
+        var dll = Path.Combine(dir, "Arena.LocalAgent.TestChild.dll");
         var exeHash = Sha(File.ReadAllBytes(exe));
-        var json = "{\"name\":\"test-profile\",\"executable\":\"" + exe + "\",\"arguments\":[\"-c\",\"" + python.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"],\"executable_sha256\":\"" + exeHash + "\",\"timeout_ms\":" + timeout + ",\"stdout_limit\":" + limit + "}";
+        var arguments = new[] { "exec", dll, mode, arg };
+        var json = "{\"name\":\"test-profile\",\"executable\":\"" + JsonEscape(exe) + "\",\"arguments\":[" + string.Join(",", arguments.Select(item => "\"" + JsonEscape(item) + "\"")) + "],\"executable_sha256\":\"" + exeHash + "\",\"timeout_ms\":" + timeout + ",\"stdout_limit\":" + limit + "}";
         var path = Path.Combine(dir, "profile.json");
         File.WriteAllText(path, json);
         return (path, Sha(File.ReadAllBytes(path)));
+    }
+
+    private string FindChildDll()
+    {
+        var root = Path.Combine(_agent, "tests", "Arena.LocalAgent.TestChild", "bin");
+        if (!Directory.Exists(root))
+        {
+            throw new InvalidOperationException("test child not built");
+        }
+        var matches = Directory.GetFiles(root, "Arena.LocalAgent.TestChild.dll", SearchOption.AllDirectories);
+        if (matches.Length == 0)
+        {
+            throw new InvalidOperationException("test child not built");
+        }
+        return matches.OrderByDescending(File.GetLastWriteTimeUtc).First();
+    }
+
+    private static string FindDotnetHost()
+    {
+        var file = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+        var dirs = new List<string>();
+        var root = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        if (!string.IsNullOrWhiteSpace(root))
+        {
+            dirs.Add(root);
+        }
+        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+        dirs.AddRange(path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+        foreach (var dir in dirs)
+        {
+            var candidate = Path.Combine(dir, file);
+            if (File.Exists(candidate))
+            {
+                return Path.GetFullPath(candidate);
+            }
+        }
+        throw new InvalidOperationException("dotnet host not found");
+    }
+
+    private static string JsonEscape(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
+    private static void CreateAlias(string link, string target)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var psi = new ProcessStartInfo("cmd.exe")
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true
+            };
+            psi.ArgumentList.Add("/c");
+            psi.ArgumentList.Add("mklink");
+            psi.ArgumentList.Add("/J");
+            psi.ArgumentList.Add(link);
+            psi.ArgumentList.Add(target);
+            using var proc = Process.Start(psi)!;
+            proc.WaitForExit(15000);
+            if (proc.ExitCode != 0)
+            {
+                throw new InvalidOperationException(proc.StandardError.ReadToEnd());
+            }
+            return;
+        }
+        Directory.CreateSymbolicLink(link, target);
     }
 
     private static void MakeReadOnly(string path)
@@ -469,6 +712,35 @@ public sealed class SliceTests : IDisposable
     private sealed class FixedClock : IClock
     {
         public DateTime UtcNow { get; set; }
+    }
+}
+
+public sealed class GateAuthorizer : IAuthorizer
+{
+    private readonly string _id;
+    public int Entries;
+    public readonly ManualResetEventSlim Release = new(false);
+
+    public GateAuthorizer(string id)
+    {
+        _id = id;
+    }
+
+    public Authorization Decide(StepEnvelope step)
+    {
+        if (step.StepId == _id)
+        {
+            Interlocked.Increment(ref Entries);
+            if (!Release.Wait(10000))
+            {
+                throw new TimeoutException("gate");
+            }
+        }
+        if (!AllowedActions.Contains(step.Action) || step.StepId != _id)
+        {
+            return Authorization.Deny("not-permitted");
+        }
+        return Authorization.Allow();
     }
 }
 

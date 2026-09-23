@@ -51,6 +51,43 @@ internal sealed class BoundWorkspace
         return File.ReadAllBytes(full);
     }
 
+    public byte[]? ReadLimited(string full, int maxBytes, out string reason)
+    {
+        reason = "";
+        if (IsReparse(full) || !File.Exists(full))
+        {
+            reason = File.Exists(full) ? "path-escape" : "not-found";
+            return null;
+        }
+        using var stream = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var cap = maxBytes < 0 ? 0 : maxBytes;
+        var buffer = new byte[Math.Min(cap + 1L, 1024 * 1024)];
+        using var body = new MemoryStream();
+        var total = 0;
+        while (true)
+        {
+            var room = cap + 1 - total;
+            if (room <= 0)
+            {
+                reason = "read-limit";
+                return null;
+            }
+            var n = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, room));
+            if (n <= 0)
+            {
+                break;
+            }
+            total += n;
+            if (total > cap)
+            {
+                reason = "read-limit";
+                return null;
+            }
+            body.Write(buffer, 0, n);
+        }
+        return body.ToArray();
+    }
+
     public bool TryWrite(string full, byte[] bytes, out string reason)
     {
         reason = "";
@@ -403,4 +440,19 @@ internal static class Patcher
 internal static class Utf8
 {
     public static readonly Encoding NoBom = new UTF8Encoding(false);
+    private static readonly Encoding Strict = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+    public static bool TryDecode(byte[] bytes, out string text)
+    {
+        try
+        {
+            text = Strict.GetString(bytes);
+            return true;
+        }
+        catch (DecoderFallbackException)
+        {
+            text = "";
+            return false;
+        }
+    }
 }

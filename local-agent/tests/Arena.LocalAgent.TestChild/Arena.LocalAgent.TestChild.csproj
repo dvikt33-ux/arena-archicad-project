@@ -6,13 +6,5 @@
     <Nullable>enable</Nullable>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode>true</RestoreLockedMode>
-    <RootNamespace>Arena.LocalAgent</RootNamespace>
-    <AssemblyName>Arena.LocalAgent</AssemblyName>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.31" />
-  </ItemGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="Arena.LocalAgent.Tests" />
-  </ItemGroup>
 </Project>

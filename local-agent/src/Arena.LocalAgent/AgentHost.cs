@@ -53,91 +53,129 @@ public sealed class AgentHost
         {
             var parsed = rawEnvelopes.Select(EnvelopeParser.Parse).ToList();
             var results = new StepResult?[parsed.Count];
+            var already = new StepRow?[parsed.Count];
+            for (var i = 0; i < parsed.Count; i++)
+            {
+                var id = parsed[i].StepId ?? parsed[i].Envelope?.StepId;
+                if (id is not null)
+                {
+                    already[i] = store!.Find(id);
+                }
+            }
+            var jobs = new HashSet<string>(StringComparer.Ordinal);
+            var deadlines = new HashSet<DateTime>();
+            foreach (var outcome in parsed)
+            {
+                if (!outcome.Ok || outcome.Envelope is null)
+                {
+                    continue;
+                }
+                jobs.Add(outcome.Envelope.JobId);
+                deadlines.Add(outcome.Envelope.JobDeadline);
+            }
+            var batchReason = jobs.Count > 1 ? "job-mismatch" : deadlines.Count > 1 ? "bad-deadline" : null;
+            var canonical = new Dictionary<string, int>(StringComparer.Ordinal);
+            var deferred = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             var pending = new List<int>();
             for (var i = 0; i < parsed.Count; i++)
             {
                 var outcome = parsed[i];
-                var lookupId = outcome.StepId ?? outcome.Envelope?.StepId;
-                if (lookupId is not null)
+                var id = outcome.StepId ?? outcome.Envelope?.StepId;
+                if (already[i] is not null)
                 {
-                    var existing = store!.Find(lookupId);
-                    if (existing is not null)
+                    results[i] = FromRow(already[i]!, false);
+                    continue;
+                }
+                if (id is not null && canonical.ContainsKey(id))
+                {
+                    if (!deferred.TryGetValue(id, out var later))
                     {
-                        results[i] = FromRow(existing, false);
-                        continue;
+                        later = new List<int>();
+                        deferred[id] = later;
                     }
+                    later.Add(i);
+                    continue;
                 }
                 if (!outcome.Ok || outcome.Envelope is null)
                 {
                     results[i] = Persist(store!, outcome.StepId, outcome.JobId, outcome.RequestId, "", "REJECTED", outcome.Reason, "", "", 0, "", false);
+                    if (id is not null)
+                    {
+                        canonical[id] = i;
+                    }
                     continue;
                 }
+                var step = outcome.Envelope;
+                if (batchReason is not null)
+                {
+                    results[i] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", batchReason, "", "", 0, "", false);
+                    canonical[step.StepId] = i;
+                    continue;
+                }
+                canonical[step.StepId] = i;
                 pending.Add(i);
             }
-            if (pending.Count == 0)
+            if (pending.Count > 0)
             {
-                return Materialize(results);
-            }
-            var jobs = new HashSet<string>(StringComparer.Ordinal);
-            var deadlines = new HashSet<DateTime>();
-            foreach (var index in pending)
-            {
-                var step = parsed[index].Envelope!;
-                jobs.Add(step.JobId);
-                deadlines.Add(step.JobDeadline);
-            }
-            if (jobs.Count > 1)
-            {
+                var waiting = pending.Select(index => parsed[index].Envelope!).ToList();
+                var indexOf = new Dictionary<string, int>(StringComparer.Ordinal);
                 foreach (var index in pending)
                 {
-                    var step = parsed[index].Envelope!;
-                    results[index] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "job-mismatch", "", "", 0, "", false);
+                    indexOf[parsed[index].Envelope!.StepId] = index;
                 }
-                return Materialize(results);
-            }
-            if (deadlines.Count > 1)
-            {
-                foreach (var index in pending)
+                while (waiting.Count > 0)
                 {
-                    var step = parsed[index].Envelope!;
-                    results[index] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "bad-deadline", "", "", 0, "", false);
-                }
-                return Materialize(results);
-            }
-            var waiting = pending.Select(index => parsed[index].Envelope!).ToList();
-            var indexOf = pending.ToDictionary(index => parsed[index].Envelope!.StepId, index => index, StringComparer.Ordinal);
-            while (waiting.Count > 0)
-            {
-                var progressed = false;
-                foreach (var step in waiting.ToList())
-                {
-                    var blocked = false;
-                    foreach (var dep in step.DependsOn)
+                    var progressed = false;
+                    foreach (var step in waiting.ToList())
                     {
-                        if (waiting.Any(item => item.StepId == dep))
+                        var blocked = false;
+                        foreach (var dep in step.DependsOn)
                         {
-                            blocked = true;
-                            break;
+                            if (waiting.Any(item => item.StepId == dep))
+                            {
+                                blocked = true;
+                                break;
+                            }
                         }
+                        if (blocked)
+                        {
+                            continue;
+                        }
+                        results[indexOf[step.StepId]] = Dispatch(store!, workspace!, step);
+                        waiting.Remove(step);
+                        progressed = true;
                     }
-                    if (blocked)
+                    if (!progressed)
                     {
-                        continue;
+                        foreach (var step in waiting)
+                        {
+                            results[indexOf[step.StepId]] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "dependency-cycle", "", "", 0, "", false);
+                        }
+                        break;
                     }
-                    results[indexOf[step.StepId]] = Dispatch(store!, workspace!, step);
-                    waiting.Remove(step);
-                    progressed = true;
                 }
-                if (!progressed)
+            }
+            foreach (var pair in deferred)
+            {
+                var source = results[canonical[pair.Key]];
+                foreach (var index in pair.Value)
                 {
-                    foreach (var step in waiting)
-                    {
-                        results[indexOf[step.StepId]] = Persist(store!, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "dependency-cycle", "", "", 0, "", false);
-                    }
-                    break;
+                    results[index] = CopyReplay(source);
                 }
             }
             return Materialize(results);
+        }
+    }
+
+    internal string JournalMode()
+    {
+        if (!TryOpen(out _, out var store, out var reason))
+        {
+            return reason;
+        }
+        using (store)
+        {
+            return store!.JournalMode();
         }
     }
 
@@ -166,13 +204,13 @@ public sealed class AgentHost
                     if (actual == row.Sha256)
                     {
                         var completed = row.Copy("COMPLETED", "", row.Sha256, row.ExecCount);
-                        store.Save(completed);
+                        store.Update(completed);
                         return FromRow(completed, false);
                     }
                 }
             }
             var review = row.Copy("NEEDS_REVIEW", "running-incomplete", row.Sha256, row.ExecCount);
-            store.Save(review);
+            store.Update(review);
             return FromRow(review, false);
         }
     }
@@ -185,7 +223,7 @@ public sealed class AgentHost
         }
         using (store)
         {
-            store!.Save(new StepRow
+            store!.InsertNew(new StepRow
             {
                 StepId = stepId,
                 JobId = jobId,
@@ -203,6 +241,11 @@ public sealed class AgentHost
 
     private StepResult Dispatch(StepStore store, BoundWorkspace workspace, StepEnvelope step)
     {
+        var claimed = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", "", 0, "", true);
+        if (!claimed.Executed)
+        {
+            return claimed;
+        }
         var now = _options.Clock.UtcNow;
         if (now > step.ExpiresAt || now > step.JobDeadline)
         {
@@ -261,14 +304,33 @@ public sealed class AgentHost
         {
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", reason, "", path, 0, modelText, false);
         }
-        var bytes = workspace.Read(full, out reason);
+        var claimed = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", path, 1, modelText, true);
+        if (!claimed.Executed)
+        {
+            return claimed;
+        }
+        if (step.Action == "FILE_HASH")
+        {
+            var hashed = workspace.Read(full, out reason);
+            if (hashed is null)
+            {
+                var hashState = reason == "not-found" ? "FAILED" : "REJECTED";
+                return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, hashState, reason, "", path, 0, modelText, false);
+            }
+            return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "COMPLETED", "", Hashing.Sha256(hashed), path, 1, modelText, true);
+        }
+        var bytes = workspace.ReadLimited(full, AgentInfo.FileReadLimit, out reason);
         if (bytes is null)
         {
-            var state = reason == "not-found" ? "FAILED" : "REJECTED";
+            var state = reason == "not-found" || reason == "read-limit" ? "FAILED" : "REJECTED";
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, state, reason, "", path, 0, modelText, false);
         }
+        if (!Utf8.TryDecode(bytes, out var text))
+        {
+            return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "FAILED", "bad-encoding", "", path, 0, modelText, false);
+        }
         var hash = Hashing.Sha256(bytes);
-        return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "COMPLETED", "", hash, path, 1, modelText, true);
+        return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "COMPLETED", "", hash, path, 1, modelText, true, text);
     }
 
     private StepResult WriteAtomic(StepStore store, BoundWorkspace workspace, StepEnvelope step, string modelText)
@@ -298,7 +360,11 @@ public sealed class AgentHost
                 return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "CONFLICT", "conflict-hash", current, path, 0, modelText, false);
             }
         }
-        Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", intended, path, 1, modelText, true);
+        var running = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", intended, path, 1, modelText, true);
+        if (!running.Executed)
+        {
+            return running;
+        }
         if (!workspace.TryWrite(full, bytes, out reason))
         {
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "NEEDS_REVIEW", "running-incomplete", intended, path, 1, modelText, true);
@@ -338,7 +404,11 @@ public sealed class AgentHost
         }
         var bytes = Utf8.NoBom.GetBytes(patched);
         var intended = Hashing.Sha256(bytes);
-        Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", intended, path, 1, modelText, true);
+        var running = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", intended, path, 1, modelText, true);
+        if (!running.Executed)
+        {
+            return running;
+        }
         if (!workspace.TryWrite(full, bytes, out _))
         {
             return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "NEEDS_REVIEW", "running-incomplete", intended, path, 1, modelText, true);
@@ -372,7 +442,11 @@ public sealed class AgentHost
                 return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "REJECTED", "profile-mismatch", "", "", 0, modelText, false);
             }
         }
-        Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", "", 1, modelText, true);
+        var running = Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, "RUNNING", "", "", "", 1, modelText, true);
+        if (!running.Executed)
+        {
+            return running;
+        }
         var run = ProfileRunner.Run(profile, workspace.Root);
         var state = run.State == "COMPLETED" ? "COMPLETED" : "FAILED";
         return Persist(store, step.StepId, step.JobId, step.RequestId, step.Action, state, run.Reason, "", "", 1, modelText, true, run.Output);
@@ -389,7 +463,7 @@ public sealed class AgentHost
         }
         var root = Path.GetFullPath(_options.WorkspaceRoot);
         var data = Path.GetFullPath(_options.DataDirectory);
-        if (IsReparse(root) || IsReparse(data))
+        if (ContainsReparse(_options.WorkspaceRoot) || ContainsReparse(root) || ContainsReparse(_options.DataDirectory) || ContainsReparse(data))
         {
             return false;
         }
@@ -424,6 +498,30 @@ public sealed class AgentHost
         return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
     }
 
+    internal static bool ContainsReparse(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+        var root = Path.GetPathRoot(path) ?? "";
+        var current = root;
+        var rest = path.Length > root.Length ? path.Substring(root.Length) : "";
+        foreach (var part in rest.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = current.Length == 0 ? part : Path.Combine(current, part);
+            if (!Directory.Exists(current) && !File.Exists(current))
+            {
+                continue;
+            }
+            if (IsReparse(current))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static string Arg(StepEnvelope step, string name)
     {
         return step.Args[name].GetString() ?? "";
@@ -446,11 +544,33 @@ public sealed class AgentHost
             UntrustedModelText = modelText,
             Output = output
         };
-        if (id.Length > 0)
+        if (id.Length > 0 && !store.SaveOwned(row))
         {
-            store.Save(row);
+            var existing = store.Find(id);
+            return FromRow(existing ?? row, false);
         }
         return FromRow(row, executed);
+    }
+
+    private static StepResult CopyReplay(StepResult? source)
+    {
+        if (source is null)
+        {
+            return new StepResult { State = "REJECTED", Reason = "bad-schema", Executed = false };
+        }
+        return new StepResult
+        {
+            StepId = source.StepId,
+            JobId = source.JobId,
+            RequestId = source.RequestId,
+            Action = source.Action,
+            State = source.State,
+            Reason = source.Reason,
+            Sha256 = source.Sha256,
+            Output = source.Output,
+            Executed = false,
+            UntrustedModelText = source.UntrustedModelText
+        };
     }
 
     private static StepResult Unsaved(ParseOutcome outcome, string reason)

@@ -2,6 +2,8 @@ namespace Arena.LocalAgent;
 
 public static class AgentInfo
 {
+    public const int FileReadLimit = 1048576;
+
     public static readonly string[] Present =
     {
         "file.read",

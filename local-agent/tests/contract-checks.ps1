@@ -27,7 +27,12 @@ $needles = @(
     'git.push',
     'ARENA-PATCH/1',
     'test-profile',
-    'SQLite'
+    'SQLite',
+    '1048576',
+    'read-limit',
+    'bad-encoding',
+    'exit-code',
+    'journal_mode=WAL'
 )
 foreach ($needle in $needles) {
     if ($text.IndexOf($needle) -lt 0) { throw ('contract missing ' + $needle) }

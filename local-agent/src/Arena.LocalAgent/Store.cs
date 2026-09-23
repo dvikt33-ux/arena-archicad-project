@@ -20,12 +20,20 @@ internal sealed class StepRow
 internal sealed class StepStore : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly HashSet<string> _owned = new(StringComparer.Ordinal);
 
     public StepStore(string path)
     {
-        var builder = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadWriteCreate };
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false
+        };
         _connection = new SqliteConnection(builder.ToString());
         _connection.Open();
+        Exec("PRAGMA busy_timeout=60000;");
+        Scalar("PRAGMA journal_mode=WAL;");
         Exec("PRAGMA synchronous=FULL;");
         Exec("""
             CREATE TABLE IF NOT EXISTS steps (
@@ -45,6 +53,11 @@ internal sealed class StepStore : IDisposable
             """);
     }
 
+    public string JournalMode()
+    {
+        return Scalar("PRAGMA journal_mode;") ?? "";
+    }
+
     public StepRow? Find(string stepId)
     {
         using var cmd = _connection.CreateCommand();
@@ -58,22 +71,57 @@ internal sealed class StepStore : IDisposable
         return Read(reader);
     }
 
-    public void Save(StepRow row)
+    public bool SaveOwned(StepRow row)
+    {
+        if (_owned.Contains(row.StepId))
+        {
+            Update(row);
+            return true;
+        }
+        if (!InsertNew(row))
+        {
+            return false;
+        }
+        _owned.Add(row.StepId);
+        return true;
+    }
+
+    public bool InsertNew(StepRow row)
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
             INSERT INTO steps (step_id, job_id, request_id, action, state, reason, sha256, target_path, exec_count, model_text, output, updated)
             VALUES (@step, @job, @req, @action, @state, @reason, @sha, @path, @exec, @model, @output, @updated)
-            ON CONFLICT(step_id) DO UPDATE SET
-              state = excluded.state,
-              reason = excluded.reason,
-              sha256 = excluded.sha256,
-              target_path = excluded.target_path,
-              exec_count = excluded.exec_count,
-              model_text = excluded.model_text,
-              output = excluded.output,
-              updated = excluded.updated
+            ON CONFLICT(step_id) DO NOTHING
             """;
+        Bind(cmd, row);
+        return cmd.ExecuteNonQuery() == 1;
+    }
+
+    public void Update(StepRow row)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = """
+            UPDATE steps SET
+              job_id = @job,
+              request_id = @req,
+              action = @action,
+              state = @state,
+              reason = @reason,
+              sha256 = @sha,
+              target_path = @path,
+              exec_count = @exec,
+              model_text = @model,
+              output = @output,
+              updated = @updated
+            WHERE step_id = @step
+            """;
+        Bind(cmd, row);
+        cmd.ExecuteNonQuery();
+    }
+
+    private static void Bind(SqliteCommand cmd, StepRow row)
+    {
         cmd.Parameters.AddWithValue("@step", row.StepId);
         cmd.Parameters.AddWithValue("@job", row.JobId);
         cmd.Parameters.AddWithValue("@req", row.RequestId);
@@ -86,7 +134,6 @@ internal sealed class StepStore : IDisposable
         cmd.Parameters.AddWithValue("@model", row.UntrustedModelText);
         cmd.Parameters.AddWithValue("@output", row.Output);
         cmd.Parameters.AddWithValue("@updated", DateTime.UtcNow.ToString("o"));
-        cmd.ExecuteNonQuery();
     }
 
     private void Exec(string sql)
@@ -94,6 +141,13 @@ internal sealed class StepStore : IDisposable
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.ExecuteNonQuery();
+    }
+
+    private string? Scalar(string sql)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = sql;
+        return cmd.ExecuteScalar()?.ToString();
     }
 
     private static StepRow Read(SqliteDataReader reader)

@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D93F2054
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arena.LocalAgent.Tests", "tests\Arena.LocalAgent.Tests\Arena.LocalAgent.Tests.csproj", "{00120FC7-BDAA-47B4-AA3C-70FD36902AA4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Arena.LocalAgent.TestChild", "tests\Arena.LocalAgent.TestChild\Arena.LocalAgent.TestChild.csproj", "{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +30,14 @@ Global
 		{00120FC7-BDAA-47B4-AA3C-70FD36902AA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00120FC7-BDAA-47B4-AA3C-70FD36902AA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00120FC7-BDAA-47B4-AA3C-70FD36902AA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5D9F6735-D5C1-4B5A-8D0A-04C46A3DD8FC} = {2635134F-A745-4321-BC77-FA1541160EDD}
 		{00120FC7-BDAA-47B4-AA3C-70FD36902AA4} = {D93F2054-E673-4551-836A-E9D79EBC7735}
+		{23A66E88-0F1A-4161-AC92-CD1D6AB02E5B} = {D93F2054-E673-4551-836A-E9D79EBC7735}
 	EndGlobalSection
 EndGlobal

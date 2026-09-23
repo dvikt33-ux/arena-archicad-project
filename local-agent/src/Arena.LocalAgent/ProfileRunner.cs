@@ -209,6 +209,17 @@ internal static class ProfileRunner
             TryKill(proc, identity);
             return Fail("stdout-limit");
         }
+        try
+        {
+            if (!proc.HasExited || proc.ExitCode != 0)
+            {
+                return Fail("exit-code");
+            }
+        }
+        catch
+        {
+            return Fail("exit-code");
+        }
         var text = Utf8.NoBom.GetString(stdout.ToArray());
         if (text.Length > profile.StdoutLimit)
         {

@@ -1097,6 +1097,7 @@ function Import-MailboxEnvelope {
     }
     Remember-Mailbox $decision.TaskId $execSeq 'accepted' ''
     Remember-MailboxRemote $RemoteName $RemoteSha 'accepted' $decision.TaskId $execSeq
+    Invoke-MailboxFault 'after-seq-persist-before-inbox-write'
     $dest = Join-Path $script:InboxDir ("$execSeq.json")
     if (Test-Path -LiteralPath $dest) {
         Complete-TaskReservation -ArenaRoot $script:ArenaRoot -Seq $execSeq

@@ -189,41 +189,211 @@ function Save-State {
     Write-FileAtomic $StatePath $json
 }
 
+function ConvertTo-NativeArgument {
+    # CommandLineToArgvW quoting. Not a shell. A quote or backslash stays data.
+    param([string]$Text)
+    if ($null -eq $Text) { $Text = '' }
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append('"')
+    $slashes = 0
+    foreach ($ch in $Text.ToCharArray()) {
+        if ($ch -eq '\') {
+            $slashes++
+            continue
+        }
+        if ($ch -eq '"') {
+            if ($slashes -gt 0) { [void]$sb.Append('\', ($slashes * 2)) }
+            [void]$sb.Append('\')
+            [void]$sb.Append('"')
+            $slashes = 0
+            continue
+        }
+        if ($slashes -gt 0) {
+            [void]$sb.Append('\', $slashes)
+            $slashes = 0
+        }
+        [void]$sb.Append($ch)
+    }
+    if ($slashes -gt 0) { [void]$sb.Append('\', ($slashes * 2)) }
+    [void]$sb.Append('"')
+    return $sb.ToString()
+}
+
+function Resolve-NativeCommandPath {
+    # A fixed command name already on PATH. Never a remote string and never a path.
+    param([string]$Command)
+    if ($Command -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$') { return '' }
+    $found = @(Get-Command -Name $Command -CommandType Application -ErrorAction SilentlyContinue)
+    if ($found.Count -lt 1) { return '' }
+    $path = [string]$found[0].Path
+    if ([string]::IsNullOrWhiteSpace($path)) { $path = [string]$found[0].Source }
+    if ([string]::IsNullOrWhiteSpace($path)) { return '' }
+    if ($path.IndexOf([char]0) -ge 0) { return '' }
+    if (-not (Test-Path -LiteralPath $path)) { return '' }
+    return $path
+}
+
+function Stop-NativeProcessTree {
+    # Timeout must kill the spawned process and its children. $ps.Stop() does not
+    # do that on Windows PowerShell 5.1: it waits for gh.cmd / cmd / powershell.
+    param($Proc)
+    if ($null -eq $Proc) { return }
+    $procId = 0
+    try { $procId = [int]$Proc.Id } catch { return }
+    try {
+        $killTree = $Proc.GetType().GetMethod('Kill', [type[]]@([bool]))
+        if ($null -ne $killTree) {
+            $killTree.Invoke($Proc, ([object[]]@($true))) | Out-Null
+        }
+    }
+    catch { }
+    $alive = $false
+    try { $alive = -not $Proc.HasExited } catch { $alive = $false }
+    if ($alive -and $env:OS -eq 'Windows_NT' -and $procId -gt 0) {
+        $killer = ''
+        if (-not [string]::IsNullOrWhiteSpace($env:SystemRoot)) {
+            $killer = Join-Path $env:SystemRoot 'System32\taskkill.exe'
+        }
+        if (-not [string]::IsNullOrWhiteSpace($killer) -and (Test-Path -LiteralPath $killer)) {
+            $kp = $null
+            try {
+                $ks = New-Object System.Diagnostics.ProcessStartInfo
+                $ks.FileName = $killer
+                $ks.Arguments = '/F /T /PID ' + $procId
+                $ks.UseShellExecute = $false
+                $ks.CreateNoWindow = $true
+                $ks.RedirectStandardOutput = $true
+                $ks.RedirectStandardError = $true
+                $kp = [System.Diagnostics.Process]::Start($ks)
+                if ($null -ne $kp) { $null = $kp.WaitForExit(3000) }
+            }
+            catch { }
+            finally {
+                if ($null -ne $kp) { try { $kp.Dispose() } catch { } }
+            }
+        }
+    }
+    try { $alive = -not $Proc.HasExited } catch { $alive = $false }
+    if ($alive) {
+        try { $Proc.Kill() } catch { }
+    }
+}
+
 function Invoke-NativeTimed {
-    # Runs a command already on PATH. On timeout the bridge continues; the
-    # command text is never taken from a remote task.
+    # Fixed executable plus argv. No remote shell string. On timeout the process
+    # tree is killed and the caller gets 124 without waiting for the child.
     param([string]$Command, [string[]]$ArgumentList, [int]$TimeoutMs = 30000)
     if ($TimeoutMs -lt 1000) { $TimeoutMs = 1000 }
     if ($TimeoutMs -gt 60000) { $TimeoutMs = 60000 }
-    $ps = [powershell]::Create()
-    try {
-        $null = $ps.AddScript({
-            param($cmd, $argList)
-            $out = @(& $cmd @argList 2>&1)
-            $code = $LASTEXITCODE
-            if ($null -eq $code) { $code = 1 }
-            $text = (@($out) | ForEach-Object {
-                if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() }
-                else { "$_" }
-            }) -join "`n"
-            [pscustomobject]@{ Code = [int]$code; Text = $text.Trim() }
-        }).AddArgument($Command).AddArgument($ArgumentList)
-        $handle = $ps.BeginInvoke()
-        if (-not $handle.AsyncWaitHandle.WaitOne($TimeoutMs)) {
-            try { $ps.Stop() } catch { }
-            return [pscustomobject]@{ Code = 124; Text = '' }
+    $exePath = Resolve-NativeCommandPath $Command
+    if ([string]::IsNullOrWhiteSpace($exePath)) {
+        return [pscustomobject]@{ Code = 1; Text = '' }
+    }
+    $argsSafe = @()
+    if ($null -ne $ArgumentList) {
+        foreach ($item in $ArgumentList) {
+            $text = [string]$item
+            if ($text.IndexOf([char]0) -ge 0 -or $text.IndexOf([char]10) -ge 0 -or $text.IndexOf([char]13) -ge 0) {
+                return [pscustomobject]@{ Code = 1; Text = '' }
+            }
+            $argsSafe += $text
         }
-        $result = @($ps.EndInvoke($handle))
-        if ($result.Count -lt 1 -or $null -eq $result[0]) {
+    }
+    $ext = [System.IO.Path]::GetExtension($exePath).ToLowerInvariant()
+    $batch = ($ext -eq '.cmd' -or $ext -eq '.bat')
+    $fileName = $exePath
+    $argumentString = ''
+    if ($batch) {
+        if ($env:OS -ne 'Windows_NT') { return [pscustomobject]@{ Code = 1; Text = '' } }
+        if ($exePath.IndexOf('"') -ge 0) { return [pscustomobject]@{ Code = 1; Text = '' } }
+        $cmdExe = ''
+        if (-not [string]::IsNullOrWhiteSpace($env:SystemRoot)) {
+            $cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe'
+        }
+        if ([string]::IsNullOrWhiteSpace($cmdExe) -or -not (Test-Path -LiteralPath $cmdExe)) {
             return [pscustomobject]@{ Code = 1; Text = '' }
         }
-        return $result[0]
+        $fileName = $cmdExe
+        # cmd /s strips one leading and one trailing quote. The inner quotes stay.
+        # Percent is doubled so cmd does not expand a path as an environment variable.
+        $inner = ConvertTo-NativeArgument ($exePath.Replace('%', '%%'))
+        foreach ($arg in $argsSafe) {
+            if ($arg.IndexOf('"') -ge 0) { return [pscustomobject]@{ Code = 1; Text = '' } }
+            $inner = $inner + ' ' + (ConvertTo-NativeArgument ($arg.Replace('%', '%%')))
+        }
+        $argumentString = '/d /s /c "' + $inner + '"'
+    }
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $fileName
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    try {
+        $utf8 = New-Object System.Text.UTF8Encoding $false
+        $psi.StandardOutputEncoding = $utf8
+        $psi.StandardErrorEncoding = $utf8
+    }
+    catch { }
+    if ($batch) {
+        $psi.Arguments = $argumentString
+    }
+    else {
+        $usedList = $false
+        $argProp = $psi.GetType().GetProperty('ArgumentList')
+        if ($null -ne $argProp) {
+            $list = $argProp.GetValue($psi, $null)
+            if ($null -ne $list) {
+                foreach ($arg in $argsSafe) { [void]$list.Add($arg) }
+                $usedList = $true
+            }
+        }
+        if (-not $usedList) {
+            $parts = @()
+            foreach ($arg in $argsSafe) { $parts += (ConvertTo-NativeArgument $arg) }
+            $psi.Arguments = ($parts -join ' ')
+        }
+    }
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    try {
+        $started = $false
+        try { $started = $proc.Start() } catch { $started = $false }
+        if (-not $started) { return [pscustomobject]@{ Code = 1; Text = '' } }
+        $outTask = $proc.StandardOutput.ReadToEndAsync()
+        $errTask = $proc.StandardError.ReadToEndAsync()
+        $exited = $false
+        try { $exited = $proc.WaitForExit($TimeoutMs) } catch { $exited = $false }
+        if (-not $exited) {
+            Stop-NativeProcessTree $proc
+            try { $null = $proc.WaitForExit(2000) } catch { }
+            try { $null = $outTask.Wait(500) } catch { }
+            try { $null = $errTask.Wait(500) } catch { }
+            return [pscustomobject]@{ Code = 124; Text = '' }
+        }
+        try { $null = $proc.WaitForExit() } catch { }
+        try { $null = $outTask.Wait(2000) } catch { }
+        try { $null = $errTask.Wait(2000) } catch { }
+        $text = ''
+        try { $text = [string]$outTask.Result } catch { $text = '' }
+        $errText = ''
+        try { $errText = [string]$errTask.Result } catch { $errText = '' }
+        if (-not [string]::IsNullOrEmpty($errText)) {
+            if ([string]::IsNullOrEmpty($text)) { $text = $errText }
+            else { $text = $text + "`n" + $errText }
+        }
+        $code = 1
+        try { $code = [int]$proc.ExitCode } catch { $code = 1 }
+        return [pscustomobject]@{ Code = $code; Text = $text.Trim() }
     }
     catch {
+        try { Stop-NativeProcessTree $proc } catch { }
         return [pscustomobject]@{ Code = 1; Text = '' }
     }
     finally {
-        $ps.Dispose()
+        try { $proc.StandardOutput.Close() } catch { }
+        try { $proc.StandardError.Close() } catch { }
+        try { $proc.Dispose() } catch { }
     }
 }
 
@@ -379,9 +549,36 @@ function Complete-TaskReservation {
     }
 }
 
+function Test-DurableAcceptedSeq {
+    # exec_seq already stored for an accepted mailbox task. Expiry of the lease
+    # must not reject that slot; recovery still has to write its inbox.
+    param($State, [int]$Seq)
+    if ($Seq -lt 1 -or $null -eq $State) { return $false }
+    if ($null -eq $State.mailbox -or $null -eq $State.mailbox.seen) { return $false }
+    foreach ($id in @($State.mailbox.seen.Keys)) {
+        $seen = $State.mailbox.seen[$id]
+        if ($null -eq $seen) { continue }
+        $disp = [string]$seen['disposition']
+        if ($disp -ne 'accepted') { continue }
+        $seenSeq = 0
+        $rawSeq = $seen['seq']
+        $seqText = ''
+        if ($null -ne $rawSeq) {
+            $seqText = [string]$rawSeq
+            if ($rawSeq -is [int] -or $rawSeq -is [long] -or $rawSeq -is [double] -or $rawSeq -is [decimal]) {
+                $seqText = ([int64]$rawSeq).ToString([System.Globalization.CultureInfo]::InvariantCulture)
+            }
+        }
+        if ($seqText -match '^[0-9]+$') { $seenSeq = [int]$seqText }
+        if ($seenSeq -eq $Seq) { return $true }
+    }
+    return $false
+}
+
 function Resolve-ExpiredReservations {
     # Walk only the next missing seq. A live reservation holds the slot.
     # An expired one becomes REJECTED with no execution, then the next task can run.
+    # A durable accepted mailbox seq is not abandoned: recovery writes that inbox.
     # A gap with no reservation is left alone so the local inbox still waits.
     param([string]$ArenaRoot, $State, [string]$StatePath)
     if ($null -eq $State -or [string]::IsNullOrWhiteSpace($ArenaRoot)) { return $State }
@@ -404,6 +601,7 @@ function Resolve-ExpiredReservations {
         }
         if (-not (Test-Path -LiteralPath $res)) { break }
         if (-not (Test-ReservationExpired -Path $res -LeaseSeconds $lease)) { break }
+        if (Test-DurableAcceptedSeq $State $next) { break }
         if ($null -eq $State.tasks) { $State.tasks = @{} }
         $State.tasks["$next"] = @{
             action  = ''

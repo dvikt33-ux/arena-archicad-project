@@ -486,7 +486,9 @@ while ($true) {
             if ($seq -gt $script:State.last_seq + 1) {
                 # No inbox file and no expired reservation for the missing seq: wait.
                 # Smoke checks [5] and [6] depend on this. A live reservation holds
-                # the slot the same way. An expired one was already REJECTED above.
+                # the slot the same way. An expired one with no durable accepted
+                # mailbox seq was already REJECTED above. A persisted accepted seq
+                # is left for Restore-AcceptedMailboxTasks.
                 Write-Audit @{ ev = 'GAP'; have = $script:State.last_seq; saw = $seq }
                 Write-Host "GAP: expecting $($script:State.last_seq + 1), found $seq (waiting for missing tasks)"
                 break

@@ -622,6 +622,41 @@ Reset-Logs
 $r = Invoke-Bridge -NoGithub -ArenaRoot $numRoot
 Assert ((Count-LogLines $env:FAKE_GIT_LOG '--oneline') -eq 0) 'numeric recovery did not run again'
 
+Write-Host '[75] expired reservation does not abandon a persisted accepted seq'
+$lateId = '34343434-3434-3434-3434-343434343434'
+Set-RemoteNamed $mailDir $lateId (New-Envelope 1 'GIT_STATUS' $lateId)
+Set-Index $mailDir @($lateId + '.json')
+$lateRoot = New-MailRoot 810
+$env:ARENA_MAILBOX_FAULT = 'after-seq-persist-before-inbox-write'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $lateRoot
+Clear-PhaseEnv
+Assert ($r.Out -match 'mailbox-fault:after-seq-persist-before-inbox-write') 'seq persist fault stopped before inbox write'
+$lateSeen = Get-SeenProp $lateRoot $lateId
+Assert ($null -ne $lateSeen -and [string]$lateSeen.disposition -eq 'accepted') 'seq persist fault kept accepted'
+Assert ([int]$lateSeen.seq -eq 811) 'seq persist fault stored 811'
+$lateRes = Join-Path $lateRoot 'reservations/811.json'
+Assert (Test-Path -LiteralPath $lateRes) 'reservation 811 was left open'
+Assert (-not (Test-Path -LiteralPath (Join-Path $lateRoot 'inbox/811.json'))) 'seq persist fault wrote no inbox'
+Assert ((Read-Log $env:FAKE_GIT_LOG) -eq '') 'seq persist fault did not run git'
+$lateRaw = [System.IO.File]::ReadAllText($lateRes)
+$lateRaw = [regex]::Replace($lateRaw, '"created":"[^"]*"', '"created":"2020-01-01T00:00:00Z"')
+Write-Utf8 $lateRes $lateRaw
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $lateRoot
+Assert ($r.Out -notmatch 'reservation-abandoned') 'expired reservation did not abandon the accepted seq'
+Assert ($r.Out -match 'MAILBOX recovered \[811\] GIT_STATUS') 'expired reservation recovered the same seq'
+Assert ($r.Out -match 'COMPLETED \[811\]: GIT_STATUS') 'expired reservation executed once'
+Assert ($r.Out -notmatch 'COMPLETED \[812\]') 'expired reservation did not take the next seq'
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 1) 'expired reservation ran git once'
+Assert ([int](Get-MailState $lateRoot).last_seq -eq 811) 'expired reservation kept the persisted slot'
+$lateTask = (Get-MailState $lateRoot).tasks.'811'
+Assert ($null -eq $lateTask -or [string]$lateTask.reason -ne 'reservation-abandoned') 'accepted seq was not marked abandoned'
+Assert (-not (Test-Path -LiteralPath $lateRes)) 'recovered reservation was closed'
+Reset-Logs
+$r = Invoke-Bridge -NoGithub -ArenaRoot $lateRoot
+Assert ((Count-LogLines $env:FAKE_GIT_LOG 'status') -eq 0) 'expired reservation did not run again'
+
 Clear-PhaseEnv
 Set-Index $mailDir @()
 Set-MailConfig $cfg $false $mailRepo

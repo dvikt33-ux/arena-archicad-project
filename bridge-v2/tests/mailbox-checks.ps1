@@ -56,6 +56,56 @@ function Read-Log {
     return [System.IO.File]::ReadAllText($Path)
 }
 
+function Test-HelperProcessGone {
+    # True only when no process command line still contains the needle.
+    # A failed process query does not count as gone.
+    param([string]$Needle)
+    $deadline = [datetime]::UtcNow.AddSeconds(2)
+    do {
+        $found = $false
+        $queried = $false
+        if ($env:OS -eq 'Windows_NT') {
+            $rows = @()
+            try {
+                $rows = @(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop)
+                $queried = $true
+            }
+            catch { $rows = @() }
+            if (-not $queried) {
+                try {
+                    $rows = @(Get-WmiObject -Class Win32_Process -ErrorAction Stop)
+                    $queried = $true
+                }
+                catch { $rows = @() }
+            }
+            if (-not $queried) { return $false }
+            foreach ($row in $rows) {
+                $cmd = [string]$row.CommandLine
+                if ($cmd -match [regex]::Escape($Needle)) { $found = $true }
+            }
+        }
+        else {
+            $procRoot = '/proc'
+            if (-not (Test-Path -LiteralPath $procRoot)) { return $false }
+            $queried = $true
+            foreach ($dir in @(Get-ChildItem -LiteralPath $procRoot -Directory -ErrorAction SilentlyContinue)) {
+                if ($dir.Name -notmatch '^[0-9]+$') { continue }
+                $cmdPath = Join-Path $dir.FullName 'cmdline'
+                if (-not (Test-Path -LiteralPath $cmdPath)) { continue }
+                try {
+                    $bytes = [System.IO.File]::ReadAllBytes($cmdPath)
+                    $cmd = [System.Text.Encoding]::UTF8.GetString($bytes)
+                    if ($cmd -match [regex]::Escape($Needle)) { $found = $true }
+                }
+                catch { }
+            }
+        }
+        if ($queried -and -not $found) { return $true }
+        Start-Sleep -Milliseconds 100
+    } while ([datetime]::UtcNow -lt $deadline)
+    return $false
+}
+
 function Set-MailConfig {
     param([string]$Path, [bool]$Enabled, [string]$Repo)
     $flag = 'false'
@@ -493,14 +543,24 @@ Set-Index $mailDir @('81.json')
 $env:FAKE_GH_SLEEP_SEC = '8'
 $env:ARENA_MAILBOX_GH_TIMEOUT_MS = '1500'
 Reset-Logs
+. (Join-Path $root 'arena-common.ps1')
+$swDirect = [System.Diagnostics.Stopwatch]::StartNew()
+$direct = Invoke-NativeTimed -Command 'gh' -ArgumentList @('api', 'repos/hung') -TimeoutMs 1500
+$swDirect.Stop()
+Assert ($direct.Code -eq 124) "hung gh code is 124 (actual=$($direct.Code))"
+Assert ($swDirect.Elapsed.TotalSeconds -lt 6) "direct hung gh returned in $($swDirect.Elapsed.TotalSeconds)s"
+Assert ($swDirect.Elapsed.TotalSeconds -lt 8) 'direct hung gh did not wait for the 8s sleep'
+Assert (Test-HelperProcessGone 'fake-gh.ps1') 'direct hung gh left no child'
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $r = Invoke-Bridge -NoGithub -ArenaRoot $hung
 $sw.Stop()
 Remove-Item Env:FAKE_GH_SLEEP_SEC -ErrorAction SilentlyContinue
 Remove-Item Env:ARENA_MAILBOX_GH_TIMEOUT_MS -ErrorAction SilentlyContinue
 Assert ($sw.Elapsed.TotalSeconds -lt 6) "hung gh returned in $($sw.Elapsed.TotalSeconds)s"
+Assert ($sw.Elapsed.TotalSeconds -lt 8) 'bridge did not wait for the 8s sleep'
 Assert ($r.Out -match 'mailbox-timeout') 'timeout is reported'
 Assert ([int](Get-MailState $hung).last_seq -eq 80) 'timed-out poll did not execute'
+Assert (Test-HelperProcessGone 'fake-gh.ps1') 'bridge hung gh left no child'
 
 Write-Host '[37] a bad mailbox config does not block a local task'
 $localRoot = New-MailRoot 0

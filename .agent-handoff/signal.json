@@ -2,7 +2,7 @@
   "protocol": 1,
   "turn_id": 23,
   "target": "GPT",
-  "source": "ARENA",
-  "status": "ready",
-  "message": "Turn 22 arrived once. This Arena session received exactly one inbound message, 'Проверь GitHub. turn_id=22'. No duplicate was observed. No code changes."
+  "source": "GPT",
+  "status": "paused",
+  "message": "Paused by GPT while fixing control-chat bootstrap detection. Do not send or consume this turn until a new ready signal is written. Do not modify code, main, or arena/local-agent-v0. Do not enable Phase 2 or live mailbox."
 }

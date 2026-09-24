@@ -19,10 +19,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.7
+# AI Dispatcher 2.2.8
 # =========================
 
-VERSION = "2.2.7"
+VERSION = "2.2.8"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -209,10 +209,12 @@ def conversation_id(url: str) -> str:
 
 
 def is_usable_control_url(url: str) -> bool:
-    ident = conversation_id(url)
-    if not ident or ":" in ident:
-        return False
-    return not ident.upper().startswith("WEB")
+    """Accept the conversation URL the live ChatGPT UI actually emits.
+
+    A /c/WEB:<id> URL is not stale by syntax. Staleness comes from page
+    behavior in diagnose_control.
+    """
+    return is_chatgpt_conversation_url(str(url or "").strip()) and bool(conversation_id(url))
 
 
 def _last_bootstrap_index(messages: list[dict]) -> int | None:
@@ -262,11 +264,10 @@ def diagnose_control(record: dict | None, messages: list[dict], page_url: str = 
         if assistant_after_bootstrap(messages):
             return "ready_fallback"
         return "bootstrap_without_response"
-    if saved and not is_usable_control_url(saved):
-        return "stale_url"
+    # WEB: ids are valid. A saved conversation is stale only when navigation
+    # was observed and did not remain on that conversation.
     if saved and page_url and not url_matches(page_url, saved):
-        if not is_usable_control_url(page_url):
-            return "stale_url"
+        return "stale_url"
     if not messages:
         return "zero_messages"
     if any(
@@ -402,13 +403,27 @@ def save_control_record(record: dict) -> None:
 
 
 def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
-    save_control_record(
-        {
-            "chatgpt_control_url": url,
-            "bootstrap_sent": bootstrap_sent,
-            "bootstrap_sent_at": time.time() if bootstrap_sent else None,
-        }
-    )
+    """Replace the URL in one write and keep the one-recovery latch."""
+    existing = {}
+    if CONTROL_PATH.exists():
+        try:
+            loaded = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing = loaded
+        except Exception:
+            existing = {}
+    record = {
+        "chatgpt_control_url": url,
+        "name": existing.get("name") or "01 — CONTROL & BRIDGE",
+        "bootstrap_sent": bootstrap_sent,
+        "bootstrap_sent_at": time.time() if bootstrap_sent else existing.get("bootstrap_sent_at"),
+    }
+    for key in ("recovery_used", "recovery_reason", "recovered_from", "bootstrap_migrated_from"):
+        if key in existing:
+            record[key] = existing[key]
+    if "unready_checks" in existing:
+        record["unready_checks"] = existing["unready_checks"]
+    save_control_record(record)
     log(f"CONTROL: закреплён отдельный машинный ChatGPT-чат: {url}")
 
 
@@ -715,16 +730,41 @@ def find_arena_page(browser):
 # ChatGPT control chat
 # -------------------------
 
+INFER_TURN_ROLE_JS = r"""
+function inferTurnRole(roleAttr, labels) {
+  const role = String(roleAttr || '').trim().toLowerCase();
+  if (role === 'user' || role === 'human' || role.endsWith(':user')) return 'user';
+  if (role.includes('assistant')) return 'assistant';
+  const blob = String(labels || '').toLowerCase();
+  if (blob.includes('you said') || blob.includes('вы сказали')) return 'user';
+  if (blob.includes('chatgpt said') || blob.includes('assistant')) return 'assistant';
+  return '';
+}
+"""
+
+TURN_SELECTOR = "article[data-testid^='conversation-turn-'], [data-message-id]"
+
+
+def infer_turn_role(role_attr: str = "", labels: str = "") -> str:
+    """Map a turn node to user/assistant. The test id itself is not a role."""
+    role = str(role_attr or "").strip().lower()
+    if role in {"user", "human"} or role.endswith(":user"):
+        return "user"
+    if "assistant" in role:
+        return "assistant"
+    blob = str(labels or "").lower()
+    if "you said" in blob or "вы сказали" in blob:
+        return "user"
+    if "chatgpt said" in blob or "assistant" in blob:
+        return "assistant"
+    return ""
+
+
 def _read_message_nodes(page, selector: str) -> list[dict]:
     try:
         return page.locator(selector).evaluate_all(
             """nodes => nodes.map(n => ({
-                role: (
-                    n.getAttribute('data-message-author-role')
-                    || n.getAttribute('data-message-author')
-                    || n.getAttribute('data-testid')
-                    || ''
-                ),
+                role: n.getAttribute('data-message-author-role') || '',
                 text: (n.innerText || '').trim()
             }))"""
         )
@@ -732,27 +772,53 @@ def _read_message_nodes(page, selector: str) -> list[dict]:
         return []
 
 
+def _read_turn_nodes(page) -> list[dict]:
+    script = INFER_TURN_ROLE_JS + """
+nodes => nodes.map(n => {
+  const roleNode = n.matches('[data-message-author-role], [data-message-author]')
+    ? n
+    : n.querySelector('[data-message-author-role], [data-message-author]');
+  const roleAttr = roleNode
+    ? (roleNode.getAttribute('data-message-author-role') || roleNode.getAttribute('data-message-author') || '')
+    : '';
+  const labelNode = n.querySelector('h5, h6, [class*="sr-only"], [class*="screen-reader"]');
+  const labels = [
+    n.getAttribute('aria-label') || '',
+    labelNode ? (labelNode.innerText || '') : ''
+  ].join(' ');
+  return {
+    role: inferTurnRole(roleAttr, labels),
+    text: (n.innerText || '').trim()
+  };
+}).filter(x => x.text)
+"""
+    try:
+        return page.locator(TURN_SELECTOR).evaluate_all(script)
+    except Exception:
+        return []
+
+
 def _normalize_message(item: dict) -> dict:
-    role = str(item.get("role") or "").lower()
-    if "assistant" in role:
-        role = "assistant"
-    elif role in {"user", "human"} or "user" in role:
-        role = "user"
+    role = infer_turn_role(str(item.get("role") or ""), "")
+    if not role:
+        role = str(item.get("role") or "").strip().lower()
+        if role in {"user", "assistant"}:
+            pass
+        elif "assistant" in role:
+            role = "assistant"
+        elif role in {"user", "human"} or role.endswith(":user"):
+            role = "user"
+        else:
+            role = ""
     return {"role": role, "text": str(item.get("text") or "").strip()}
 
 
 def chatgpt_messages(page) -> list[dict]:
     primary = [_normalize_message(item) for item in _read_message_nodes(page, "[data-message-author-role]")]
-    if any(item.get("text") for item in primary):
+    if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in primary):
         return primary
-    fallback = [
-        _normalize_message(item)
-        for item in _read_message_nodes(
-            page,
-            "[data-message-id], [data-testid='conversation-turn']",
-        )
-    ]
-    if any(item.get("text") for item in fallback):
+    fallback = [_normalize_message(item) for item in _read_turn_nodes(page)]
+    if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in fallback):
         log(f"CONTROL: primary selector empty, fallback messages={len(fallback)}")
         return fallback
     return []

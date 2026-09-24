@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import subprocess
 import json
 import os
 import tempfile
@@ -20,6 +21,7 @@ WANTED = {
     "conversation_id",
     "_last_bootstrap_index",
     "is_usable_control_url",
+    "infer_turn_role",
     "assistant_after_bootstrap",
     "assistant_error_after_bootstrap",
     "diagnose_control",
@@ -47,6 +49,8 @@ def load_helpers(control_path: Path):
                 "CONTROL_READY_MARKER",
                 "CONTROL_BOOTSTRAP_MARKER",
                 "CONTROL_BOOTSTRAP",
+                "INFER_TURN_ROLE_JS",
+                "TURN_SELECTOR",
                 "CONTROL_RECOVERY_CHECKS",
                 "CONTROL_ERROR_MARKERS",
                 "MAX_WAKE_ATTEMPTS",
@@ -76,8 +80,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.7"
-    assert version_of(RUNTIME) == "2.2.7"
+    assert version_of(CORE) == "2.2.8"
+    assert version_of(RUNTIME) == "2.2.8"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -115,7 +119,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.7"
+        assert saved["dispatcher_version"] == "2.2.8"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(
@@ -136,18 +140,70 @@ def main() -> None:
         recovered["recovery_used"] = True
         assert ns["next_control_action"](recovered, [], checks=9) == "wait"
 
-        stale = {
-            "chatgpt_control_url": "https://chatgpt.com/c/WEB:54f304f1-2f88-4e38-a4ff-b566975e3d41",
+        web = "https://chatgpt.com/c/WEB:54f304f1-2f88-4e38-a4ff-b566975e3d41"
+        web_record = {
+            "chatgpt_control_url": web,
             "bootstrap_sent": True,
             "bootstrap_migrated_from": "2.2.5",
         }
-        assert ns["is_usable_control_url"](stale["chatgpt_control_url"]) is False
-        assert ns["diagnose_control"](stale, []) == "stale_url"
-        assert ns["next_control_action"](stale, [], checks=0) == "recover"
-        stale_done = dict(stale)
-        stale_done["recovery_used"] = True
-        assert ns["next_control_action"](stale_done, [], checks=0) == "wait"
-        assert ns["control_bootstrap_decision"](stale_done, []) != "send"
+        assert ns["is_usable_control_url"](web) is True
+        assert ns["diagnose_control"](web_record, []) == "zero_messages"
+        assert ns["diagnose_control"](web_record, [], page_url=web) == "zero_messages"
+        assert ns["next_control_action"](web_record, [], checks=0) == "wait"
+        assert ns["next_control_action"](web_record, [], checks=3) == "recover"
+        home = "https://chatgpt.com/"
+        assert ns["diagnose_control"](web_record, [], page_url=home) == "stale_url"
+        assert ns["next_control_action"](web_record, [], page_url=home, checks=0) == "recover"
+        web_done = dict(web_record)
+        web_done["recovery_used"] = True
+        assert ns["next_control_action"](web_done, [], page_url=home, checks=9) == "wait"
+        assert ns["control_bootstrap_decision"](web_done, []) != "send"
+
+        latch = Path(tmp) / "latch.json"
+        ns["CONTROL_PATH"] = latch
+        latch.write_text(json.dumps({
+            "chatgpt_control_url": web,
+            "bootstrap_sent": True,
+            "recovery_used": True,
+            "recovery_reason": "stale_url",
+            "recovered_from": web,
+            "unready_checks": 3,
+        }), encoding="utf-8")
+        ns["save_control_url"](url, bootstrap_sent=True)
+        replaced = json.loads(latch.read_text(encoding="utf-8"))
+        assert replaced["chatgpt_control_url"] == url
+        assert replaced["recovery_used"] is True
+        assert replaced["recovery_reason"] == "stale_url"
+        assert replaced["recovered_from"] == web
+
+        assert ns["infer_turn_role"]("assistant", "") == "assistant"
+        assert ns["infer_turn_role"]("user", "") == "user"
+        assert ns["infer_turn_role"]("", "You said:") == "user"
+        assert ns["infer_turn_role"]("", "Вы сказали:") == "user"
+        assert ns["infer_turn_role"]("", "ChatGPT said:") == "assistant"
+        assert ns["infer_turn_role"]("conversation-turn-3", "ChatGPT") == ""
+        assert "conversation-turn-" in ns["TURN_SELECTOR"]
+        assert "[data-testid='conversation-turn']" not in ns["TURN_SELECTOR"]
+        script = ns["INFER_TURN_ROLE_JS"] + """
+const cases = [
+  [['assistant', ''], 'assistant'],
+  [['user', ''], 'user'],
+  [['', 'You said:'], 'user'],
+  [['', 'Вы сказали:'], 'user'],
+  [['', 'ChatGPT said:'], 'assistant'],
+  [['conversation-turn-3', 'ChatGPT'], '']
+];
+for (const [args, expected] of cases) {
+  const got = inferTurnRole(args[0], args[1]);
+  if (got !== expected) {
+    console.error(JSON.stringify({args, expected, got}));
+    process.exit(1);
+  }
+}
+console.log('inferTurnRole: OK');
+"""
+        proc = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+        assert proc.stdout.strip() == "inferTurnRole: OK"
 
         fallback = [
             {"role": "user", "text": marker + " init"},

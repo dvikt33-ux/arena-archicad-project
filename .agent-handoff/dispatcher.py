@@ -19,10 +19,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.8
+# AI Dispatcher 2.2.9
 # =========================
 
-VERSION = "2.2.8"
+VERSION = "2.2.9"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -65,6 +65,7 @@ CHROME_START_TIMEOUT = 25
 CONTROL_READY_MARKER = "CONTROL READY"
 CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
 CONTROL_RECOVERY_CHECKS = 3
+CONTROL_READY_GRACE_SECONDS = 20
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
     "unable to load",
@@ -251,7 +252,71 @@ def assistant_error_after_bootstrap(messages: list[dict]) -> bool:
     return False
 
 
-def diagnose_control(record: dict | None, messages: list[dict], page_url: str = "") -> str:
+def normalize_conversation_url(url: str) -> str:
+    url = str(url or "").strip()
+    if not is_usable_control_url(url):
+        return ""
+    return url.split("?", 1)[0].split("#", 1)[0]
+
+
+def positive_control_identity(messages: list[dict], wake: str = "") -> bool:
+    """Bootstrap, CONTROL READY, or the pending wake proves this is the control chat."""
+    if assistant_has_control_ready(messages) or user_has_bootstrap_marker(messages):
+        return True
+    wake = str(wake or "").strip()
+    if not wake:
+        return False
+    return any(
+        item.get("role") == "user" and str(item.get("text") or "").strip() == wake
+        for item in messages[-60:]
+    )
+
+
+def canonicalization_eligible(
+    record: dict | None,
+    messages: list[dict],
+    page_url: str = "",
+    wake: str = "",
+) -> bool:
+    """A different live conversation URL is an alias, not a stale chat, when identity is proven."""
+    record = record or {}
+    saved = normalize_conversation_url(str(record.get("chatgpt_control_url", "") or ""))
+    observed = normalize_conversation_url(page_url)
+    if not saved or not observed or saved == observed:
+        return False
+    return positive_control_identity(messages, wake)
+
+
+def submitted_bootstrap_idle_ready(
+    record: dict | None,
+    generation_active: bool,
+    composer_ready: bool,
+    now: float | None = None,
+) -> bool:
+    """Initialized when bootstrap was submitted, generation stopped, and the composer is usable."""
+    if generation_active or not composer_ready:
+        return False
+    sent_at = (record or {}).get("bootstrap_sent_at")
+    if sent_at in (None, ""):
+        return False
+    try:
+        sent_at = float(sent_at)
+    except (TypeError, ValueError):
+        return False
+    if now is None:
+        now = time.time()
+    return float(now) - sent_at >= CONTROL_READY_GRACE_SECONDS
+
+
+def diagnose_control(
+    record: dict | None,
+    messages: list[dict],
+    page_url: str = "",
+    wake: str = "",
+    generation_active: bool = False,
+    composer_ready: bool = False,
+    now: float | None = None,
+) -> str:
     """Stable token only. Does not include message text."""
     record = record or {}
     messages = list(messages or [])
@@ -263,11 +328,14 @@ def diagnose_control(record: dict | None, messages: list[dict], page_url: str = 
             return "assistant_error"
         if assistant_after_bootstrap(messages):
             return "ready_fallback"
+        if submitted_bootstrap_idle_ready(record, generation_active, composer_ready, now):
+            return "ready_idle"
         return "bootstrap_without_response"
     # WEB: ids are valid. A saved conversation is stale only when navigation
-    # was observed and did not remain on that conversation.
+    # was observed away from it and the page did not prove this is the same chat.
     if saved and page_url and not url_matches(page_url, saved):
-        return "stale_url"
+        if not canonicalization_eligible(record, messages, page_url, wake):
+            return "stale_url"
     if not messages:
         return "zero_messages"
     if any(
@@ -279,7 +347,7 @@ def diagnose_control(record: dict | None, messages: list[dict], page_url: str = 
 
 
 def control_is_ready(diagnosis: str) -> bool:
-    return diagnosis in {"ready_marker", "ready_fallback"}
+    return diagnosis in {"ready_marker", "ready_fallback", "ready_idle"}
 
 
 def recovery_allowed(record: dict | None, diagnosis: str, checks: int = 0) -> bool:
@@ -287,6 +355,8 @@ def recovery_allowed(record: dict | None, diagnosis: str, checks: int = 0) -> bo
     if record.get("recovery_used"):
         return False
     if control_is_ready(diagnosis):
+        return False
+    if diagnosis in {"bootstrap_without_response", "assistant_error", "alias_redirect"}:
         return False
     saved = str(record.get("chatgpt_control_url", "") or "").strip()
     if not is_chatgpt_conversation_url(saved):
@@ -301,12 +371,26 @@ def next_control_action(
     messages: list[dict],
     page_url: str = "",
     checks: int = 0,
+    wake: str = "",
+    generation_active: bool = False,
+    composer_ready: bool = False,
+    now: float | None = None,
 ) -> str:
     """ready, wait, send, or recover. send/recover happen at most once."""
     record = record or {}
-    diagnosis = diagnose_control(record, messages, page_url)
+    diagnosis = diagnose_control(
+        record,
+        messages,
+        page_url,
+        wake=wake,
+        generation_active=generation_active,
+        composer_ready=composer_ready,
+        now=now,
+    )
     if control_is_ready(diagnosis):
         return "ready"
+    if canonicalization_eligible(record, messages, page_url, wake):
+        return "wait"
     if recovery_allowed(record, diagnosis, checks):
         return "recover"
     if (
@@ -425,6 +509,27 @@ def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
         record["unready_checks"] = existing["unready_checks"]
     save_control_record(record)
     log(f"CONTROL: закреплён отдельный машинный ChatGPT-чат: {url}")
+
+
+def canonicalize_control_url(url: str) -> None:
+    """Replace only the URL. Keep bootstrap time and the one-recovery latch."""
+    observed = normalize_conversation_url(url)
+    if not observed:
+        raise ValueError(f"Некорректный control URL: {url!r}")
+    existing = {}
+    if CONTROL_PATH.exists():
+        try:
+            loaded = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing = loaded
+        except Exception:
+            existing = {}
+    record = dict(existing)
+    record["chatgpt_control_url"] = observed
+    if "bootstrap_sent" not in record:
+        record["bootstrap_sent"] = True
+    save_control_record(record)
+    log("CONTROL: url_canonicalized")
 
 
 # -------------------------
@@ -872,6 +977,44 @@ def chatgpt_response_complete(page, user_text: str) -> bool:
     return True
 
 
+def generation_is_active(page) -> bool:
+    selectors = (
+        "[data-testid='stop-button']",
+        "button[aria-label='Stop streaming']",
+        "button[aria-label='Stop generating']",
+        "button[aria-label='Остановить генерацию']",
+        "button[aria-label='Остановить']",
+    )
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            if loc.count() and loc.first.is_visible():
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def composer_is_ready(page) -> bool:
+    selectors = ("#prompt-textarea", "[contenteditable='true'][role='textbox']")
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            if loc.count() == 0:
+                continue
+            box = loc.first
+            if not box.is_visible():
+                continue
+            if box.get_attribute("disabled") is not None:
+                continue
+            if str(box.get_attribute("aria-disabled") or "").lower() == "true":
+                continue
+            return True
+        except Exception:
+            continue
+    return False
+
+
 def chatgpt_prompt(page):
     box = page.locator("#prompt-textarea")
     try:
@@ -922,8 +1065,25 @@ def provision_control_chat(browser):
     return page
 
 
-def _log_control_diag(record: dict, messages: list[dict], page_url: str, action: str) -> str:
-    diagnosis = diagnose_control(record, messages, page_url)
+def _log_control_diag(
+    record: dict,
+    messages: list[dict],
+    page_url: str,
+    action: str,
+    wake: str = "",
+    generation_active: bool = False,
+    composer_ready: bool = False,
+    now: float | None = None,
+) -> str:
+    diagnosis = diagnose_control(
+        record,
+        messages,
+        page_url,
+        wake=wake,
+        generation_active=generation_active,
+        composer_ready=composer_ready,
+        now=now,
+    )
     users, assistants = control_diag_counts(messages)
     checks = int(record.get("unready_checks") or 0)
     log(
@@ -931,7 +1091,8 @@ def _log_control_diag(record: dict, messages: list[dict], page_url: str, action:
         f"diag={diagnosis} action={action} messages={len(messages)} "
         f"users={users} assistants={assistants} "
         f"url_usable={int(is_usable_control_url(str(record.get('chatgpt_control_url') or '')))} "
-        f"checks={checks} recovery_used={int(bool(record.get('recovery_used')))}"
+        f"checks={checks} recovery_used={int(bool(record.get('recovery_used')))} "
+        f"gen={int(bool(generation_active))} composer={int(bool(composer_ready))}"
     )
     return diagnosis
 
@@ -946,21 +1107,49 @@ def _mark_recovery(record: dict, reason: str) -> dict:
     return updated
 
 
-def ensure_control_ready(browser):
+def ensure_control_ready(browser, wake: str = ""):
     record = load_control_record()
     saved = str(record.get("chatgpt_control_url") or "")
     page = None
     page_url = ""
     messages: list[dict] = []
+    generation_active = False
+    composer_ready = False
     if is_usable_control_url(saved):
         page = find_control_page(browser)
         if page is not None:
             page_url = page.url or ""
             messages = chatgpt_messages(page)
+            if canonicalization_eligible(record, messages, page_url, wake):
+                canonicalize_control_url(page_url)
+                record = load_control_record()
+                saved = str(record.get("chatgpt_control_url") or "")
+                page_url = normalize_conversation_url(page_url) or page_url
+            generation_active = generation_is_active(page)
+            composer_ready = composer_is_ready(page)
 
     checks = int(record.get("unready_checks") or 0)
-    action = next_control_action(record, messages, page_url, checks)
-    _log_control_diag(record, messages, page_url, action)
+    now = time.time()
+    action = next_control_action(
+        record,
+        messages,
+        page_url,
+        checks,
+        wake=wake,
+        generation_active=generation_active,
+        composer_ready=composer_ready,
+        now=now,
+    )
+    _log_control_diag(
+        record,
+        messages,
+        page_url,
+        action,
+        wake=wake,
+        generation_active=generation_active,
+        composer_ready=composer_ready,
+        now=now,
+    )
 
     if action == "ready":
         if checks:
@@ -1224,7 +1413,7 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     ):
         return
 
-    page, ready = ensure_control_ready(browser)
+    page, ready = ensure_control_ready(browser, wake)
     if not ready:
         inflight["retry_after"] = time.time() + CONTROL_RETRY_SECONDS
         inflight["last_error"] = "Control chat bootstrap pending"

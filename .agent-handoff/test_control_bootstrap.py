@@ -35,6 +35,11 @@ WANTED = {
     "load_control_record",
     "save_control_record",
     "save_control_url",
+    "normalize_conversation_url",
+    "positive_control_identity",
+    "canonicalization_eligible",
+    "submitted_bootstrap_idle_ready",
+    "canonicalize_control_url",
 }
 
 
@@ -52,6 +57,7 @@ def load_helpers(control_path: Path):
                 "INFER_TURN_ROLE_JS",
                 "TURN_SELECTOR",
                 "CONTROL_RECOVERY_CHECKS",
+                "CONTROL_READY_GRACE_SECONDS",
                 "CONTROL_ERROR_MARKERS",
                 "MAX_WAKE_ATTEMPTS",
                 "WAKE_CONFIRM_SECONDS",
@@ -80,8 +86,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.8"
-    assert version_of(RUNTIME) == "2.2.8"
+    assert version_of(CORE) == "2.2.9"
+    assert version_of(RUNTIME) == "2.2.9"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -119,7 +125,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.8"
+        assert saved["dispatcher_version"] == "2.2.9"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(
@@ -204,6 +210,66 @@ console.log('inferTurnRole: OK');
 """
         proc = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
         assert proc.stdout.strip() == "inferTurnRole: OK"
+
+        alias = "https://chatgpt.com/c/WEB:4f943fa5-39fa-4b25-95f8-e06ea1ffabed"
+        observed = "https://chatgpt.com/c/4f943fa5-39fa-4b25-95f8-e06ea1ffabed"
+        boot_msgs = [{"role": "user", "text": bootstrap}]
+        alias_record = {
+            "chatgpt_control_url": alias,
+            "bootstrap_sent": True,
+            "bootstrap_sent_at": 1000.0,
+            "recovery_used": True,
+            "recovery_reason": "stale_url",
+            "recovered_from": web,
+            "unready_checks": 3,
+        }
+        assert ns["canonicalization_eligible"](alias_record, boot_msgs, observed) is True
+        assert ns["canonicalization_eligible"](alias_record, [], observed) is False
+        assert ns["canonicalization_eligible"](alias_record, boot_msgs, "https://chatgpt.com/") is False
+        assert ns["canonicalization_eligible"](alias_record, boot_msgs, alias) is False
+        ready_msgs = [{"role": "assistant", "text": ready}]
+        assert ns["canonicalization_eligible"](alias_record, ready_msgs, observed) is True
+        wake = "Проверь GitHub. turn_id=33"
+        wake_msgs = [{"role": "user", "text": wake}]
+        assert ns["canonicalization_eligible"](alias_record, wake_msgs, observed, wake) is True
+        assert ns["diagnose_control"](alias_record, boot_msgs, page_url=observed) != "stale_url"
+        assert ns["next_control_action"](alias_record, boot_msgs, observed, checks=9) != "recover"
+        assert ns["next_control_action"](alias_record, boot_msgs, observed, checks=9) != "send"
+        fresh = dict(alias_record)
+        fresh["recovery_used"] = False
+        assert ns["next_control_action"](fresh, boot_msgs, observed, checks=9) == "wait"
+
+        grace = ns["CONTROL_READY_GRACE_SECONDS"]
+        assert ns["submitted_bootstrap_idle_ready"](alias_record, False, True, now=1000 + grace) is True
+        assert ns["submitted_bootstrap_idle_ready"](alias_record, True, True, now=1000 + grace) is False
+        assert ns["submitted_bootstrap_idle_ready"](alias_record, False, False, now=1000 + grace) is False
+        assert ns["submitted_bootstrap_idle_ready"](alias_record, False, True, now=1000 + grace - 1) is False
+        assert ns["submitted_bootstrap_idle_ready"]({}, False, True, now=1000 + grace) is False
+        assert ns["next_control_action"](
+            alias_record, boot_msgs, alias, generation_active=False, composer_ready=True, now=1000 + grace
+        ) == "ready"
+        assert ns["diagnose_control"](
+            alias_record, boot_msgs, alias, generation_active=True, composer_ready=True, now=1000 + grace
+        ) == "bootstrap_without_response"
+        assert ns["next_control_action"](
+            alias_record, boot_msgs, alias, generation_active=True, composer_ready=True, now=1000 + grace
+        ) == "wait"
+        inflight = {"send_attempts": 0, "retry_after": 0, "wake_seen": False}
+        assert ns["pending_wake_action"]("ready", inflight, now=10) == "send_wake"
+        inflight["wake_seen"] = True
+        assert ns["pending_wake_action"]("ready", inflight, now=10) == "already_sent"
+
+        canon = Path(tmp) / "canon.json"
+        ns["CONTROL_PATH"] = canon
+        canon.write_text(json.dumps(alias_record), encoding="utf-8")
+        ns["canonicalize_control_url"](observed + "?ref=1")
+        stored = json.loads(canon.read_text(encoding="utf-8"))
+        assert stored["chatgpt_control_url"] == observed
+        assert stored["recovery_used"] is True
+        assert stored["recovery_reason"] == "stale_url"
+        assert stored["recovered_from"] == web
+        assert stored["bootstrap_sent_at"] == 1000.0
+        assert stored["bootstrap_sent"] is True
 
         fallback = [
             {"role": "user", "text": marker + " init"},

@@ -100,7 +100,8 @@ $startInfo.UseShellExecute = $true
 [System.Diagnostics.Process]::Start($startInfo) | Out-Null
 
 $escapedVersion = [regex]::Escape($ExpectedVersion)
-$startPattern = "AI Dispatcher $escapedVersion запущен"
+# ASCII-only match on purpose: Windows PowerShell 5.1 can misread UTF-8 scripts without BOM.
+$startPattern = "AI Dispatcher $escapedVersion"
 $deadline = (Get-Date).AddSeconds(30)
 $started = $false
 while ((Get-Date) -lt $deadline) {

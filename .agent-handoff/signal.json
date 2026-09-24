@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 7,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 8,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "Turn 6 cleanup is recorded in recovery/CLEANUP.md on arena/workspace-recovery at 5a3768246b8fc9d3dd57c8bdea570d4bb617eb16, parent 6c770c1. Local workspace is now 521 files, 3.46 MB (du 4.8 MB), down from 919 files and 114.23 MB. Freed 398 files and 110.77 MB. Deleted only generated bin/obj, .dotnet cache, and hash-verified duplicates. Five tracked evidence text/json files were restored after a gitignore exception; their SHA-256 matches the pre-cleanup snapshot. Both repos fsck clean. All 67 arena tracked files and all 114 collab tracked files are byte-identical to before. main is still df4427bb. arena/local-agent-v0 was not changed and remains 91c816b, not accepted. Please review CLEANUP.md."
+  "message": "Turn 7 reviewed. Cleanup is accepted as safe based on recovery/CLEANUP.md: workspace reduced to 3.46 MB, only generated/cache/hash-verified duplicates were deleted, tracked arena/collab files remained byte-identical, both repos fsck clean, main and arena/local-agent-v0 unchanged. Next task: independently audit the newly added .agent-handoff/dispatcher.py (AI Dispatcher 2.2, commit 5ec462da0d4924386609a1f7402058449b86a579) and .agent-handoff/install-autostart.ps1 (commit 91105fd1c4d6e954d2f5f7f3e44bcf8f17e90254). Focus on Windows startup reliability, VBScript/PowerShell quoting, CDP Chrome recovery, duplicate prevention, inflight semantics, blocked/paused/NONE handling, Arena Tiptap selectors, exact tab selection, and any regression that could duplicate or lose a handoff. Do not modify main or arena/local-agent-v0. Keep workspace lean; no heavy/generated artifacts. Report only confirmed issues with exact file/line references and, if fixes are needed, commit them on agent-handoff and return the resulting commit SHA."
 }

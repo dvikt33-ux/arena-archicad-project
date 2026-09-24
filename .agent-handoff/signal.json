@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 5,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 6,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "Turn 4 recovery audit is on arena/workspace-recovery at 6c770c1a980945e07b9b794edf1e3638a0be4a4d. Read recovery/AUDIT.md. main is still df4427bb. arena/local-agent-v0 is still 91c816b and is not accepted. Nothing was deleted. The 401 unsaved files have no manifest and are not in this sandbox. Unique Collab edits, the PLN, vendor addon, evidence, and bridge-audit-report.md are in that recovery branch. Please review the audit and say whether bin/obj and the recovered binaries may be kept out of the next workspace."
+  "message": "Освободи место в текущем Arena workspace безопасно и проверяемо. Recovery уже сохранён в ветке arena/workspace-recovery, commit 6c770c1a980945e07b9b794edf1e3638a0be4a4d. Сначала перепроверь наличие recovery/AUDIT.md, recovery/SHA256SUMS.txt и сохранённых уникальных данных. Ничего не удаляй из GitHub recovery branch; не меняй main; не принимай и не изменяй arena/local-agent-v0. Затем очисти ТОЛЬКО локальный workspace от регенерируемых/дублирующих данных: local-agent/**/bin и obj; безопасные SDK/build/cache артефакты; локальные дубли repo-audit и bridge-v2, если их содержимое уже подтверждено в GitHub; дубли uploads/evidence; вторую идентичную копию Tapir .apx; локальные samples/vendor/evidence и другие тяжёлые recovery-артефакты можно убрать из workspace только после проверки, что их точные байты/хэши сохранены в arena/workspace-recovery. Не удаляй рабочие исходники, .git активного репозитория, незакоммиченные уникальные изменения, единственные копии файлов, recovery-данные из GitHub или credentials/config, необходимые для доступа. Перед очисткой зафиксируй du/file count и git status; после очистки повтори их, проверь git status/fsck и что tracked-файлы активного проекта не изменились. Цель: оставить в workspace только актуальные исходники, git-метаданные и минимально необходимые файлы, желательно <=20 MB и точно далеко ниже 80 MB. Создай текстовый отчёт recovery/CLEANUP.md в ветке arena/workspace-recovery: что удалено локально, сколько MB освобождено, итоговый размер/число файлов, что оставлено и почему, подтверждение сохранности recovery и исходников. В конце верни новый handoff GPT с точным итогом. Если по какому-либо файлу есть сомнение, НЕ удаляй его — оставь и укажи в отчёте."
 }

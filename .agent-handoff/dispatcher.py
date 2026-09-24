@@ -1,27 +1,32 @@
 from __future__ import annotations
 
 import ctypes
+import http.client
 import json
 import logging
 import os
 import socket
+import ssl
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.3
+# AI Dispatcher 2.2.5
 # =========================
 
-VERSION = "2.2.3"
+VERSION = "2.2.5"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
+CONTROL_PATH = HOME / ".ai-dispatcher-control.json"
 LOG_PATH = HOME / "ai-dispatcher.log"
 
 CDP_HOST = "127.0.0.1"
@@ -37,18 +42,32 @@ SIGNAL_URL = (
     "agent-handoff/.agent-handoff/signal.json"
 )
 
-CHATGPT_URL = "https://chatgpt.com/c/6ab457e5-237c-83eb-a463-df52d23fd58f"
+CHATGPT_HOME = "https://chatgpt.com/"
 ARENA_URL = "https://arena.ai/agent/01a09014-9139-71e7-b51b-5b3f8a49d904"
+
+CONTROL_BOOTSTRAP = (
+    "Служебный чат 01 — CONTROL & BRIDGE. "
+    "Этот чат используется только локальным AI Dispatcher как машинный транспортный канал. "
+    "Когда приходит сообщение вида «Проверь GitHub. turn_id=N», открой через подключённый GitHub "
+    "репозиторий dvikt33-ux/arena-archicad-project, ветку agent-handoff, файл "
+    ".agent-handoff/signal.json; проверь, что turn_id совпадает, выполни только инструкцию из поля "
+    "message и при необходимости запиши следующий handoff обратно в этот signal.json. "
+    "Не меняй main и arena/local-agent-v0. Не включай Phase 2 или live mailbox без явной инструкции "
+    "в signal. Этот чат не предназначен для ручной переписки пользователя. "
+    "На это инициализирующее сообщение ответь только: CONTROL READY."
+)
 
 CHECK_INTERVAL = 5
 ARENA_RETRY_SECONDS = 60
+CONTROL_RETRY_SECONDS = 15
 PAGE_TIMEOUT = 15000
 CHROME_START_TIMEOUT = 25
+CONTROL_BOOTSTRAP_WAIT = 90
 
 TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
 HOLD_STATUSES = {"blocked", "paused", "idle"}
 READY_STATUSES = {"ready", "pending", "queued"}
-# Unobserved Enter is not success. Retry the same turn_id wake, slowly.
+
 WAKE_CONFIRM_SECONDS = 90
 MAX_WAKE_ATTEMPTS = 3
 
@@ -113,10 +132,7 @@ def acquire_single_instance() -> None:
 # -------------------------
 
 def default_state() -> dict:
-    return {
-        "last_turn_id": 0,
-        "inflight": None,
-    }
+    return {"last_turn_id": 0, "inflight": None}
 
 
 def load_state() -> dict:
@@ -145,6 +161,43 @@ def save_state(state: dict) -> None:
     os.replace(tmp, STATE_PATH)
 
 
+def is_chatgpt_conversation_url(url: str) -> bool:
+    return bool(url) and url.startswith("https://chatgpt.com/c/")
+
+
+def load_control_url() -> str:
+    if not CONTROL_PATH.exists():
+        return ""
+    try:
+        data = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
+        url = str(data.get("chatgpt_control_url", "") or "").strip()
+        if is_chatgpt_conversation_url(url):
+            return url
+    except Exception as exc:
+        log(f"CONTROL: не удалось прочитать {CONTROL_PATH.name}: {exc}")
+    return ""
+
+
+def save_control_url(url: str) -> None:
+    if not is_chatgpt_conversation_url(url):
+        raise ValueError(f"Некорректный control URL: {url!r}")
+    tmp = CONTROL_PATH.with_suffix(".tmp")
+    tmp.write_text(
+        json.dumps(
+            {
+                "chatgpt_control_url": url,
+                "name": "01 — CONTROL & BRIDGE",
+                "dispatcher_version": VERSION,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(tmp, CONTROL_PATH)
+    log(f"CONTROL: закреплён отдельный машинный ChatGPT-чат: {url}")
+
+
 # -------------------------
 # Chrome / CDP
 # -------------------------
@@ -164,7 +217,7 @@ def cdp_http_ready() -> bool:
     try:
         req = urllib.request.Request(
             f"{CDP}/json/version",
-            headers={"User-Agent": "AI-Dispatcher-2.2.3"},
+            headers={"User-Agent": f"AI-Dispatcher-{VERSION}"},
         )
         with urllib.request.urlopen(req, timeout=2) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
@@ -175,6 +228,7 @@ def cdp_http_ready() -> bool:
 
 def stop_owned_chrome() -> None:
     global _CHROME_PROC
+
     if _CHROME_PROC is not None and _CHROME_PROC.poll() is None:
         _CHROME_PROC.terminate()
         try:
@@ -182,8 +236,10 @@ def stop_owned_chrome() -> None:
         except Exception:
             _CHROME_PROC.kill()
     _CHROME_PROC = None
+
     if os.name != "nt":
         return
+
     script = (
         "Get-CimInstance Win32_Process -Filter \"Name = 'chrome.exe'\" | "
         "Where-Object { $_.CommandLine -like '*AI-Dispatcher-Chrome*' -and "
@@ -196,6 +252,7 @@ def stop_owned_chrome() -> None:
         stderr=subprocess.DEVNULL,
         timeout=20,
     )
+
     deadline = time.time() + 8
     while time.time() < deadline and port_open(CDP_HOST, CDP_PORT):
         time.sleep(0.3)
@@ -203,8 +260,10 @@ def stop_owned_chrome() -> None:
 
 def start_service_chrome(force: bool = False) -> None:
     global _CHROME_PROC
+
     if not force and cdp_http_ready():
         return
+
     if force or port_open(CDP_HOST, CDP_PORT):
         log("CHROME: перезапускаю сервисный профиль.")
         stop_owned_chrome()
@@ -258,37 +317,60 @@ def start_service_chrome(force: bool = False) -> None:
 # GitHub signal
 # -------------------------
 
-def is_github_network_error(exc: BaseException) -> bool:
-    name = type(exc).__name__
-    if name in {
-        "URLError",
-        "TimeoutError",
-        "RemoteDisconnected",
-        "SSLError",
-        "ConnectionError",
-        "ConnectionResetError",
-    }:
+class GitHubNetworkError(RuntimeError):
+    pass
+
+
+def _is_network_exception(exc: BaseException) -> bool:
+    if isinstance(exc, PlaywrightTimeoutError):
+        return False
+    if isinstance(
+        exc,
+        (
+            urllib.error.URLError,
+            http.client.RemoteDisconnected,
+            ssl.SSLError,
+            socket.timeout,
+            TimeoutError,
+            ConnectionError,
+            ConnectionResetError,
+        ),
+    ):
         return True
+
     text = str(exc)
     return any(
         token in text
-        for token in ("RemoteDisconnected", "UNEXPECTED_EOF", "handshake", "timed out")
+        for token in (
+            "RemoteDisconnected",
+            "UNEXPECTED_EOF",
+            "SSL",
+            "handshake",
+            "Name or service not known",
+            "Temporary failure in name resolution",
+        )
     )
 
 
 def fetch_signal() -> dict:
     last_exc: BaseException | None = None
+
     for attempt in range(3):
         try:
             return _fetch_signal_once()
         except Exception as exc:
-            if not is_github_network_error(exc) or attempt == 2:
+            if not _is_network_exception(exc):
                 raise
             last_exc = exc
-            delay = 1 + attempt * 2
-            log(f"GITHUB: сеть недоступна ({type(exc).__name__}), повтор через {delay} сек.")
-            time.sleep(delay)
-    raise last_exc if last_exc else RuntimeError("fetch_signal failed")
+            if attempt < 2:
+                delay = 1 + attempt * 2
+                log(
+                    f"GITHUB: сеть недоступна ({type(exc).__name__}), "
+                    f"повтор через {delay} сек."
+                )
+                time.sleep(delay)
+
+    raise GitHubNetworkError(str(last_exc or "fetch_signal failed")) from last_exc
 
 
 def _fetch_signal_once() -> dict:
@@ -298,7 +380,7 @@ def _fetch_signal_once() -> dict:
         headers={
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "AI-Dispatcher-2.2.3",
+            "User-Agent": f"AI-Dispatcher-{VERSION}",
         },
     )
 
@@ -358,30 +440,225 @@ def choose_page(pages):
     return foreground[0] if foreground else pages[0]
 
 
-def find_chatgpt_page(browser):
+def chatgpt_pages(browser):
+    return [
+        page
+        for page in all_pages(browser)
+        if "chatgpt.com" in (page.url or "")
+    ]
+
+
+def find_control_page(browser):
+    control_url = load_control_url()
+
+    if control_url:
+        exact = [
+            page
+            for page in chatgpt_pages(browser)
+            if url_matches(page.url or "", control_url)
+        ]
+        page = choose_page(exact)
+        if page is not None:
+            return page
+
+        pages = chatgpt_pages(browser)
+        page = choose_page(pages)
+        if page is None:
+            page = browser.contexts[0].new_page()
+        page.goto(control_url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+        return page
+
+    return provision_control_chat(browser)
+
+
+def find_arena_page(browser):
     exact = []
     fallback = []
 
     for page in all_pages(browser):
         url = page.url or ""
-        if url_matches(url, CHATGPT_URL):
+        if url_matches(url, ARENA_URL):
             exact.append(page)
-        elif "chatgpt.com" in url:
+        elif "arena.ai" in url:
             fallback.append(page)
 
     page = choose_page(exact)
-    if page is not None:
-        return page
+    if page is None:
+        page = choose_page(fallback)
+    if page is None:
+        page = browser.contexts[0].new_page()
 
-    page = choose_page(fallback)
-    if page is not None:
-        page.goto(CHATGPT_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
-        return page
+    if not url_matches(page.url or "", ARENA_URL):
+        page.goto(ARENA_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
 
+    return page
+
+
+# -------------------------
+# ChatGPT control chat
+# -------------------------
+
+def chatgpt_messages(page) -> list[dict]:
+    try:
+        return page.locator("[data-message-author-role]").evaluate_all(
+            """nodes => nodes.map(n => ({
+                role: n.getAttribute('data-message-author-role') || '',
+                text: (n.innerText || '').trim()
+            }))"""
+        )
+    except Exception:
+        return []
+
+
+def chatgpt_user_message_exists(page, text: str) -> bool:
+    return any(
+        item.get("role") == "user" and item.get("text", "").strip() == text
+        for item in chatgpt_messages(page)[-60:]
+    )
+
+
+def chatgpt_wake_exists(page, wake: str) -> bool:
+    return chatgpt_user_message_exists(page, wake)
+
+
+def chatgpt_response_complete(page, user_text: str) -> bool:
+    messages = chatgpt_messages(page)
+
+    user_index = None
+    for idx in range(len(messages) - 1, -1, -1):
+        item = messages[idx]
+        if item.get("role") == "user" and item.get("text", "").strip() == user_text:
+            user_index = idx
+            break
+
+    if user_index is None:
+        return False
+
+    has_assistant_after = any(
+        item.get("role") == "assistant" and item.get("text", "").strip()
+        for item in messages[user_index + 1 :]
+    )
+    if not has_assistant_after:
+        return False
+
+    stop_selectors = [
+        'button[data-testid="stop-button"]',
+        'button[aria-label*="Stop"]',
+        'button[aria-label*="Останов"]',
+    ]
+    for selector in stop_selectors:
+        loc = page.locator(selector)
+        try:
+            for i in range(loc.count()):
+                if loc.nth(i).is_visible():
+                    return False
+        except Exception:
+            continue
+
+    return True
+
+
+def chatgpt_prompt(page):
+    box = page.locator("#prompt-textarea")
+    try:
+        box.wait_for(state="visible", timeout=PAGE_TIMEOUT)
+        return box
+    except Exception:
+        fallback = page.locator(
+            '[contenteditable="true"][data-virtualkeyboard="true"], '
+            '[contenteditable="true"][role="textbox"]'
+        )
+        fallback.first.wait_for(state="visible", timeout=PAGE_TIMEOUT)
+        return fallback.first
+
+
+def send_to_chatgpt(page, text: str) -> None:
+    box = chatgpt_prompt(page)
+    try:
+        box.evaluate("(el) => el.focus()")
+    except Exception:
+        pass
+    box.fill(text)
+    box.press("Enter")
+
+
+def wait_for_conversation_url(page, timeout_seconds: int = 30) -> str:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        url = page.url or ""
+        if is_chatgpt_conversation_url(url):
+            return url.split("?", 1)[0].split("#", 1)[0]
+        time.sleep(0.25)
+    return ""
+
+
+def provision_control_chat(browser):
     context = browser.contexts[0]
     page = context.new_page()
-    page.goto(CHATGPT_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+
+    log("CONTROL: создаю отдельный машинный ChatGPT-чат 01 — CONTROL & BRIDGE.")
+    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+
+    control_url = wait_for_conversation_url(page, 30)
+    if not control_url:
+        raise RuntimeError("CONTROL_CHAT_URL_NOT_CREATED")
+
+    save_control_url(control_url)
     return page
+
+
+def ensure_control_ready(browser):
+    page = find_control_page(browser)
+
+    if not chatgpt_user_message_exists(page, CONTROL_BOOTSTRAP):
+        log("CONTROL: bootstrap отсутствует, инициализирую машинный чат.")
+        send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+
+    if chatgpt_response_complete(page, CONTROL_BOOTSTRAP):
+        return page, True
+
+    deadline = time.time() + CONTROL_BOOTSTRAP_WAIT
+    while time.time() < deadline:
+        if chatgpt_response_complete(page, CONTROL_BOOTSTRAP):
+            log("CONTROL: машинный ChatGPT-чат готов.")
+            return page, True
+        time.sleep(1)
+
+    log("CONTROL: bootstrap отправлен, но ответ ещё не завершён; повторю проверку позже.")
+    return page, False
+
+
+# -------------------------
+# Arena handling
+# -------------------------
+
+def dismiss_arena_completion(page) -> bool:
+    selectors = [
+        'button:has-text("Продолжить работу")',
+        'button:has-text("Continue working")',
+        'button:has-text("Continue")',
+    ]
+
+    for selector in selectors:
+        loc = page.locator(selector)
+        try:
+            count = loc.count()
+        except Exception:
+            continue
+
+        for i in range(count):
+            btn = loc.nth(i)
+            try:
+                if btn.is_visible():
+                    btn.click(timeout=5000)
+                    page.wait_for_timeout(500)
+                    log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
+                    return True
+            except Exception:
+                continue
+
+    return False
 
 
 def arena_editor(page):
@@ -412,152 +689,6 @@ def arena_editor(page):
     return None
 
 
-def find_arena_page(browser):
-    exact = []
-    fallback = []
-
-    for page in all_pages(browser):
-        url = page.url or ""
-        if url_matches(url, ARENA_URL):
-            exact.append(page)
-        elif "arena.ai" in url:
-            fallback.append(page)
-
-    page = choose_page(exact)
-    if page is None:
-        page = choose_page(fallback)
-    if page is None:
-        context = browser.contexts[0]
-        page = context.new_page()
-    if not url_matches(page.url or "", ARENA_URL):
-        page.goto(ARENA_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
-    return page
-
-
-# -------------------------
-# ChatGPT handling
-# -------------------------
-
-def chatgpt_messages(page) -> list[dict]:
-    try:
-        return page.locator("[data-message-author-role]").evaluate_all(
-            """nodes => nodes.map(n => ({
-                role: n.getAttribute('data-message-author-role') || '',
-                text: (n.innerText || '').trim()
-            }))"""
-        )
-    except Exception:
-        return []
-
-
-def chatgpt_wake_exists(page, wake: str) -> bool:
-    messages = chatgpt_messages(page)
-    return any(
-        item.get("role") == "user" and item.get("text", "").strip() == wake
-        for item in messages[-40:]
-    )
-
-
-def chatgpt_response_complete(page, wake: str) -> bool:
-    messages = chatgpt_messages(page)
-
-    wake_index = None
-    for idx in range(len(messages) - 1, -1, -1):
-        item = messages[idx]
-        if item.get("role") == "user" and item.get("text", "").strip() == wake:
-            wake_index = idx
-            break
-
-    if wake_index is None:
-        return False
-
-    has_assistant_after = any(
-        item.get("role") == "assistant" and item.get("text", "").strip()
-        for item in messages[wake_index + 1 :]
-    )
-
-    if not has_assistant_after:
-        return False
-
-    stop_selectors = [
-        'button[data-testid="stop-button"]',
-        'button[aria-label*="Stop"]',
-        'button[aria-label*="Останов"]',
-    ]
-
-    for selector in stop_selectors:
-        loc = page.locator(selector)
-        try:
-            for i in range(loc.count()):
-                if loc.nth(i).is_visible():
-                    return False
-        except Exception:
-            continue
-
-    return True
-
-
-def send_to_chatgpt(page, wake: str) -> None:
-    box = page.locator("#prompt-textarea")
-
-    try:
-        box.wait_for(state="visible", timeout=PAGE_TIMEOUT)
-    except Exception:
-        fallback = page.locator(
-            '[contenteditable="true"][data-virtualkeyboard="true"], '
-            '[contenteditable="true"][role="textbox"]'
-        )
-        fallback.wait_for(state="visible", timeout=PAGE_TIMEOUT)
-        box = fallback.first
-
-    try:
-        box.evaluate("(el) => el.focus()")
-    except Exception:
-        pass
-
-    box.fill(wake)
-    box.press("Enter")
-
-
-def refresh_desktop_chatgpt() -> None:
-    try:
-        import pyautogui
-        import pygetwindow as gw
-    except Exception as exc:
-        log(f"DESKTOP: refresh пропущен, модуль недоступен: {exc}")
-        return
-
-    try:
-        windows = gw.getWindowsWithTitle("ChatGPT")
-        if not windows:
-            log("DESKTOP: окно ChatGPT не найдено, refresh пропущен.")
-            return
-
-        win = windows[0]
-
-        try:
-            if win.isMinimized:
-                win.restore()
-                time.sleep(0.5)
-        except Exception:
-            pass
-
-        try:
-            win.activate()
-        except Exception:
-            pass
-
-        time.sleep(0.5)
-        pyautogui.hotkey("ctrl", "r")
-        log("DESKTOP: ChatGPT обновлён и активирован.")
-    except Exception as exc:
-        log(f"DESKTOP: не удалось обновить ChatGPT: {exc}")
-
-
-# -------------------------
-# Arena handling
-# -------------------------
-
 def arena_user_texts(page) -> list[str]:
     try:
         return page.locator("[data-message-author-role='user']").evaluate_all(
@@ -567,39 +698,41 @@ def arena_user_texts(page) -> list[str]:
         return []
 
 
+def editor_text(editor) -> str:
+    try:
+        return editor.evaluate("""el => (el.innerText || el.value || '').trim()""")
+    except Exception:
+        return ""
+
+
 def arena_wake_exists(page, wake: str) -> bool:
     if any(text == wake for text in arena_user_texts(page)[-40:]):
         return True
+
     editor = arena_editor(page)
     composer = editor_text(editor) if editor is not None else ""
+
     try:
         body = page.locator("body").inner_text(timeout=5000)
     except Exception:
         return False
-    # Exact line, not a substring: a quoted wake inside a longer message must not match.
-    # Skip the line when it is only the still-unsent composer text.
+
     lines = [line.strip() for line in body.splitlines() if line.strip() == wake]
     if composer == wake:
         return len(lines) > 1
     return len(lines) >= 1
 
 
-def editor_text(editor) -> str:
-    try:
-        return editor.evaluate(
-            """el => (el.innerText || el.value || '').trim()"""
-        )
-    except Exception:
-        return ""
-
-
 def send_to_arena(page, wake: str) -> None:
+    dismiss_arena_completion(page)
+
     editor = arena_editor(page)
     if editor is None:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
     editor.click()
     inserted = False
+
     try:
         editor.fill(wake)
         inserted = editor_text(editor) == wake
@@ -618,8 +751,9 @@ def send_to_arena(page, wake: str) -> None:
     if not inserted:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
-    editor.press("Enter")
+    editor.press("Enter", timeout=10000)
     page.wait_for_timeout(800)
+
     if not arena_wake_exists(page, wake) and editor_text(editor) == wake:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
@@ -631,7 +765,6 @@ def send_to_arena(page, wake: str) -> None:
 def wake_attempt_count(inflight: dict) -> int:
     if "send_attempts" in inflight:
         return int(inflight.get("send_attempts") or 0)
-    # 2.2.2 persisted submitted=True and then never retried.
     if inflight.get("submitted"):
         return 1
     return 0
@@ -640,13 +773,16 @@ def wake_attempt_count(inflight: dict) -> int:
 def wake_send_allowed(inflight: dict, now: float | None = None) -> bool:
     now = time.time() if now is None else now
     attempts = wake_attempt_count(inflight)
+
     if attempts >= MAX_WAKE_ATTEMPTS:
         return False
+
     retry_after = float(inflight.get("retry_after", 0) or 0)
     if attempts == 0:
         return now >= retry_after
     if retry_after:
         return now >= retry_after
+
     submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
     return now >= submitted_at + WAKE_CONFIRM_SECONDS
 
@@ -657,6 +793,7 @@ def mark_unobserved_wake(state: dict, inflight: dict, turn_id: int, target: str)
     inflight["submitted"] = True
     inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
     inflight["last_error"] = f"{target} wake not observed"
+
     if attempts < MAX_WAKE_ATTEMPTS:
         inflight["retry_after"] = time.time() + WAKE_CONFIRM_SECONDS
         log(
@@ -670,6 +807,7 @@ def mark_unobserved_wake(state: dict, inflight: dict, turn_id: int, target: str)
             f"{target}: wake turn_id={turn_id} не подтверждён после {attempts} попыток. "
             "Больше не отправляю; жду историю или новый turn_id."
         )
+
     state["inflight"] = inflight
     save_state(state)
 
@@ -700,11 +838,17 @@ def create_inflight(state: dict, signal: dict) -> dict:
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
-    page = find_chatgpt_page(browser)
+
+    page, ready = ensure_control_ready(browser)
+    if not ready:
+        inflight["retry_after"] = time.time() + CONTROL_RETRY_SECONDS
+        inflight["last_error"] = "Control chat bootstrap pending"
+        state["inflight"] = inflight
+        save_state(state)
+        return
 
     if chatgpt_response_complete(page, wake):
-        consume_turn(state, turn_id, "GPT уже ответил")
-        refresh_desktop_chatgpt()
+        consume_turn(state, turn_id, "GPT control chat уже ответил")
         return
 
     if chatgpt_wake_exists(page, wake) or inflight.get("wake_seen"):
@@ -716,17 +860,19 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
             inflight["retry_after"] = 0
             state["inflight"] = inflight
             save_state(state)
-        log(f"GPT: команда уже есть в чате, повтор не отправляю ({wake})")
+            log(f"GPT: wake подтверждён в control chat ({wake})")
         return
 
     if not wake_send_allowed(inflight):
         return
 
     send_to_chatgpt(page, wake)
+
     try:
         page.wait_for_timeout(800)
     except Exception:
         pass
+
     if chatgpt_wake_exists(page, wake):
         inflight["wake_seen"] = True
         inflight["submitted"] = True
@@ -736,10 +882,10 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         inflight["retry_after"] = 0
         state["inflight"] = inflight
         save_state(state)
-        log(f"GPT: команда отправлена ({wake})")
+        log(f"GPT: команда отправлена в control chat ({wake})")
         return
 
-    log(f"GPT: команда отправлена, но wake turn_id={turn_id} в истории не виден.")
+    log(f"GPT: команда отправлена, но wake turn_id={turn_id} в истории control chat не виден.")
     mark_unobserved_wake(state, inflight, turn_id, "GPT")
 
 
@@ -748,6 +894,7 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
     wake = str(inflight["wake"])
 
     page = find_arena_page(browser)
+    dismiss_arena_completion(page)
 
     if arena_wake_exists(page, wake):
         consume_turn(state, turn_id, "Arena уже получила команду")
@@ -844,6 +991,15 @@ def watch() -> None:
     log(f"Последний обработанный turn_id: {state['last_turn_id']}")
     if state.get("inflight"):
         log(f"Незавершённый turn_id: {state['inflight'].get('turn_id')}")
+    control_url = load_control_url()
+    log(
+        "CONTROL: "
+        + (
+            f"машинный чат закреплён: {control_url}"
+            if control_url
+            else "машинный чат будет создан автоматически при первом target=GPT"
+        )
+    )
     log(f"Проверка GitHub каждые {CHECK_INTERVAL} сек.")
     log(f"Лог: {LOG_PATH}")
 
@@ -855,12 +1011,10 @@ def watch() -> None:
                 if browser is None:
                     start_service_chrome()
                     browser = p.chromium.connect_over_cdp(CDP)
+
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 
-                # Ключевой fail-safe: GitHub — источник истины. Если там уже появился
-                # более новый turn_id, предыдущий inflight точно был обработан стороной,
-                # которая смогла записать следующий handoff. Не зависаем на старом UI.
                 if inflight and newer_signal_supersedes_inflight(signal, inflight):
                     old_turn = int(inflight["turn_id"])
                     new_turn = int(signal["turn_id"])
@@ -888,10 +1042,7 @@ def watch() -> None:
                     consume_turn(
                         state,
                         int(inflight["turn_id"]),
-                        (
-                            f"handoff закрыт: "
-                            f"status={signal['status']} target={signal['target']}"
-                        ),
+                        f"handoff закрыт: status={signal['status']} target={signal['target']}",
                     )
                     inflight = None
 
@@ -941,16 +1092,25 @@ def watch() -> None:
             except KeyboardInterrupt:
                 log("Остановка по Ctrl+C.")
                 raise
+
+            except GitHubNetworkError as exc:
+                log(
+                    f"GITHUB: временная ошибка сети после повторов: {exc}. "
+                    "CDP не перезапускаю."
+                )
+
+            except PlaywrightTimeoutError as exc:
+                log(
+                    f"UI: Playwright timeout: {exc}. "
+                    "Это не ошибка GitHub; CDP не перезапускаю."
+                )
+
             except Exception as exc:
                 log(f"ERROR: {type(exc).__name__}: {exc}")
-                if is_github_network_error(exc):
-                    log("GITHUB: временная ошибка сети, CDP не перезапускаю.")
-                    time.sleep(CHECK_INTERVAL)
-                    continue
                 browser = None
 
                 try:
-                    log("CHROME: восстанавливаю CDP, не только если порт закрыт.")
+                    log("CHROME: восстанавливаю CDP после не-классифицированной ошибки.")
                     start_service_chrome(force=not cdp_http_ready())
                     browser = p.chromium.connect_over_cdp(CDP)
                     log("CHROME: соединение восстановлено.")
@@ -964,7 +1124,7 @@ def watch() -> None:
 
 
 # -------------------------
-# Manual diagnostic wake
+# Manual diagnostics
 # -------------------------
 
 def manual_wake(target: str) -> None:
@@ -980,9 +1140,11 @@ def manual_wake(target: str) -> None:
         wake = "Проверь GitHub"
 
         if target == "GPT":
-            page = find_chatgpt_page(browser)
+            page, ready = ensure_control_ready(browser)
+            if not ready:
+                raise SystemExit("CONTROL chat ещё инициализируется; повтори позже.")
             send_to_chatgpt(page, wake)
-            log("OK: GPT-ПУСК -> ChatGPT")
+            log("OK: GPT-ПУСК -> ChatGPT control chat")
         else:
             page = find_arena_page(browser)
             send_to_arena(page, wake)
@@ -998,8 +1160,8 @@ if __name__ == "__main__":
             manual_wake("ARENA")
         else:
             raise SystemExit(
-                "Неизвестный аргумент. "
-                "Используй GPT-ПУСК или ARENA-ПУСК, либо запусти без аргументов."
+                "Неизвестный аргумент. Используй GPT-ПУСК или ARENA-ПУСК, "
+                "либо запусти без аргументов."
             )
     else:
         watch()

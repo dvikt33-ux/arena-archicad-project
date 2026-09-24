@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import ctypes
 import http.client
 import json
@@ -19,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.9
+# AI Dispatcher 2.2.10
 # =========================
 
-VERSION = "2.2.9"
+VERSION = "2.2.10"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -41,6 +42,12 @@ SIGNAL_URL = (
     "dvikt33-ux/arena-archicad-project/"
     "agent-handoff/.agent-handoff/signal.json"
 )
+SIGNAL_API_URL = (
+    "https://api.github.com/repos/"
+    "dvikt33-ux/arena-archicad-project/contents/"
+    ".agent-handoff/signal.json?ref=agent-handoff"
+)
+SIGNAL_FETCH_TIMEOUT = 8
 
 CHATGPT_HOME = "https://chatgpt.com/"
 ARENA_URL = "https://arena.ai/agent/01a09014-9139-71e7-b51b-5b3f8a49d904"
@@ -655,6 +662,10 @@ class GitHubNetworkError(RuntimeError):
     pass
 
 
+class GitHubSignalError(RuntimeError):
+    pass
+
+
 def _is_network_exception(exc: BaseException) -> bool:
     if isinstance(exc, PlaywrightTimeoutError):
         return False
@@ -686,51 +697,97 @@ def _is_network_exception(exc: BaseException) -> bool:
     )
 
 
-def fetch_signal() -> dict:
-    last_exc: BaseException | None = None
-
-    for attempt in range(3):
-        try:
-            return _fetch_signal_once()
-        except Exception as exc:
-            if not _is_network_exception(exc):
-                raise
-            last_exc = exc
-            if attempt < 2:
-                delay = 1 + attempt * 2
-                log(
-                    f"GITHUB: сеть недоступна ({type(exc).__name__}), "
-                    f"повтор через {delay} сек."
-                )
-                time.sleep(delay)
-
-    raise GitHubNetworkError(str(last_exc or "fetch_signal failed")) from last_exc
+def parse_signal(data: dict) -> dict:
+    """Normalize a signal object. Raises GitHubSignalError; does not log message text."""
+    if not isinstance(data, dict):
+        raise GitHubSignalError("signal_not_object")
+    try:
+        return {
+            "protocol": int(data.get("protocol", 0) or 0),
+            "turn_id": int(data.get("turn_id", 0) or 0),
+            "target": str(data.get("target", "") or "").upper(),
+            "source": str(data.get("source", "") or "").upper(),
+            "status": str(data.get("status", "") or "").lower(),
+            "message": str(data.get("message", "") or ""),
+        }
+    except (TypeError, ValueError) as exc:
+        raise GitHubSignalError("signal_fields_invalid") from exc
 
 
-def _fetch_signal_once() -> dict:
-    url = f"{SIGNAL_URL}?ts={time.time_ns()}"
-    req = urllib.request.Request(
+def parse_signal_text(raw: str) -> dict:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise GitHubSignalError("signal_json_invalid") from exc
+    return parse_signal(data)
+
+
+def parse_api_contents(raw: str) -> dict:
+    try:
+        body = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise GitHubSignalError("api_json_invalid") from exc
+    if not isinstance(body, dict):
+        raise GitHubSignalError("api_not_object")
+    if body.get("encoding") != "base64":
+        raise GitHubSignalError("api_encoding_invalid")
+    content = body.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise GitHubSignalError("api_content_missing")
+    try:
+        decoded = base64.b64decode("".join(content.split()), validate=True)
+        text = decoded.decode("utf-8")
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise GitHubSignalError("api_base64_invalid") from exc
+    return parse_signal_text(text)
+
+
+def _signal_request(url: str) -> urllib.request.Request:
+    return urllib.request.Request(
         url,
         headers={
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
+            "Accept": "application/vnd.github+json",
             "User-Agent": f"AI-Dispatcher-{VERSION}",
         },
     )
 
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        raw = resp.read().decode("utf-8")
 
-    data = json.loads(raw)
+def _read_response(url: str, timeout: float, opener=None) -> str:
+    open_fn = opener or urllib.request.urlopen
+    with open_fn(_signal_request(url), timeout=timeout) as resp:
+        payload = resp.read()
+    if isinstance(payload, str):
+        return payload
+    return payload.decode("utf-8")
 
-    return {
-        "protocol": int(data.get("protocol", 0) or 0),
-        "turn_id": int(data.get("turn_id", 0) or 0),
-        "target": str(data.get("target", "") or "").upper(),
-        "source": str(data.get("source", "") or "").upper(),
-        "status": str(data.get("status", "") or "").lower(),
-        "message": str(data.get("message", "") or ""),
-    }
+
+def fetch_signal(opener=None, timeout: float | None = None) -> dict:
+    """Try raw once, then the contents API once. No same-host retry and no sleep."""
+    limit = SIGNAL_FETCH_TIMEOUT if timeout is None else timeout
+    endpoints = (
+        ("raw", f"{SIGNAL_URL}?ts={time.time_ns()}", parse_signal_text),
+        ("api", SIGNAL_API_URL, parse_api_contents),
+    )
+    last_network: BaseException | None = None
+    for name, url, parser in endpoints:
+        try:
+            signal = parser(_read_response(url, limit, opener))
+        except GitHubSignalError:
+            log(f"GITHUB: endpoint={name} error=GitHubSignalError")
+            raise
+        except Exception as exc:
+            if not _is_network_exception(exc):
+                log(f"GITHUB: endpoint={name} error={type(exc).__name__}")
+                raise
+            last_network = exc
+            log(f"GITHUB: endpoint={name} error={type(exc).__name__}")
+            continue
+        if name == "api":
+            log("GITHUB: endpoint=api ok")
+        return signal
+    raise GitHubNetworkError("github_endpoints_unavailable") from last_network
 
 
 def wake_text(turn_id: int) -> str:
@@ -1667,11 +1724,11 @@ def watch() -> None:
                 log("Остановка по Ctrl+C.")
                 raise
 
-            except GitHubNetworkError as exc:
-                log(
-                    f"GITHUB: временная ошибка сети после повторов: {exc}. "
-                    "CDP не перезапускаю."
-                )
+            except GitHubNetworkError:
+                log("GITHUB: endpoint=unavailable error=GitHubNetworkError. CDP не перезапускаю.")
+
+            except GitHubSignalError:
+                log("GITHUB: endpoint=signal error=GitHubSignalError. CDP не перезапускаю.")
 
             except PlaywrightTimeoutError as exc:
                 log(

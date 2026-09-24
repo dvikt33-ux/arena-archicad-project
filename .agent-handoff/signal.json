@@ -3,6 +3,6 @@
   "turn_id": 2,
   "target": "GPT",
   "source": "SYSTEM_TEST",
-  "status": "ready",
-  "message": "Desktop sync dispatcher test"
+  "status": "done",
+  "message": "Desktop sync dispatcher test completed"
 }

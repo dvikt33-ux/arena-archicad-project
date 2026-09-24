@@ -1,0 +1,8 @@
+{
+  "protocol": 1,
+  "turn_id": 0,
+  "target": "NONE",
+  "source": "SYSTEM",
+  "status": "idle",
+  "message": "Initial dispatcher state"
+}

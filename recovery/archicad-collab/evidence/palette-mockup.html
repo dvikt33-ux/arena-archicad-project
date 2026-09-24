@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ACCOLLAB — макет палитры в Archicad</title>
+<style>
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#1b1e23;color:#d7dbe0;margin:0;padding:24px}
+.page{max-width:520px;margin:0 auto}
+.warn{background:#4a3a12;border:1px solid #a07c1f;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.warn b{color:#ffcb2f}
+.pal{background:#2e3238;border-radius:10px;box-shadow:0 12px 40px #000a;overflow:hidden;border:1px solid #454b54}
+.ptitle{background:#24272c;padding:8px 14px;font-size:12px;font-weight:600;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+.ptitle .dots{color:#6b7280;letter-spacing:2px}
+.tabs{display:flex;background:#24272c;border-bottom:2px solid #0e7ac0}
+.tabs button{flex:1;background:none;border:0;color:#9aa1ab;font-size:12px;padding:9px 0;cursor:pointer;font-family:inherit}
+.tabs button.on{color:#fff;background:#2e3238;font-weight:600}
+.pbody{padding:14px;min-height:300px}
+.pane{display:none}
+.pane.on{display:block}
+.stat{display:flex;gap:8px;margin:10px 0}
+.stat div{flex:1;background:#24272c;border-radius:6px;padding:8px;text-align:center}
+.stat span{font-size:10px;color:#9aa1ab;text-transform:uppercase}
+.stat b{font-size:20px;display:block}
+.big{width:100%;background:#0e7ac0;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:600;padding:10px;cursor:pointer}
+.big:hover{background:#0a5f96}
+.row{background:#24272c;border-radius:6px;padding:8px 10px;margin:8px 0;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:10px;padding:1px 8px;border-radius:10px;color:#fff}
+.hard{background:#c0392b}.soft{background:#0e7ac0}.conf{background:#a07c1f}
+.mini{background:#454b54;color:#fff;border:0;border-radius:5px;font-size:11px;padding:5px 10px;cursor:pointer;margin-left:4px}
+.mini:hover{background:#545b66}
+.mini.go{background:#1e9e6a}
+input[type=text]{background:#1b1e23;border:1px solid #454b54;color:#d7dbe0;border-radius:5px;padding:6px 8px;font-size:12px;width:100%;box-sizing:border-box}
+.frow{margin:8px 0}
+.frow label{font-size:11px;color:#9aa1ab;display:block;margin-bottom:3px}
+.last{font-size:11px;color:#9aa1ab;text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="warn">⚠ <b>МАКЕТ, не программа.</b> Так будет выглядеть палитра ACCOLLAB прямо в окне Archicad. Настоящая встроенная палитра требует C++ Add-On (этап DevKit) — а все эти кнопки <b>уже работают сегодня</b> через веб-страницу (<i>serve</i>) и команды демона.</div>
+<div class="pal">
+<div class="ptitle"><span>👥 ACCOLLAB — совместная работа</span><span class="dots">— ▢ ✕</span></div>
+<div class="tabs">
+<button class="on" onclick="tab(0)">Статус</button><button onclick="tab(1)">Блоки</button><button onclick="tab(2)">Конфликты</button><button onclick="tab(3)" title="Настройки">⚙</button>
+</div>
+<div class="pbody">
+<div class="pane on">
+<div style="font-size:12px">Проект <b>тропа</b> · я: <b>anna</b> · Archicad :19724</div>
+<div class="stat"><div><span>Очередь</span><b>2</b></div><div><span>Конфликты</span><b style="color:#e74c3c">1</b></div><div><span>Блоки</span><b>2</b></div></div>
+<button class="big">↻ Синхронизировать</button>
+<div class="last">последний синк: 10:42 · применено APPLIED, ошибок 0</div>
+</div>
+<div class="pane">
+<div class="row"><span>🔒 BEAM-001C <span class="tag hard">hard</span> · anna</span><span><button class="mini">👁</button></span></div>
+<div class="row"><span>🔒 BEAM-00A4 <span class="tag soft">soft</span> · boris</span><span><button class="mini">👁</button></span></div>
+<div class="frow"><label>Взять лок (GUID из таблицы выше — клик 👁 покажет элемент)</label><input type="text" value="22222222-2222-..."></div>
+<div><button class="mini go">soft</button><button class="mini go">hard</button><button class="mini">снять</button></div>
+</div>
+<div class="pane">
+<div class="row"><span>⚡ BEAM-00A4 <span class="tag conf">CONFLICT</span><br><span style="color:#9aa1ab">чужое: …2999 · boris сдвинул +0.5</span></span></div>
+<div><button class="mini">👁 Показать</button><button class="mini go">Моё</button><button class="mini go">Чужое</button><button class="mini">Позже</button></div>
+<div class="last">выбор записывается в журнал, ничего не удаляется молча</div>
+</div>
+<div class="pane">
+<div class="frow"><label>Проект / Автор</label><input type="text" value="тропа / anna"></div>
+<div class="frow"><label>Порт Archicad (0 = авто)</label><input type="text" value="19724"></div>
+<div class="frow"><label>Relay URL / Telegram chat</label><input type="text" value=""></div>
+<div class="frow"><label>BIM-правила</label><input type="text" value="all"></div>
+<div class="frow"><label>Мой цвет</label><input type="text" value="#4DA3FF"></div>
+<div style="font-size:12px;margin:8px 0">☑ Подсветка присутствия<br>☑ Авто-чекпоинт перед чужими<br>☐ Уведомления в Telegram</div>
+<div><button class="mini go">Сохранить</button></div>
+</div>
+</div>
+</div>
+</div>
+<script>
+function tab(n){var p=document.querySelectorAll('.pane'),t=document.querySelectorAll('.tabs button');for(var i=0;i<p.length;i++){p[i].className='pane'+(i===n?' on':'');t[i].className=(i===n?'on':'');}}
+</script>
+</body>
+</html>

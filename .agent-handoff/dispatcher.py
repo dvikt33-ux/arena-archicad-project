@@ -15,10 +15,10 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2
+# AI Dispatcher 2.2.1
 # =========================
 
-VERSION = "2.2"
+VERSION = "2.2.1"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -42,7 +42,6 @@ ARENA_URL = "https://arena.ai/agent/01a09014-9139-71e7-b51b-5b3f8a49d904"
 
 CHECK_INTERVAL = 5
 ARENA_RETRY_SECONDS = 60
-GPT_WAIT_SLICE = 300
 PAGE_TIMEOUT = 15000
 CHROME_START_TIMEOUT = 25
 
@@ -207,7 +206,7 @@ def fetch_signal() -> dict:
         headers={
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "AI-Dispatcher-2.2",
+            "User-Agent": "AI-Dispatcher-2.2.1",
         },
     )
 
@@ -240,6 +239,21 @@ def all_pages(browser):
             yield page
 
 
+def page_is_foreground(page) -> bool:
+    try:
+        return page.evaluate("document.visibilityState") == "visible"
+    except Exception:
+        return False
+
+
+def choose_page(pages):
+    pages = list(pages)
+    if not pages:
+        return None
+    foreground = [page for page in pages if page_is_foreground(page)]
+    return foreground[0] if foreground else pages[0]
+
+
 def find_chatgpt_page(browser):
     exact = []
     fallback = []
@@ -251,11 +265,12 @@ def find_chatgpt_page(browser):
         elif "chatgpt.com" in url:
             fallback.append(page)
 
-    if exact:
-        return exact[0]
+    page = choose_page(exact)
+    if page is not None:
+        return page
 
-    if fallback:
-        page = fallback[0]
+    page = choose_page(fallback)
+    if page is not None:
         try:
             page.goto(CHATGPT_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
         except Exception:
@@ -270,6 +285,7 @@ def find_chatgpt_page(browser):
 
 def arena_editor(page):
     candidates = [
+        'div.tiptap.ProseMirror[contenteditable="true"][aria-disabled="false"]',
         'div[contenteditable="true"][aria-disabled="false"]',
         'div.tiptap.ProseMirror[contenteditable="true"]',
         '[contenteditable="true"][role="textbox"]',
@@ -306,15 +322,21 @@ def find_arena_page(browser):
         elif "arena.ai" in url:
             fallback.append(page)
 
-    for page in exact + fallback:
+    candidates = exact + fallback
+    foreground = [page for page in candidates if page_is_foreground(page)]
+    background = [page for page in candidates if page not in foreground]
+
+    for page in foreground + background:
         if arena_editor(page) is not None:
             return page
 
-    if exact:
-        return exact[0]
+    page = choose_page(exact)
+    if page is not None:
+        return page
 
-    if fallback:
-        return fallback[0]
+    page = choose_page(fallback)
+    if page is not None:
+        return page
 
     context = browser.contexts[0]
     page = context.new_page()
@@ -405,17 +427,6 @@ def send_to_chatgpt(page, wake: str) -> None:
 
     box.fill(wake)
     box.press("Enter")
-
-
-def wait_for_chatgpt(page, wake: str, seconds: int) -> bool:
-    deadline = time.time() + seconds
-
-    while time.time() < deadline:
-        if chatgpt_response_complete(page, wake):
-            return True
-        time.sleep(2)
-
-    return False
 
 
 def refresh_desktop_chatgpt() -> None:
@@ -546,14 +557,9 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
             save_state(state)
         log(f"GPT: команда уже есть в чате, повтор не отправляю ({wake})")
 
-    if wait_for_chatgpt(page, wake, GPT_WAIT_SLICE):
-        consume_turn(state, turn_id, "GPT ответ завершён")
-        refresh_desktop_chatgpt()
-    else:
-        log(
-            f"GPT: ответ turn_id={turn_id} ещё не завершён. "
-            "Повторно команду не отправляю; продолжу проверять."
-        )
+    # Не блокируем главный цикл. Через CHECK_INTERVAL снова сначала читаем GitHub.
+    # Если GPT уже записал следующий turn_id, новый сигнал сам подтверждает,
+    # что предыдущий handoff обработан.
 
 
 def process_arena(browser, state: dict, inflight: dict) -> None:
@@ -610,6 +616,12 @@ def current_signal_cancels_inflight(signal: dict, inflight: dict) -> bool:
     return target == "NONE" or status in TERMINAL_STATUSES
 
 
+def newer_signal_supersedes_inflight(signal: dict, inflight: dict) -> bool:
+    if not inflight:
+        return False
+    return int(signal.get("turn_id", 0)) > int(inflight.get("turn_id", 0))
+
+
 def handle_signal_without_action(state: dict, signal: dict) -> bool:
     turn_id = int(signal["turn_id"])
     target = str(signal["target"]).upper()
@@ -652,8 +664,20 @@ def watch() -> None:
         while True:
             try:
                 signal = fetch_signal()
-
                 inflight = state.get("inflight")
+
+                # Ключевой fail-safe: GitHub — источник истины. Если там уже появился
+                # более новый turn_id, предыдущий inflight точно был обработан стороной,
+                # которая смогла записать следующий handoff. Не зависаем на старом UI.
+                if inflight and newer_signal_supersedes_inflight(signal, inflight):
+                    old_turn = int(inflight["turn_id"])
+                    new_turn = int(signal["turn_id"])
+                    consume_turn(
+                        state,
+                        old_turn,
+                        f"подтверждён более новым GitHub turn_id={new_turn}",
+                    )
+                    inflight = None
 
                 if inflight and current_signal_cancels_inflight(signal, inflight):
                     consume_turn(

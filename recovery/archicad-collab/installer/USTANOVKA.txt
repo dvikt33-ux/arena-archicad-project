@@ -1,0 +1,33 @@
+﻿ACCOLLAB 0.2.0 — что поставил установщик и как пользоваться
+
+ЧТО ВНУТРИ
+  accollab.exe — демон (не нужен установленный Python).
+  TapirAddOn_AC29_Win.apx — мост к Archicad (MIT, лицензия в tapir-LICENSE.txt).
+  Конфиг: %APPDATA%\ACCOLLAB\accollab.json (создаётся при установке).
+
+ПЕРВЫЙ ЗАПУСК
+  1. Если при установке выбрали задачу Tapir и были права администратора —
+     Tapir уже в Add-Ons. Иначе подключите APX вручную: Archicad 29 →
+     Параметры → Диспетчер надстроек → Add → выбрать APX из папки программы.
+  2. Перезапустите Archicad 29, откройте проект.
+  3. Меню Пуск → ACCOLLAB → «Проверка (once)» — один тик синхронизации.
+  4. «Status» — status.json: порт, очередь, конфликты, блоки.
+
+КОМАНДЫ (в окне проверки или cmd из папки программы)
+  accollab.exe --config "%APPDATA%\ACCOLLAB\accollab.json" run        — цикл
+  accollab.exe --config "%APPDATA%\ACCOLLAB\accollab.json" lock <guid> — занять
+  accollab.exe --config "%APPDATA%\ACCOLLAB\accollab.json" checkpoint <имя>
+  accollab.exe --config "%APPDATA%\ACCOLLAB\accollab.json" relay-serve --port 8471
+
+ТИХАЯ УСТАНОВКА (для админов)
+  ACCOLLAB-Setup-0.2.0.exe /VERYSILENT /TASKS="tapir"
+
+ОБНОВЛЕНИЕ / ОТКАТ
+  Обновление: поставить новый Setup поверх — конфиг сохранится.
+  Откат: поставить предыдущий Setup поверх.
+  Удаление: Программы и компоненты → ACCOLLAB → удаляются только свои файлы.
+
+ВАЖНО
+  Тестовая сборка НЕ подписана: SmartScreen покажет предупреждение —
+  «Подробнее» → «Выполнить в любом случае». Релизные сборки подпишем позже.
+  Перед синхронизацией храните копию PLN. Отмена тестовых сдвигов: Ctrl+Z.

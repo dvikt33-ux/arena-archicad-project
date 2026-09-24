@@ -1,0 +1,20 @@
+Живой тест №3, v1.1 — вывод заказчика из чата (2026-09-11):
+
+  port 19723: MOLChIT
+  port 19724: OK (AC 29.3000 RUS)
+  ID BLK - 200 ne nayden — beru element #200.
+  Cel: type="Beam" id="БЛК - 201" guid=6BBB2830...
+    bylo: beg={} end={}
+    vektor: {'x': 0.5, 'y': 0.0, 'z': 0.0} (copy=false)
+    otvet Tapir: {"executionResults": [{"success": true}]}
+    stalo: beg={} end={}
+    delta: dx=0.0000 dy=0.0000 (ozhidalos dx=0.5 dy=0.0)
+  RASKHOZHDENIE
+
+Разбор:
+1. Порт Archicad 29 уплыл на 19724; 19723 занят молчащим процессом (зомби).
+   Автоскан себя окупил — демон обязан сканировать порты, а не шить 19723.
+2. TARGET_ID не заменён (BLK vs БЛК) — сработал fallback #200 → БЛК-201. OK.
+3. beg/end пустые — ОШИБКА СКРИПТА: координаты лежат в details.begCoordinate,
+   а скрипт читал верхний уровень. Сам сдвиг по ответу Tapir (success:true) ВЫПОЛНЕН.
+   Исправлено в v1.2 (чтение details.* + печать всех ключей + матчинг по суффиксу "200").

@@ -1,0 +1,49 @@
+name: windows-build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: unit tests
+        run: cd tests && python -m unittest test_connector test_watcher test_sync test_locks test_checkpoints test_relay test_daemon test_telegram test_comments test_presence test_backup test_bim test_statuspage
+
+      - name: pyinstaller
+        run: pip install pyinstaller
+
+      - name: download Tapir APX
+        run: curl.exe -L -o installer/TapirAddOn_AC29_Win.apx https://github.com/ENZYME-APD/tapir-archicad-automation/releases/download/1.5.9/TapirAddOn_AC29_Win.apx
+
+      - name: build accollab.exe
+        run: cd installer && pyinstaller --clean --noconfirm accollab.spec
+
+      - name: innosetup
+        run: choco install innosetup -y
+
+      - name: build Setup.exe
+        run: cd installer && iscc setup.iss
+
+      - name: checksum
+        shell: pwsh
+        run: (Get-FileHash installer\dist\ACCOLLAB-Setup-0.2.0.exe -Algorithm SHA256).Hash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ACCOLLAB-Setup
+          path: installer/dist/ACCOLLAB-Setup-0.2.0.exe
+
+      - name: release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/dist/ACCOLLAB-Setup-0.2.0.exe

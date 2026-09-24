@@ -1,0 +1,1025 @@
+diff --git a/03-versions.md b/03-versions.md
+index dd07080..9cfbcbf 100644
+--- a/03-versions.md
++++ b/03-versions.md
+@@ -85,3 +85,5 @@
+ - 2026-09-18: ЖИВОЙ ТЕСТ ПРОШЁЛ (Archicad 29.0.0.3000 RUS, 3×APPLIED, чексуммы MATCH). Найдено 3 дефекта (эхо baseline, округление генератора, read-back applier); округление уже у меня, остальной код Codex жду zip'ом с ноутбука.
+ - 2026-09-18: шаг A-20 — фиксы живого теста интегрированы (baseline-receipt, read-back, recovery) + 3 мои адаптации (except-order, UNSUPPORTED, force-OT). 102/102, оба сима, кит пересобран.
+ - 2026-09-18: CODEX-PROMPT-2.txt — тест №2 (свежий кит A-20, смешанный проект, живой конфликт, force через /ask с кликом человека). Ждём прогон.
++- 2026-09-22: шаг A-21 батч 1 — PLN-гард, durable чекпоинты (схема v3), broadcast отката, preshift+компенсация. 110/110, оба сима.
++- 2026-09-22: шаг A-22 батч 2 — строгий validate_op, SKIP-ретраи, atomic watcher, transaction(), lease-правила, sweep-first. 123/123, оба сима.
+diff --git a/05-phase-a-log.md b/05-phase-a-log.md
+index 87cba05..b67ee9e 100644
+--- a/05-phase-a-log.md
++++ b/05-phase-a-log.md
+@@ -528,3 +528,56 @@ sim_two_machines 9/9; sim_daemon_http 6/6. Кит пересобран из но
+ 
+ **Что НЕ проверено:** force с расхождением на живом Archicad; двусторонка
+ (вторая машина); смешанный проект (стены/перекрытия, не только балки).
++
++## Шаг A-21. Аудит-2, батч 1: PLN-гард + durable чекпоинты + broadcast + preshift (2026-09-22) ✅
++
++**Что реализовано (все 4 CRITICAL ядра подтверждены чтением кода):**
++1. PLN-гард: первый тик привязывает базу к открытому PLN (GetProjectInfo:
++   path+name+untitled+teamwork), чужой/неизвестный PLN — fail closed
++   (модель не читаем/пишем, транспорты идут). CLI `pln` / `pln --repin`,
++   привязка видна в status.json. Безымянный проект привязать нельзя.
++2. Durable чекпоинты: схема v3 + таблица checkpoint_data (миграция копирует
++   данные старых чекпоинтов, legacy-ссылки читаются как fallback). Ротация
++   снимков (keep=20) чекпоинты больше не убивает.
++3. Broadcast отката: rollback_apply кладёт компенсирующие операции в outbox.
++4. Preshift-проверка applier: after обязан получаться жёстким сдвигом
++   (допуск микрон на флоат-пыль), иначе UNSUPPORTED ДО касания модели.
++   Плюс best-effort компенсация при провале read-back (движение назад).
++   Force-путь без изменений (квитанция по факту).
++
++**Что проверено:** 110/110 зелёные (+8: test_audit2.py — пин/блок/repin,
++импорт при блокировке, durable+миграция, broadcast, length-untouched,
++компенсация); оба сима зелёные.
++
++**Что НЕ проверено:** PLN-гард на живом Archicad (два открытых PLN);
++компенсация на живом (только crooked-mock).
++
++## Шаг A-22. Аудит-2, батч 2: строгий ингест + аренда локов + атомарность стора (2026-09-22) ✅
++
++**Что реализовано:**
++1. Строгий validate_op: вход обязан быть dict; проверяются kinds/ops,
++   author, lamport-int, JSON-parse before/after/deps/base; project-guard
++   сохранён, legacy без project пропускается. wall_time: str для обычных,
++   str|int для comment (комменты пишут int).
++2. Applier: SKIP-*/UNSUPPORTED не ставят квитанцию (ретраи каждый тик);
++   ERROR-op — квитанция + лог (яд разгружен); _auto_checkpoint считает
++   только primary и не ест create/delete. self.errors первым в _tick.
++3. Watcher: poll_and_record атомарна (снимок пишется только при успехе);
++   create/delete фиксируются в истории, но НЕ уходят в outbox
++   (report["not_synced"] предупреждает).
++4. Store: настоящий transaction() (_tx_depth, вложенность безопасна);
++   IntegrityError ловится только UNIQUE, остальное пробрасывается.
++5. Locks: apply_remote отвергает badjson/badpayload/zanyato/stale-same-holder
++   (same-holder+другой lease = SKIP,heartbeat сам чинит); unlock требует
++   совпадения lease; acquire проверяет ttl 1..86400; _expired держит отраву.
++   Все коммиты locks/comments идут через _commit (счётчик в тестах).
++6. Daemon: sweep раньше heartbeat + ttl-гард; project_id штампуется
++   в lock/unlock/comment/reply/resolve CLI.
++
++**Что проверено:** 123/123 зелёные (+13: test_audit2b.py — 12 новых,
++test_daemon_safety обновлён под строгий контракт); sim_two_machines 9/9;
++sim_daemon_http 6/6. По ходу чинено: квитанции SKIP внутри веток
++comment/lock applier (тест поймал), опечатка в отступе теста.
++
++**Что НЕ проверено:** живой Archicad; dual-transport race (известен,
++фикс — батч 3); relay-харденинг (батч 3).
+diff --git a/src/accollab/applier.py b/src/accollab/applier.py
+index d92da7d..0bedf18 100644
+--- a/src/accollab/applier.py
++++ b/src/accollab/applier.py
+@@ -66,6 +66,46 @@ def compute_move_vector(before_item, after_item):
+             "z": (ad.get("zCoordinate", 0) or 0) - (bd.get("zCoordinate", 0) or 0)}
+ 
+ 
++def _add_vec(node, vec):
++    """Копия details со сдвигом известных координат на vec (для сверки)."""
++    dup = _json.loads(_json.dumps(node))
++    for pt in ("begCoordinate", "endCoordinate"):
++        coord = dup.get(pt)
++        if isinstance(coord, dict):
++            for ax in ("x", "y", "z"):
++                if isinstance(coord.get(ax), (int, float)):
++                    coord[ax] = coord[ax] + vec[ax]
++    if isinstance(dup.get("zCoordinate"), (int, float)):
++        dup["zCoordinate"] = dup["zCoordinate"] + vec["z"]
++    return dup
++
++
++def _approx_equal(a, b, tol=1e-6):
++    """Равенство с допуском для чисел (микрон — пыль, не геометрия)."""
++    if isinstance(a, bool) or isinstance(b, bool):
++        return type(a) is type(b) and a == b
++    if isinstance(a, dict) and isinstance(b, dict):
++        return set(a) == set(b) and all(_approx_equal(a[k], b[k], tol) for k in a)
++    if isinstance(a, list) and isinstance(b, list):
++        return len(a) == len(b) and all(
++            _approx_equal(x, y, tol) for x, y in zip(a, b))
++    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
++        return abs(a - b) <= tol
++    return a == b
++
++
++def _compensate(conn, guid, vec):
++    """Best-effort откат движения при провале read-back. Ошибки глотаем:
++    компенсация — попытка, а не гарантия; итог фиксирует вызыватель."""
++    try:
++        conn.tapir("MoveElements", {"elementsWithMoveVectors": [
++            {"elementId": {"guid": guid},
++             "moveVector": {"x": -vec["x"], "y": -vec["y"], "z": -vec["z"]},
++             "copy": False}]})
++    except Exception:  # noqa: BLE001 - компенсация не маскирует причину
++        pass
++
++
+ def _conflict_code(exc):
+     if isinstance(exc, MissingError):
+         return "CONFLICT-missing"
+@@ -107,6 +147,10 @@ def apply_operation(conn, store, op, force=False):
+     vec = compute_move_vector(before, after)
+     if vec is None or (vec["x"] == 0 and vec["y"] == 0 and vec["z"] == 0):
+         raise UnsupportedOpError("modify без сдвига координат")
++    if not _approx_equal(_add_vec(_coords_inner(before), vec), _coords_inner(after)):
++        # after не получается жёстким сдвигом (длина/свойства): Archicad
++        # двигает целиком одним вектором — такое не умеем. ДО касания модели.
++        raise UnsupportedOpError("after ne poluchaetsya sdvigom (dlina/svoystva?)")
+     resp = conn.tapir("MoveElements", {"elementsWithMoveVectors": [
+         {"elementId": {"guid": guid}, "moveVector": vec, "copy": False}]})
+     # Верим только явному подтверждению (живой Tapir шлёт success в одной
+@@ -135,6 +179,7 @@ def apply_operation(conn, store, op, force=False):
+         return {"change_id": op["change_id"], "vector": vec, "tapir": resp,
+                 "forced": True}
+     if element_checksum(actual[0]) != after.get("checksum"):
++        _compensate(conn, guid, vec)  # пылинки: пробуем вернуть как было
+         raise ArchicadError(-1, "MoveElements result differs from requested state",
+                             "TapirCommand.MoveElements")
+     # Квитанция + baseline одним махом: следующий тик вотчера не примет
+@@ -153,10 +198,11 @@ def apply_with_report(conn, store, op, holder="local"):
+         except KeyError:
+             pass
+         st = _comments.apply_remote(store, op)
+-        try:
+-            store.mark_applied(cid)
+-        except Exception:  # noqa: BLE001
+-            pass
++        if not st.startswith("SKIP-"):
++            try:
++                store.mark_applied(cid)
++            except Exception:  # noqa: BLE001
++                pass
+         return {"change_id": cid, "status": st}
+     if op.get("kind") in ("lock", "unlock"):
+         try:
+@@ -164,10 +210,11 @@ def apply_with_report(conn, store, op, holder="local"):
+         except KeyError:
+             pass
+         st = _locks.apply_remote(store, op)
+-        try:
+-            store.mark_applied(cid)
+-        except Exception:  # noqa: BLE001 - нет строки (битый change_id) — отчёт всё равно
+-            pass
++        if not st.startswith("SKIP-"):
++            try:
++                store.mark_applied(cid)
++            except Exception:  # noqa: BLE001 - нет строки (битый change_id) — отчёт всё равно
++                pass
+         return {"change_id": cid, "status": st}
+     try:
+         rep = apply_operation(conn, store, op)
+diff --git a/src/accollab/checkpoints.py b/src/accollab/checkpoints.py
+index 8c35763..b4b7e1a 100644
+--- a/src/accollab/checkpoints.py
++++ b/src/accollab/checkpoints.py
+@@ -1,10 +1,12 @@
+ """Чекпоинты (Time Machine): именованный снимок + откат компенсирующими операциями.
+ 
++Данные чекпоинта лежат в checkpoint_data и НЕ зависят от ротации обычных
++снимков (раньше чекпоинт умирал через ~20 тиков — баг живого аудита).
+ Откат НЕ дёргает Ctrl+Z и НЕ переписывает историю: он строит обычные
+-modify-операции «вернуть как было» и гонит их через штатный applier
+-(со всеми base check, локами и записью в журнал). Что нельзя компенсировать
+-(create/delete после чекпоинта, изменения без координат) — честно попадает
+-в skipped, проект при этом не трогается. Только stdlib.
++modify-операции «вернуть как было», гонит их через штатный applier и
++кладёт в outbox соседям. Что нельзя компенсировать (create/delete после
++чекпоинта, изменения без координат) — честно попадает в skipped, проект
++при этом не трогается. Только stdlib.
+ """
+ import json
+ import time
+@@ -16,26 +18,33 @@ from .applier import apply_with_report, compute_move_vector
+ 
+ def create(store, items, name, author, description=""):
+     """Сохранить чекпоинт текущего состояния items. Возвращает checkpoint_id."""
+-    taken = _watcher.utcnow()
+-    sid = store.save_snapshot(taken, len(items), json.dumps(items, ensure_ascii=False))
+     cpid = "cp-%d-%s" % (int(time.time()), uuid.uuid4().hex[:8])
+     store.save_checkpoint(cpid, name, author,
+-                          json.dumps({"snapshot_id": sid, "count": len(items)}),
++                          json.dumps({"count": len(items)}),
+                           description=description)
++    store.save_checkpoint_data(cpid, json.dumps(items, ensure_ascii=False))
+     return cpid
+ 
+ 
+-def rollback_plan(store, checkpoint_id, current_items, author, project_id=None):
+-    """Построить план отката. Возвращает {'ops': [...], 'skipped': [...]}.
+-    project_id подписывает операции проектом (карантин чужих их пропустит)."""
++def _target_items(store, checkpoint_id):
+     cp = store.get_checkpoint(checkpoint_id)
+     if cp is None:
+         raise KeyError("чекпоинт %s не найден" % checkpoint_id)
++    row = store.load_checkpoint_data(checkpoint_id)
++    if row is not None:
++        return json.loads(row["data_json"] or "{}")
++    # Legacy (до схемы v3): ссылка на обычный снимок — мог погибнуть при ротации.
+     vector = json.loads(cp["vector_json"] or "{}")
+     snap = store.load_snapshot(vector.get("snapshot_id"))
+     if snap is None:
+         raise KeyError("снимок чекпоинта %s потерян (ротация?)" % checkpoint_id)
+-    target = json.loads(snap["data_json"] or "{}")
++    return json.loads(snap["data_json"] or "{}")
++
++
++def rollback_plan(store, checkpoint_id, current_items, author, project_id=None):
++    """Построить план отката. Возвращает {'ops': [...], 'skipped': [...]}.
++    project_id подписывает операции проектом (карантин чужих их пропустит)."""
++    target = _target_items(store, checkpoint_id)
+     tx_id = uuid.uuid4().hex
+     ops, skipped = [], []
+     for guid, cur in current_items.items():
+@@ -64,10 +73,12 @@ def rollback_plan(store, checkpoint_id, current_items, author, project_id=None):
+ 
+ 
+ def rollback_apply(conn, store, plan):
+-    """Применить план отката через штатный applier. Возвращает отчёт."""
++    """Применить план отката через штатный applier + разослать соседям.
++    Без outbox соседи об откате не узнают (баг живого аудита)."""
+     results = []
+     for op in plan["ops"]:
+         if store.insert_operation(op):
++            store.enqueue_outbox(op["change_id"], op.get("wall_time", ""))
+             results.append(apply_with_report(conn, store, op))
+         else:
+             results.append({"change_id": op["change_id"], "status": "SKIP-dubl"})
+diff --git a/src/accollab/comments.py b/src/accollab/comments.py
+index 7aa2e2a..1619a1a 100644
+--- a/src/accollab/comments.py
++++ b/src/accollab/comments.py
+@@ -43,7 +43,7 @@ def add_local(store, element_guid, author, text, mentions=()):
+         (cid, json.dumps({"element_guid": element_guid}, ensure_ascii=False),
+          author, str(payload["created_at"]), payload["text"], "open", "[]",
+          json.dumps(payload["mentions"], ensure_ascii=False)))
+-    store.db.commit()
++    store._commit()
+     return cid, _base_op("comment.add", element_guid, author, payload)
+ 
+ 
+@@ -58,7 +58,7 @@ def reply_local(store, comment_id, author, text):
+     replies = json.loads(row["replies_json"] or "[]") + [reply]
+     store.db.execute("UPDATE comments SET replies_json=? WHERE comment_id=?",
+                      (json.dumps(replies, ensure_ascii=False), comment_id))
+-    store.db.commit()
++    store._commit()
+     target = json.loads(row["target_json"] or "{}")
+     return _base_op("comment.reply", target.get("element_guid", ""), author,
+                     {"comment_id": comment_id, "reply": reply})
+@@ -71,7 +71,7 @@ def resolve_local(store, comment_id, author):
+         raise KeyError("kommentariy %s ne nayden" % comment_id)
+     store.db.execute("UPDATE comments SET status='resolved' WHERE comment_id=?",
+                      (comment_id,))
+-    store.db.commit()
++    store._commit()
+     target = json.loads(row["target_json"] or "{}")
+     return _base_op("comment.resolve", target.get("element_guid", ""), author,
+                     {"comment_id": comment_id})
+@@ -101,7 +101,7 @@ def apply_remote(store, op):
+              payload.get("text", ""), payload.get("status", "open"),
+              json.dumps(payload.get("replies", []), ensure_ascii=False),
+              json.dumps(payload.get("mentions", []), ensure_ascii=False)))
+-        store.db.commit()
++        store._commit()
+         return "COMMENT-APPLIED"
+     if kind_op == "comment.reply":
+         row = get(store, cid)
+@@ -113,11 +113,11 @@ def apply_remote(store, op):
+         replies.append(payload.get("reply", {}))
+         store.db.execute("UPDATE comments SET replies_json=? WHERE comment_id=?",
+                          (json.dumps(replies, ensure_ascii=False), cid))
+-        store.db.commit()
++        store._commit()
+         return "COMMENT-REPLIED"
+     if kind_op == "comment.resolve":
+         store.db.execute("UPDATE comments SET status='resolved' WHERE comment_id=?", (cid,))
+-        store.db.commit()
++        store._commit()
+         return "COMMENT-RESOLVED"
+     return "SKIP-comment-op"
+ 
+diff --git a/src/accollab/daemon.py b/src/accollab/daemon.py
+index e0e7fdd..1f4bcf6 100644
+--- a/src/accollab/daemon.py
++++ b/src/accollab/daemon.py
+@@ -108,6 +108,31 @@ def save_config(path, cfg):
+     atomic_json(path, cfg)
+ 
+ 
++def pln_identity(conn):
++    """Стабильная идентичность открытого PLN. None — нет проекта/не узнать."""
++    try:
++        info = conn.get_project_info()
++    except Exception:  # noqa: BLE001 - любой сбой = нет идентичности
++        return None
++    if not isinstance(info, dict):
++        return None
++    ident = {"path": info.get("projectPath") or "",
++             "name": info.get("projectName") or "",
++             "untitled": bool(info.get("isUntitled")),
++             "teamwork": bool(info.get("isTeamwork"))}
++    if not ident["path"] and not ident["name"]:
++        return None  # безымянный — привязываться не к чему
++    return ident
++
++
++def _pln_short(ident):
++    if not ident:
++        return "?"
++    if ident.get("name"):
++        return ident["name"]
++    return os.path.basename(ident.get("path") or "?") or "?"
++
++
+ def scan_archicad(timeout_each=5, timeout=60, ports=None):
+     """Найти живой Archicad. Возвращает (conn, port) или (None, None)."""
+     for p in (ports or PORTS):
+@@ -179,6 +204,7 @@ class Daemon:
+             return self._tick()
+ 
+     def _tick(self):
++        self.errors = []
+         try:
+             fresh = load_config(self.config_path)
+         except (ValueError, OSError) as e:
+@@ -187,12 +213,13 @@ class Daemon:
+             for key in ("store", "project_id", "author"):
+                 fresh[key] = self.cfg[key]  # личность — только через рестарт
+             self.cfg = fresh
+-        self.errors = []
+         rep = {"tick_at": time.time(), "archicad_port": None, "watch": {},
+                "exported_files": [], "imported": 0, "applied": [],
+                "relay": {}, "locks_swept": 0, "errors": []}
+         conn, port = self.scan()
+         rep["archicad_port"] = port
++        if conn is not None:
++            conn = self._guard_pln(conn)  # чужой PLN — дальше без модели
+         if conn is not None:
+             watcher = Watcher(conn, self.store, self.cfg["project_id"], self.cfg["author"])
+             try:
+@@ -200,7 +227,7 @@ class Daemon:
+             except ArchicadError as e:
+                 self._err("watch", e)
+                 conn = None  # дальше без чтения/применения
+-        else:
++        elif port is None:
+             self._err("archicad", "ne nayden (ports %s)" % PORTS)
+         rep["warnings"] = self.lock_warnings(rep["watch"].get("ops", []))
+         net_transport = bool(self.cfg["relay_url"]) or self._telegram_on()
+@@ -239,8 +266,8 @@ class Daemon:
+             except (ArchicadError, RuntimeError) as e:
+                 self._err("apply", e)
+         try:
+-            self.heartbeat_own_locks()
+             rep["locks_swept"] = locks_mod.sweep(self.store)
++            self.heartbeat_own_locks()
+         except Exception as e:  # noqa: BLE001 - локи не должны ронять тик
+             self._err("locks", e)
+         try:
+@@ -252,10 +279,37 @@ class Daemon:
+         self.write_status(rep)
+         return rep
+ 
++    def _guard_pln(self, conn):
++        """Сверить открытый PLN с привязанным. Возвращает conn или None.
++
++        Первый успешный тик привязывает базу к проекту; чужой/неизвестный
++        PLN — fail closed (модель не читаем и не пишем, транспорты идут).
++        Перепривязка — только явной командой `pln --repin`."""
++        ident = pln_identity(conn)
++        if ident is None:
++            self._err("pln", "ne mogu opredelit otkrytyy proekt (net PLN?) — model ne trogayu")
++            return None
++        raw = self.store.db.execute(
++            "SELECT value FROM meta WHERE key='pln_identity'").fetchone()
++        if raw is None:
++            self.store.db.execute("INSERT INTO meta(key,value) VALUES('pln_identity',?)",
++                                  (json.dumps(ident, ensure_ascii=False, sort_keys=True),))
++            self.store.db.commit()
++            return conn
++        if json.loads(raw["value"]) != ident:
++            self._err("pln", "otkryt drugoy PLN (%s), baza privyazana k %s — model ne trogayu"
++                      % (_pln_short(ident), _pln_short(json.loads(raw["value"]))))
++            return None
++        return conn
++
+     def write_status(self, rep):
+         conflicts = self.store.list_conflicts(status="open")
++        prow = self.store.db.execute(
++            "SELECT value FROM meta WHERE key='pln_identity'").fetchone()
++        pinned = json.loads(prow["value"]) if prow else None
+         st = {"tick_at": rep["tick_at"], "archicad_port": rep["archicad_port"],
+               "author": self.cfg["author"], "project_id": self.cfg["project_id"],
++              "pln": _pln_short(pinned) if pinned else None,
+               "outbox_pending": len(self.store.list_outbox()),
+               "conflicts_open": len(conflicts),
+               "locks": [{"guid": r["element_guid"], "holder": r["holder"],
+@@ -323,11 +377,19 @@ class Daemon:
+                 self._err("apply", exc)
+                 report = {"change_id": op["change_id"], "status": "ERROR-archicad",
+                           "note": str(exc)[:200]}
++            except (ValueError, KeyError, TypeError) as exc:
++                # Структурно битая строка (на входах таких не бывает после
++                # строгой валидации; legacy/ручные правки): фиксируем и
++                # потребляем — такое не применится никогда и ни в какой версии.
++                self._err("apply", "bitaya operatsiya %s: %s"
++                          % (op.get("change_id", "?"), exc))
++                report = {"change_id": op.get("change_id", "?"), "status": "ERROR-op",
++                          "note": str(exc)[:200]}
+             out.append(report)
+             if report["status"] == "ERROR-archicad":
+                 break  # транзиент: остальное следующим тиком, порядок цел
+-            if report["status"] == "UNSUPPORTED":
+-                continue  # не умею и не скрываю: ни квитанции, ни спама
++            if report["status"] == "UNSUPPORTED" or report["status"].startswith("SKIP-"):
++                continue  # ждём условий (родитель/релиз/будущая версия), не спамим
+             self.store.mark_applied(op["change_id"])
+         return out
+ 
+@@ -335,7 +397,8 @@ class Daemon:
+         """Страховочный чекпоинт перед применением чужих (None — нечего)."""
+         try:
+             row = self.store.db.execute(
+-                "SELECT COUNT(*) FROM operations WHERE applied=0 AND author!=?",
++                "SELECT COUNT(*) FROM operations WHERE applied=0 AND author!=?"
++                " AND NOT (kind='primary' AND op IN ('create','delete'))",
+                 (self.cfg["author"],)).fetchone()
+             if not row or not row[0]:
+                 return None
+@@ -517,7 +580,10 @@ class Daemon:
+             n += 1
+             # Соседи узнают о продлении операцией, иначе их копия протухнет
+             # через ttl. Рассылка throttled: не чаще половины ttl.
+-            ttl = row["expires_in_s"] or locks_mod.DEFAULT_TTL_S
++            ttl = row["expires_in_s"]
++            if not isinstance(ttl, (int, float)) or isinstance(ttl, bool):
++                continue  # битая строка — sweep её уже снёс/сносит
++            ttl = ttl or locks_mod.DEFAULT_TTL_S
+             key = (row["element_guid"], row["lease_id"])
+             if now_ts - self._hb_sent.get(key, 0) < max(5, ttl / 2):
+                 continue
+@@ -602,6 +668,32 @@ def cmd_run(args):
+     return _daemon(args).run()
+ 
+ 
++def cmd_pln(args):
++    """Показать привязку к PLN; --repin — перепривязать к открытому."""
++    d = _daemon(args)
++    try:
++        conn, port = d.scan()
++        cur = pln_identity(conn) if conn else None
++        raw = d.store.db.execute(
++            "SELECT value FROM meta WHERE key='pln_identity'").fetchone()
++        pinned = json.loads(raw["value"]) if raw else None
++        print("privyazan: %s" % (_pln_short(pinned) if pinned else "(net)"))
++        print("otkryt: %s (port %s)" % (
++            _pln_short(cur) if cur else "(net Archicad/PLN)", port))
++        if args.repin:
++            if cur is None:
++                print("STOP: nechego privyazyvat.")
++                return 2
++            d.store.db.execute(
++                "INSERT OR REPLACE INTO meta(key,value) VALUES('pln_identity',?)",
++                (json.dumps(cur, ensure_ascii=False, sort_keys=True),))
++            d.store.db.commit()
++            print("privyazan k: %s" % _pln_short(cur))
++        return 0
++    finally:
++        d.store.close()
++
++
+ def cmd_status(args):
+     d = _daemon(args)
+     d.store.close()
+@@ -623,6 +715,7 @@ def cmd_lock(args):
+             print("ZANYATO drugim. Sm. locks.")
+             return 1
+         op = locks_mod.make_lock_op(args.guid, d.cfg["author"], args.mode, ttl, lease)
++        op["project_id"] = d.cfg["project_id"]
+         d.store.insert_operation(op)
+         d.store.enqueue_outbox(op["change_id"])
+         print("LOCK %s %s lease=%s (razoshletsya sosedyam)" % (args.guid[:8], args.mode, lease))
+@@ -640,6 +733,7 @@ def cmd_unlock(args):
+             return 1
+         locks_mod.release(d.store, args.guid, row["lease_id"])
+         op = locks_mod.make_unlock_op(args.guid, d.cfg["author"], row["lease_id"])
++        op["project_id"] = d.cfg["project_id"]
+         d.store.insert_operation(op)
+         d.store.enqueue_outbox(op["change_id"])
+         print("UNLOCK %s (razoshletsya sosedyam)" % args.guid[:8])
+@@ -732,6 +826,7 @@ def cmd_comment(args):
+     try:
+         cid, op = comments_mod.add_local(d.store, args.guid, d.cfg["author"],
+                                          " ".join(args.text))
++        op["project_id"] = d.cfg["project_id"]
+         d.store.insert_operation(op)
+         d.store.enqueue_outbox(op["change_id"])
+         print("COMMENT %s (ujdet sosedyam)" % cid)
+@@ -769,6 +864,7 @@ def cmd_comment_reply(args):
+     try:
+         op = comments_mod.reply_local(d.store, args.comment_id, d.cfg["author"],
+                                       " ".join(args.text))
++        op["project_id"] = d.cfg["project_id"]
+         d.store.insert_operation(op)
+         d.store.enqueue_outbox(op["change_id"])
+         print("REPLY ok (ujdet sosedyam)")
+@@ -784,6 +880,7 @@ def cmd_comment_resolve(args):
+     d = _daemon(args)
+     try:
+         op = comments_mod.resolve_local(d.store, args.comment_id, d.cfg["author"])
++        op["project_id"] = d.cfg["project_id"]
+         d.store.insert_operation(op)
+         d.store.enqueue_outbox(op["change_id"])
+         print("COMMENT-RESOLVED (ujdet sosedyam)")
+@@ -943,6 +1040,9 @@ def build_parser():
+     p.set_defaults(func=cmd_run)
+     p = sub.add_parser("status", help="pokazat status.json")
+     p.set_defaults(func=cmd_status)
++    p = sub.add_parser("pln", help="privyazka bazy k PLN-proektu")
++    p.add_argument("--repin", action="store_true")
++    p.set_defaults(func=cmd_pln)
+     p = sub.add_parser("lock", help="zanyat element")
+     p.add_argument("guid")
+     p.add_argument("--mode", default="soft", choices=["soft", "hard"])
+diff --git a/src/accollab/locks.py b/src/accollab/locks.py
+index 29b5c08..cb1bca6 100644
+--- a/src/accollab/locks.py
++++ b/src/accollab/locks.py
+@@ -10,6 +10,8 @@ import time
+ import uuid
+ 
+ DEFAULT_TTL_S = 20
++_TTL_MIN_S = 1
++_TTL_MAX_S = 86400
+ 
+ 
+ def utcnow():
+@@ -25,7 +27,10 @@ def _parse(ts):
+ 
+ def _expired(row, now):
+     hb = _parse(row["heartbeat"])
+-    return (now - hb).total_seconds() > row["expires_in_s"]
++    try:
++        return (now - hb).total_seconds() > row["expires_in_s"]
++    except TypeError:
++        return True  # битая строка (ttl не число) — протухла, sweep/get снесут
+ 
+ 
+ def sweep(store, now=None):
+@@ -38,7 +43,7 @@ def sweep(store, now=None):
+                              (row["element_guid"],))
+             n += 1
+     if n:
+-        store.db.commit()
++        store._commit()
+     return n
+ 
+ 
+@@ -49,7 +54,7 @@ def get(store, guid, now=None):
+         return None
+     if _expired(row, now):
+         store.db.execute("DELETE FROM locks WHERE element_guid=?", (guid,))
+-        store.db.commit()
++        store._commit()
+         return None
+     return row
+ 
+@@ -58,6 +63,9 @@ def acquire(store, guid, holder, mode="soft", ttl_s=DEFAULT_TTL_S, now=None):
+     """Занять элемент. Возвращает lease_id или None (занято другим)."""
+     if mode not in ("soft", "hard"):
+         raise ValueError("mode должен быть soft/hard")
++    if (not isinstance(ttl_s, (int, float)) or isinstance(ttl_s, bool)
++            or not _TTL_MIN_S <= ttl_s <= _TTL_MAX_S):
++        raise ValueError("ttl_s должен быть числом %d..%d" % (_TTL_MIN_S, _TTL_MAX_S))
+     now = now or datetime.datetime.now(datetime.timezone.utc)
+     cur = get(store, guid, now)
+     if cur is not None and cur["holder"] != holder:
+@@ -67,7 +75,7 @@ def acquire(store, guid, holder, mode="soft", ttl_s=DEFAULT_TTL_S, now=None):
+         "INSERT OR REPLACE INTO locks(element_guid,holder,lease_id,since,heartbeat,"
+         " expires_in_s,mode) VALUES(?,?,?,?,?,?,?)",
+         (guid, holder, lease_id, now.isoformat(), now.isoformat(), ttl_s, mode))
+-    store.db.commit()
++    store._commit()
+     return lease_id
+ 
+ 
+@@ -79,11 +87,11 @@ def heartbeat(store, guid, lease_id, now=None):
+         return False
+     if _expired(row, now):
+         store.db.execute("DELETE FROM locks WHERE element_guid=?", (guid,))
+-        store.db.commit()
++        store._commit()
+         return False
+     store.db.execute("UPDATE locks SET heartbeat=? WHERE element_guid=?",
+                      (now.isoformat(), guid))
+-    store.db.commit()
++    store._commit()
+     return True
+ 
+ 
+@@ -93,7 +101,7 @@ def release(store, guid, lease_id):
+     if row is None or row["lease_id"] != lease_id:
+         return False
+     store.db.execute("DELETE FROM locks WHERE element_guid=?", (guid,))
+-    store.db.commit()
++    store._commit()
+     return True
+ 
+ 
+@@ -131,29 +139,51 @@ def make_unlock_op(guid, holder, lease_id=""):
+ 
+ 
+ def apply_remote(store, op, now=None):
+-    """Применить чужую lock/unlock операцию. Возвращает статус-строку."""
++    """Применить чужую lock/unlock операцию. Возвращает статус-строку.
++
++    Правила против старых/битых сообщений: unlock требует совпадения lease,
++    lock того же holder с другим lease считается stale (не перезаписывает),
++    ttl/mode валилируются до записи (битые не травят таблицу).
++    """
+     import json as _json
+     now = now or datetime.datetime.now(datetime.timezone.utc)
+     kind, guid = op.get("kind"), op.get("element_guid")
+-    payload = _json.loads(op.get("after_json") or "{}")
++    try:
++        payload = _json.loads(op.get("after_json") or "{}")
++    except ValueError:
++        return "SKIP-lock-badjson"
++    if not isinstance(payload, dict):
++        return "SKIP-lock-badjson"
++    lease = payload.get("lease_id", "")
+     if kind == "unlock":
+         row = store.db.execute("SELECT * FROM locks WHERE element_guid=?",
+                                (guid,)).fetchone()
+-        if row is not None and row["holder"] == op.get("author"):
++        if (row is not None and row["holder"] == op.get("author")
++                and isinstance(lease, str) and lease
++                and row["lease_id"] == lease):
+             store.db.execute("DELETE FROM locks WHERE element_guid=?", (guid,))
+-            store.db.commit()
++            store._commit()
+             return "UNLOCKED"
+         return "SKIP-unlock-chuzhoy"
+     if kind == "lock":
++        mode = payload.get("mode", "soft")
++        ttl = payload.get("ttl_s", DEFAULT_TTL_S)
++        if (not guid or not isinstance(lease, str) or not lease
++                or mode not in ("soft", "hard")
++                or not isinstance(ttl, (int, float)) or isinstance(ttl, bool)
++                or not _TTL_MIN_S <= ttl <= _TTL_MAX_S):
++            return "SKIP-lock-badpayload"
+         cur = get(store, guid, now)
+-        if cur is not None and cur["holder"] != op.get("author"):
+-            return "SKIP-lock-zanyato"
++        if cur is not None:
++            if cur["holder"] != op.get("author"):
++                return "SKIP-lock-zanyato"
++            if cur["lease_id"] != lease:
++                return "SKIP-lock-stale"
+         store.db.execute(
+             "INSERT OR REPLACE INTO locks(element_guid,holder,lease_id,since,heartbeat,"
+             " expires_in_s,mode) VALUES(?,?,?,?,?,?,?)",
+-            (guid, op.get("author"), payload.get("lease_id", op.get("author")),
+-             op.get("wall_time", now.isoformat()), now.isoformat(),
+-             payload.get("ttl_s", DEFAULT_TTL_S), payload.get("mode", "soft")))
+-        store.db.commit()
++            (guid, op.get("author"), lease,
++             op.get("wall_time", now.isoformat()), now.isoformat(), ttl, mode))
++        store._commit()
+         return "LOCKED"
+     return "SKIP-ne-lock"
+diff --git a/src/accollab/store.py b/src/accollab/store.py
+index c398110..fc89b5d 100644
+--- a/src/accollab/store.py
++++ b/src/accollab/store.py
+@@ -7,7 +7,7 @@ import time
+ import uuid
+ 
+ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "store_schema.sql")
+-SCHEMA_VERSION = 2
++SCHEMA_VERSION = 3
+ 
+ 
+ def canonical(obj):
+@@ -36,6 +36,7 @@ class Store:
+         # писателей файловыми блокировками. Одно соединение — один поток.
+         self.db = sqlite3.connect(path, check_same_thread=False, timeout=30)
+         self.db.row_factory = sqlite3.Row
++        self._tx_depth = 0
+         self._migrate()
+ 
+     def _migrate(self):
+@@ -48,22 +49,53 @@ class Store:
+             if "mode" not in cols:
+                 self.db.execute("ALTER TABLE locks ADD COLUMN mode TEXT NOT NULL DEFAULT 'soft'")
+             ver = 2
++        if ver < 3:
++            # Durable чекпоинты: данные отдельно от ротируемых снимков.
++            self.db.execute("CREATE TABLE IF NOT EXISTS checkpoint_data("
++                            "checkpoint_id TEXT PRIMARY KEY,"
++                            " data_json TEXT NOT NULL DEFAULT '{}')")
++            for cp in self.db.execute("SELECT checkpoint_id, vector_json FROM checkpoints"):
++                try:
++                    sid = json.loads(cp["vector_json"] or "{}").get("snapshot_id")
++                except ValueError:
++                    continue
++                if sid is None:
++                    continue
++                snap = self.db.execute("SELECT data_json FROM snapshots WHERE id=?",
++                                       (sid,)).fetchone()
++                if snap is not None:
++                    self.db.execute("INSERT OR IGNORE INTO checkpoint_data(checkpoint_id,data_json)"
++                                    " VALUES(?,?)", (cp["checkpoint_id"], snap["data_json"]))
++            ver = 3
+         self.db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version',?)",
+                         (str(max(ver, SCHEMA_VERSION)),))
+-        self.db.commit()
++        self._commit()
++
++    def _commit(self):
++        """Коммит, если не внутри transaction() (иначе коммитит она)."""
++        if self._tx_depth == 0:
++            self.db.commit()
+ 
+     def transaction(self):
+-        """Групповая запись: commit в конце, rollback при исключении."""
++        """Настоящая групповая запись: внутренние _commit() молчат, в конце
++        один commit, при исключении — rollback всего. Вложенные транзакции:
++        внутренняя ошибка откатывает всё и всплывает наружу."""
+         from contextlib import contextmanager as _cm
+ 
+         @_cm
+         def _tx():
++            self._tx_depth += 1
+             try:
+                 yield self.db
+-                self.db.commit()
+             except Exception:
+-                self.db.rollback()
++                self._tx_depth -= 1
++                if self._tx_depth == 0:
++                    self.db.rollback()
+                 raise
++            else:
++                self._tx_depth -= 1
++                if self._tx_depth == 0:
++                    self.db.commit()
+         return _tx()
+ 
+     # ---- elements_cache ----
+@@ -74,7 +106,7 @@ class Store:
+             " ON CONFLICT(guid) DO UPDATE SET type=excluded.type, checksum=excluded.checksum,"
+             " last_change_id=excluded.last_change_id, updated_at=excluded.updated_at",
+             (guid, etype, checksum, last_change_id, updated_at))
+-        self.db.commit()
++        self._commit()
+ 
+     def get_element(self, guid):
+         return self.db.execute("SELECT * FROM elements_cache WHERE guid=?", (guid,)).fetchone()
+@@ -97,9 +129,11 @@ class Store:
+                  op.get("tx_id", ""), op.get("kind", "primary"),
+                  op.get("deps_json", "[]"), op.get("signature", ""),
+                  op.get("applied", 0)))
+-            self.db.commit()
++            self._commit()
+             return True
+-        except sqlite3.IntegrityError:
++        except sqlite3.IntegrityError as e:
++            if "UNIQUE" not in str(e).upper():
++                raise  # не дубль, а битая строка — не прячем
+             return False  # дубль — идемпотентность
+ 
+     def get_operation(self, change_id):
+@@ -124,7 +158,7 @@ class Store:
+     def enqueue_outbox(self, change_id, enqueued_at=""):
+         self.db.execute("INSERT OR IGNORE INTO outbox(change_id,enqueued_at)"
+                         " VALUES(?,?)", (change_id, enqueued_at or utcnow()))
+-        self.db.commit()
++        self._commit()
+ 
+     def list_outbox(self):
+         return [r["change_id"] for r in
+@@ -136,13 +170,13 @@ class Store:
+         cur = self.db.execute(
+             "DELETE FROM outbox WHERE change_id IN (%s)" % ",".join("?" * len(change_ids)),
+             list(change_ids))
+-        self.db.commit()
++        self._commit()
+         return cur.rowcount
+ 
+     def mark_applied(self, change_id):
+         self.db.execute("UPDATE operations SET applied=1 WHERE change_id=?",
+                         (change_id,))
+-        self.db.commit()
++        self._commit()
+ 
+     def complete_application(self, change_id, guid, before, after):
+         """Отметить входящую операцию применённой + подтянуть baseline элемента.
+@@ -170,7 +204,7 @@ class Store:
+         self.db.execute(
+             "DELETE FROM snapshots WHERE id NOT IN"
+             " (SELECT id FROM snapshots ORDER BY id DESC LIMIT ?)", (keep,))
+-        self.db.commit()
++        self._commit()
+         return cur.lastrowid
+ 
+     def load_last_snapshot(self):
+@@ -180,6 +214,16 @@ class Store:
+     def load_snapshot(self, snap_id):
+         return self.db.execute("SELECT * FROM snapshots WHERE id=?", (snap_id,)).fetchone()
+ 
++    # ---- checkpoint_data (ротация снимков не трогает) ----
++    def save_checkpoint_data(self, checkpoint_id, data_json):
++        self.db.execute("INSERT OR REPLACE INTO checkpoint_data(checkpoint_id,data_json)"
++                        " VALUES(?,?)", (checkpoint_id, data_json))
++        self._commit()
++
++    def load_checkpoint_data(self, checkpoint_id):
++        return self.db.execute("SELECT * FROM checkpoint_data WHERE checkpoint_id=?",
++                               (checkpoint_id,)).fetchone()
++
+     # ---- conflicts ----
+     def record_conflict(self, element_guid, ours_change, theirs_change, note=""):
+         cid = "%013d-%s" % (int(time.time() * 1000), uuid.uuid4().hex[:12])
+@@ -187,7 +231,7 @@ class Store:
+             "INSERT INTO conflicts(conflict_id,element_guid,ours_change,theirs_change,"
+             " detected_at,status,resolution) VALUES(?,?,?,?,?,'open',?)",
+             (cid, element_guid, ours_change, theirs_change, utcnow(), note))
+-        self.db.commit()
++        self._commit()
+         return cid
+ 
+     def list_conflicts(self, status=None):
+@@ -203,7 +247,7 @@ class Store:
+         cur = self.db.execute(
+             "UPDATE conflicts SET status='resolved', resolution=? WHERE conflict_id=?",
+             (resolution, conflict_id))
+-        self.db.commit()
++        self._commit()
+         return cur.rowcount
+ 
+     # ---- checkpoints ----
+@@ -215,7 +259,7 @@ class Store:
+             " VALUES(?,?,?,?,?,?,?,?)",
+             (checkpoint_id, name, author, utcnow(), vector_json, oplog_offset,
+              pln_backup, description))
+-        self.db.commit()
++        self._commit()
+ 
+     def get_checkpoint(self, checkpoint_id):
+         return self.db.execute("SELECT * FROM checkpoints WHERE checkpoint_id=?",
+@@ -238,7 +282,7 @@ class Store:
+         if sets:
+             self.db.execute("UPDATE sync_state SET %s WHERE peer=?" % sets,
+                             (list(kw.values()) + [peer]))
+-        self.db.commit()
++        self._commit()
+ 
+     def close(self):
+         self.db.close()
+diff --git a/src/accollab/transfer.py b/src/accollab/transfer.py
+index 075ebce..4f0a551 100644
+--- a/src/accollab/transfer.py
++++ b/src/accollab/transfer.py
+@@ -2,12 +2,16 @@
+ 
+ Сценарий понедельника: машина A пишет ops.json → файл на машину B (флешка/Яндекс) →
+ машина B импортирует и применяет. Идемпотентно: повторный импорт — no-op.
+-Чужой проект отклоняется (карантин), битые операции — тоже, до вставки.
++Валидация строгая структурная: битая операция не попадает в журнал ни через
++файл (весь конверт в карантин), ни через relay/Telegram (поштучный пропуск).
+ """
+ import datetime
++import json
+ 
+ from . import PROTOCOL_VERSION
+ 
++_OP_JSON_FIELDS = ("before_json", "after_json", "deps_json", "base_vector")
++
+ 
+ def export_envelope(store, project_id, author, change_ids=None):
+     if change_ids is None:
+@@ -25,13 +29,46 @@ def export_envelope(store, project_id, author, change_ids=None):
+ 
+ 
+ def validate_op(op, project_id=None):
+-    """Проверить чужую операцию ДО вставки. None — годна, иначе текст причины."""
++    """Проверить чужую операцию ДО вставки. None — годна, иначе текст причины.
++
++    Проверяется структура целиком (shape каждого поля + парсинг JSON-полей),
++    а не только change_id: иначе битая строка роняет каждый тик применения.
++    Неизвестные kind/op отклоняются (fail closed на входах)."""
+     if not isinstance(op, dict):
+         return "ne dict"
+-    if not op.get("change_id"):
++    cid = op.get("change_id")
++    if not cid or not isinstance(cid, str):
+         return "net change_id"
+     if project_id is not None and op.get("project_id", "") not in ("", project_id):
+         return "chuzhoy project_id"
++    kind = op.get("kind", "primary")
++    if kind not in ("primary", "lock", "unlock", "comment"):
++        return "neizvestnyy kind"
++    code = op.get("op", "")
++    if kind == "primary" and code not in ("modify", "create", "delete"):
++        return "neizvestnyy primary op"
++    if kind in ("lock", "unlock") and code != kind:
++        return "lock/unlock op ne sovpadaet s kind"
++    if kind == "comment" and code not in ("comment.add", "comment.reply",
++                                          "comment.resolve"):
++        return "neizvestnyy comment op"
++    if not op.get("author") or not isinstance(op.get("author"), str):
++        return "net author"
++    if not isinstance(op.get("element_guid", ""), str):
++        return "element_guid ne stroka"
++    if not isinstance(op.get("wall_time", ""), (str, int)):
++        return "wall_time ne stroka/chislo"
++    lamp = op.get("lamport", 0)
++    if not isinstance(lamp, int) or isinstance(lamp, bool):
++        return "lamport ne int"
++    for key in _OP_JSON_FIELDS:
++        val = op.get(key, "{}")
++        if not isinstance(val, str):
++            return "%s ne stroka" % key
++        try:
++            json.loads(val or "{}")
++        except ValueError:
++            return "%s bityy JSON" % key
+     return None
+ 
+ 
+diff --git a/src/accollab/watcher.py b/src/accollab/watcher.py
+index a1dd9e1..2406609 100644
+--- a/src/accollab/watcher.py
++++ b/src/accollab/watcher.py
+@@ -92,12 +92,19 @@ class Watcher:
+             ops.append(self._make_op("delete", g, old[g], None, tx_id))
+         for g in diff["modified"]:
+             ops.append(self._make_op("modify", g, old[g], snap["items"][g], tx_id))
+-        for op in ops:
+-            if self.store.insert_operation(op):
++        with self.store.transaction():
++            for op in ops:
++                if not self.store.insert_operation(op):
++                    continue
++                if op["op"] in ("create", "delete"):
++                    # История — да, рассылка — нет: applier их не умеет
++                    # (UNSUPPORTED), соседям слать нечего. См. доки.
++                    report["not_synced"] = report.get("not_synced", 0) + 1
++                    continue
+                 self.store.enqueue_outbox(op["change_id"], op["wall_time"])
+                 report["ops"].append(op["change_id"])
+-        self.store.save_snapshot(snap["taken_at"], snap["count"],
+-                                 json.dumps(snap["items"], ensure_ascii=False))
++            self.store.save_snapshot(snap["taken_at"], snap["count"],
++                                     json.dumps(snap["items"], ensure_ascii=False))
+         return report
+ 
+     def _make_op(self, op, guid, before, after, tx_id):
+diff --git a/tests/test_daemon_safety.py b/tests/test_daemon_safety.py
+index 2d07eca..e5d9c42 100644
+--- a/tests/test_daemon_safety.py
++++ b/tests/test_daemon_safety.py
+@@ -121,13 +121,20 @@ class DaemonSafetyTest(unittest.TestCase):
+             save_config(os.path.join(self.dir, "accollab.json"), bad)
+ 
+     def test_validate_op(self):
++        # Строгий контракт: структура целиком, не только change_id.
+         self.assertIsNotNone(validate_op([1, 2], "tropa"))
+         self.assertIsNotNone(validate_op({"net-id": 1}, "tropa"))
+         self.assertIsNotNone(validate_op({"change_id": "x", "project_id": "ch"},
+                                           "tropa"))
+-        self.assertIsNone(validate_op({"change_id": "x", "project_id": "tropa"},
+-                                       "tropa"))
+-        self.assertIsNone(validate_op({"change_id": "x"}, "tropa"))  # legacy без проекта
++        self.assertIsNotNone(validate_op({"change_id": "x"}, "tropa"))  # нет author/op
++        good = {"change_id": "x", "project_id": "tropa", "author": "b",
++                "op": "modify", "kind": "primary", "element_guid": "g",
++                "wall_time": "t", "lamport": 1,
++                "before_json": "{}", "after_json": "{}"}
++        self.assertIsNone(validate_op(good, "tropa"))
++        legacy = dict(good)
++        del legacy["project_id"]  # legacy без проекта — пропускаем
++        self.assertIsNone(validate_op(legacy, "tropa"))
+ 
+     def test_bad_file_quarantined_tick_survives(self):
+         d = self._open()
+diff --git a/tests/test_sync.py b/tests/test_sync.py
+index 99f0b47..b7be5f6 100644
+--- a/tests/test_sync.py
++++ b/tests/test_sync.py
+@@ -30,6 +30,11 @@ class FakeConn:
+         self.coords = dict(coords)  # guid -> x
+         self.moves = []
+         self.highlights = []
++        self.pln = {"projectPath": "C:\\mock\\tropa.pln", "projectName": "tropa",
++                    "isUntitled": False, "isTeamwork": False}
++
++    def get_project_info(self):
++        return dict(self.pln)
+ 
+     def get_all_guids(self):
+         return list(self.coords)

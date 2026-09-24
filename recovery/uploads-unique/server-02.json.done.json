@@ -1,0 +1,27 @@
+{
+ "protocol": "1.0",
+ "project_id": "tropa",
+ "from": "server",
+ "exported_at": "2026-09-17T23:20:51.921207+00:00",
+ "ops": [
+  {
+   "change_id": "1789687251921-cc0b9bab2c70",
+   "project_id": "tropa",
+   "element_guid": "18AFDD91-F25A-4610-AEE4-AB08BAD9A93F",
+   "author": "boris",
+   "wall_time": "2026-09-17T23:20:51.921139+00:00",
+   "lamport": 1789687251881,
+   "base_vector": "{}",
+   "seq": 0,
+   "op": "modify",
+   "before_json": "{\"type\": \"Beam\", \"checksum\": \"f52c3559a54ca5807b0db5750b6ab21dbf1e60f505ae05a9c1a396c68ada4d13\", \"details\": {\"type\": \"Beam\", \"floorIndex\": 1, \"layerIndex\": 33, \"drawIndex\": 9, \"id\": \"БЛК - 002\", \"details\": {\"zCoordinate\": 3, \"begCoordinate\": {\"x\": 147.3626, \"y\": 290.722092055}, \"endCoordinate\": {\"x\": 145.327153785, \"y\": 286.623996762}, \"level\": 0, \"offset\": 0, \"slantAngle\": 0, \"arcAngle\": 0, \"verticalCurveHeight\": 0, \"beamShape\": \"Straight\", \"isSlanted\": false, \"isFlipped\": false, \"profileAngle\": 0, \"anchorPoint\": \"TopCenter\", \"cutFillPen\": {\"overridden\": false}, \"cutFillBackgroundPen\": {\"overridden\": false}, \"coverFill\": {\"use\": true, \"useFromSurface\": false, \"orientationComesFrom3D\": false, \"fillId\": {\"guid\": \"1D87AE9A-3C74-4A1A-BE7C-56B7651F0F3C\"}, \"foregroundPen\": 90, \"backgroundPen\": -1, \"transformationType\": \"Global\", \"transformation\": {\"origin\": {\"x\": 0, \"y\": 0}, \"xAxis\": {\"x\": 1, \"y\": 0}, \"yAxis\": {\"x\": 0, \"y\": 1}}}, \"holes\": [], \"width\": 0.3, \"height\": 0.4, \"isWidthAndHeightLinked\": false, \"buildingMaterialId\": {\"guid\": \"922C639B-9875-48DF-A3FC-E0A8AC5F2839\"}}}}",
+   "after_json": "{\"type\": \"Beam\", \"checksum\": \"e4d9987986692554649aac526e35b96170112bdb5ebb4a255a8115cd6c047d07\", \"details\": {\"type\": \"Beam\", \"floorIndex\": 1, \"layerIndex\": 33, \"drawIndex\": 9, \"id\": \"БЛК - 002\", \"details\": {\"zCoordinate\": 3, \"begCoordinate\": {\"x\": 147.8626, \"y\": 290.722092055}, \"endCoordinate\": {\"x\": 145.827153785, \"y\": 286.623996762}, \"level\": 0, \"offset\": 0, \"slantAngle\": 0, \"arcAngle\": 0, \"verticalCurveHeight\": 0, \"beamShape\": \"Straight\", \"isSlanted\": false, \"isFlipped\": false, \"profileAngle\": 0, \"anchorPoint\": \"TopCenter\", \"cutFillPen\": {\"overridden\": false}, \"cutFillBackgroundPen\": {\"overridden\": false}, \"coverFill\": {\"use\": true, \"useFromSurface\": false, \"orientationComesFrom3D\": false, \"fillId\": {\"guid\": \"1D87AE9A-3C74-4A1A-BE7C-56B7651F0F3C\"}, \"foregroundPen\": 90, \"backgroundPen\": -1, \"transformationType\": \"Global\", \"transformation\": {\"origin\": {\"x\": 0, \"y\": 0}, \"xAxis\": {\"x\": 1, \"y\": 0}, \"yAxis\": {\"x\": 0, \"y\": 1}}}, \"holes\": [], \"width\": 0.3, \"height\": 0.4, \"isWidthAndHeightLinked\": false, \"buildingMaterialId\": {\"guid\": \"922C639B-9875-48DF-A3FC-E0A8AC5F2839\"}}}}",
+   "tx_id": "43332b6d3a7943dc85a18e9fac50c377",
+   "kind": "primary",
+   "deps_json": "[]",
+   "signature": "",
+   "applied": 0,
+   "_type": "Beam"
+  }
+ ]
+}

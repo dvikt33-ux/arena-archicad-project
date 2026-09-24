@@ -1,0 +1,79 @@
+{
+  "ports": {
+    "19723": {
+      "tapirVersion": {
+        "succeeded": true,
+        "data": {
+          "version": "1.5.9"
+        }
+      },
+      "projectInfo": {
+        "succeeded": true,
+        "data": {
+          "isUntitled": false,
+          "isTeamwork": false,
+          "projectLocation": "C:\\практика админ\\тропа\\тропа архикад.pln",
+          "projectPath": "C:\\практика админ\\тропа\\тропа архикад.pln",
+          "projectName": "тропа архикад"
+        }
+      },
+      "allElements": {
+        "succeeded": true,
+        "count": 393,
+        "sample": [
+          {
+            "elementId": {
+              "guid": "3E760DF0-A6BB-4D44-80BA-E267ECC04F1D"
+            }
+          },
+          {
+            "elementId": {
+              "guid": "18AFDD91-F25A-4610-AEE4-AB08BAD9A93F"
+            }
+          },
+          {
+            "elementId": {
+              "guid": "A8F481C3-8D50-4082-A567-AA6EC811478F"
+            }
+          }
+        ]
+      },
+      "byType": {
+        "Wall": 0,
+        "Slab": 0,
+        "Column": 0,
+        "Beam": 393,
+        "Object": 0,
+        "Morph": 0,
+        "Zone": 0,
+        "Window": 0,
+        "Door": 0
+      },
+      "detailsSample": {
+        "error": {
+          "code": 2002,
+          "message": "Command 'API.GetDetailsOfElements' not found"
+        }
+      }
+    }
+  },
+  "summary": {
+    "19723": {
+      "tapir": {
+        "version": "1.5.9"
+      },
+      "elements": 393,
+      "byType": {
+        "Wall": 0,
+        "Slab": 0,
+        "Column": 0,
+        "Beam": 393,
+        "Object": 0,
+        "Morph": 0,
+        "Zone": 0,
+        "Window": 0,
+        "Door": 0
+      }
+    }
+  }
+}

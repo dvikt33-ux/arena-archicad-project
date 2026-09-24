@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.11
+# AI Dispatcher 2.2.12
 # =========================
 
-VERSION = "2.2.11"
+VERSION = "2.2.12"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -73,6 +73,10 @@ CONTROL_READY_MARKER = "CONTROL READY"
 CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
 CONTROL_RECOVERY_CHECKS = 3
 CONTROL_READY_GRACE_SECONDS = 20
+CONTROL_RESTORE_WAIT_SECONDS = 6
+CONTROL_RESTORE_COOLDOWN_SECONDS = 60
+CONTROL_RESTORE_GOTO_TIMEOUT = 10000
+RESTORE_PAGE_MARK = "ai-dispatcher-restore"
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
     "unable to load",
@@ -501,6 +505,10 @@ def save_control_record(record: dict) -> None:
         payload["recovered_from"] = record["recovered_from"]
     if "unready_checks" in record:
         payload["unready_checks"] = int(record.get("unready_checks") or 0)
+    if record.get("restore_attempted_at"):
+        payload["restore_attempted_at"] = record["restore_attempted_at"]
+    if "restore_failures" in record:
+        payload["restore_failures"] = int(record.get("restore_failures") or 0)
     tmp = CONTROL_PATH.with_suffix(".tmp")
     tmp.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -532,6 +540,35 @@ def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
         record["unready_checks"] = existing["unready_checks"]
     save_control_record(record)
     log(f"CONTROL: закреплён отдельный машинный ChatGPT-чат: {url}")
+
+
+def _read_control_file() -> dict:
+    if not CONTROL_PATH.exists():
+        return {}
+    try:
+        loaded = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def note_restore_failure() -> None:
+    """Remember a failed restore without touching bootstrap or recovery_used."""
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["restore_attempted_at"] = time.time()
+    existing["restore_failures"] = int(existing.get("restore_failures") or 0) + 1
+    save_control_record(existing)
+
+
+def clear_restore_latch() -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing.pop("restore_attempted_at", None)
+    existing.pop("restore_failures", None)
+    save_control_record(existing)
 
 
 def canonicalize_control_url(url: str) -> None:
@@ -862,8 +899,66 @@ def _preferred_index(pages: list[dict], indexes: list[int]) -> int:
     return indexes[0]
 
 
+def restore_candidates(saved_url: str) -> list[str]:
+    """Canonical /c/<uuid> before a saved WEB alias. Other URLs stay as saved."""
+    saved = normalize_conversation_url(saved_url)
+    if not saved:
+        return []
+    raw_id = conversation_id(saved)
+    if raw_id.upper().startswith("WEB:"):
+        uuid = conversation_identity(saved)
+        candidates = []
+        if uuid:
+            canonical = f"https://chatgpt.com/c/{uuid}"
+            candidates.append(canonical)
+        if saved not in candidates:
+            candidates.append(saved)
+        return candidates
+    return [saved]
+
+
+def restore_observation_accepted(
+    saved_url: str,
+    observed_url: str,
+    messages: list[dict] | None = None,
+    composer_ready: bool = False,
+    wake: str = "",
+) -> bool:
+    """Accept a restore when the page is the same conversation or shows control identity."""
+    del composer_ready
+    if same_conversation(observed_url, saved_url):
+        return True
+    return positive_control_identity(list(messages or []), wake)
+
+
+def restore_cooldown_active(record: dict | None, now: float | None = None) -> bool:
+    record = record or {}
+    attempted = record.get("restore_attempted_at")
+    if attempted in (None, ""):
+        return False
+    try:
+        attempted = float(attempted)
+    except (TypeError, ValueError):
+        return False
+    if now is None:
+        now = time.time()
+    return float(now) - attempted < CONTROL_RESTORE_COOLDOWN_SECONDS
+
+
+def restore_page_action(record: dict | None, now: float, has_restore_page: bool) -> str:
+    """create, reuse_attempt, reuse_idle, or wait. Never create while one page exists."""
+    cooling = restore_cooldown_active(record, now)
+    if has_restore_page and cooling:
+        return "reuse_idle"
+    if has_restore_page:
+        return "reuse_attempt"
+    if cooling:
+        return "wait"
+    return "create"
+
+
 def plan_control_page(pages: list[dict], saved_url: str, wake: str = "") -> dict:
-    """Choose an open control page without navigating. goto means a new page."""
+    """Choose an open control page without navigating. goto means restore, not hijack."""
     saved = str(saved_url or "").strip()
     if not is_usable_control_url(saved):
         return {"action": "provision", "index": None, "url": "", "reason": "missing"}
@@ -937,9 +1032,116 @@ def find_control_page(browser, wake: str = ""):
         log(f"CONTROL: page={plan['reason']}")
         return page
 
-    log("CONTROL: page=new")
-    page = browser.contexts[0].new_page()
-    page.goto(control_url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    return begin_control_restore(browser, control_url, wake)
+
+
+def page_restore_mark(page) -> str:
+    try:
+        return str(page.evaluate("window.name") or "")
+    except Exception:
+        return ""
+
+
+def mark_restore_page(page) -> None:
+    try:
+        page.evaluate("(name) => { window.name = name }", RESTORE_PAGE_MARK)
+    except Exception:
+        pass
+
+
+def find_restore_page(browser):
+    for page in all_pages(browser):
+        if page_restore_mark(page) == RESTORE_PAGE_MARK:
+            return page
+    return None
+
+
+def wait_for_restore_url(page, timeout_seconds: float | None = None) -> str:
+    timeout = CONTROL_RESTORE_WAIT_SECONDS if timeout_seconds is None else timeout_seconds
+    deadline = time.time() + max(0.0, float(timeout))
+    last = page.url or ""
+    while True:
+        last = page.url or ""
+        if is_chatgpt_conversation_url(last) or time.time() >= deadline:
+            return last
+        time.sleep(0.25)
+    return last
+
+
+def _inspect_restore(page, saved_url: str, wake: str, observed: str) -> tuple[list[dict], bool, bool]:
+    try:
+        messages = chatgpt_messages(page)
+    except Exception:
+        messages = []
+    try:
+        composer = composer_is_ready(page)
+    except Exception:
+        composer = False
+    accepted = restore_observation_accepted(saved_url, observed, messages, composer, wake)
+    return messages, composer, accepted
+
+
+def _observe_restore(page, saved_url: str, wake: str) -> tuple[str, list[dict], bool, bool]:
+    observed = wait_for_restore_url(page)
+    _messages, composer, accepted = _inspect_restore(page, saved_url, wake, observed)
+    return observed, _messages, composer, accepted
+
+
+def begin_control_restore(browser, control_url: str, wake: str = ""):
+    """Open the saved conversation on one marked page. Do not hijack another chat."""
+    record = load_control_record()
+    now = time.time()
+    page = find_restore_page(browser)
+    action = restore_page_action(record, now, page is not None)
+    if action == "wait":
+        log("CONTROL: page=restore_wait")
+        return None
+    if action == "create":
+        page = browser.contexts[0].new_page()
+        mark_restore_page(page)
+        log("CONTROL: page=restore_create")
+    elif action == "reuse_idle":
+        observed = page.url or ""
+        _messages, composer, accepted = _inspect_restore(page, control_url, wake, observed)
+        log(f"CONTROL: page=restore_wait accepted={int(accepted)} composer={int(bool(composer))}")
+        if accepted and is_usable_control_url(observed):
+            canonicalize_control_url(observed)
+            clear_restore_latch()
+        return page
+    else:
+        log("CONTROL: page=restore_attempt")
+
+    observed = page.url or ""
+    _messages, composer, accepted = _inspect_restore(page, control_url, wake, observed)
+    if accepted and is_usable_control_url(observed):
+        canonicalize_control_url(observed)
+        clear_restore_latch()
+        log("CONTROL: page=restored")
+        return page
+
+    for index, candidate in enumerate(restore_candidates(control_url)):
+        try:
+            page.goto(
+                candidate,
+                wait_until="domcontentloaded",
+                timeout=CONTROL_RESTORE_GOTO_TIMEOUT,
+            )
+        except Exception as exc:
+            log(f"CONTROL: restore candidate={index} error={type(exc).__name__}")
+            continue
+        observed, _messages, composer, accepted = _observe_restore(page, control_url, wake)
+        log(
+            "CONTROL: "
+            f"restore candidate={index} accepted={int(accepted)} "
+            f"composer={int(bool(composer))}"
+        )
+        if accepted and is_usable_control_url(observed):
+            canonicalize_control_url(observed)
+            clear_restore_latch()
+            log("CONTROL: page=restored")
+            return page
+    note_restore_failure()
+    log("CONTROL: page=restore_failed")
     return page
 
 

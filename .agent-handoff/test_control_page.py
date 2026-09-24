@@ -23,6 +23,23 @@ WANTED = {
     "find_control_page",
     "canonicalize_control_url",
     "save_control_record",
+    "load_control_record",
+    "_read_control_file",
+    "note_restore_failure",
+    "clear_restore_latch",
+    "restore_candidates",
+    "restore_observation_accepted",
+    "restore_cooldown_active",
+    "restore_page_action",
+    "page_restore_mark",
+    "mark_restore_page",
+    "find_restore_page",
+    "wait_for_restore_url",
+    "_inspect_restore",
+    "_observe_restore",
+    "begin_control_restore",
+    "all_pages",
+    "composer_is_ready",
 }
 
 
@@ -37,6 +54,10 @@ def load_helpers(control_path: Path):
                 "CONTROL_READY_MARKER",
                 "CONTROL_BOOTSTRAP_MARKER",
                 "PAGE_TIMEOUT",
+                "CONTROL_RESTORE_WAIT_SECONDS",
+                "CONTROL_RESTORE_COOLDOWN_SECONDS",
+                "CONTROL_RESTORE_GOTO_TIMEOUT",
+                "RESTORE_PAGE_MARK",
             }:
                 keep.append(node)
         elif isinstance(node, ast.FunctionDef) and node.name in WANTED:
@@ -59,7 +80,12 @@ class FakePage:
         self.foreground = foreground
         self.gotos: list[str] = []
 
-    def evaluate(self, _script: str) -> str:
+    def evaluate(self, script: str, arg=None):
+        if arg is not None:
+            self.window_name = arg
+            return None
+        if script == "window.name":
+            return getattr(self, "window_name", "")
         return "visible" if self.foreground else "hidden"
 
     def goto(self, url: str, **_kwargs) -> None:
@@ -70,6 +96,7 @@ class FakePage:
 class FakeContext:
     def __init__(self):
         self.created: list[FakePage] = []
+        self.pages = self.created
 
     def new_page(self) -> FakePage:
         page = FakePage("about:blank")
@@ -167,7 +194,8 @@ def main() -> None:
         chosen = ns["find_control_page"](browser)
         assert chosen is browser.contexts[0].created[0]
         assert stranger.gotos == []
-        assert chosen.gotos == [saved]
+        assert chosen.gotos == [canonical]
+        assert saved_urls[-1] == canonical
 
         record = {
             "chatgpt_control_url": saved,

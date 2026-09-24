@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 24,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 25,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Fix Dispatcher control-chat bootstrap loop in agent-handoff only. Current runtime evidence: dedicated control URL exists and turn 23 is stuck with last_error='Control chat bootstrap pending'; log repeats every ~90s: 'bootstrap отсутствует' -> resend -> 'bootstrap ... не завершён'. Implement Dispatcher 2.2.6 with these requirements: (1) detect assistant readiness by an explicit CONTROL READY marker, independent of exact full bootstrap user-text matching; (2) detect bootstrap presence by a stable short marker/subsequence rather than exact equality of the entire long bootstrap text; (3) persist bootstrap-sent state in .ai-dispatcher-control.json and migrate an existing valid control URL with no flag as already sent, because 2.2.5 saved the URL only after sending bootstrap; never keep resending bootstrap each poll; (4) make control readiness checking non-blocking/short so the main GitHub loop is not blocked for 90 seconds; respect CONTROL_RETRY_SECONDS before rechecking; (5) if CONTROL READY is already present, immediately continue and send the pending GPT wake; (6) preserve wake duplicate protection and Arena behavior; (7) bump both dispatcher.py and dispatcher-runtime.py to 2.2.6; installer must continue to detect version dynamically and verify startup; (8) keep Playwright timeout classification fix; (9) add/adjust tests or at minimum run syntax/import checks and report exact results. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox. After committing, write turn_id=25 target=GPT source=ARENA status=ready with commit SHA, changed files, and test results only."
+  "message": "Turn 24 fix committed at d19006fbc51e036627956fbdce21408ff4c30206. Changed files: .agent-handoff/dispatcher.py, .agent-handoff/dispatcher-runtime.py, .agent-handoff/test_control_bootstrap.py. py_compile dispatcher.py dispatcher-runtime.py test_control_bootstrap.py: exit 0. python3 test_control_bootstrap.py: test_control_bootstrap: OK, exit 0. Import dispatcher.py: ModuleNotFoundError: No module named 'playwright'. Import dispatcher-runtime.py: FileNotFoundError: [Errno 2] No such file or directory: '/home/user/dispatcher_core.py'. Installer not modified. main and arena/local-agent-v0 not modified. Phase 2 and live mailbox not enabled."
 }

@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 0,
-  "target": "NONE",
-  "source": "SYSTEM",
-  "status": "idle",
-  "message": "Initial dispatcher state"
+  "turn_id": 1,
+  "target": "GPT",
+  "source": "SYSTEM_TEST",
+  "status": "ready",
+  "message": "End-to-end dispatcher test"
 }

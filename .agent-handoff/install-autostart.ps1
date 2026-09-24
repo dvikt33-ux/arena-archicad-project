@@ -1,12 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
-$DispatcherUrl = 'https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/agent-handoff/.agent-handoff/dispatcher.py'
+$CoreUrl = 'https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/agent-handoff/.agent-handoff/dispatcher.py'
+$RuntimeUrl = 'https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/agent-handoff/.agent-handoff/dispatcher-runtime.py'
 $DispatcherPath = Join-Path $HOME 'dispatcher.py'
+$CorePath = Join-Path $HOME 'dispatcher_core.py'
 $LogPath = Join-Path $HOME 'ai-dispatcher.log'
 $StartupDir = [Environment]::GetFolderPath('Startup')
 $VbsPath = Join-Path $StartupDir 'AI-Dispatcher.vbs'
 
-Write-Host '=== AI Dispatcher 2.2 installer ==='
+Write-Host '=== AI Dispatcher 2.2.4 installer ==='
 
 if (Test-Path $DispatcherPath) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -15,14 +17,16 @@ if (Test-Path $DispatcherPath) {
     Write-Host "Backup: $backup"
 }
 
-Write-Host 'Downloading dispatcher.py from GitHub...'
-$downloadUrl = $DispatcherUrl + '?ts=' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -OutFile $DispatcherPath
+$cacheBust = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+Write-Host 'Downloading dispatcher core from GitHub...'
+Invoke-WebRequest -UseBasicParsing -Uri ($CoreUrl + '?ts=' + $cacheBust) -OutFile $CorePath
+Write-Host 'Downloading dispatcher runtime from GitHub...'
+Invoke-WebRequest -UseBasicParsing -Uri ($RuntimeUrl + '?ts=' + $cacheBust) -OutFile $DispatcherPath
 
 Write-Host 'Checking Python syntax...'
-& py -m py_compile $DispatcherPath
+& py -m py_compile $CorePath $DispatcherPath
 if ($LASTEXITCODE -ne 0) {
-    throw 'dispatcher.py syntax check failed.'
+    throw 'dispatcher syntax check failed.'
 }
 
 Write-Host 'Checking required Python packages...'
@@ -41,11 +45,11 @@ shell.Run cmd, 0, False
 Set-Content -Path $VbsPath -Value $VbsContent -Encoding ASCII
 Write-Host "Autostart created: $VbsPath"
 
-Write-Host 'Stopping old dispatcher.py instances...'
+Write-Host 'Stopping old dispatcher instances...'
 Get-CimInstance Win32_Process |
     Where-Object {
         ($_.Name -match '^(py|python|pythonw)(\.exe)?$') -and
-        ($_.CommandLine -match '(?i)[\\/]dispatcher\.py')
+        ($_.CommandLine -match '(?i)[\\/](dispatcher|dispatcher_core)\.py')
     } |
     ForEach-Object {
         try {
@@ -63,8 +67,7 @@ if (Test-Path $LogPath) {
     $logBytesBefore = (Get-Item $LogPath).Length
 }
 
-Write-Host 'Starting AI Dispatcher 2.2 hidden...'
-# Startup path contains spaces. ProcessStartInfo keeps it one quoted argument on PS 5.1.
+Write-Host 'Starting AI Dispatcher 2.2.4 hidden...'
 $startInfo = New-Object System.Diagnostics.ProcessStartInfo
 $startInfo.FileName = 'wscript.exe'
 $startInfo.Arguments = '"' + $VbsPath + '"'
@@ -72,14 +75,14 @@ $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 $startInfo.UseShellExecute = $true
 [System.Diagnostics.Process]::Start($startInfo) | Out-Null
 
-$deadline = (Get-Date).AddSeconds(12)
+$deadline = (Get-Date).AddSeconds(15)
 $started = $false
 while ((Get-Date) -lt $deadline) {
     if (Test-Path $LogPath) {
         $item = Get-Item $LogPath
         if ($item.Length -gt $logBytesBefore) {
-            $tail = Get-Content $LogPath -Tail 20 -Encoding UTF8 -ErrorAction SilentlyContinue
-            if ($tail -match 'AI Dispatcher 2\.2') {
+            $tail = Get-Content $LogPath -Tail 30 -Encoding UTF8 -ErrorAction SilentlyContinue
+            if ($tail -match 'AI Dispatcher 2\.2\.4 запущен') {
                 $started = $true
                 break
             }
@@ -89,22 +92,19 @@ while ((Get-Date) -lt $deadline) {
 }
 
 if (-not $started) {
-    Write-Warning "Shortcut created, but a new dispatcher start was not written to $LogPath"
+    Write-Warning "Autostart created, but a fresh AI Dispatcher 2.2.4 startup was not confirmed in $LogPath"
     exit 1
 }
 
 Write-Host ''
 Write-Host '=== Installed ==='
 Write-Host "Dispatcher: $DispatcherPath"
+Write-Host "Core:       $CorePath"
 Write-Host "Autostart:  $VbsPath"
 Write-Host "Log:        $LogPath"
 Write-Host ''
 
 if (Test-Path $LogPath) {
     Write-Host 'Last log lines:'
-    Get-Content $LogPath -Tail 15 -Encoding UTF8
-}
-else {
-    Write-Host 'Log has not appeared yet. Check in a few seconds:'
-    Write-Host "  Get-Content `"$LogPath`" -Tail 30 -Encoding UTF8"
+    Get-Content $LogPath -Tail 20 -Encoding UTF8
 }

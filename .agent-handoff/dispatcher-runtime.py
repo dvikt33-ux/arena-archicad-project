@@ -1,20 +1,45 @@
 from __future__ import annotations
 
 import importlib.util
+import traceback
+from datetime import datetime
 from pathlib import Path
 
-VERSION = "2.2.4"
+VERSION = "2.2.5"
 HOME = Path.home()
 CORE_PATH = HOME / "dispatcher_core.py"
+BOOTSTRAP_LOG = HOME / "ai-dispatcher-bootstrap.log"
 
-spec = importlib.util.spec_from_file_location("dispatcher_core", CORE_PATH)
-if spec is None or spec.loader is None:
-    raise RuntimeError(f"Cannot load dispatcher core from {CORE_PATH}")
 
-core = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(core)
+def _write_bootstrap_error(exc: BaseException) -> None:
+    try:
+        with BOOTSTRAP_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(
+                f"\n[{datetime.now().isoformat(timespec='seconds')}] "
+                f"{type(exc).__name__}: {exc}\n"
+            )
+            fh.write(traceback.format_exc())
+            fh.write("\n")
+    except Exception:
+        pass
 
-core.VERSION = VERSION
+
+try:
+    spec = importlib.util.spec_from_file_location("dispatcher_core", CORE_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load dispatcher core from {CORE_PATH}")
+
+    core = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(core)
+
+    core_version = str(getattr(core, "VERSION", ""))
+    if core_version != VERSION:
+        raise RuntimeError(
+            f"Dispatcher runtime/core version mismatch: runtime={VERSION}, core={core_version or 'unknown'}"
+        )
+except Exception as exc:
+    _write_bootstrap_error(exc)
+    raise
 
 QUESTION_TEXT = "Эта задача была выполнена успешно?"
 CONTINUE_TEXT = "Продолжить работу"
@@ -117,19 +142,28 @@ def dismiss_prompt_once() -> int:
         return 0
 
 
-if __name__ == "__main__":
-    if len(core.sys.argv) > 1:
-        arg = core.sys.argv[1].strip().upper()
-        if arg == "GPT-ПУСК":
-            core.manual_wake("GPT")
-        elif arg == "ARENA-ПУСК":
-            core.manual_wake("ARENA")
-        elif arg == "DISMISS-ARENA-PROMPT":
-            raise SystemExit(dismiss_prompt_once())
+def run() -> int:
+    try:
+        if len(core.sys.argv) > 1:
+            arg = core.sys.argv[1].strip().upper()
+            if arg == "GPT-ПУСК":
+                core.manual_wake("GPT")
+            elif arg == "ARENA-ПУСК":
+                core.manual_wake("ARENA")
+            elif arg == "DISMISS-ARENA-PROMPT":
+                return dismiss_prompt_once()
+            else:
+                raise SystemExit(
+                    "Неизвестный аргумент. Используй GPT-ПУСК, ARENA-ПУСК, "
+                    "DISMISS-ARENA-PROMPT или запусти без аргументов."
+                )
         else:
-            raise SystemExit(
-                "Неизвестный аргумент. Используй GPT-ПУСК, ARENA-ПУСК, "
-                "DISMISS-ARENA-PROMPT или запусти без аргументов."
-            )
-    else:
-        core.watch()
+            core.watch()
+        return 0
+    except BaseException as exc:
+        _write_bootstrap_error(exc)
+        raise
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

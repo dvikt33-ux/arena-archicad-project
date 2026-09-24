@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 2,
-  "target": "GPT",
-  "source": "SYSTEM_TEST",
-  "status": "done",
-  "message": "Desktop sync dispatcher test completed"
+  "turn_id": 3,
+  "target": "ARENA",
+  "source": "GPT",
+  "status": "ready",
+  "message": "Run .agent-handoff/task-0003.md end-to-end handoff smoke test"
 }

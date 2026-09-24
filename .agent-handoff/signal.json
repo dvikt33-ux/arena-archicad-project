@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 1,
+  "turn_id": 2,
   "target": "GPT",
   "source": "SYSTEM_TEST",
   "status": "ready",
-  "message": "End-to-end dispatcher test"
+  "message": "Desktop sync dispatcher test"
 }

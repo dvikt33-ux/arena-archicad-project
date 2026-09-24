@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.17
+# AI Dispatcher 2.2.18
 # =========================
 
-VERSION = "2.2.17"
+VERSION = "2.2.18"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -79,12 +79,14 @@ CONTROL_RESTORE_GOTO_TIMEOUT = 10000
 RESTORE_PAGE_MARK = "ai-dispatcher-restore"
 REBIND_PAGE_MARK = "ai-dispatcher-rebind"
 REBIND_REPLACEMENT_PAGE_MARK = "ai-dispatcher-rebind-replacement"
+REBIND_REPROVISION_PAGE_MARK = "ai-dispatcher-rebind-reprovision"
 CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
 BLANK_REBIND_SECONDS = 30
 CONTROL_REBIND_COMPOSER_WAIT = 20
 CONTROL_FINALIZE_URL_WAIT = 60
+CONTROL_REPROVISION_URL_WAIT = 90
 CONTROL_SUBMIT_CONFIRM_SECONDS = 8
 REBIND_COMPOSER_POLL_SECONDS = 0.5
 REBIND_FAILURE_REASONS = (
@@ -650,6 +652,38 @@ def save_control_record(record: dict) -> None:
     url_status = str(record.get("rebind_url_status") or "")
     if url_status in {"pending", "committed"}:
         payload["rebind_url_status"] = url_status
+    if record.get("rebind_reprovision_for_url"):
+        payload["rebind_reprovision_for_url"] = record["rebind_reprovision_for_url"]
+    if "rebind_reprovision_count" in record:
+        payload["rebind_reprovision_count"] = int(record.get("rebind_reprovision_count") or 0)
+    reprovision_status = str(record.get("rebind_reprovision_status") or "")
+    if reprovision_status in {"started", "failed", "done"}:
+        payload["rebind_reprovision_status"] = reprovision_status
+    reprovision_reason = str(record.get("rebind_reprovision_failure_reason") or "").strip()
+    if (
+        reprovision_reason
+        and " " not in reprovision_reason
+        and len(reprovision_reason) <= 32
+        and reprovision_reason == reprovision_reason.lower()
+        and reprovision_reason.replace("_", "").isalpha()
+    ):
+        payload["rebind_reprovision_failure_reason"] = reprovision_reason
+    if "rebind_reprovision_bootstrap_attempted" in record:
+        payload["rebind_reprovision_bootstrap_attempted"] = bool(
+            record.get("rebind_reprovision_bootstrap_attempted")
+        )
+    reprovision_submission = str(record.get("rebind_reprovision_submission_status") or "")
+    if reprovision_submission in {"attempted", "confirmed", "failed"}:
+        payload["rebind_reprovision_submission_status"] = reprovision_submission
+    if record.get("rebind_reprovision_submit_retry_for_url"):
+        payload["rebind_reprovision_submit_retry_for_url"] = record["rebind_reprovision_submit_retry_for_url"]
+    if "rebind_reprovision_submit_retry_count" in record:
+        payload["rebind_reprovision_submit_retry_count"] = int(
+            record.get("rebind_reprovision_submit_retry_count") or 0
+        )
+    reprovision_retry = str(record.get("rebind_reprovision_submit_retry_status") or "")
+    if reprovision_retry in {"started", "done", "failed"}:
+        payload["rebind_reprovision_submit_retry_status"] = reprovision_retry
     if record.get("replaced_from"):
         payload["replaced_from"] = record["replaced_from"]
     if record.get("bootstrap_previous_sent_at"):
@@ -908,6 +942,13 @@ def commit_rebind(new_url: str, old_url: str) -> None:
         existing["rebind_finalize_count"] = max(1, int(existing.get("rebind_finalize_count") or 0))
         existing["rebind_finalize_status"] = "done"
         existing.pop("rebind_finalize_failure_reason", None)
+    reprovision_for = rebind_target(str(existing.get("rebind_reprovision_for_url") or ""))
+    if reprovision_for and reprovision_for == (rebind_target(old_url) or str(old_url)):
+        existing["rebind_reprovision_count"] = max(1, int(existing.get("rebind_reprovision_count") or 0))
+        existing["rebind_reprovision_status"] = "done"
+        existing.pop("rebind_reprovision_failure_reason", None)
+        existing["rebind_reprovision_submission_status"] = "confirmed"
+        existing["rebind_reprovision_bootstrap_attempted"] = True
     existing["rebind_submission_status"] = "confirmed"
     existing["rebind_url_status"] = "committed"
     existing["rebind_bootstrap_attempted"] = True
@@ -2363,6 +2404,422 @@ def finalize_control_rebind(browser, old_url: str):
     return marked
 
 
+def _diag_reprovision_status(record: dict | None) -> str:
+    token = str((record or {}).get("rebind_reprovision_status") or "").strip()
+    return token if token in {"started", "failed", "done"} else "none"
+
+
+def rebind_reprovision_bound(record: dict | None, saved_url: str) -> bool:
+    if not record or not saved_url:
+        return False
+    target = rebind_target(saved_url)
+    bound = rebind_target(str(record.get("rebind_reprovision_for_url") or ""))
+    return bool(target) and target == bound
+
+
+def rebind_reprovision_started(record: dict | None, saved_url: str) -> bool:
+    if not rebind_reprovision_bound(record, saved_url):
+        return False
+    return (
+        int(record.get("rebind_reprovision_count") or 0) >= 1
+        and str(record.get("rebind_reprovision_status") or "") == "started"
+    )
+
+
+def rebind_reprovision_allowed(record: dict | None, saved_url: str) -> bool:
+    """Only the consumed 2.2.17 missing_page state may open one service page."""
+    if not record or not is_usable_control_url(saved_url):
+        return False
+    target = rebind_target(saved_url)
+    if not target or rebind_target(str(record.get("chatgpt_control_url") or "")) != target:
+        return False
+    if rebind_target(str(record.get("rebind_for_url") or "")) != target:
+        return False
+    if str(record.get("rebind_status") or "") != "failed":
+        return False
+    if str(record.get("rebind_failure_reason") or "") != "no_new_url":
+        return False
+    if record.get("rebind_bootstrap_sent") is not True:
+        return False
+    if int(record.get("rebind_replacement_count") or 0) < 1:
+        return False
+    if str(record.get("rebind_replacement_status") or "") != "failed":
+        return False
+    if str(record.get("rebind_replacement_failure_reason") or "") != "no_new_url":
+        return False
+    if rebind_target(str(record.get("rebind_replacement_for_url") or "")) != target:
+        return False
+    if int(record.get("rebind_finalize_count") or 0) < 1:
+        return False
+    if str(record.get("rebind_finalize_status") or "") != "failed":
+        return False
+    if str(record.get("rebind_finalize_failure_reason") or "") != "missing_page":
+        return False
+    if rebind_target(str(record.get("rebind_finalize_for_url") or "")) != target:
+        return False
+    if int(record.get("rebind_reprovision_count") or 0) >= 1:
+        return False
+    if str(record.get("rebind_reprovision_status") or "") in {"started", "failed", "done"}:
+        return False
+    return True
+
+
+def reprovision_failed_closed(record: dict | None, saved_url: str) -> bool:
+    """A consumed reprovision must not fall through to another new tab."""
+    if not rebind_reprovision_bound(record, saved_url):
+        return False
+    if rebind_target(str(record.get("chatgpt_control_url") or "")) != rebind_target(saved_url):
+        return False
+    if int(record.get("rebind_reprovision_count") or 0) < 1:
+        return False
+    return str(record.get("rebind_reprovision_status") or "") == "failed"
+
+
+def should_reprovision_rebind(record: dict | None, saved_url: str, action: str) -> bool:
+    if action == "ready":
+        return False
+    if rebind_reprovision_started(record, saved_url):
+        return True
+    return rebind_reprovision_allowed(record, saved_url)
+
+
+def mark_reprovision_started(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    target = rebind_target(old_url) or str(old_url)
+    if int(existing.get("rebind_reprovision_count") or 0) >= 1:
+        return False
+    if str(existing.get("rebind_reprovision_status") or "") in {"started", "failed", "done"}:
+        return False
+    existing["rebind_reprovision_for_url"] = target
+    existing["rebind_reprovision_count"] = 1
+    existing["rebind_reprovision_status"] = "started"
+    save_control_record(existing)
+    return True
+
+
+def mark_reprovision_failed(old_url: str, reason: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    target = rebind_target(old_url) or str(old_url)
+    bound = rebind_target(str(existing.get("rebind_reprovision_for_url") or ""))
+    if bound and bound != target:
+        return
+    existing["rebind_reprovision_for_url"] = target
+    existing["rebind_reprovision_count"] = max(1, int(existing.get("rebind_reprovision_count") or 0))
+    existing["rebind_reprovision_status"] = "failed"
+    existing["rebind_reprovision_failure_reason"] = stable_rebind_reason(reason)
+    save_control_record(existing)
+
+
+def mark_reprovision_attempted(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    if existing.get("rebind_reprovision_bootstrap_attempted"):
+        return False
+    existing["rebind_reprovision_bootstrap_attempted"] = True
+    existing["rebind_reprovision_submission_status"] = "attempted"
+    save_control_record(existing)
+    return True
+
+
+def mark_reprovision_submission(old_url: str, status: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    if status not in {"attempted", "confirmed", "failed"}:
+        return
+    existing["rebind_reprovision_bootstrap_attempted"] = True
+    existing["rebind_reprovision_submission_status"] = status
+    save_control_record(existing)
+
+
+def mark_reprovision_retry_started(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    target = rebind_target(old_url) or str(old_url)
+    if int(existing.get("rebind_reprovision_submit_retry_count") or 0) >= 1:
+        return False
+    existing["rebind_reprovision_submit_retry_for_url"] = target
+    existing["rebind_reprovision_submit_retry_count"] = 1
+    existing["rebind_reprovision_submit_retry_status"] = "started"
+    save_control_record(existing)
+    return True
+
+
+def mark_reprovision_retry_result(old_url: str, status: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    if status not in {"done", "failed"}:
+        return
+    existing["rebind_reprovision_submit_retry_count"] = max(
+        1, int(existing.get("rebind_reprovision_submit_retry_count") or 0)
+    )
+    existing["rebind_reprovision_submit_retry_status"] = status
+    save_control_record(existing)
+
+
+def find_reprovision_page(browser):
+    for page in all_pages(browser):
+        if page_restore_mark(page) == REBIND_REPROVISION_PAGE_MARK:
+            return page
+    return None
+
+
+def mark_reprovision_page(page) -> None:
+    try:
+        page.evaluate("(name) => { window.name = name }", REBIND_REPROVISION_PAGE_MARK)
+    except Exception:
+        pass
+
+
+def reprovision_page_observations(browser) -> list[tuple]:
+    marked = find_reprovision_page(browser)
+    ordered = []
+    seen = set()
+    if marked is not None:
+        ordered.append(marked)
+        seen.add(id(marked))
+    for page in all_pages(browser):
+        if id(page) in seen:
+            continue
+        if "chatgpt.com" not in str(getattr(page, "url", "") or ""):
+            continue
+        ordered.append(page)
+    observations = []
+    for page in ordered:
+        evidence = page_control_evidence(page)
+        evidence["reprovision"] = page is marked
+        observations.append((page, evidence))
+    return observations
+
+
+def _pick_reprovision_commit(observations, old_url: str, marked_confirmed: bool):
+    for page, evidence in observations:
+        observed = normalize_conversation_url(str(evidence.get("url") or ""))
+        if not observed or same_conversation(observed, old_url):
+            continue
+        if positive_finalize_identity(evidence.get("messages") or []):
+            return page, observed
+        if marked_confirmed and evidence.get("reprovision"):
+            return page, observed
+    return None, ""
+
+
+def wait_for_reprovision_commit(browser, old_url: str, marked_confirmed: bool):
+    deadline = time.time() + CONTROL_REPROVISION_URL_WAIT
+    announced = False
+    while True:
+        observations = reprovision_page_observations(browser)
+        page, url = _pick_reprovision_commit(observations, old_url, marked_confirmed)
+        if url:
+            return page, url
+        now = time.time()
+        if now >= deadline:
+            return None, ""
+        if not announced:
+            log("CONTROL: rebind=reprovision_wait")
+            announced = True
+        remaining = deadline - now
+        time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
+
+
+def fill_composer_once(page, text: str) -> None:
+    box = chatgpt_prompt(page)
+    try:
+        box.evaluate("(el) => el.focus()")
+    except Exception:
+        pass
+    box.fill(text)
+    box.press("Enter")
+
+
+def _composer_exact_bootstrap(text: str) -> bool:
+    return str(text or "").strip() == str(CONTROL_BOOTSTRAP or "").strip()
+
+
+def reprovision_submit_confirmed(page, before_url: str) -> bool:
+    """Same 8s confirmation as 2.2.17: exact user text, generation, or a new /c/ URL."""
+    return bool(_submit_confirmed(page, CONTROL_BOOTSTRAP, before_url))
+
+
+def submit_reprovision_bootstrap(page, old_url: str) -> str:
+    """Fill at most once. The legacy sent flag is not consulted."""
+    record = load_control_record()
+    if str(record.get("rebind_reprovision_submission_status") or "") == "confirmed":
+        return "confirmed"
+    before = str(getattr(page, "url", "") or "")
+    attempted = bool(record.get("rebind_reprovision_bootstrap_attempted"))
+    if not attempted:
+        if not mark_reprovision_attempted(old_url):
+            return "failed"
+        log("CONTROL: rebind=reprovision_send")
+        try:
+            fill_composer_once(page, CONTROL_BOOTSTRAP)
+        except Exception as exc:
+            mark_reprovision_submission(old_url, "failed")
+            log(f"CONTROL: rebind=reprovision_failed reason=failed error={type(exc).__name__}")
+            return "failed"
+        if reprovision_submit_confirmed(page, before):
+            mark_reprovision_submission(old_url, "confirmed")
+            log("CONTROL: rebind=reprovision_confirmed")
+            return "confirmed"
+    elif reprovision_submit_confirmed(page, before):
+        mark_reprovision_submission(old_url, "confirmed")
+        log("CONTROL: rebind=reprovision_confirmed")
+        return "confirmed"
+    evidence = page_control_evidence(page)
+    composer = str(evidence.get("composer") or "")
+    record = load_control_record()
+    retry_used = int(record.get("rebind_reprovision_submit_retry_count") or 0) >= 1
+    if _composer_exact_bootstrap(composer) and not retry_used:
+        if not mark_reprovision_retry_started(old_url):
+            mark_reprovision_submission(old_url, "failed")
+            return "submit_unconfirmed"
+        log("CONTROL: rebind=reprovision_submit")
+        try:
+            submit_composer_only(page, CONTROL_BOOTSTRAP)
+        except Exception as exc:
+            mark_reprovision_retry_result(old_url, "failed")
+            mark_reprovision_submission(old_url, "failed")
+            log(f"CONTROL: rebind=reprovision_failed reason=failed error={type(exc).__name__}")
+            return "submit_unconfirmed"
+        if reprovision_submit_confirmed(page, before):
+            mark_reprovision_retry_result(old_url, "done")
+            mark_reprovision_submission(old_url, "confirmed")
+            log("CONTROL: rebind=reprovision_confirmed")
+            return "confirmed"
+        mark_reprovision_retry_result(old_url, "failed")
+        mark_reprovision_submission(old_url, "failed")
+        return "submit_unconfirmed"
+    mark_reprovision_submission(old_url, "failed")
+    return "submit_unconfirmed"
+
+
+def _commit_reprovision(page, url: str, old_url: str):
+    observed = normalize_conversation_url(url)
+    if not observed or same_conversation(observed, old_url):
+        mark_reprovision_failed(old_url, "no_new_url")
+        log("CONTROL: rebind=reprovision_failed reason=no_new_url")
+        return page
+    try:
+        commit_rebind(observed, old_url)
+    except Exception as exc:
+        mark_reprovision_failed(old_url, "failed")
+        log(f"CONTROL: rebind=reprovision_failed reason=failed error={type(exc).__name__}")
+        return page
+    log("CONTROL: page=reprovision_commit")
+    return page
+
+
+def finish_reprovision_page(browser, page, old_url: str, goto_home: bool):
+    if goto_home:
+        log("CONTROL: rebind=reprovision_home")
+        try:
+            page.goto(
+                CHATGPT_HOME,
+                wait_until="domcontentloaded",
+                timeout=CONTROL_RESTORE_GOTO_TIMEOUT,
+            )
+        except Exception as exc:
+            mark_reprovision_failed(old_url, "goto")
+            log(f"CONTROL: rebind=reprovision_failed reason=goto error={type(exc).__name__}")
+            return page
+    record = load_control_record()
+    confirmed = str(record.get("rebind_reprovision_submission_status") or "") == "confirmed"
+    if not confirmed:
+        try:
+            signed_out = bool(page_signed_out(page))
+        except Exception:
+            signed_out = False
+        if signed_out:
+            mark_reprovision_failed(old_url, "signed_out")
+            log("CONTROL: rebind=reprovision_failed reason=signed_out")
+            return page
+        try:
+            unavailable = bool(page_shows_unavailable(page))
+        except Exception:
+            unavailable = False
+        if unavailable:
+            mark_reprovision_failed(old_url, "hard_unavailable")
+            log("CONTROL: rebind=reprovision_failed reason=hard_unavailable")
+            return page
+        if not bool(record.get("rebind_reprovision_bootstrap_attempted")):
+            composer = wait_for_rebind_composer(page, CONTROL_REBIND_COMPOSER_WAIT)
+            if composer != "ready":
+                reason = stable_rebind_reason(composer or "no_composer")
+                mark_reprovision_failed(old_url, reason)
+                log(f"CONTROL: rebind=reprovision_failed reason={reason}")
+                return page
+        result = submit_reprovision_bootstrap(page, old_url)
+        if result != "confirmed":
+            reason = stable_rebind_reason(result)
+            mark_reprovision_failed(old_url, reason)
+            log(f"CONTROL: rebind=reprovision_failed reason={reason}")
+            return page
+    found, url = wait_for_reprovision_commit(browser, old_url, True)
+    if url:
+        return _commit_reprovision(found, url, old_url)
+    mark_reprovision_failed(old_url, "no_new_url")
+    log("CONTROL: rebind=reprovision_failed reason=no_new_url")
+    return page
+
+
+def reprovision_control_rebind(browser, old_url: str):
+    """One service page after finalize missing_page. Never a second tab."""
+    record = load_control_record()
+    started = rebind_reprovision_started(record, old_url)
+    if not started and not rebind_reprovision_allowed(record, old_url):
+        return find_reprovision_page(browser)
+    if not started:
+        observations = reprovision_page_observations(browser)
+        page, url = _pick_reprovision_commit(observations, old_url, False)
+        if url:
+            if not mark_reprovision_started(old_url):
+                log("CONTROL: rebind=reprovision_failed reason=failed")
+                return page
+            return _commit_reprovision(page, url, old_url)
+        if not mark_reprovision_started(old_url):
+            log("CONTROL: rebind=reprovision_failed reason=failed")
+            return None
+        log("CONTROL: rebind=reprovision")
+        try:
+            page = browser.contexts[0].new_page()
+        except Exception as exc:
+            mark_reprovision_failed(old_url, "failed")
+            log(f"CONTROL: rebind=reprovision_failed reason=failed error={type(exc).__name__}")
+            return None
+        mark_reprovision_page(page)
+        log("CONTROL: page=reprovision_create")
+        return finish_reprovision_page(browser, page, old_url, True)
+    log("CONTROL: rebind=reprovision_resume")
+    page = find_reprovision_page(browser)
+    if page is None:
+        mark_reprovision_failed(old_url, "missing_page")
+        log("CONTROL: rebind=reprovision_failed reason=missing_page")
+        return None
+    current = str(getattr(page, "url", "") or "")
+    if is_usable_control_url(current) and not same_conversation(current, old_url):
+        evidence = page_control_evidence(page)
+        confirmed = str(record.get("rebind_reprovision_submission_status") or "") == "confirmed"
+        if positive_finalize_identity(evidence.get("messages") or []) or confirmed:
+            return _commit_reprovision(page, current, old_url)
+        mark_reprovision_failed(old_url, "unexpected_url")
+        log("CONTROL: rebind=reprovision_failed reason=unexpected_url")
+        return page
+    return finish_reprovision_page(
+        browser,
+        page,
+        old_url,
+        not rebind_page_on_home(current),
+    )
+
+
 def find_arena_page(browser):
     exact = []
     fallback = []
@@ -2673,7 +3130,9 @@ def _log_control_diag(
         f"replace_count={int(record.get('rebind_replacement_count') or 0)} "
         f"replace_status={_diag_replacement_status(record)} "
         f"finalize_count={int(record.get('rebind_finalize_count') or 0)} "
-        f"finalize_status={_diag_finalize_status(record)}"
+        f"finalize_status={_diag_finalize_status(record)} "
+        f"reprovision_count={int(record.get('rebind_reprovision_count') or 0)} "
+        f"reprovision_status={_diag_reprovision_status(record)}"
     )
     return diagnosis
 
@@ -2758,6 +3217,18 @@ def ensure_control_ready(browser, wake: str = ""):
         now=now,
         page_unavailable=page_unavailable,
     )
+
+    if action != "ready" and should_reprovision_rebind(record, saved, action):
+        if rebind_reprovision_started(record, saved):
+            log("CONTROL: rebind=reprovision_resume")
+        else:
+            log("CONTROL: rebind=reprovision_legacy")
+        page = reprovision_control_rebind(browser, saved)
+        return page, False
+
+    if action != "ready" and reprovision_failed_closed(record, saved):
+        log("CONTROL: rebind=reprovision_closed")
+        return find_reprovision_page(browser) or page, False
 
     if action != "ready" and should_finalize_rebind(record, saved, action):
         if rebind_finalize_continue(record, saved):

@@ -206,7 +206,7 @@ def main() -> None:
         ns = load_helpers(path)
         logs: list[str] = []
         ns["log"] = logs.append
-        assert ns["VERSION"] == "2.2.17"
+        assert ns["VERSION"] == "2.2.18"
         assert ns["CHECK_INTERVAL"] == 5
         assert ns["CONTROL_REBIND_COMPOSER_WAIT"] >= 20
         assert ns["stable_rebind_reason"](ui_text) == "failed"

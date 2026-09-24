@@ -97,8 +97,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.17"
-    assert version_of(RUNTIME) == "2.2.17"
+    assert version_of(CORE) == "2.2.18"
+    assert version_of(RUNTIME) == "2.2.18"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -136,7 +136,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.17"
+        assert saved["dispatcher_version"] == "2.2.18"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(

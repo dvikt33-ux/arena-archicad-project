@@ -15,10 +15,10 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.2
+# AI Dispatcher 2.2.3
 # =========================
 
-VERSION = "2.2.2"
+VERSION = "2.2.3"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -48,6 +48,9 @@ CHROME_START_TIMEOUT = 25
 TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
 HOLD_STATUSES = {"blocked", "paused", "idle"}
 READY_STATUSES = {"ready", "pending", "queued"}
+# Unobserved Enter is not success. Retry the same turn_id wake, slowly.
+WAKE_CONFIRM_SECONDS = 90
+MAX_WAKE_ATTEMPTS = 3
 
 MUTEX_NAME = r"Local\AI_Dispatcher_22"
 
@@ -161,7 +164,7 @@ def cdp_http_ready() -> bool:
     try:
         req = urllib.request.Request(
             f"{CDP}/json/version",
-            headers={"User-Agent": "AI-Dispatcher-2.2.2"},
+            headers={"User-Agent": "AI-Dispatcher-2.2.3"},
         )
         with urllib.request.urlopen(req, timeout=2) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
@@ -295,7 +298,7 @@ def _fetch_signal_once() -> dict:
         headers={
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "AI-Dispatcher-2.2.2",
+            "User-Agent": "AI-Dispatcher-2.2.3",
         },
     )
 
@@ -625,6 +628,52 @@ def send_to_arena(page, wake: str) -> None:
 # Turn processing
 # -------------------------
 
+def wake_attempt_count(inflight: dict) -> int:
+    if "send_attempts" in inflight:
+        return int(inflight.get("send_attempts") or 0)
+    # 2.2.2 persisted submitted=True and then never retried.
+    if inflight.get("submitted"):
+        return 1
+    return 0
+
+
+def wake_send_allowed(inflight: dict, now: float | None = None) -> bool:
+    now = time.time() if now is None else now
+    attempts = wake_attempt_count(inflight)
+    if attempts >= MAX_WAKE_ATTEMPTS:
+        return False
+    retry_after = float(inflight.get("retry_after", 0) or 0)
+    if attempts == 0:
+        return now >= retry_after
+    if retry_after:
+        return now >= retry_after
+    submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
+    return now >= submitted_at + WAKE_CONFIRM_SECONDS
+
+
+def mark_unobserved_wake(state: dict, inflight: dict, turn_id: int, target: str) -> None:
+    attempts = wake_attempt_count(inflight) + 1
+    inflight["send_attempts"] = attempts
+    inflight["submitted"] = True
+    inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
+    inflight["last_error"] = f"{target} wake not observed"
+    if attempts < MAX_WAKE_ATTEMPTS:
+        inflight["retry_after"] = time.time() + WAKE_CONFIRM_SECONDS
+        log(
+            f"{target}: wake turn_id={turn_id} не подтверждён. "
+            f"Попытка {attempts}/{MAX_WAKE_ATTEMPTS}. "
+            f"Повтор того же turn_id через {WAKE_CONFIRM_SECONDS} сек."
+        )
+    else:
+        inflight["retry_after"] = 0
+        log(
+            f"{target}: wake turn_id={turn_id} не подтверждён после {attempts} попыток. "
+            "Больше не отправляю; жду историю или новый turn_id."
+        )
+    state["inflight"] = inflight
+    save_state(state)
+
+
 def consume_turn(state: dict, turn_id: int, reason: str) -> None:
     state["last_turn_id"] = max(int(state.get("last_turn_id", 0)), turn_id)
     state["inflight"] = None
@@ -638,6 +687,7 @@ def create_inflight(state: dict, signal: dict) -> dict:
         "target": signal["target"],
         "wake": wake_text(signal["turn_id"]),
         "submitted": False,
+        "send_attempts": 0,
         "created_at": time.time(),
         "retry_after": 0,
         "last_error": None,
@@ -657,36 +707,45 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         refresh_desktop_chatgpt()
         return
 
-    if chatgpt_wake_exists(page, wake):
-        if not inflight.get("submitted"):
+    if chatgpt_wake_exists(page, wake) or inflight.get("wake_seen"):
+        if not inflight.get("wake_seen"):
+            inflight["wake_seen"] = True
             inflight["submitted"] = True
-            inflight["submitted_at"] = time.time()
+            inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
+            inflight["last_error"] = None
+            inflight["retry_after"] = 0
             state["inflight"] = inflight
             save_state(state)
         log(f"GPT: команда уже есть в чате, повтор не отправляю ({wake})")
         return
 
-    # Protocol: a submitted wake is not sent again just because the DOM
-    # has not shown it yet. 2.2.1 returned every 5s and resent in that window.
-    if inflight.get("submitted"):
+    if not wake_send_allowed(inflight):
         return
 
     send_to_chatgpt(page, wake)
-    inflight["submitted"] = True
-    inflight["submitted_at"] = time.time()
-    inflight["last_error"] = None
-    state["inflight"] = inflight
-    save_state(state)
-    log(f"GPT: команда отправлена ({wake})")
+    try:
+        page.wait_for_timeout(800)
+    except Exception:
+        pass
+    if chatgpt_wake_exists(page, wake):
+        inflight["wake_seen"] = True
+        inflight["submitted"] = True
+        inflight["submitted_at"] = time.time()
+        inflight["send_attempts"] = wake_attempt_count(inflight) + 1
+        inflight["last_error"] = None
+        inflight["retry_after"] = 0
+        state["inflight"] = inflight
+        save_state(state)
+        log(f"GPT: команда отправлена ({wake})")
+        return
+
+    log(f"GPT: команда отправлена, но wake turn_id={turn_id} в истории не виден.")
+    mark_unobserved_wake(state, inflight, turn_id, "GPT")
 
 
 def process_arena(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
-
-    retry_after = float(inflight.get("retry_after", 0) or 0)
-    if time.time() < retry_after:
-        return
 
     page = find_arena_page(browser)
 
@@ -694,7 +753,7 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         consume_turn(state, turn_id, "Arena уже получила команду")
         return
 
-    if inflight.get("submitted"):
+    if not wake_send_allowed(inflight):
         return
 
     try:
@@ -715,15 +774,8 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         return
 
     if not arena_wake_exists(page, wake):
-        inflight["submitted"] = True
-        inflight["submitted_at"] = time.time()
-        inflight["last_error"] = "Arena wake not observed"
-        state["inflight"] = inflight
-        save_state(state)
-        log(
-            f"ARENA: Enter для turn_id={turn_id} не виден в истории. "
-            "Повтор не отправляю; жду подтверждение или новый turn_id."
-        )
+        log(f"ARENA: Enter для turn_id={turn_id} не виден в истории.")
+        mark_unobserved_wake(state, inflight, turn_id, "ARENA")
         return
 
     inflight["submitted"] = True

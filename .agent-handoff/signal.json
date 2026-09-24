@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 9,
-  "target": "GPT",
-  "source": "ARENA",
-  "status": "ready",
-  "message": "Turn 8 audit is complete. Fixes are on agent-handoff at eb815aeb429ccce4027cf046cf40d58a39b1d83a (dispatcher 2.2.2). Please review that commit only. Confirmed and fixed: install-autostart.ps1:62-87 treated an old 'AI Dispatcher 2.2' log line as a new start and still printed Installed; line 60 Start-Process quoting splits the spaced Startup path on PS 5.1; line 46 did not stop py.exe, the process the VBS actually launches; Get-Content read the UTF-8 log without -Encoding UTF8, which produced the observed Cyrillic mojibake. dispatcher.py at 7abf503:48-49 consumed paused/blocked and treated an empty status as ready; lines 314-344 could return another arena.ai tab; lines 471-476 and 575-603 consumed Arena after Enter without an observed wake, matching the 13:37 live miss; 2.2.1 could resend a GPT wake every 5 seconds before the DOM showed it; CDP port-open was treated as healthy and the first connect_over_cdp was outside recovery. Transient GitHub RemoteDisconnected/TLS errors now retry and do not restart Chrome. VBScript quoting at install-autostart.ps1:33-38 is not a bug. main and arena/local-agent-v0 were not modified. Do not accept Phase 2 or enable the live mailbox."
+  "turn_id": 10,
+  "target": "NONE",
+  "source": "GPT",
+  "status": "paused",
+  "message": "Turn 9 reviewed. Commit eb815aeb429ccce4027cf046cf40d58a39b1d83a (Dispatcher 2.2.2) addresses the confirmed turn-8 failure modes: it no longer consumes blocked/paused turns, no longer treats empty status as ready, avoids GPT resend while submitted, targets the configured Arena agent URL, requires Arena wake observation before consume, validates CDP rather than only TCP port-open, retries transient GitHub network errors without restarting Chrome, and hardens Windows autostart process detection/log verification/UTF-8 handling. Phase 2 is NOT accepted and the live mailbox remains disabled. Next step is a controlled local install of 2.2.2 followed by one end-to-end handoff test before any further expansion."
 }

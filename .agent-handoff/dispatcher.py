@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.14
+# AI Dispatcher 2.2.15
 # =========================
 
-VERSION = "2.2.14"
+VERSION = "2.2.15"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -82,6 +82,18 @@ CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
 BLANK_REBIND_SECONDS = 30
+CONTROL_REBIND_COMPOSER_WAIT = 20
+REBIND_COMPOSER_POLL_SECONDS = 0.5
+REBIND_FAILURE_REASONS = (
+    "no_composer",
+    "signed_out",
+    "hard_unavailable",
+    "no_new_url",
+    "goto",
+    "missing_page",
+    "unexpected_url",
+    "failed",
+)
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
     "unable to load",
@@ -570,6 +582,22 @@ def save_control_record(record: dict) -> None:
         payload["rebind_status"] = record["rebind_status"]
     if "rebind_bootstrap_sent" in record:
         payload["rebind_bootstrap_sent"] = bool(record.get("rebind_bootstrap_sent"))
+    reason = str(record.get("rebind_failure_reason") or "").strip()
+    if (
+        reason
+        and " " not in reason
+        and len(reason) <= 32
+        and reason == reason.lower()
+        and reason.replace("_", "").isalpha()
+    ):
+        payload["rebind_failure_reason"] = reason
+    if "rebind_resume_count" in record:
+        payload["rebind_resume_count"] = int(record.get("rebind_resume_count") or 0)
+    resume_status = str(record.get("rebind_resume_status") or "")
+    if resume_status in {"started", "failed", "done"}:
+        payload["rebind_resume_status"] = resume_status
+    if record.get("rebind_resume_for_url"):
+        payload["rebind_resume_for_url"] = record["rebind_resume_for_url"]
     if record.get("replaced_from"):
         payload["replaced_from"] = record["replaced_from"]
     if record.get("bootstrap_previous_sent_at"):
@@ -753,7 +781,12 @@ def rebind_page_action(
     return "create"
 
 
-def _write_rebind_state(old_url: str, status: str, bootstrap_sent: bool | None = None) -> None:
+def _write_rebind_state(
+    old_url: str,
+    status: str,
+    bootstrap_sent: bool | None = None,
+    failure_reason: str | None = None,
+) -> None:
     existing = _read_control_file()
     if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
         return
@@ -763,6 +796,8 @@ def _write_rebind_state(old_url: str, status: str, bootstrap_sent: bool | None =
     existing["rebind_attempted_at"] = time.time()
     if bootstrap_sent is not None:
         existing["rebind_bootstrap_sent"] = bootstrap_sent
+    if failure_reason:
+        existing["rebind_failure_reason"] = stable_rebind_reason(failure_reason)
     save_control_record(existing)
 
 
@@ -774,10 +809,11 @@ def mark_rebind_bootstrap_sent(old_url: str) -> None:
     _write_rebind_state(old_url, "pending", bootstrap_sent=True)
 
 
-def mark_rebind_failed(old_url: str) -> None:
+def mark_rebind_failed(old_url: str, reason: str = "") -> None:
     existing = _read_control_file()
     sent = bool(existing.get("rebind_bootstrap_sent"))
-    _write_rebind_state(old_url, "failed", bootstrap_sent=sent)
+    token = stable_rebind_reason(reason) if str(reason or "").strip() else None
+    _write_rebind_state(old_url, "failed", bootstrap_sent=sent, failure_reason=token)
 
 
 def commit_rebind(new_url: str, old_url: str) -> None:
@@ -1441,6 +1477,145 @@ def mark_rebind_page(page) -> None:
         pass
 
 
+def stable_rebind_reason(reason: str) -> str:
+    """Persist only a short token. Never store rendered UI text."""
+    token = str(reason or "").strip()
+    if token in REBIND_FAILURE_REASONS:
+        return token
+    return "failed"
+
+
+def _diag_failure_reason(record: dict | None) -> str:
+    token = str((record or {}).get("rebind_failure_reason") or "").strip()
+    return token if token in REBIND_FAILURE_REASONS else "none"
+
+
+def rebind_page_on_home(url: str) -> bool:
+    raw = str(url or "").strip().split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    return raw == "https://chatgpt.com"
+
+
+def rebind_resume_allowed(record: dict | None, saved_url: str) -> bool:
+    """Legacy 2.2.14 failed rebind with no stored reason may resume once.
+
+    A stored failure reason means 2.2.15 already waited. Do not resume that.
+    """
+    record = record or {}
+    if not rebind_bound(record, saved_url):
+        return False
+    if record.get("rebind_status") != "failed":
+        return False
+    if int(record.get("rebind_count") or 0) < 1:
+        return False
+    if bool(record.get("rebind_bootstrap_sent")):
+        return False
+    if int(record.get("rebind_resume_count") or 0) >= 1:
+        return False
+    if str(record.get("rebind_resume_status") or "") in {"started", "failed", "done"}:
+        return False
+    if str(record.get("rebind_failure_reason") or "").strip():
+        return False
+    return True
+
+
+def should_resume_rebind(record: dict | None, saved_url: str, action: str) -> bool:
+    """Resume only from a later wait poll. Never instead of ready/send/recover/rebind."""
+    if action in {"ready", "rebind", "send", "recover"}:
+        return False
+    return rebind_resume_allowed(record, saved_url)
+
+
+def mark_rebind_resume_started(old_url: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_resume_count"] = max(1, int(existing.get("rebind_resume_count") or 0))
+    existing["rebind_resume_status"] = "started"
+    existing["rebind_resume_for_url"] = rebind_target(old_url) or str(old_url)
+    save_control_record(existing)
+
+
+def mark_rebind_resume_result(old_url: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_resume_count"] = max(1, int(existing.get("rebind_resume_count") or 0))
+    existing["rebind_resume_for_url"] = rebind_target(old_url) or str(existing.get("rebind_resume_for_url") or "")
+    existing["rebind_resume_status"] = "done" if existing.get("rebind_status") == "done" else "failed"
+    save_control_record(existing)
+
+
+def wait_for_rebind_composer(page, timeout_seconds: float | None = None) -> str:
+    """Poll an already-created page. One immediate miss is not a failure."""
+    timeout = CONTROL_REBIND_COMPOSER_WAIT if timeout_seconds is None else float(timeout_seconds)
+    deadline = time.time() + max(0.0, timeout)
+    announced = False
+    while True:
+        try:
+            if page_signed_out(page):
+                return "signed_out"
+        except Exception:
+            pass
+        try:
+            if page_shows_unavailable(page):
+                return "hard_unavailable"
+        except Exception:
+            pass
+        try:
+            if composer_is_ready(page):
+                return "ready"
+        except Exception:
+            pass
+        now = time.time()
+        if now >= deadline:
+            return "no_composer"
+        if not announced:
+            log("CONTROL: rebind=composer_wait")
+            announced = True
+        remaining = deadline - now
+        time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
+
+
+def hydrate_rebind_page(page, old_url: str, goto_home: bool = True):
+    """Bootstrap once on a page that already exists. Never opens a tab."""
+    record = load_control_record()
+    if record.get("rebind_bootstrap_sent"):
+        url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
+        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
+            commit_rebind(url, old_url)
+            log("CONTROL: page=rebound")
+        return page
+
+    if goto_home:
+        try:
+            page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=CONTROL_RESTORE_GOTO_TIMEOUT)
+        except Exception as exc:
+            mark_rebind_failed(old_url, "goto")
+            log(f"CONTROL: rebind=failed reason=goto error={type(exc).__name__}")
+            return page
+
+    outcome = wait_for_rebind_composer(page)
+    if outcome != "ready":
+        mark_rebind_failed(old_url, outcome)
+        log(f"CONTROL: rebind=failed reason={outcome}")
+        return page
+
+    record = load_control_record()
+    if record.get("rebind_bootstrap_sent"):
+        log("CONTROL: rebind=bootstrap_already_sent")
+        return page
+    mark_rebind_bootstrap_sent(old_url)
+    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
+    if not url or not is_usable_control_url(url) or same_conversation(url, old_url):
+        mark_rebind_failed(old_url, "no_new_url")
+        log("CONTROL: rebind=failed reason=no_new_url")
+        return page
+    commit_rebind(url, old_url)
+    log("CONTROL: page=rebound")
+    return page
+
+
 def begin_control_rebind(browser, old_url: str):
     """Create at most one new service chat. Never touch an unrelated conversation."""
     record = load_control_record()
@@ -1455,43 +1630,33 @@ def begin_control_rebind(browser, old_url: str):
         page = browser.contexts[0].new_page()
         mark_rebind_page(page)
         log("CONTROL: page=rebind_create")
-    else:
-        log("CONTROL: page=rebind_reuse")
+        return hydrate_rebind_page(page, old_url, goto_home=True)
+    log("CONTROL: page=rebind_reuse")
+    on_home = rebind_page_on_home(str(getattr(page, "url", "") or ""))
+    return hydrate_rebind_page(page, old_url, goto_home=not on_home)
 
+
+def resume_control_rebind(browser, old_url: str):
+    """Exactly one resume on the existing marked page. Never opens another tab."""
     record = load_control_record()
-    if record.get("rebind_bootstrap_sent"):
-        url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
-        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
-            commit_rebind(url, old_url)
-            log("CONTROL: page=rebound")
+    if not rebind_resume_allowed(record, old_url):
+        return find_rebind_page(browser)
+    page = find_rebind_page(browser)
+    mark_rebind_resume_started(old_url)
+    log("CONTROL: rebind=resume")
+    if page is None:
+        mark_rebind_failed(old_url, "missing_page")
+        mark_rebind_resume_result(old_url)
+        log("CONTROL: rebind=resume_failed reason=missing_page")
+        return None
+    current = str(getattr(page, "url", "") or "")
+    if is_usable_control_url(current) and not same_conversation(current, old_url):
+        mark_rebind_failed(old_url, "unexpected_url")
+        mark_rebind_resume_result(old_url)
+        log("CONTROL: rebind=resume_failed reason=unexpected_url")
         return page
-
-    try:
-        page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=CONTROL_RESTORE_GOTO_TIMEOUT)
-    except Exception as exc:
-        mark_rebind_failed(old_url)
-        log(f"CONTROL: rebind=failed reason=goto error={type(exc).__name__}")
-        return page
-
-    try:
-        composer_ready = composer_is_ready(page)
-    except Exception:
-        composer_ready = False
-    if not composer_ready:
-        reason = "signed_out" if page_signed_out(page) else "no_composer"
-        mark_rebind_failed(old_url)
-        log(f"CONTROL: rebind=failed reason={reason}")
-        return page
-
-    mark_rebind_bootstrap_sent(old_url)
-    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
-    url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
-    if not url or not is_usable_control_url(url) or same_conversation(url, old_url):
-        mark_rebind_failed(old_url)
-        log("CONTROL: rebind=failed reason=no_url")
-        return page
-    commit_rebind(url, old_url)
-    log("CONTROL: page=rebound")
+    hydrate_rebind_page(page, old_url, goto_home=not rebind_page_on_home(current))
+    mark_rebind_resume_result(old_url)
     return page
 
 
@@ -1784,7 +1949,9 @@ def _log_control_diag(
         f"gen={int(bool(generation_active))} composer={int(bool(composer_ready))} "
         f"unavailable={int(diagnosis == 'unavailable')} "
         f"blank_checks={int(record.get('blank_checks') or 0)} "
-        f"blank_rebind={int(bool(record.get('_blank_rebind')))}"
+        f"blank_rebind={int(bool(record.get('_blank_rebind')))} "
+        f"fail={_diag_failure_reason(record)} "
+        f"resume_count={int(record.get('rebind_resume_count') or 0)}"
     )
     return diagnosis
 
@@ -1873,6 +2040,11 @@ def ensure_control_ready(browser, wake: str = ""):
     if action == "rebind":
         log("CONTROL: rebind hard-unavailable")
         page = begin_control_rebind(browser, saved)
+        return page, False
+
+    if should_resume_rebind(record, saved, action):
+        log("CONTROL: rebind=resume_legacy")
+        page = resume_control_rebind(browser, saved)
         return page, False
 
     if action == "ready":

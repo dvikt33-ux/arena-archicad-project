@@ -52,6 +52,11 @@ WANTED = {
     "page_restore_mark",
     "find_rebind_page",
     "mark_rebind_page",
+    "page_shows_unavailable",
+    "stable_rebind_reason",
+    "rebind_page_on_home",
+    "wait_for_rebind_composer",
+    "hydrate_rebind_page",
     "begin_control_rebind",
 }
 
@@ -75,6 +80,9 @@ def load_helpers(control_path: Path):
                 "CONTROL_RESTORE_GOTO_TIMEOUT",
                 "REBIND_PAGE_MARK",
                 "CHATGPT_HOME",
+                "CONTROL_REBIND_COMPOSER_WAIT",
+                "REBIND_COMPOSER_POLL_SECONDS",
+                "REBIND_FAILURE_REASONS",
                 "MAX_WAKE_ATTEMPTS",
                 "WAKE_CONFIRM_SECONDS",
             }:
@@ -134,7 +142,7 @@ def main() -> None:
     other = "https://chatgpt.com/c/11111111-1111-1111-1111-111111111111"
     with tempfile.TemporaryDirectory() as tmp:
         ns = load_helpers(Path(tmp) / "control.json")
-        assert ns["VERSION"] == "2.2.14"
+        assert ns["VERSION"] == "2.2.15"
         assert ns["CHECK_INTERVAL"] == 5
         assert ns["hard_unavailable_text"]("Не удалось загрузить этот разговор ChatGPT") is True
         assert ns["hard_unavailable_text"]("Unable to load this conversation") is True

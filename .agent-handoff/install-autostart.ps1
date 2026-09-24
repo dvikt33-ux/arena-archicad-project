@@ -96,6 +96,12 @@ if (-not $started) {
     exit 1
 }
 
+Write-Host 'Closing Arena completion prompt if it is currently blocking input...'
+& py $DispatcherPath 'DISMISS-ARENA-PROMPT'
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Dispatcher started, but the one-shot Arena prompt check failed.'
+}
+
 Write-Host ''
 Write-Host '=== Installed ==='
 Write-Host "Dispatcher: $DispatcherPath"
@@ -106,5 +112,5 @@ Write-Host ''
 
 if (Test-Path $LogPath) {
     Write-Host 'Last log lines:'
-    Get-Content $LogPath -Tail 20 -Encoding UTF8
+    Get-Content $LogPath -Tail 25 -Encoding UTF8
 }

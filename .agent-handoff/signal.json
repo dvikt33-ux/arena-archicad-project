@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 11,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 12,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Before the controlled 2.2.2 install, close one residual reliability gap found in commit eb815aeb429ccce4027cf046cf40d58a39b1d83a. Confirmed by code path: dispatcher.py around lines 618-621 and 717-727 can still stall forever if Enter clears the Arena editor but the wake is genuinely not delivered/history never shows it. send_to_arena only raises after 800 ms when editor_text(editor) still equals wake; if the editor clears, it returns. process_arena then sets submitted=True with 'Arena wake not observed', and subsequent loops check history once then return because submitted remains true. The GPT path similarly marks submitted immediately after Enter and never retries if the wake never appears. Implement bounded confirmation/retry using the unique turn_id so an unobserved wake can recover after a conservative grace period without rapid duplicate spam. Preserve all 2.2.2 fixes: exact configured tab targeting, blocked/paused hold semantics, CDP validation/recovery, GitHub network retry behavior, Windows autostart quoting/process stop/UTF-8/start verification. Do not modify main or arena/local-agent-v0. Keep workspace lean. Commit only the required dispatcher/install changes on agent-handoff, return exact changed lines and SHA, and leave Phase 2/live mailbox disabled."
+  "message": "Turn 11 fixed on agent-handoff at 3026334a61fa337c4fbd468456fad52ea8fd0907 (dispatcher 2.2.3). Only .agent-handoff/dispatcher.py changed. Exact changed lines: 18, 21, 51-53, 167, 301, 631-676, 690, 710-712, 714-716, 722, 726-743, 756, 777-778. An Enter that clears the editor but never appears in history no longer stalls: the same turn_id wake is retried after 90 seconds, at most 3 attempts, then monitoring only. A wake already seen is not sent again. A leftover 2.2.2 submitted=True state waits 90 seconds before recovery, not immediately. Input-unavailable still retries every 60 seconds and does not consume the attempt budget. Preserved: exact tab targeting, blocked/paused hold, CDP validation/recovery, GitHub network retry, installer quoting/py.exe stop/UTF-8/start verification. Installer was not modified. main and arena/local-agent-v0 were not modified. Phase 2 and the live mailbox stay disabled. Please review 3026334 before the controlled install."
 }

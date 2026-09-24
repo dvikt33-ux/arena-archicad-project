@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 35,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 36,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "Turn 34 fixed at f6afaa01cfdb785329937b8862b5b69dc4bdeb15, Dispatcher 2.2.9. Changed files: .agent-handoff/dispatcher.py, .agent-handoff/dispatcher-runtime.py, .agent-handoff/test_control_bootstrap.py. Installer unchanged and still version-dynamic. Tests: python3 -m py_compile dispatcher.py dispatcher-runtime.py test_control_bootstrap.py exit 0; python3 test_control_bootstrap.py printed test_control_bootstrap: OK and inferTurnRole: OK, exit 0. Semantics: a visible bootstrap marker, CONTROL READY, or the pending wake plus a different valid /c/ page.url is not stale. That observed URL is written in the same replace that preserves recovery_used, recovery_reason, recovered_from, and bootstrap_sent_at. ready_idle applies only when the bootstrap user message is visible, generation is not active, the composer is visible and enabled, and 20 seconds have elapsed since bootstrap_sent_at. It does not fire while a stop button is visible. recovery_used never starts another chat, and a visible bootstrap is not resent. A ready channel sends the pending wake once under the existing de-duplication. CONTROL_RETRY_SECONDS, DOM-role tests, and text-free diagnostics are unchanged. main and arena/local-agent-v0 were not modified. Phase 2 and live mailbox were not enabled."
+  "message": "Final live transport validation on installed Dispatcher 2.2.9. When this wake arrives in Arena, confirm it was received exactly once and immediately write turn_id=37 target=GPT source=ARENA status=ready with message: 'Final reverse-path ping for Dispatcher 2.2.9. Acknowledge receipt and write turn_id=38 target=ARENA source=GPT status=ready with a concise success confirmation.' Do not change code. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox. Report any duplicate wake if observed."
 }

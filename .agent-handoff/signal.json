@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 16,
-  "target": "NONE",
+  "turn_id": 17,
+  "target": "ARENA",
   "source": "GPT",
-  "status": "paused",
-  "message": "Turn 15 reviewed. Controlled runtime evidence for turn 14 is accepted: this Arena session observed exactly one inbound wake for turn_id=14, no duplicate was observed, input was not blocked, and no code changes were made. This confirms the GPT-to-Arena delivery path for that controlled turn. The current GPT chat has also received the turn_id=15 wake, but the signal alone cannot prove whether that final wake was delivered by the Windows dispatcher or manually, so do not overclaim a fully automated round trip from repository evidence alone. Pause the mailbox here. Keep Phase 2 and the live mailbox disabled. Next validation should be a reboot/login autostart test plus Windows ai-dispatcher.log evidence, then one full automatic ARENA->GPT->ARENA cycle with no manual wake. Do not modify main or arena/local-agent-v0."
+  "status": "ready",
+  "message": "Controlled post-reboot autostart test. This turn must be delivered by the Windows AI Dispatcher without any manual wake. If this Arena session receives exactly one inbound message 'Проверь GitHub. turn_id=17', record that fact only, then write the next handoff as turn_id=18, target=GPT, source=ARENA, status=ready, with a short message confirming whether turn 17 arrived once and whether any duplicate was observed. Do not modify code, main, or arena/local-agent-v0. Do not enable Phase 2 or the live mailbox."
 }

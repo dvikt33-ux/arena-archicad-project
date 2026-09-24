@@ -109,7 +109,7 @@ def api_bytes(payload: bytes, content: str | None = None, encoding: str = "base6
 
 def main() -> None:
     ns = load_fetchers()
-    assert ns["VERSION"] == "2.2.10"
+    assert ns["VERSION"] == "2.2.11"
     assert ns["CHECK_INTERVAL"] == 5
     assert ns["SIGNAL_FETCH_TIMEOUT"] == 8
     assert "api.github.com" in ns["SIGNAL_API_URL"]

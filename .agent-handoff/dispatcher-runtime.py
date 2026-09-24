@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-VERSION = "2.2.10"
+VERSION = "2.2.11"
 HOME = Path.home()
 CORE_PATH = HOME / "dispatcher_core.py"
 BOOTSTRAP_LOG = HOME / "ai-dispatcher-bootstrap.log"

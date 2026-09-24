@@ -19,6 +19,8 @@ WANTED = {
     "user_has_bootstrap_marker",
     "bootstrap_was_sent",
     "conversation_id",
+    "conversation_identity",
+    "same_conversation",
     "_last_bootstrap_index",
     "is_usable_control_url",
     "infer_turn_role",
@@ -86,8 +88,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.10"
-    assert version_of(RUNTIME) == "2.2.10"
+    assert version_of(CORE) == "2.2.11"
+    assert version_of(RUNTIME) == "2.2.11"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -125,7 +127,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.10"
+        assert saved["dispatcher_version"] == "2.2.11"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(
@@ -224,7 +226,13 @@ console.log('inferTurnRole: OK');
             "unready_checks": 3,
         }
         assert ns["canonicalization_eligible"](alias_record, boot_msgs, observed) is True
-        assert ns["canonicalization_eligible"](alias_record, [], observed) is False
+        assert ns["canonicalization_eligible"](alias_record, [], observed) is True
+        other = "https://chatgpt.com/c/11111111-1111-1111-1111-111111111111"
+        assert ns["same_conversation"](alias, observed) is True
+        assert ns["same_conversation"](alias, other) is False
+        assert ns["canonicalization_eligible"](alias_record, [], other) is False
+        assert ns["diagnose_control"](alias_record, [], page_url=observed) == "zero_messages"
+        assert ns["next_control_action"](alias_record, [], observed, checks=9) == "wait"
         assert ns["canonicalization_eligible"](alias_record, boot_msgs, "https://chatgpt.com/") is False
         assert ns["canonicalization_eligible"](alias_record, boot_msgs, alias) is False
         ready_msgs = [{"role": "assistant", "text": ready}]

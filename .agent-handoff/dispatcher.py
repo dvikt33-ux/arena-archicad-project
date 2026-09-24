@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.10
+# AI Dispatcher 2.2.11
 # =========================
 
-VERSION = "2.2.10"
+VERSION = "2.2.11"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -216,6 +216,20 @@ def conversation_id(url: str) -> str:
     return path.rsplit("/", 1)[-1]
 
 
+def conversation_identity(url: str) -> str:
+    """UUID used for matching only. WEB: is an alias, not a different chat."""
+    ident = conversation_id(url)
+    if ident.upper().startswith("WEB:"):
+        ident = ident.split(":", 1)[1]
+    return ident.lower()
+
+
+def same_conversation(url: str, expected: str) -> bool:
+    left = conversation_identity(url)
+    right = conversation_identity(expected)
+    return bool(left) and left == right
+
+
 def is_usable_control_url(url: str) -> bool:
     """Accept the conversation URL the live ChatGPT UI actually emits.
 
@@ -291,7 +305,9 @@ def canonicalization_eligible(
     observed = normalize_conversation_url(page_url)
     if not saved or not observed or saved == observed:
         return False
-    return positive_control_identity(messages, wake)
+    if same_conversation(saved, observed):
+        return True
+    return positive_control_identity(messages, wake) and is_usable_control_url(observed)
 
 
 def submitted_bootstrap_idle_ready(
@@ -839,30 +855,92 @@ def chatgpt_pages(browser):
     ]
 
 
-def find_control_page(browser):
+def _preferred_index(pages: list[dict], indexes: list[int]) -> int:
+    for index in indexes:
+        if pages[index].get("foreground"):
+            return index
+    return indexes[0]
+
+
+def plan_control_page(pages: list[dict], saved_url: str, wake: str = "") -> dict:
+    """Choose an open control page without navigating. goto means a new page."""
+    saved = str(saved_url or "").strip()
+    if not is_usable_control_url(saved):
+        return {"action": "provision", "index": None, "url": "", "reason": "missing"}
+    equivalent = [
+        index
+        for index, page in enumerate(pages)
+        if same_conversation(str(page.get("url") or ""), saved)
+    ]
+    if equivalent:
+        index = _preferred_index(pages, equivalent)
+        return {
+            "action": "use",
+            "index": index,
+            "url": str(pages[index].get("url") or ""),
+            "reason": "equivalent",
+        }
+    proven = []
+    for index, page in enumerate(pages):
+        url = str(page.get("url") or "")
+        if not is_chatgpt_conversation_url(url):
+            continue
+        if positive_control_identity(list(page.get("messages") or []), wake):
+            proven.append(index)
+    if proven:
+        index = _preferred_index(pages, proven)
+        return {
+            "action": "use",
+            "index": index,
+            "url": str(pages[index].get("url") or ""),
+            "reason": "identity",
+        }
+    return {"action": "goto", "index": None, "url": saved, "reason": "new_page"}
+
+
+def find_control_page(browser, wake: str = ""):
     control_url = load_control_url()
 
     if control_url and not is_usable_control_url(control_url):
         return None
 
-    if control_url:
-        exact = [
-            page
-            for page in chatgpt_pages(browser)
-            if url_matches(page.url or "", control_url)
-        ]
-        page = choose_page(exact)
-        if page is not None:
-            return page
+    if not control_url:
+        return provision_control_chat(browser)
 
-        pages = chatgpt_pages(browser)
-        page = choose_page(pages)
-        if page is None:
-            page = browser.contexts[0].new_page()
-        page.goto(control_url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    pages = [
+        page
+        for page in chatgpt_pages(browser)
+        if is_chatgpt_conversation_url(page.url or "")
+    ]
+    equivalent_open = any(same_conversation(page.url or "", control_url) for page in pages)
+    snapshots = []
+    for page in pages:
+        messages: list[dict] = []
+        if not equivalent_open:
+            try:
+                messages = chatgpt_messages(page)
+            except Exception:
+                messages = []
+        snapshots.append(
+            {
+                "url": page.url or "",
+                "messages": messages,
+                "foreground": page_is_foreground(page),
+            }
+        )
+    plan = plan_control_page(snapshots, control_url, wake)
+    if plan["action"] == "use":
+        page = pages[plan["index"]]
+        observed = normalize_conversation_url(page.url or "")
+        if observed and observed != normalize_conversation_url(control_url):
+            canonicalize_control_url(page.url or "")
+        log(f"CONTROL: page={plan['reason']}")
         return page
 
-    return provision_control_chat(browser)
+    log("CONTROL: page=new")
+    page = browser.contexts[0].new_page()
+    page.goto(control_url, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    return page
 
 
 def find_arena_page(browser):
@@ -1173,7 +1251,9 @@ def ensure_control_ready(browser, wake: str = ""):
     generation_active = False
     composer_ready = False
     if is_usable_control_url(saved):
-        page = find_control_page(browser)
+        page = find_control_page(browser, wake)
+        record = load_control_record()
+        saved = str(record.get("chatgpt_control_url") or "")
         if page is not None:
             page_url = page.url or ""
             messages = chatgpt_messages(page)

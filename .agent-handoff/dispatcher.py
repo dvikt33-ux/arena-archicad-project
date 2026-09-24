@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.13
+# AI Dispatcher 2.2.14
 # =========================
 
-VERSION = "2.2.13"
+VERSION = "2.2.14"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -80,6 +80,8 @@ RESTORE_PAGE_MARK = "ai-dispatcher-restore"
 REBIND_PAGE_MARK = "ai-dispatcher-rebind"
 CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
+BLANK_REBIND_POLLS = 6
+BLANK_REBIND_SECONDS = 30
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
     "unable to load",
@@ -443,6 +445,7 @@ def next_control_action(
     composer_ready: bool = False,
     now: float | None = None,
     page_unavailable: bool = False,
+    blank_rebind: bool = False,
 ) -> str:
     """ready, wait, send, recover, or rebind. send/recover/rebind happen at most once."""
     record = record or {}
@@ -459,7 +462,7 @@ def next_control_action(
     if control_is_ready(diagnosis):
         return "ready"
     saved = str(record.get("chatgpt_control_url", "") or "")
-    rendered = page_unavailable or diagnosis == "unavailable"
+    rendered = page_unavailable or diagnosis == "unavailable" or blank_rebind
     if not rendered and not user_has_bootstrap_marker(messages):
         rendered = hard_control_unavailable(messages, False)
     if rebind_allowed(record, saved, rendered, now):
@@ -571,6 +574,12 @@ def save_control_record(record: dict) -> None:
         payload["replaced_from"] = record["replaced_from"]
     if record.get("bootstrap_previous_sent_at"):
         payload["bootstrap_previous_sent_at"] = record["bootstrap_previous_sent_at"]
+    if record.get("blank_for_url"):
+        payload["blank_for_url"] = record["blank_for_url"]
+    if "blank_checks" in record:
+        payload["blank_checks"] = int(record.get("blank_checks") or 0)
+    if record.get("blank_since"):
+        payload["blank_since"] = record["blank_since"]
     tmp = CONTROL_PATH.with_suffix(".tmp")
     tmp.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -612,6 +621,61 @@ def _read_control_file() -> dict:
     except Exception:
         return {}
     return loaded if isinstance(loaded, dict) else {}
+
+
+def blank_control_match(
+    record: dict | None,
+    page_url: str,
+    messages: list[dict] | None,
+    composer_ready: bool,
+    generation_active: bool,
+    signed_out: bool,
+    page_unavailable: bool,
+) -> bool:
+    """A blank equivalent control page. One observation is not enough to rebind."""
+    if page_unavailable or signed_out or composer_ready or generation_active:
+        return False
+    if messages:
+        return False
+    saved = str((record or {}).get("chatgpt_control_url") or "")
+    if not is_usable_control_url(saved) or not page_url:
+        return False
+    return same_conversation(page_url, saved) or url_matches(page_url, saved)
+
+
+def apply_blank_observation(record: dict | None, saved_url: str, blank: bool, now: float) -> dict:
+    """URL-scoped consecutive counter. Non-matching observations clear it."""
+    updated = dict(record or {})
+    saved = normalize_conversation_url(saved_url)
+    if not blank or not saved:
+        updated.pop("blank_for_url", None)
+        updated.pop("blank_checks", None)
+        updated.pop("blank_since", None)
+        return updated
+    same = normalize_conversation_url(str(updated.get("blank_for_url") or "")) == saved
+    if not same:
+        updated["blank_for_url"] = saved
+        updated["blank_checks"] = 1
+        updated["blank_since"] = now
+        return updated
+    updated["blank_checks"] = int(updated.get("blank_checks") or 0) + 1
+    if not updated.get("blank_since"):
+        updated["blank_since"] = now
+    return updated
+
+
+def blank_rebind_ready(record: dict | None, saved_url: str, now: float) -> bool:
+    record = record or {}
+    saved = normalize_conversation_url(saved_url)
+    if not saved or normalize_conversation_url(str(record.get("blank_for_url") or "")) != saved:
+        return False
+    if int(record.get("blank_checks") or 0) < BLANK_REBIND_POLLS:
+        return False
+    try:
+        since = float(record.get("blank_since"))
+    except (TypeError, ValueError):
+        return False
+    return float(now) - since >= BLANK_REBIND_SECONDS
 
 
 def rebind_target(url: str) -> str:
@@ -736,6 +800,9 @@ def commit_rebind(new_url: str, old_url: str) -> None:
     existing["bootstrap_sent_at"] = time.time()
     existing.pop("restore_attempted_at", None)
     existing.pop("restore_failures", None)
+    existing.pop("blank_for_url", None)
+    existing.pop("blank_checks", None)
+    existing.pop("blank_since", None)
     save_control_record(existing)
     log("CONTROL: url_rebound")
 
@@ -1715,7 +1782,9 @@ def _log_control_diag(
         f"url_usable={int(is_usable_control_url(str(record.get('chatgpt_control_url') or '')))} "
         f"checks={checks} recovery_used={int(bool(record.get('recovery_used')))} "
         f"gen={int(bool(generation_active))} composer={int(bool(composer_ready))} "
-        f"unavailable={int(diagnosis == 'unavailable')}"
+        f"unavailable={int(diagnosis == 'unavailable')} "
+        f"blank_checks={int(record.get('blank_checks') or 0)} "
+        f"blank_rebind={int(bool(record.get('_blank_rebind')))}"
     )
     return diagnosis
 
@@ -1757,6 +1826,26 @@ def ensure_control_ready(browser, wake: str = ""):
 
     checks = int(record.get("unready_checks") or 0)
     now = time.time()
+    signed_out = False
+    if page is not None and not messages and not composer_ready and not page_unavailable:
+        try:
+            signed_out = page_signed_out(page)
+        except Exception:
+            signed_out = False
+    blank = blank_control_match(
+        record,
+        page_url,
+        messages,
+        composer_ready,
+        generation_active,
+        signed_out,
+        page_unavailable,
+    )
+    record = apply_blank_observation(record, saved, blank, now)
+    if is_usable_control_url(saved):
+        save_control_record(record)
+    blank_rebind = blank_rebind_ready(record, saved, now)
+    record["_blank_rebind"] = blank_rebind
     action = next_control_action(
         record,
         messages,
@@ -1767,6 +1856,7 @@ def ensure_control_ready(browser, wake: str = ""):
         composer_ready=composer_ready,
         now=now,
         page_unavailable=page_unavailable,
+        blank_rebind=blank_rebind,
     )
     _log_control_diag(
         record,

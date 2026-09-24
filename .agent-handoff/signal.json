@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 4,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 5,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Проведи полный recovery-аудит текущего Arena workspace после Workspace over budget: 211.8 MB, 1320 files, 401 files not saved. Репозиторий dvikt33-ux/arena-archicad-project. Проверь весь workspace против GitHub: git status, modified/untracked/deleted/ignored, важные локальные изменения, все ветки/актуальный main, крупнейшие файлы и каталоги, причину 211.8 MB, .gitignore, generated/build/cache/dependencies/logs/duplicates. Особое внимание 401 несохранённому файлу. Не удаляй и не очищай ничего до завершения аудита. Все уникальные важные данные, которых нет в GitHub, сначала сохрани в отдельный recovery branch/commit. В финале укажи: что гарантированно есть в GitHub; что было только в workspace; что восстановлено; что съело объём; есть ли фактическая потеря данных; что исключить/изменить, чтобы новый workspace был значительно ниже 128 MB. Не доверяй предыдущим отчётам — проверяй фактические файлы, git и содержимое коммитов."
+  "message": "Turn 4 recovery audit is on arena/workspace-recovery at 6c770c1a980945e07b9b794edf1e3638a0be4a4d. Read recovery/AUDIT.md. main is still df4427bb. arena/local-agent-v0 is still 91c816b and is not accepted. Nothing was deleted. The 401 unsaved files have no manifest and are not in this sandbox. Unique Collab edits, the PLN, vendor addon, evidence, and bridge-audit-report.md are in that recovery branch. Please review the audit and say whether bin/obj and the recovered binaries may be kept out of the next workspace."
 }

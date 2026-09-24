@@ -13,10 +13,23 @@ RUNTIME = Path(__file__).with_name("dispatcher-runtime.py")
 
 WANTED = {
     "is_chatgpt_conversation_url",
+    "url_matches",
     "assistant_has_control_ready",
     "user_has_bootstrap_marker",
     "bootstrap_was_sent",
+    "conversation_id",
+    "_last_bootstrap_index",
+    "is_usable_control_url",
+    "assistant_after_bootstrap",
+    "assistant_error_after_bootstrap",
+    "diagnose_control",
+    "control_is_ready",
+    "recovery_allowed",
+    "next_control_action",
     "control_bootstrap_decision",
+    "pending_wake_action",
+    "wake_attempt_count",
+    "wake_send_allowed",
     "load_control_record",
     "save_control_record",
     "save_control_url",
@@ -34,6 +47,10 @@ def load_helpers(control_path: Path):
                 "CONTROL_READY_MARKER",
                 "CONTROL_BOOTSTRAP_MARKER",
                 "CONTROL_BOOTSTRAP",
+                "CONTROL_RECOVERY_CHECKS",
+                "CONTROL_ERROR_MARKERS",
+                "MAX_WAKE_ATTEMPTS",
+                "WAKE_CONFIRM_SECONDS",
             }:
                 keep.append(node)
         elif isinstance(node, ast.FunctionDef) and node.name in WANTED:
@@ -59,8 +76,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.6"
-    assert version_of(RUNTIME) == "2.2.6"
+    assert version_of(CORE) == "2.2.7"
+    assert version_of(RUNTIME) == "2.2.7"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -98,7 +115,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.6"
+        assert saved["dispatcher_version"] == "2.2.7"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(
@@ -110,6 +127,48 @@ def main() -> None:
         assert loaded["bootstrap_migrated_from"] == "2.2.5"
         persisted = json.loads(legacy_path.read_text(encoding="utf-8"))
         assert persisted["bootstrap_sent"] is True
+
+        assert ns["next_control_action"](legacy, [], checks=0) == "wait"
+        assert ns["next_control_action"](legacy, [], checks=2) == "wait"
+        assert ns["next_control_action"](legacy, [], checks=3) == "recover"
+        recovered = dict(legacy)
+        recovered["bootstrap_sent"] = True
+        recovered["recovery_used"] = True
+        assert ns["next_control_action"](recovered, [], checks=9) == "wait"
+
+        stale = {
+            "chatgpt_control_url": "https://chatgpt.com/c/WEB:54f304f1-2f88-4e38-a4ff-b566975e3d41",
+            "bootstrap_sent": True,
+            "bootstrap_migrated_from": "2.2.5",
+        }
+        assert ns["is_usable_control_url"](stale["chatgpt_control_url"]) is False
+        assert ns["diagnose_control"](stale, []) == "stale_url"
+        assert ns["next_control_action"](stale, [], checks=0) == "recover"
+        stale_done = dict(stale)
+        stale_done["recovery_used"] = True
+        assert ns["next_control_action"](stale_done, [], checks=0) == "wait"
+        assert ns["control_bootstrap_decision"](stale_done, []) != "send"
+
+        fallback = [
+            {"role": "user", "text": marker + " init"},
+            {"role": "assistant", "text": "Готово, канал открыт."},
+        ]
+        assert ns["diagnose_control"](legacy, fallback) == "ready_fallback"
+        assert ns["next_control_action"](legacy, fallback) == "ready"
+
+        errored = [
+            {"role": "user", "text": marker + " init"},
+            {"role": "assistant", "text": "Something went wrong"},
+        ]
+        assert ns["diagnose_control"](legacy, errored) == "assistant_error"
+        assert ns["next_control_action"](legacy, errored, checks=0) == "wait"
+
+        inflight = {"wake_seen": False, "send_attempts": 0, "retry_after": 0}
+        assert ns["pending_wake_action"]("ready", inflight, 1000.0) == "send_wake"
+        inflight["wake_seen"] = True
+        assert ns["pending_wake_action"]("ready", inflight, 1000.0) == "already_sent"
+        assert ns["pending_wake_action"]("wait", {"wake_seen": False, "send_attempts": 0}, 1000.0) == "hold"
+        assert ns["pending_wake_action"]("recover", {"wake_seen": False, "send_attempts": 0}, 1000.0) == "hold"
 
     print("test_control_bootstrap: OK")
 

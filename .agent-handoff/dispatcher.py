@@ -19,10 +19,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.6
+# AI Dispatcher 2.2.7
 # =========================
 
-VERSION = "2.2.6"
+VERSION = "2.2.7"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -64,6 +64,14 @@ PAGE_TIMEOUT = 15000
 CHROME_START_TIMEOUT = 25
 CONTROL_READY_MARKER = "CONTROL READY"
 CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
+CONTROL_RECOVERY_CHECKS = 3
+CONTROL_ERROR_MARKERS = (
+    "something went wrong",
+    "unable to load",
+    "network error",
+    "conversation not found",
+    "не удалось загрузить",
+)
 
 TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
 HOLD_STATUSES = {"blocked", "paused", "idle"}
@@ -193,13 +201,149 @@ def bootstrap_was_sent(record: dict | None) -> bool:
     return bool(record.get("bootstrap_sent"))
 
 
-def control_bootstrap_decision(record: dict | None, messages: list[dict]) -> str:
-    """ready: send the pending wake. wait: do not resend. send: one bootstrap."""
+def conversation_id(url: str) -> str:
+    if not is_chatgpt_conversation_url(url):
+        return ""
+    path = url.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    return path.rsplit("/", 1)[-1]
+
+
+def is_usable_control_url(url: str) -> bool:
+    ident = conversation_id(url)
+    if not ident or ":" in ident:
+        return False
+    return not ident.upper().startswith("WEB")
+
+
+def _last_bootstrap_index(messages: list[dict]) -> int | None:
+    for idx in range(len(messages) - 1, -1, -1):
+        item = messages[idx]
+        if item.get("role") == "user" and CONTROL_BOOTSTRAP_MARKER in str(item.get("text") or ""):
+            return idx
+    return None
+
+
+def assistant_after_bootstrap(messages: list[dict]) -> bool:
+    start = _last_bootstrap_index(messages)
+    if start is None:
+        return False
+    return any(
+        item.get("role") == "assistant" and str(item.get("text") or "").strip()
+        for item in messages[start + 1 :]
+    )
+
+
+def assistant_error_after_bootstrap(messages: list[dict]) -> bool:
+    start = _last_bootstrap_index(messages)
+    if start is None:
+        return False
+    for item in messages[start + 1 :]:
+        if item.get("role") != "assistant":
+            continue
+        text = str(item.get("text") or "")
+        if CONTROL_READY_MARKER in text:
+            return False
+        lowered = text.lower()
+        if any(marker in lowered for marker in CONTROL_ERROR_MARKERS):
+            return True
+    return False
+
+
+def diagnose_control(record: dict | None, messages: list[dict], page_url: str = "") -> str:
+    """Stable token only. Does not include message text."""
+    record = record or {}
+    messages = list(messages or [])
+    saved = str(record.get("chatgpt_control_url", "") or "").strip()
     if assistant_has_control_ready(messages):
+        return "ready_marker"
+    if user_has_bootstrap_marker(messages):
+        if assistant_error_after_bootstrap(messages):
+            return "assistant_error"
+        if assistant_after_bootstrap(messages):
+            return "ready_fallback"
+        return "bootstrap_without_response"
+    if saved and not is_usable_control_url(saved):
+        return "stale_url"
+    if saved and page_url and not url_matches(page_url, saved):
+        if not is_usable_control_url(page_url):
+            return "stale_url"
+    if not messages:
+        return "zero_messages"
+    if any(
+        item.get("role") == "assistant" and str(item.get("text") or "").strip()
+        for item in messages
+    ):
+        return "marker_mismatch"
+    return "zero_messages"
+
+
+def control_is_ready(diagnosis: str) -> bool:
+    return diagnosis in {"ready_marker", "ready_fallback"}
+
+
+def recovery_allowed(record: dict | None, diagnosis: str, checks: int = 0) -> bool:
+    record = record or {}
+    if record.get("recovery_used"):
+        return False
+    if control_is_ready(diagnosis):
+        return False
+    saved = str(record.get("chatgpt_control_url", "") or "").strip()
+    if not is_chatgpt_conversation_url(saved):
+        return False
+    if diagnosis == "stale_url":
+        return True
+    return int(checks or 0) >= CONTROL_RECOVERY_CHECKS
+
+
+def next_control_action(
+    record: dict | None,
+    messages: list[dict],
+    page_url: str = "",
+    checks: int = 0,
+) -> str:
+    """ready, wait, send, or recover. send/recover happen at most once."""
+    record = record or {}
+    diagnosis = diagnose_control(record, messages, page_url)
+    if control_is_ready(diagnosis):
         return "ready"
-    if bootstrap_was_sent(record) or user_has_bootstrap_marker(messages):
-        return "wait"
-    return "send"
+    if recovery_allowed(record, diagnosis, checks):
+        return "recover"
+    if (
+        not record.get("recovery_used")
+        and not bootstrap_was_sent(record)
+        and not user_has_bootstrap_marker(messages)
+        and diagnosis != "stale_url"
+    ):
+        return "send"
+    return "wait"
+
+
+def control_bootstrap_decision(
+    record: dict | None,
+    messages: list[dict],
+    checks: int = 0,
+) -> str:
+    return next_control_action(record, messages, "", checks)
+
+
+def pending_wake_action(control_action: str, inflight: dict, now: float | None = None) -> str:
+    if control_action != "ready":
+        return "hold"
+    if inflight.get("wake_seen"):
+        return "already_sent"
+    if not wake_send_allowed(inflight, now):
+        return "hold"
+    return "send_wake"
+
+
+def control_diag_counts(messages: list[dict]) -> tuple[int, int]:
+    users = sum(1 for item in messages if item.get("role") == "user")
+    assistants = sum(
+        1
+        for item in messages
+        if item.get("role") == "assistant" and str(item.get("text") or "").strip()
+    )
+    return users, assistants
 
 
 def load_control_record() -> dict:
@@ -241,6 +385,14 @@ def save_control_record(record: dict) -> None:
         payload["bootstrap_sent_at"] = record["bootstrap_sent_at"]
     if record.get("bootstrap_migrated_from"):
         payload["bootstrap_migrated_from"] = record["bootstrap_migrated_from"]
+    if "recovery_used" in record:
+        payload["recovery_used"] = bool(record.get("recovery_used"))
+    if record.get("recovery_reason"):
+        payload["recovery_reason"] = record["recovery_reason"]
+    if record.get("recovered_from"):
+        payload["recovered_from"] = record["recovered_from"]
+    if "unready_checks" in record:
+        payload["unready_checks"] = int(record.get("unready_checks") or 0)
     tmp = CONTROL_PATH.with_suffix(".tmp")
     tmp.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -513,6 +665,9 @@ def chatgpt_pages(browser):
 def find_control_page(browser):
     control_url = load_control_url()
 
+    if control_url and not is_usable_control_url(control_url):
+        return None
+
     if control_url:
         exact = [
             page
@@ -560,16 +715,47 @@ def find_arena_page(browser):
 # ChatGPT control chat
 # -------------------------
 
-def chatgpt_messages(page) -> list[dict]:
+def _read_message_nodes(page, selector: str) -> list[dict]:
     try:
-        return page.locator("[data-message-author-role]").evaluate_all(
+        return page.locator(selector).evaluate_all(
             """nodes => nodes.map(n => ({
-                role: n.getAttribute('data-message-author-role') || '',
+                role: (
+                    n.getAttribute('data-message-author-role')
+                    || n.getAttribute('data-message-author')
+                    || n.getAttribute('data-testid')
+                    || ''
+                ),
                 text: (n.innerText || '').trim()
             }))"""
         )
     except Exception:
         return []
+
+
+def _normalize_message(item: dict) -> dict:
+    role = str(item.get("role") or "").lower()
+    if "assistant" in role:
+        role = "assistant"
+    elif role in {"user", "human"} or "user" in role:
+        role = "user"
+    return {"role": role, "text": str(item.get("text") or "").strip()}
+
+
+def chatgpt_messages(page) -> list[dict]:
+    primary = [_normalize_message(item) for item in _read_message_nodes(page, "[data-message-author-role]")]
+    if any(item.get("text") for item in primary):
+        return primary
+    fallback = [
+        _normalize_message(item)
+        for item in _read_message_nodes(
+            page,
+            "[data-message-id], [data-testid='conversation-turn']",
+        )
+    ]
+    if any(item.get("text") for item in fallback):
+        log(f"CONTROL: primary selector empty, fallback messages={len(fallback)}")
+        return fallback
+    return []
 
 
 def chatgpt_user_message_exists(page, text: str) -> bool:
@@ -648,7 +834,7 @@ def wait_for_conversation_url(page, timeout_seconds: int = 30) -> str:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         url = page.url or ""
-        if is_chatgpt_conversation_url(url):
+        if is_usable_control_url(url):
             return url.split("?", 1)[0].split("#", 1)[0]
         time.sleep(0.25)
     return ""
@@ -670,27 +856,89 @@ def provision_control_chat(browser):
     return page
 
 
-def ensure_control_ready(browser):
-    page = find_control_page(browser)
-    record = load_control_record()
-    messages = chatgpt_messages(page)
-    decision = control_bootstrap_decision(record, messages)
+def _log_control_diag(record: dict, messages: list[dict], page_url: str, action: str) -> str:
+    diagnosis = diagnose_control(record, messages, page_url)
+    users, assistants = control_diag_counts(messages)
+    checks = int(record.get("unready_checks") or 0)
+    log(
+        "CONTROL: "
+        f"diag={diagnosis} action={action} messages={len(messages)} "
+        f"users={users} assistants={assistants} "
+        f"url_usable={int(is_usable_control_url(str(record.get('chatgpt_control_url') or '')))} "
+        f"checks={checks} recovery_used={int(bool(record.get('recovery_used')))}"
+    )
+    return diagnosis
 
-    if decision == "ready":
-        log("CONTROL: CONTROL READY найден, продолжаю без ожидания bootstrap.")
+
+def _mark_recovery(record: dict, reason: str) -> dict:
+    updated = dict(record)
+    updated["recovery_used"] = True
+    updated["recovery_reason"] = reason
+    updated["recovered_from"] = str(record.get("chatgpt_control_url") or "")
+    updated["unready_checks"] = 0
+    save_control_record(updated)
+    return updated
+
+
+def ensure_control_ready(browser):
+    record = load_control_record()
+    saved = str(record.get("chatgpt_control_url") or "")
+    page = None
+    page_url = ""
+    messages: list[dict] = []
+    if is_usable_control_url(saved):
+        page = find_control_page(browser)
+        if page is not None:
+            page_url = page.url or ""
+            messages = chatgpt_messages(page)
+
+    checks = int(record.get("unready_checks") or 0)
+    action = next_control_action(record, messages, page_url, checks)
+    _log_control_diag(record, messages, page_url, action)
+
+    if action == "ready":
+        if checks:
+            record["unready_checks"] = 0
+            save_control_record(record)
+        log("CONTROL: чат готов, wake можно отправлять.")
         return page, True
 
-    if decision == "wait":
-        log("CONTROL: bootstrap уже отправлен, CONTROL READY ещё нет. Повтор не отправляю.")
+    if action == "recover":
+        if record.get("recovery_used"):
+            log("CONTROL: recovery уже использовано, новый чат не создаю.")
+            return page, False
+        reason = diagnose_control(record, messages, page_url)
+        _mark_recovery(record, reason)
+        log(f"CONTROL: одноразовое восстановление, причина={reason}")
+        page = provision_control_chat(browser)
+        updated = load_control_record()
+        updated["recovery_used"] = True
+        updated["recovery_reason"] = reason
+        updated["recovered_from"] = saved
+        updated["unready_checks"] = 0
+        save_control_record(updated)
+        messages = chatgpt_messages(page)
+        if control_is_ready(diagnose_control(updated, messages, page.url or "")):
+            log("CONTROL: чат готов сразу после восстановления, wake можно отправлять.")
+            return page, True
         return page, False
 
-    log("CONTROL: bootstrap отсутствует, отправляю один раз.")
-    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
-    url = str(record.get("chatgpt_control_url") or "")
-    if not is_chatgpt_conversation_url(url):
-        url = str(page.url or "").split("?", 1)[0].split("#", 1)[0]
-    if is_chatgpt_conversation_url(url):
-        save_control_url(url, bootstrap_sent=True)
+    if action == "send":
+        if page is None:
+            page = provision_control_chat(browser)
+            return page, False
+        log("CONTROL: bootstrap отсутствует, отправляю один раз.")
+        send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+        url = saved
+        if not is_usable_control_url(url):
+            url = str(page.url or "").split("?", 1)[0].split("#", 1)[0]
+        if is_usable_control_url(url):
+            save_control_url(url, bootstrap_sent=True)
+        return page, False
+
+    record["unready_checks"] = checks + 1
+    save_control_record(record)
+    log("CONTROL: bootstrap не повторяю и новый чат не создаю.")
     return page, False
 
 

@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.16
+# AI Dispatcher 2.2.17
 # =========================
 
-VERSION = "2.2.16"
+VERSION = "2.2.17"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -84,6 +84,8 @@ CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
 BLANK_REBIND_SECONDS = 30
 CONTROL_REBIND_COMPOSER_WAIT = 20
+CONTROL_FINALIZE_URL_WAIT = 60
+CONTROL_SUBMIT_CONFIRM_SECONDS = 8
 REBIND_COMPOSER_POLL_SECONDS = 0.5
 REBIND_FAILURE_REASONS = (
     "no_composer",
@@ -94,6 +96,8 @@ REBIND_FAILURE_REASONS = (
     "missing_page",
     "unexpected_url",
     "failed",
+    "no_evidence",
+    "submit_unconfirmed",
 )
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
@@ -615,6 +619,37 @@ def save_control_record(record: dict) -> None:
         and replacement_reason.replace("_", "").isalpha()
     ):
         payload["rebind_replacement_failure_reason"] = replacement_reason
+    if record.get("rebind_finalize_for_url"):
+        payload["rebind_finalize_for_url"] = record["rebind_finalize_for_url"]
+    if "rebind_finalize_count" in record:
+        payload["rebind_finalize_count"] = int(record.get("rebind_finalize_count") or 0)
+    finalize_status = str(record.get("rebind_finalize_status") or "")
+    if finalize_status in {"started", "submitted", "done", "failed"}:
+        payload["rebind_finalize_status"] = finalize_status
+    finalize_reason = str(record.get("rebind_finalize_failure_reason") or "").strip()
+    if (
+        finalize_reason
+        and " " not in finalize_reason
+        and len(finalize_reason) <= 32
+        and finalize_reason == finalize_reason.lower()
+        and finalize_reason.replace("_", "").isalpha()
+    ):
+        payload["rebind_finalize_failure_reason"] = finalize_reason
+    if record.get("rebind_submit_retry_for_url"):
+        payload["rebind_submit_retry_for_url"] = record["rebind_submit_retry_for_url"]
+    if "rebind_submit_retry_count" in record:
+        payload["rebind_submit_retry_count"] = int(record.get("rebind_submit_retry_count") or 0)
+    retry_status = str(record.get("rebind_submit_retry_status") or "")
+    if retry_status in {"started", "done", "failed"}:
+        payload["rebind_submit_retry_status"] = retry_status
+    if "rebind_bootstrap_attempted" in record:
+        payload["rebind_bootstrap_attempted"] = bool(record.get("rebind_bootstrap_attempted"))
+    submission_status = str(record.get("rebind_submission_status") or "")
+    if submission_status in {"attempted", "confirmed", "failed"}:
+        payload["rebind_submission_status"] = submission_status
+    url_status = str(record.get("rebind_url_status") or "")
+    if url_status in {"pending", "committed"}:
+        payload["rebind_url_status"] = url_status
     if record.get("replaced_from"):
         payload["replaced_from"] = record["replaced_from"]
     if record.get("bootstrap_previous_sent_at"):
@@ -823,7 +858,14 @@ def mark_rebind_started(old_url: str) -> None:
 
 
 def mark_rebind_bootstrap_sent(old_url: str) -> None:
+    """Record confirmed submission. Call only after Enter was observed to land."""
     _write_rebind_state(old_url, "pending", bootstrap_sent=True)
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_bootstrap_attempted"] = True
+    existing["rebind_submission_status"] = "confirmed"
+    save_control_record(existing)
 
 
 def mark_rebind_failed(old_url: str, reason: str = "") -> None:
@@ -861,6 +903,14 @@ def commit_rebind(new_url: str, old_url: str) -> None:
         existing["rebind_replacement_count"] = max(1, int(existing.get("rebind_replacement_count") or 0))
         existing["rebind_replacement_status"] = "done"
         existing.pop("rebind_replacement_failure_reason", None)
+    finalize_for = rebind_target(str(existing.get("rebind_finalize_for_url") or ""))
+    if finalize_for and finalize_for == (rebind_target(old_url) or str(old_url)):
+        existing["rebind_finalize_count"] = max(1, int(existing.get("rebind_finalize_count") or 0))
+        existing["rebind_finalize_status"] = "done"
+        existing.pop("rebind_finalize_failure_reason", None)
+    existing["rebind_submission_status"] = "confirmed"
+    existing["rebind_url_status"] = "committed"
+    existing["rebind_bootstrap_attempted"] = True
     save_control_record(existing)
     log("CONTROL: url_rebound")
 
@@ -1626,10 +1676,32 @@ def hydrate_rebind_page(page, old_url: str, goto_home: bool = True):
     if record.get("rebind_bootstrap_sent"):
         log("CONTROL: rebind=bootstrap_already_sent")
         return page
-    mark_rebind_bootstrap_sent(old_url)
-    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    existing = _read_control_file()
+    if is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        existing["rebind_bootstrap_attempted"] = True
+        existing["rebind_submission_status"] = "attempted"
+        save_control_record(existing)
+    submitted = send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    if submitted is True:
+        mark_rebind_bootstrap_sent(old_url)
+    elif submitted is False:
+        existing = _read_control_file()
+        if is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+            existing["rebind_bootstrap_attempted"] = True
+            existing["rebind_submission_status"] = "failed"
+            save_control_record(existing)
+        mark_rebind_failed(old_url, "submit_unconfirmed")
+        log("CONTROL: rebind=failed reason=submit_unconfirmed")
+        return page
     url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
     if not url or not is_usable_control_url(url) or same_conversation(url, old_url):
+        if submitted is True:
+            existing = _read_control_file()
+            if is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+                existing["rebind_submission_status"] = "confirmed"
+                existing["rebind_url_status"] = "pending"
+                existing["rebind_bootstrap_sent"] = True
+                save_control_record(existing)
         mark_rebind_failed(old_url, "no_new_url")
         log("CONTROL: rebind=failed reason=no_new_url")
         return page
@@ -1864,6 +1936,433 @@ def replace_control_rebind(browser, old_url: str):
     return page
 
 
+def _diag_finalize_status(record: dict | None) -> str:
+    token = str((record or {}).get("rebind_finalize_status") or "").strip()
+    return token if token in {"started", "submitted", "done", "failed"} else "none"
+
+
+def messages_exact_bootstrap(messages: list[dict] | None) -> bool:
+    expected = str(CONTROL_BOOTSTRAP or "").strip()
+    return any(
+        item.get("role") == "user" and str(item.get("text") or "").strip() == expected
+        for item in list(messages or [])[-60:]
+    )
+
+
+def positive_finalize_identity(messages: list[dict] | None) -> bool:
+    """Exact bootstrap user text or CONTROL READY. Marker-only text is not enough."""
+    return messages_exact_bootstrap(messages) or assistant_has_control_ready(list(messages or []))
+
+
+def finalize_commit_url(url: str, old_url: str, messages: list[dict] | None) -> str:
+    observed = normalize_conversation_url(url)
+    if not observed or same_conversation(observed, old_url):
+        return ""
+    if not positive_finalize_identity(messages):
+        return ""
+    return observed
+
+
+def submit_confirmation_action(
+    user_message: bool,
+    generation_active: bool,
+    usable_new_url: bool,
+    composer_exact: bool,
+    retry_used: bool,
+) -> str:
+    """confirmed, retry, or fail. Does not include message text."""
+    if user_message or generation_active or usable_new_url:
+        return "confirmed"
+    if composer_exact and not retry_used:
+        return "retry"
+    return "fail"
+
+
+def rebind_finalize_bound(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    saved = rebind_target(saved_url)
+    bound = rebind_target(str(record.get("rebind_finalize_for_url") or ""))
+    return bool(saved) and saved == bound
+
+
+def rebind_finalize_continue(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    if not rebind_finalize_bound(record, saved_url):
+        return False
+    if int(record.get("rebind_finalize_count") or 0) < 1:
+        return False
+    return str(record.get("rebind_finalize_status") or "") in {"started", "submitted"}
+
+
+def rebind_finalize_allowed(record: dict | None, saved_url: str) -> bool:
+    """Only the consumed no_new_url replacement may be finalized."""
+    record = record or {}
+    if rebind_finalize_continue(record, saved_url):
+        return False
+    if int(record.get("rebind_finalize_count") or 0) >= 1:
+        return False
+    if str(record.get("rebind_finalize_status") or "") in {"started", "submitted", "done", "failed"}:
+        return False
+    if not rebind_bound(record, saved_url):
+        return False
+    if str(record.get("rebind_status") or "") != "failed":
+        return False
+    if not bool(record.get("rebind_bootstrap_sent")):
+        return False
+    if str(record.get("rebind_failure_reason") or "").strip() != "no_new_url":
+        return False
+    if int(record.get("rebind_replacement_count") or 0) < 1:
+        return False
+    if str(record.get("rebind_replacement_status") or "") != "failed":
+        return False
+    if str(record.get("rebind_replacement_failure_reason") or "").strip() != "no_new_url":
+        return False
+    saved = rebind_target(saved_url)
+    current = rebind_target(str(record.get("chatgpt_control_url") or ""))
+    if not saved or current != saved:
+        return False
+    return True
+
+
+def should_finalize_rebind(record: dict | None, saved_url: str, action: str) -> bool:
+    if action == "ready":
+        return False
+    if rebind_finalize_continue(record, saved_url):
+        return True
+    if action == "rebind":
+        return False
+    return rebind_finalize_allowed(record, saved_url)
+
+
+def mark_finalize_started(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    status = str(existing.get("rebind_finalize_status") or "")
+    if status in {"done", "failed"}:
+        return False
+    existing["rebind_finalize_for_url"] = rebind_target(old_url) or str(old_url)
+    existing["rebind_finalize_count"] = max(1, int(existing.get("rebind_finalize_count") or 0))
+    if status != "submitted":
+        existing["rebind_finalize_status"] = "started"
+    save_control_record(existing)
+    return True
+
+
+def mark_finalize_submitted(old_url: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_finalize_for_url"] = rebind_target(old_url) or str(existing.get("rebind_finalize_for_url") or "")
+    existing["rebind_finalize_count"] = max(1, int(existing.get("rebind_finalize_count") or 0))
+    existing["rebind_finalize_status"] = "submitted"
+    existing["rebind_submission_status"] = "confirmed"
+    existing["rebind_url_status"] = "pending"
+    existing["rebind_bootstrap_sent"] = True
+    existing.pop("rebind_finalize_failure_reason", None)
+    save_control_record(existing)
+
+
+def mark_finalize_failed(old_url: str, reason: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_finalize_for_url"] = rebind_target(old_url) or str(existing.get("rebind_finalize_for_url") or "")
+    existing["rebind_finalize_count"] = max(1, int(existing.get("rebind_finalize_count") or 0))
+    existing["rebind_finalize_status"] = "failed"
+    existing["rebind_finalize_failure_reason"] = stable_rebind_reason(reason)
+    save_control_record(existing)
+
+
+def mark_submit_retry_started(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    if int(existing.get("rebind_submit_retry_count") or 0) >= 1:
+        return False
+    existing["rebind_submit_retry_for_url"] = rebind_target(old_url) or str(old_url)
+    existing["rebind_submit_retry_count"] = 1
+    existing["rebind_submit_retry_status"] = "started"
+    save_control_record(existing)
+    return True
+
+
+def mark_submit_retry_result(old_url: str, status: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_submit_retry_for_url"] = rebind_target(old_url) or str(existing.get("rebind_submit_retry_for_url") or "")
+    existing["rebind_submit_retry_count"] = max(1, int(existing.get("rebind_submit_retry_count") or 0))
+    existing["rebind_submit_retry_status"] = "done" if status == "done" else "failed"
+    save_control_record(existing)
+
+
+def composer_text(page) -> str:
+    selectors = ("#prompt-textarea", "[contenteditable='true'][role='textbox']")
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            if loc.count() == 0:
+                continue
+            box = loc.first
+            value = ""
+            try:
+                value = box.input_value()
+            except Exception:
+                try:
+                    value = box.inner_text()
+                except Exception:
+                    value = ""
+            return str(value or "").strip()
+        except Exception:
+            continue
+    return ""
+
+
+def composer_has_exact_text(page, text: str) -> bool:
+    return str(composer_text(page) or "").strip() == str(text or "").strip()
+
+
+def submit_composer_only(page, expected: str = "") -> str:
+    """Press Enter or click send on the current composer. Never fills text."""
+    pressed = False
+    selectors = ("#prompt-textarea", "[contenteditable='true'][role='textbox']")
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            if loc.count() == 0:
+                continue
+            box = loc.first
+            try:
+                box.evaluate("(el) => el.focus()")
+            except Exception:
+                pass
+            box.press("Enter")
+            pressed = True
+            break
+        except Exception:
+            continue
+    still_exact = bool(expected) and composer_has_exact_text(page, expected)
+    if still_exact or not pressed:
+        for selector in (
+            "button[data-testid='send-button']",
+            "button[data-testid='composer-send-button']",
+            "button[aria-label='Send prompt']",
+            "button[aria-label='Send message']",
+        ):
+            try:
+                loc = page.locator(selector)
+                if loc.count() and loc.first.is_visible():
+                    loc.first.click()
+                    return "click"
+            except Exception:
+                continue
+    return "enter" if pressed else "failed"
+
+
+def _submit_confirmed(page, text: str, before_url: str) -> bool:
+    deadline = time.time() + CONTROL_SUBMIT_CONFIRM_SECONDS
+    before = normalize_conversation_url(before_url)
+    while True:
+        user_message = False
+        generating = False
+        try:
+            user_message = bool(chatgpt_user_message_exists(page, text))
+        except Exception:
+            user_message = False
+        try:
+            generating = bool(generation_is_active(page))
+        except Exception:
+            generating = False
+        current = normalize_conversation_url(str(getattr(page, "url", "") or ""))
+        usable_new = bool(current) and current != before
+        if submit_confirmation_action(user_message, generating, usable_new, False, True) == "confirmed":
+            return True
+        now = time.time()
+        if now >= deadline:
+            return False
+        remaining = deadline - now
+        time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
+
+
+def page_control_evidence(page) -> dict:
+    messages: list[dict] = []
+    try:
+        messages = list(chatgpt_messages(page) or [])
+    except Exception:
+        messages = []
+    composer = ""
+    try:
+        composer = composer_text(page)
+    except Exception:
+        composer = ""
+    generating = False
+    signed_out = False
+    unavailable = False
+    try:
+        generating = bool(generation_is_active(page))
+    except Exception:
+        generating = False
+    try:
+        signed_out = bool(page_signed_out(page))
+    except Exception:
+        signed_out = False
+    try:
+        unavailable = bool(page_shows_unavailable(page))
+    except Exception:
+        unavailable = False
+    return {
+        "url": str(getattr(page, "url", "") or ""),
+        "messages": messages,
+        "composer": composer,
+        "generation": generating,
+        "signed_out": signed_out,
+        "unavailable": unavailable,
+    }
+
+
+def finalize_page_observations(browser) -> list[tuple]:
+    marked = find_replacement_page(browser)
+    ordered = []
+    seen = set()
+    if marked is not None:
+        ordered.append(marked)
+        seen.add(id(marked))
+    for page in all_pages(browser):
+        if id(page) in seen:
+            continue
+        if "chatgpt.com" not in str(getattr(page, "url", "") or ""):
+            continue
+        ordered.append(page)
+    observations = []
+    for page in ordered:
+        evidence = page_control_evidence(page)
+        evidence["marked"] = page is marked
+        observations.append((page, evidence))
+    return observations
+
+
+def _pick_finalize_commit(observations, old_url: str, submission_confirmed: bool):
+    for page, evidence in observations:
+        observed = normalize_conversation_url(str(evidence.get("url") or ""))
+        if not observed or same_conversation(observed, old_url):
+            continue
+        if positive_finalize_identity(evidence.get("messages") or []):
+            return page, observed
+        if submission_confirmed and evidence.get("marked"):
+            return page, observed
+    return None, ""
+
+
+def _finalize_positive(observations) -> bool:
+    return any(positive_finalize_identity(evidence.get("messages") or []) for _page, evidence in observations)
+
+
+def wait_for_finalize_commit(browser, old_url: str, submission_confirmed: bool):
+    deadline = time.time() + CONTROL_FINALIZE_URL_WAIT
+    announced = False
+    while True:
+        observations = finalize_page_observations(browser)
+        page, url = _pick_finalize_commit(observations, old_url, submission_confirmed)
+        if url:
+            return page, url
+        now = time.time()
+        if now >= deadline:
+            return None, ""
+        if not announced:
+            log("CONTROL: rebind=finalize_wait")
+            announced = True
+        remaining = deadline - now
+        time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
+
+
+def _commit_finalize(page, url: str, old_url: str):
+    commit_rebind(url, old_url)
+    log("CONTROL: page=finalize_commit")
+    return page
+
+
+def finalize_control_rebind(browser, old_url: str):
+    """Rescue one no_new_url submission. Never opens a tab or refills bootstrap."""
+    record = load_control_record()
+    if not rebind_finalize_continue(record, old_url) and not rebind_finalize_allowed(record, old_url):
+        return find_replacement_page(browser)
+    already_submitted = str(record.get("rebind_finalize_status") or "") == "submitted"
+    if not mark_finalize_started(old_url):
+        log("CONTROL: rebind=finalize_failed reason=failed")
+        return find_replacement_page(browser)
+    log("CONTROL: rebind=finalize")
+    observations = finalize_page_observations(browser)
+    page, url = _pick_finalize_commit(observations, old_url, False)
+    if url:
+        return _commit_finalize(page, url, old_url)
+    if already_submitted:
+        log("CONTROL: rebind=finalize_scan")
+        return find_replacement_page(browser)
+
+    marked = find_replacement_page(browser)
+    marked_evidence = {}
+    for candidate, evidence in observations:
+        if evidence.get("marked"):
+            marked_evidence = evidence
+            break
+    positive = _finalize_positive(observations)
+    if positive:
+        page, url = wait_for_finalize_commit(browser, old_url, True)
+        if url:
+            return _commit_finalize(page, url, old_url)
+        mark_finalize_submitted(old_url)
+        log("CONTROL: rebind=finalize_submitted")
+        return marked
+
+    composer = str(marked_evidence.get("composer") or "")
+    on_home = marked is not None and rebind_page_on_home(str(marked_evidence.get("url") or getattr(marked, "url", "") or ""))
+    exact_composer = on_home and composer.strip() == str(CONTROL_BOOTSTRAP or "").strip()
+    if exact_composer and not positive:
+        record = load_control_record()
+        if int(record.get("rebind_submit_retry_count") or 0) >= 1:
+            mark_finalize_failed(old_url, "submit_unconfirmed")
+            log("CONTROL: rebind=finalize_failed reason=submit_unconfirmed")
+            return marked
+        if not mark_submit_retry_started(old_url):
+            mark_finalize_failed(old_url, "failed")
+            log("CONTROL: rebind=finalize_failed reason=failed")
+            return marked
+        log("CONTROL: rebind=finalize_submit")
+        submit_composer_only(marked, CONTROL_BOOTSTRAP)
+        mark_submit_retry_result(old_url, "done")
+        observations = finalize_page_observations(browser)
+        page, url = _pick_finalize_commit(observations, old_url, True)
+        if url:
+            return _commit_finalize(page, url, old_url)
+        if _finalize_positive(observations) or any(item[1].get("generation") and item[1].get("marked") for item in observations):
+            page, url = wait_for_finalize_commit(browser, old_url, True)
+            if url:
+                return _commit_finalize(page, url, old_url)
+            mark_finalize_submitted(old_url)
+            log("CONTROL: rebind=finalize_submitted")
+            return marked
+        mark_finalize_failed(old_url, "submit_unconfirmed")
+        log("CONTROL: rebind=finalize_failed reason=submit_unconfirmed")
+        return marked
+
+    if marked is None:
+        mark_finalize_failed(old_url, "missing_page")
+        log("CONTROL: rebind=finalize_failed reason=missing_page")
+        return None
+    if marked_evidence.get("signed_out"):
+        mark_finalize_failed(old_url, "signed_out")
+        log("CONTROL: rebind=finalize_failed reason=signed_out")
+        return marked
+    if marked_evidence.get("unavailable"):
+        mark_finalize_failed(old_url, "hard_unavailable")
+        log("CONTROL: rebind=finalize_failed reason=hard_unavailable")
+        return marked
+    mark_finalize_failed(old_url, "no_evidence")
+    log("CONTROL: rebind=finalize_failed reason=no_evidence")
+    return marked
+
+
 def find_arena_page(browser):
     exact = []
     fallback = []
@@ -2085,7 +2584,9 @@ def chatgpt_prompt(page):
         return fallback.first
 
 
-def send_to_chatgpt(page, text: str) -> None:
+def send_to_chatgpt(page, text: str) -> bool:
+    """Fill once, confirm submission, and never log the text."""
+    before = str(getattr(page, "url", "") or "")
     box = chatgpt_prompt(page)
     try:
         box.evaluate("(el) => el.focus()")
@@ -2093,6 +2594,17 @@ def send_to_chatgpt(page, text: str) -> None:
         pass
     box.fill(text)
     box.press("Enter")
+    if _submit_confirmed(page, text, before):
+        log("CONTROL: submit=confirmed")
+        return True
+    if submit_confirmation_action(False, False, False, composer_has_exact_text(page, text), False) == "retry":
+        log("CONTROL: submit=retry")
+        submit_composer_only(page, text)
+        if _submit_confirmed(page, text, before):
+            log("CONTROL: submit=confirmed")
+            return True
+    log("CONTROL: submit=unconfirmed")
+    return False
 
 
 def wait_for_conversation_url(page, timeout_seconds: int = 30) -> str:
@@ -2111,7 +2623,9 @@ def provision_control_chat(browser):
     page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
 
     log("CONTROL: создаю отдельный машинный ChatGPT-чат 01 — CONTROL & BRIDGE.")
-    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    submitted = send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    if submitted is False:
+        raise RuntimeError("CONTROL_BOOTSTRAP_NOT_SUBMITTED")
 
     control_url = wait_for_conversation_url(page, 30)
     if not control_url:
@@ -2157,7 +2671,9 @@ def _log_control_diag(
         f"fail={_diag_failure_reason(record)} "
         f"resume_count={int(record.get('rebind_resume_count') or 0)} "
         f"replace_count={int(record.get('rebind_replacement_count') or 0)} "
-        f"replace_status={_diag_replacement_status(record)}"
+        f"replace_status={_diag_replacement_status(record)} "
+        f"finalize_count={int(record.get('rebind_finalize_count') or 0)} "
+        f"finalize_status={_diag_finalize_status(record)}"
     )
     return diagnosis
 
@@ -2243,6 +2759,14 @@ def ensure_control_ready(browser, wake: str = ""):
         page_unavailable=page_unavailable,
     )
 
+    if action != "ready" and should_finalize_rebind(record, saved, action):
+        if rebind_finalize_continue(record, saved):
+            log("CONTROL: rebind=finalize_resume")
+        else:
+            log("CONTROL: rebind=finalize_legacy")
+        page = finalize_control_rebind(browser, saved)
+        return page, False
+
     if action != "ready" and should_replace_rebind(record, saved, action):
         if rebind_replacement_started(record, saved):
             log("CONTROL: rebind=replacement_resume")
@@ -2293,7 +2817,10 @@ def ensure_control_ready(browser, wake: str = ""):
             page = provision_control_chat(browser)
             return page, False
         log("CONTROL: bootstrap отсутствует, отправляю один раз.")
-        send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+        submitted = send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+        if submitted is False:
+            log("CONTROL: submit=unconfirmed")
+            return page, False
         url = saved
         if not is_usable_control_url(url):
             url = str(page.url or "").split("?", 1)[0].split("#", 1)[0]

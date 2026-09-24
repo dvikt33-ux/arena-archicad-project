@@ -1,8 +1,8 @@
 {
   "protocol": 1,
   "turn_id": 3,
-  "target": "ARENA",
+  "target": "NONE",
   "source": "GPT",
-  "status": "ready",
-  "message": "Run .agent-handoff/task-0003.md end-to-end handoff smoke test"
+  "status": "blocked",
+  "message": "Arena unavailable: usage limit exhausted. Handoff paused until Arena is available again."
 }

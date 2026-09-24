@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import time
 import traceback
 from datetime import datetime
 from pathlib import Path
 
 VERSION = "2.2.7"
+PATCH_LEVEL = "2.2.7-p1"
 HOME = Path.home()
 CORE_PATH = HOME / "dispatcher_core.py"
 BOOTSTRAP_LOG = HOME / "ai-dispatcher-bootstrap.log"
@@ -40,6 +42,120 @@ try:
 except Exception as exc:
     _write_bootstrap_error(exc)
     raise
+
+
+# ---------------------------------------------------------------------------
+# Control compatibility patch for the live ChatGPT WEB:<id> URL shape.
+# ---------------------------------------------------------------------------
+
+def is_usable_control_url(url: str) -> bool:
+    """Accept the conversation URL shape actually emitted by the live UI.
+
+    Staleness is diagnosed from page behavior/messages, not from ':' or WEB:
+    syntax alone.
+    """
+    return core.is_chatgpt_conversation_url(str(url or "").strip())
+
+
+_original_save_control_url = core.save_control_url
+
+
+def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
+    """Replace the URL without dropping the one-recovery latch metadata."""
+    existing = core.load_control_record()
+    record = dict(existing or {})
+    record["chatgpt_control_url"] = url
+    record["name"] = record.get("name") or "01 — CONTROL & BRIDGE"
+    record["bootstrap_sent"] = bool(bootstrap_sent)
+    if bootstrap_sent:
+        record["bootstrap_sent_at"] = time.time()
+    core.save_control_record(record)
+    core.log(f"CONTROL: закреплён машинный ChatGPT-чат: {url}")
+
+
+_original_chatgpt_messages = core.chatgpt_messages
+
+
+def _runtime_turn_messages(page) -> list[dict]:
+    try:
+        return page.locator(
+            'article[data-testid^="conversation-turn-"], [data-message-id]'
+        ).evaluate_all(
+            """nodes => nodes.map(n => {
+                const roleNode = n.matches('[data-message-author-role]')
+                    ? n
+                    : n.querySelector('[data-message-author-role]');
+                let role = roleNode
+                    ? (roleNode.getAttribute('data-message-author-role') || '')
+                    : (n.getAttribute('data-message-author') || '');
+
+                if (!role) {
+                    const labels = [
+                        n.getAttribute('aria-label') || '',
+                        ...[...n.querySelectorAll(
+                            'h5,h6,[class*="sr-only"],[class*="screen-reader"]'
+                        )].map(x => x.innerText || '')
+                    ].join(' ').toLowerCase();
+
+                    if (
+                        labels.includes('you said') ||
+                        labels.includes('вы сказали') ||
+                        labels.includes('user')
+                    ) {
+                        role = 'user';
+                    } else if (
+                        labels.includes('chatgpt said') ||
+                        labels.includes('chatgpt') ||
+                        labels.includes('assistant')
+                    ) {
+                        role = 'assistant';
+                    }
+                }
+
+                return {
+                    role: String(role || '').toLowerCase(),
+                    text: (n.innerText || '').trim()
+                };
+            }).filter(x => x.text)"""
+        )
+    except Exception:
+        return []
+
+
+def chatgpt_messages(page) -> list[dict]:
+    primary = _original_chatgpt_messages(page)
+    recognized = [
+        item for item in primary
+        if item.get("role") in {"user", "assistant"} and str(item.get("text") or "").strip()
+    ]
+    if recognized:
+        return primary
+
+    fallback = _runtime_turn_messages(page)
+    normalized = []
+    for item in fallback:
+        role = str(item.get("role") or "").lower()
+        if "assistant" in role or "chatgpt" in role:
+            role = "assistant"
+        elif role in {"user", "human"} or "user" in role:
+            role = "user"
+        normalized.append({"role": role, "text": str(item.get("text") or "").strip()})
+
+    if any(item.get("role") in {"user", "assistant"} for item in normalized):
+        core.log(
+            "CONTROL: runtime DOM fallback active "
+            f"(messages={len(normalized)})."
+        )
+        return normalized
+
+    return primary if any(str(item.get("text") or "").strip() for item in primary) else normalized
+
+
+core.is_usable_control_url = is_usable_control_url
+core.save_control_url = save_control_url
+core.chatgpt_messages = chatgpt_messages
+core.log(f"CONTROL: runtime compatibility patch {PATCH_LEVEL} активен.")
+
 
 QUESTION_TEXT = "Эта задача была выполнена успешно?"
 CONTINUE_TEXT = "Продолжить работу"

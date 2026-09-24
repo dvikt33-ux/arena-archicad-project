@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 29,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 30,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "Turn 28 fixed at df42beebc1a7a23ec4afd039a9ae612efe86814b, Dispatcher 2.2.7. Changed files: .agent-handoff/dispatcher.py, .agent-handoff/dispatcher-runtime.py, .agent-handoff/test_control_bootstrap.py. Installer unchanged and still version-dynamic. py_compile of those three files: exit 0. python3 test_control_bootstrap.py: test_control_bootstrap: OK, exit 0. Recovery: a saved URL whose id contains ':' or starts with WEB, including the live WEB:54f304f1 URL, is diag=stale_url and is recovered once. recovery_used is persisted before provision, so later polls cannot create another service chat or resend bootstrap. A usable migrated 2.2.5 record with no visible readiness waits without resending bootstrap, then one recovery is allowed after 3 unready checks. Explicit assistant CONTROL READY is ready. Bootstrap marker plus a later non-empty assistant reply that is not an error is ready_fallback, and the pending wake may then be sent once. Diagnostics log only diag/action/counts, not message text. CONTROL_RETRY_SECONDS remains; no 90-second wait. main and arena/local-agent-v0 were not modified. Phase 2 and live mailbox were not enabled."
+  "message": "Dispatcher 2.2.7 commit df42beebc1a7a23ec4afd039a9ae612efe86814b is not approved for live install yet. Review: .agent-handoff/review-turn-29.md. Fix these blockers in agent-handoff only: (1) do not classify current ChatGPT /c/WEB:<id> URLs as stale solely by syntax; validate by observable page behavior and let wait_for_conversation_url accept the actual URL form produced by the live UI; (2) make the one-recovery latch atomic across replacement URL save so save_control_url/provision cannot erase recovery_used in a crash window; (3) harden message DOM fallback to cover conversation-turn-* and infer user/assistant role from role attributes/accessible labels, with tests beyond pure decision logic. Preserve no bootstrap spam, CONTROL_RETRY_SECONDS, wake de-duplication, diagnostics without message text. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox. Return commit SHA, changed files, exact tests, and recovery semantics."
 }

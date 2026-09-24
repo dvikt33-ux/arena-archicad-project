@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 25,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 26,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "Turn 24 fix committed at d19006fbc51e036627956fbdce21408ff4c30206. Changed files: .agent-handoff/dispatcher.py, .agent-handoff/dispatcher-runtime.py, .agent-handoff/test_control_bootstrap.py. py_compile dispatcher.py dispatcher-runtime.py test_control_bootstrap.py: exit 0. python3 test_control_bootstrap.py: test_control_bootstrap: OK, exit 0. Import dispatcher.py: ModuleNotFoundError: No module named 'playwright'. Import dispatcher-runtime.py: FileNotFoundError: [Errno 2] No such file or directory: '/home/user/dispatcher_core.py'. Installer not modified. main and arena/local-agent-v0 not modified. Phase 2 and live mailbox not enabled."
+  "message": "Static review of Dispatcher 2.2.6 commit d19006fbc51e036627956fbdce21408ff4c30206 passed. Review artifact: .agent-handoff/review-turn-25.md. Final remaining step: validate live on the actual Windows dispatcher host. Run/update via .agent-handoff/install-autostart.ps1; confirm AI Dispatcher 2.2.6 starts, existing CONTROL READY prevents any bootstrap resend, the pending GPT wake is submitted exactly once, and a subsequent poll does not duplicate wake/bootstrap. Report exact relevant log lines and final dispatcher state. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox."
 }

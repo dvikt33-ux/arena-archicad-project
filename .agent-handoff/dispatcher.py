@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.12
+# AI Dispatcher 2.2.13
 # =========================
 
-VERSION = "2.2.12"
+VERSION = "2.2.13"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -77,12 +77,29 @@ CONTROL_RESTORE_WAIT_SECONDS = 6
 CONTROL_RESTORE_COOLDOWN_SECONDS = 60
 CONTROL_RESTORE_GOTO_TIMEOUT = 10000
 RESTORE_PAGE_MARK = "ai-dispatcher-restore"
+REBIND_PAGE_MARK = "ai-dispatcher-rebind"
+CONTROL_REBIND_COOLDOWN_SECONDS = 60
+CONTROL_REBIND_URL_WAIT = 20
 CONTROL_ERROR_MARKERS = (
     "something went wrong",
     "unable to load",
     "network error",
     "conversation not found",
     "не удалось загрузить",
+)
+CONTROL_UNAVAILABLE_MARKERS = CONTROL_ERROR_MARKERS + (
+    "unable to load this conversation",
+    "unable to load conversation",
+    "couldn't load this conversation",
+    "could not load this conversation",
+    "this conversation could not be loaded",
+    "не удалось загрузить этот разговор",
+)
+SIGN_IN_MARKERS = (
+    "log in",
+    "sign in",
+    "войти",
+    "log in to chatgpt",
 )
 
 TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
@@ -335,6 +352,26 @@ def submitted_bootstrap_idle_ready(
     return float(now) - sent_at >= CONTROL_READY_GRACE_SECONDS
 
 
+def hard_unavailable_text(text: str) -> bool:
+    """True for a rendered conversation-load failure. Empty text is not a failure."""
+    lowered = str(text or "").lower()
+    if not lowered.strip():
+        return False
+    return any(marker in lowered for marker in CONTROL_UNAVAILABLE_MARKERS)
+
+
+def hard_control_unavailable(messages: list[dict] | None = None, page_unavailable: bool = False) -> bool:
+    if page_unavailable:
+        return True
+    for item in messages or []:
+        text = str(item.get("text") or "")
+        if CONTROL_BOOTSTRAP_MARKER in text or CONTROL_READY_MARKER in text:
+            continue
+        if hard_unavailable_text(text):
+            return True
+    return False
+
+
 def diagnose_control(
     record: dict | None,
     messages: list[dict],
@@ -343,6 +380,7 @@ def diagnose_control(
     generation_active: bool = False,
     composer_ready: bool = False,
     now: float | None = None,
+    page_unavailable: bool = False,
 ) -> str:
     """Stable token only. Does not include message text."""
     record = record or {}
@@ -350,6 +388,8 @@ def diagnose_control(
     saved = str(record.get("chatgpt_control_url", "") or "").strip()
     if assistant_has_control_ready(messages):
         return "ready_marker"
+    if page_unavailable:
+        return "unavailable"
     if user_has_bootstrap_marker(messages):
         if assistant_error_after_bootstrap(messages):
             return "assistant_error"
@@ -383,7 +423,7 @@ def recovery_allowed(record: dict | None, diagnosis: str, checks: int = 0) -> bo
         return False
     if control_is_ready(diagnosis):
         return False
-    if diagnosis in {"bootstrap_without_response", "assistant_error", "alias_redirect"}:
+    if diagnosis in {"bootstrap_without_response", "assistant_error", "alias_redirect", "unavailable"}:
         return False
     saved = str(record.get("chatgpt_control_url", "") or "").strip()
     if not is_chatgpt_conversation_url(saved):
@@ -402,8 +442,9 @@ def next_control_action(
     generation_active: bool = False,
     composer_ready: bool = False,
     now: float | None = None,
+    page_unavailable: bool = False,
 ) -> str:
-    """ready, wait, send, or recover. send/recover happen at most once."""
+    """ready, wait, send, recover, or rebind. send/recover/rebind happen at most once."""
     record = record or {}
     diagnosis = diagnose_control(
         record,
@@ -413,9 +454,16 @@ def next_control_action(
         generation_active=generation_active,
         composer_ready=composer_ready,
         now=now,
+        page_unavailable=page_unavailable,
     )
     if control_is_ready(diagnosis):
         return "ready"
+    saved = str(record.get("chatgpt_control_url", "") or "")
+    rendered = page_unavailable or diagnosis == "unavailable"
+    if not rendered and not user_has_bootstrap_marker(messages):
+        rendered = hard_control_unavailable(messages, False)
+    if rebind_allowed(record, saved, rendered, now):
+        return "rebind"
     if canonicalization_eligible(record, messages, page_url, wake):
         return "wait"
     if recovery_allowed(record, diagnosis, checks):
@@ -509,6 +557,20 @@ def save_control_record(record: dict) -> None:
         payload["restore_attempted_at"] = record["restore_attempted_at"]
     if "restore_failures" in record:
         payload["restore_failures"] = int(record.get("restore_failures") or 0)
+    if record.get("rebind_for_url"):
+        payload["rebind_for_url"] = record["rebind_for_url"]
+    if record.get("rebind_attempted_at"):
+        payload["rebind_attempted_at"] = record["rebind_attempted_at"]
+    if "rebind_count" in record:
+        payload["rebind_count"] = int(record.get("rebind_count") or 0)
+    if record.get("rebind_status"):
+        payload["rebind_status"] = record["rebind_status"]
+    if "rebind_bootstrap_sent" in record:
+        payload["rebind_bootstrap_sent"] = bool(record.get("rebind_bootstrap_sent"))
+    if record.get("replaced_from"):
+        payload["replaced_from"] = record["replaced_from"]
+    if record.get("bootstrap_previous_sent_at"):
+        payload["bootstrap_previous_sent_at"] = record["bootstrap_previous_sent_at"]
     tmp = CONTROL_PATH.with_suffix(".tmp")
     tmp.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -550,6 +612,132 @@ def _read_control_file() -> dict:
     except Exception:
         return {}
     return loaded if isinstance(loaded, dict) else {}
+
+
+def rebind_target(url: str) -> str:
+    return normalize_conversation_url(url)
+
+
+def rebind_bound(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    saved = rebind_target(saved_url)
+    bound = rebind_target(str(record.get("rebind_for_url") or ""))
+    return bool(saved) and saved == bound
+
+
+def rebind_completed(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    if not rebind_bound(record, saved_url):
+        return False
+    return int(record.get("rebind_count") or 0) >= 1 and record.get("rebind_status") in {"done", "failed"}
+
+
+def rebind_cooldown_active(record: dict | None, now: float | None = None) -> bool:
+    record = record or {}
+    attempted = record.get("rebind_attempted_at")
+    if attempted in (None, ""):
+        return False
+    try:
+        attempted = float(attempted)
+    except (TypeError, ValueError):
+        return False
+    if now is None:
+        now = time.time()
+    return float(now) - attempted < CONTROL_REBIND_COOLDOWN_SECONDS
+
+
+def rebind_allowed(
+    record: dict | None,
+    saved_url: str,
+    unavailable: bool,
+    now: float | None = None,
+) -> bool:
+    record = record or {}
+    if not unavailable or not is_usable_control_url(saved_url):
+        return False
+    if rebind_completed(record, saved_url):
+        return False
+    if rebind_bound(record, saved_url) and record.get("rebind_status") == "pending":
+        return True
+    if rebind_bound(record, saved_url) and rebind_cooldown_active(record, now):
+        return False
+    return True
+
+
+def rebind_page_action(
+    record: dict | None,
+    saved_url: str,
+    unavailable: bool,
+    now: float,
+    has_page: bool,
+) -> str:
+    """create, reuse, wait, or none. A saved URL gets at most one new page."""
+    record = record or {}
+    if rebind_completed(record, saved_url):
+        return "wait"
+    bound = rebind_bound(record, saved_url)
+    status = record.get("rebind_status") if bound else ""
+    count = int(record.get("rebind_count") or 0) if bound else 0
+    if count >= 1 and status == "pending":
+        return "reuse" if has_page else "wait"
+    if count >= 1 and status == "failed":
+        return "wait"
+    if not unavailable:
+        return "none"
+    if bound and rebind_cooldown_active(record, now):
+        return "reuse" if has_page else "wait"
+    return "create"
+
+
+def _write_rebind_state(old_url: str, status: str, bootstrap_sent: bool | None = None) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_for_url"] = rebind_target(old_url) or str(old_url)
+    existing["rebind_count"] = max(1, int(existing.get("rebind_count") or 0))
+    existing["rebind_status"] = status
+    existing["rebind_attempted_at"] = time.time()
+    if bootstrap_sent is not None:
+        existing["rebind_bootstrap_sent"] = bootstrap_sent
+    save_control_record(existing)
+
+
+def mark_rebind_started(old_url: str) -> None:
+    _write_rebind_state(old_url, "pending", bootstrap_sent=False)
+
+
+def mark_rebind_bootstrap_sent(old_url: str) -> None:
+    _write_rebind_state(old_url, "pending", bootstrap_sent=True)
+
+
+def mark_rebind_failed(old_url: str) -> None:
+    existing = _read_control_file()
+    sent = bool(existing.get("rebind_bootstrap_sent"))
+    _write_rebind_state(old_url, "failed", bootstrap_sent=sent)
+
+
+def commit_rebind(new_url: str, old_url: str) -> None:
+    """Replace the URL once. Keep recovery fields and drop only the restore latch."""
+    existing = _read_control_file()
+    observed = normalize_conversation_url(new_url)
+    if not observed:
+        raise ValueError(f"Некорректный control URL: {new_url!r}")
+    previous_sent = existing.get("bootstrap_sent_at")
+    if previous_sent and not existing.get("bootstrap_previous_sent_at"):
+        existing["bootstrap_previous_sent_at"] = previous_sent
+    existing["chatgpt_control_url"] = observed
+    existing["replaced_from"] = rebind_target(old_url) or str(old_url)
+    existing["rebind_for_url"] = existing["replaced_from"]
+    existing["rebind_count"] = max(1, int(existing.get("rebind_count") or 0))
+    existing["rebind_status"] = "done"
+    existing["rebind_attempted_at"] = existing.get("rebind_attempted_at") or time.time()
+    existing["rebind_bootstrap_sent"] = True
+    existing["bootstrap_sent"] = True
+    existing["bootstrap_sent_at"] = time.time()
+    existing.pop("restore_attempted_at", None)
+    existing.pop("restore_failures", None)
+    save_control_record(existing)
+    log("CONTROL: url_rebound")
 
 
 def note_restore_failure() -> None:
@@ -1145,6 +1333,101 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
     return page
 
 
+def page_shows_unavailable(page) -> bool:
+    """Read the rendered error state and return only a boolean."""
+    try:
+        text = page.evaluate(
+            """() => {
+              const nodes = document.querySelectorAll('[role="alert"], [data-testid*="error"], h1, h2');
+              const headed = Array.from(nodes).slice(0, 12).map(n => n.innerText || '').join('\n');
+              const body = ((document.body && document.body.innerText) || '').slice(0, 1500);
+              return (headed + '\n' + body).slice(0, 2500);
+            }"""
+        )
+    except Exception:
+        return False
+    return hard_unavailable_text(text)
+
+
+def page_signed_out(page) -> bool:
+    try:
+        text = page.evaluate(
+            """() => ((document.body && document.body.innerText) || '').slice(0, 2000)"""
+        )
+    except Exception:
+        return False
+    lowered = str(text or "").lower()
+    return any(marker in lowered for marker in SIGN_IN_MARKERS)
+
+
+def find_rebind_page(browser):
+    for page in all_pages(browser):
+        if page_restore_mark(page) == REBIND_PAGE_MARK:
+            return page
+    return None
+
+
+def mark_rebind_page(page) -> None:
+    try:
+        page.evaluate("(name) => { window.name = name }", REBIND_PAGE_MARK)
+    except Exception:
+        pass
+
+
+def begin_control_rebind(browser, old_url: str):
+    """Create at most one new service chat. Never touch an unrelated conversation."""
+    record = load_control_record()
+    now = time.time()
+    page = find_rebind_page(browser)
+    action = rebind_page_action(record, old_url, True, now, page is not None)
+    log(f"CONTROL: rebind={action}")
+    if action in {"none", "wait"}:
+        return page
+    if action == "create":
+        mark_rebind_started(old_url)
+        page = browser.contexts[0].new_page()
+        mark_rebind_page(page)
+        log("CONTROL: page=rebind_create")
+    else:
+        log("CONTROL: page=rebind_reuse")
+
+    record = load_control_record()
+    if record.get("rebind_bootstrap_sent"):
+        url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
+        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
+            commit_rebind(url, old_url)
+            log("CONTROL: page=rebound")
+        return page
+
+    try:
+        page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=CONTROL_RESTORE_GOTO_TIMEOUT)
+    except Exception as exc:
+        mark_rebind_failed(old_url)
+        log(f"CONTROL: rebind=failed reason=goto error={type(exc).__name__}")
+        return page
+
+    try:
+        composer_ready = composer_is_ready(page)
+    except Exception:
+        composer_ready = False
+    if not composer_ready:
+        reason = "signed_out" if page_signed_out(page) else "no_composer"
+        mark_rebind_failed(old_url)
+        log(f"CONTROL: rebind=failed reason={reason}")
+        return page
+
+    mark_rebind_bootstrap_sent(old_url)
+    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
+    if not url or not is_usable_control_url(url) or same_conversation(url, old_url):
+        mark_rebind_failed(old_url)
+        log("CONTROL: rebind=failed reason=no_url")
+        return page
+    commit_rebind(url, old_url)
+    log("CONTROL: page=rebound")
+    return page
+
+
 def find_arena_page(browser):
     exact = []
     fallback = []
@@ -1411,6 +1694,7 @@ def _log_control_diag(
     generation_active: bool = False,
     composer_ready: bool = False,
     now: float | None = None,
+    page_unavailable: bool = False,
 ) -> str:
     diagnosis = diagnose_control(
         record,
@@ -1420,6 +1704,7 @@ def _log_control_diag(
         generation_active=generation_active,
         composer_ready=composer_ready,
         now=now,
+        page_unavailable=page_unavailable,
     )
     users, assistants = control_diag_counts(messages)
     checks = int(record.get("unready_checks") or 0)
@@ -1429,7 +1714,8 @@ def _log_control_diag(
         f"users={users} assistants={assistants} "
         f"url_usable={int(is_usable_control_url(str(record.get('chatgpt_control_url') or '')))} "
         f"checks={checks} recovery_used={int(bool(record.get('recovery_used')))} "
-        f"gen={int(bool(generation_active))} composer={int(bool(composer_ready))}"
+        f"gen={int(bool(generation_active))} composer={int(bool(composer_ready))} "
+        f"unavailable={int(diagnosis == 'unavailable')}"
     )
     return diagnosis
 
@@ -1452,6 +1738,7 @@ def ensure_control_ready(browser, wake: str = ""):
     messages: list[dict] = []
     generation_active = False
     composer_ready = False
+    page_unavailable = False
     if is_usable_control_url(saved):
         page = find_control_page(browser, wake)
         record = load_control_record()
@@ -1466,6 +1753,7 @@ def ensure_control_ready(browser, wake: str = ""):
                 page_url = normalize_conversation_url(page_url) or page_url
             generation_active = generation_is_active(page)
             composer_ready = composer_is_ready(page)
+            page_unavailable = page_shows_unavailable(page)
 
     checks = int(record.get("unready_checks") or 0)
     now = time.time()
@@ -1478,6 +1766,7 @@ def ensure_control_ready(browser, wake: str = ""):
         generation_active=generation_active,
         composer_ready=composer_ready,
         now=now,
+        page_unavailable=page_unavailable,
     )
     _log_control_diag(
         record,
@@ -1488,7 +1777,13 @@ def ensure_control_ready(browser, wake: str = ""):
         generation_active=generation_active,
         composer_ready=composer_ready,
         now=now,
+        page_unavailable=page_unavailable,
     )
+
+    if action == "rebind":
+        log("CONTROL: rebind hard-unavailable")
+        page = begin_control_rebind(browser, saved)
+        return page, False
 
     if action == "ready":
         if checks:

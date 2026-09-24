@@ -42,6 +42,13 @@ WANTED = {
     "canonicalization_eligible",
     "submitted_bootstrap_idle_ready",
     "canonicalize_control_url",
+    "hard_unavailable_text",
+    "hard_control_unavailable",
+    "rebind_target",
+    "rebind_bound",
+    "rebind_completed",
+    "rebind_cooldown_active",
+    "rebind_allowed",
 }
 
 
@@ -61,6 +68,8 @@ def load_helpers(control_path: Path):
                 "CONTROL_RECOVERY_CHECKS",
                 "CONTROL_READY_GRACE_SECONDS",
                 "CONTROL_ERROR_MARKERS",
+                "CONTROL_UNAVAILABLE_MARKERS",
+                "CONTROL_REBIND_COOLDOWN_SECONDS",
                 "MAX_WAKE_ATTEMPTS",
                 "WAKE_CONFIRM_SECONDS",
             }:
@@ -88,8 +97,8 @@ def version_of(path: Path) -> str:
 
 
 def main() -> None:
-    assert version_of(CORE) == "2.2.12"
-    assert version_of(RUNTIME) == "2.2.12"
+    assert version_of(CORE) == "2.2.13"
+    assert version_of(RUNTIME) == "2.2.13"
     source = CORE.read_text(encoding="utf-8")
     assert "CONTROL_BOOTSTRAP_WAIT" not in source
     assert "time.sleep(1)" not in source
@@ -127,7 +136,7 @@ def main() -> None:
         ns["save_control_url"](url, bootstrap_sent=True)
         saved = json.loads((Path(tmp) / "control.json").read_text(encoding="utf-8"))
         assert saved["bootstrap_sent"] is True
-        assert saved["dispatcher_version"] == "2.2.12"
+        assert saved["dispatcher_version"] == "2.2.13"
 
         legacy_path = Path(tmp) / "control.json"
         legacy_path.write_text(

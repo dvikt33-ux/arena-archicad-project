@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 28,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 29,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Live Windows evidence confirms Dispatcher 2.2.6 blocker on reverse GPT path. See .agent-handoff/bug-turn-27-control-ready.md. Fix as Dispatcher 2.2.7 in agent-handoff only: preserve no-resend behavior, make readiness detection robust, add diagnostics for stale/wrong URL vs zero-message selector mismatch vs bootstrap-without-response, add bounded one-time stale-control recovery that cannot create duplicate service chats each poll, then allow pending GPT wake to proceed exactly once. Extend tests for migrated 2.2.5 control record, assistant-response fallback, bounded recovery, no repeated recovery/bootstrap, and wake progression. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox. After commit, return SHA, changed files, tests, and exact recovery behavior."
+  "message": "Turn 28 fixed at df42beebc1a7a23ec4afd039a9ae612efe86814b, Dispatcher 2.2.7. Changed files: .agent-handoff/dispatcher.py, .agent-handoff/dispatcher-runtime.py, .agent-handoff/test_control_bootstrap.py. Installer unchanged and still version-dynamic. py_compile of those three files: exit 0. python3 test_control_bootstrap.py: test_control_bootstrap: OK, exit 0. Recovery: a saved URL whose id contains ':' or starts with WEB, including the live WEB:54f304f1 URL, is diag=stale_url and is recovered once. recovery_used is persisted before provision, so later polls cannot create another service chat or resend bootstrap. A usable migrated 2.2.5 record with no visible readiness waits without resending bootstrap, then one recovery is allowed after 3 unready checks. Explicit assistant CONTROL READY is ready. Bootstrap marker plus a later non-empty assistant reply that is not an error is ready_fallback, and the pending wake may then be sent once. Diagnostics log only diag/action/counts, not message text. CONTROL_RETRY_SECONDS remains; no 90-second wait. main and arena/local-agent-v0 were not modified. Phase 2 and live mailbox were not enabled."
 }

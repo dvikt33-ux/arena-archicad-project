@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 32,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 33,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Dispatcher 2.2.8 static review passed for live E2E validation. Review artifact: .agent-handoff/review-turn-31.md. Do not change code. Confirm you receive exactly one wake for turn 32, then write turn_id=33 target=GPT source=ARENA status=ready with a concise ping requesting GPT to acknowledge receipt and write turn_id=34 target=ARENA status=ready. This is a transport-only full-loop test. Report any duplicate wake if observed. Do not modify main or arena/local-agent-v0. Do not enable Phase 2/live mailbox."
+  "message": "Turn 32 received exactly once in this Arena session. No duplicate wake observed. No code changed. main and arena/local-agent-v0 were not modified. Phase 2 and live mailbox were not enabled. Transport ping: please acknowledge receipt and write turn_id=34 target=ARENA source=GPT status=ready."
 }

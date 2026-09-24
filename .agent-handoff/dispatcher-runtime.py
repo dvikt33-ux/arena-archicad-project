@@ -57,8 +57,6 @@ def dismiss_arena_completion_prompt(page) -> bool:
         continue_action.click(timeout=3000)
         page.wait_for_timeout(500)
 
-        # Confirm the blocking question disappeared. If Arena animates slowly,
-        # give it a little more time but do not click anything else.
         try:
             question.wait_for(state="hidden", timeout=4000)
         except Exception:
@@ -107,6 +105,18 @@ core.arena_editor = arena_editor
 core.send_to_arena = send_to_arena
 
 
+def dismiss_prompt_once() -> int:
+    core.start_service_chrome()
+    with core.sync_playwright() as p:
+        browser = p.chromium.connect_over_cdp(core.CDP)
+        page = find_arena_page(browser)
+        if dismiss_arena_completion_prompt(page):
+            core.log("ARENA: одноразовое закрытие итогового табло выполнено.")
+            return 0
+        core.log("ARENA: одноразовое закрытие не потребовалось или табло не найдено.")
+        return 0
+
+
 if __name__ == "__main__":
     if len(core.sys.argv) > 1:
         arg = core.sys.argv[1].strip().upper()
@@ -114,10 +124,12 @@ if __name__ == "__main__":
             core.manual_wake("GPT")
         elif arg == "ARENA-ПУСК":
             core.manual_wake("ARENA")
+        elif arg == "DISMISS-ARENA-PROMPT":
+            raise SystemExit(dismiss_prompt_once())
         else:
             raise SystemExit(
-                "Неизвестный аргумент. "
-                "Используй GPT-ПУСК или ARENA-ПУСК, либо запусти без аргументов."
+                "Неизвестный аргумент. Используй GPT-ПУСК, ARENA-ПУСК, "
+                "DISMISS-ARENA-PROMPT или запусти без аргументов."
             )
     else:
         core.watch()

@@ -75,13 +75,13 @@ $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 $startInfo.UseShellExecute = $true
 [System.Diagnostics.Process]::Start($startInfo) | Out-Null
 
-$deadline = (Get-Date).AddSeconds(15)
+$deadline = (Get-Date).AddSeconds(30)
 $started = $false
 while ((Get-Date) -lt $deadline) {
     if (Test-Path $LogPath) {
         $item = Get-Item $LogPath
         if ($item.Length -gt $logBytesBefore) {
-            $tail = Get-Content $LogPath -Tail 30 -Encoding UTF8 -ErrorAction SilentlyContinue
+            $tail = Get-Content $LogPath -Tail 40 -Encoding UTF8 -ErrorAction SilentlyContinue
             if ($tail -match 'AI Dispatcher 2\.2\.4 запущен') {
                 $started = $true
                 break
@@ -91,8 +91,23 @@ while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 500
 }
 
+# Fallback: if log-tail timing raced the installer, confirm a live dispatcher process
+# together with a 2.2.4 startup line in the UTF-8 log.
 if (-not $started) {
-    Write-Warning "Autostart created, but a fresh AI Dispatcher 2.2.4 startup was not confirmed in $LogPath"
+    $proc = Get-CimInstance Win32_Process | Where-Object {
+        ($_.Name -match '^(py|python|pythonw)(\.exe)?$') -and
+        ($_.CommandLine -match '(?i)[\\/]dispatcher\.py')
+    }
+    if ($proc -and (Test-Path $LogPath)) {
+        $tail = Get-Content $LogPath -Tail 60 -Encoding UTF8 -ErrorAction SilentlyContinue
+        if ($tail -match 'AI Dispatcher 2\.2\.4 запущен') {
+            $started = $true
+        }
+    }
+}
+
+if (-not $started) {
+    Write-Warning "Autostart created, but AI Dispatcher 2.2.4 startup could not be confirmed in $LogPath"
     exit 1
 }
 

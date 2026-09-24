@@ -19,10 +19,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.5
+# AI Dispatcher 2.2.6
 # =========================
 
-VERSION = "2.2.5"
+VERSION = "2.2.6"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -62,7 +62,8 @@ ARENA_RETRY_SECONDS = 60
 CONTROL_RETRY_SECONDS = 15
 PAGE_TIMEOUT = 15000
 CHROME_START_TIMEOUT = 25
-CONTROL_BOOTSTRAP_WAIT = 90
+CONTROL_READY_MARKER = "CONTROL READY"
+CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
 
 TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
 HOLD_STATUSES = {"blocked", "paused", "idle"}
@@ -165,36 +166,97 @@ def is_chatgpt_conversation_url(url: str) -> bool:
     return bool(url) and url.startswith("https://chatgpt.com/c/")
 
 
-def load_control_url() -> str:
+def assistant_has_control_ready(messages: list[dict]) -> bool:
+    return any(
+        item.get("role") == "assistant"
+        and CONTROL_READY_MARKER in str(item.get("text") or "")
+        for item in messages
+    )
+
+
+def user_has_bootstrap_marker(messages: list[dict]) -> bool:
+    return any(
+        item.get("role") == "user"
+        and CONTROL_BOOTSTRAP_MARKER in str(item.get("text") or "")
+        for item in messages[-60:]
+    )
+
+
+def bootstrap_was_sent(record: dict | None) -> bool:
+    """A saved control URL without the flag was written by 2.2.5 after bootstrap."""
+    record = record or {}
+    url = str(record.get("chatgpt_control_url", "") or "").strip()
+    if not is_chatgpt_conversation_url(url):
+        return False
+    if "bootstrap_sent" not in record:
+        return True
+    return bool(record.get("bootstrap_sent"))
+
+
+def control_bootstrap_decision(record: dict | None, messages: list[dict]) -> str:
+    """ready: send the pending wake. wait: do not resend. send: one bootstrap."""
+    if assistant_has_control_ready(messages):
+        return "ready"
+    if bootstrap_was_sent(record) or user_has_bootstrap_marker(messages):
+        return "wait"
+    return "send"
+
+
+def load_control_record() -> dict:
     if not CONTROL_PATH.exists():
-        return ""
+        return {}
     try:
         data = json.loads(CONTROL_PATH.read_text(encoding="utf-8"))
-        url = str(data.get("chatgpt_control_url", "") or "").strip()
-        if is_chatgpt_conversation_url(url):
-            return url
     except Exception as exc:
         log(f"CONTROL: не удалось прочитать {CONTROL_PATH.name}: {exc}")
-    return ""
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    url = str(data.get("chatgpt_control_url", "") or "").strip()
+    if not is_chatgpt_conversation_url(url):
+        return {}
+    if "bootstrap_sent" not in data:
+        data["bootstrap_sent"] = True
+        data["bootstrap_migrated_from"] = str(data.get("dispatcher_version") or "2.2.5")
+        save_control_record(data)
+        log("CONTROL: существующий control URL принят как bootstrap уже отправленный.")
+    return data
 
 
-def save_control_url(url: str) -> None:
+def load_control_url() -> str:
+    return str(load_control_record().get("chatgpt_control_url", "") or "")
+
+
+def save_control_record(record: dict) -> None:
+    url = str(record.get("chatgpt_control_url", "") or "").strip()
     if not is_chatgpt_conversation_url(url):
         raise ValueError(f"Некорректный control URL: {url!r}")
+    payload = {
+        "chatgpt_control_url": url,
+        "name": record.get("name") or "01 — CONTROL & BRIDGE",
+        "dispatcher_version": VERSION,
+        "bootstrap_sent": bool(record.get("bootstrap_sent")),
+    }
+    if record.get("bootstrap_sent_at"):
+        payload["bootstrap_sent_at"] = record["bootstrap_sent_at"]
+    if record.get("bootstrap_migrated_from"):
+        payload["bootstrap_migrated_from"] = record["bootstrap_migrated_from"]
     tmp = CONTROL_PATH.with_suffix(".tmp")
     tmp.write_text(
-        json.dumps(
-            {
-                "chatgpt_control_url": url,
-                "name": "01 — CONTROL & BRIDGE",
-                "dispatcher_version": VERSION,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
+        json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     os.replace(tmp, CONTROL_PATH)
+
+
+def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
+    save_control_record(
+        {
+            "chatgpt_control_url": url,
+            "bootstrap_sent": bootstrap_sent,
+            "bootstrap_sent_at": time.time() if bootstrap_sent else None,
+        }
+    )
     log(f"CONTROL: закреплён отдельный машинный ChatGPT-чат: {url}")
 
 
@@ -610,22 +672,25 @@ def provision_control_chat(browser):
 
 def ensure_control_ready(browser):
     page = find_control_page(browser)
+    record = load_control_record()
+    messages = chatgpt_messages(page)
+    decision = control_bootstrap_decision(record, messages)
 
-    if not chatgpt_user_message_exists(page, CONTROL_BOOTSTRAP):
-        log("CONTROL: bootstrap отсутствует, инициализирую машинный чат.")
-        send_to_chatgpt(page, CONTROL_BOOTSTRAP)
-
-    if chatgpt_response_complete(page, CONTROL_BOOTSTRAP):
+    if decision == "ready":
+        log("CONTROL: CONTROL READY найден, продолжаю без ожидания bootstrap.")
         return page, True
 
-    deadline = time.time() + CONTROL_BOOTSTRAP_WAIT
-    while time.time() < deadline:
-        if chatgpt_response_complete(page, CONTROL_BOOTSTRAP):
-            log("CONTROL: машинный ChatGPT-чат готов.")
-            return page, True
-        time.sleep(1)
+    if decision == "wait":
+        log("CONTROL: bootstrap уже отправлен, CONTROL READY ещё нет. Повтор не отправляю.")
+        return page, False
 
-    log("CONTROL: bootstrap отправлен, но ответ ещё не завершён; повторю проверку позже.")
+    log("CONTROL: bootstrap отсутствует, отправляю один раз.")
+    send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+    url = str(record.get("chatgpt_control_url") or "")
+    if not is_chatgpt_conversation_url(url):
+        url = str(page.url or "").split("?", 1)[0].split("#", 1)[0]
+    if is_chatgpt_conversation_url(url):
+        save_control_url(url, bootstrap_sent=True)
     return page, False
 
 
@@ -838,6 +903,12 @@ def create_inflight(state: dict, signal: dict) -> dict:
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
+
+    if (
+        inflight.get("last_error") == "Control chat bootstrap pending"
+        and time.time() < float(inflight.get("retry_after", 0) or 0)
+    ):
+        return
 
     page, ready = ensure_control_ready(browser)
     if not ready:

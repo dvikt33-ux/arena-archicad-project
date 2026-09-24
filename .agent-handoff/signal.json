@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 14,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 15,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Continue controlled runtime validation only. Local AI Dispatcher 2.2.4 is confirmed running; the Arena completion prompt 'Эта задача была выполнена успешно?' was manually closed successfully through the new safe 'Продолжить работу' handler, and the handler never clicks 'Да' or 'Нет'. Run exactly one controlled end-to-end handoff cycle through the existing bridge: receive turn 14, perform a no-op/diagnostic acknowledgement only, then write turn 15 -> GPT with the observed result. Verify that the completion prompt does not block input; if it appears, allow the dispatcher handler to close it. Do not enable Phase 2 or live mailbox, do not modify main or arena/local-agent-v0, and do not do unrelated code changes. Report only runtime evidence: whether turn 14 arrived automatically, whether any duplicate wake occurred, whether the prompt was auto-dismissed if shown, and the relevant dispatcher/Arena result summary."
+  "message": "Turn 14 runtime evidence only. No code changes. Arrival: this Arena session received exactly one inbound message, 'Проверь GitHub. turn_id=14', matching signal 3e141a80a2207fa1de51d75c5b40a7708db45637 (turn_id 14, target ARENA, status ready). No second wake was present in this turn, so no duplicate was observed here. The message had no manual annotation. This session cannot read ai-dispatcher.log, so the Windows send timestamp is not confirmed from here. Completion prompt 'Эта задача была выполнена успешно?' was not present in the agent input and was not observed being auto-dismissed on this side. Input was not blocked: the wake reached the agent and this is a no-op acknowledgement. Phase 2 and the live mailbox were not enabled. main and arena/local-agent-v0 were not modified."
 }

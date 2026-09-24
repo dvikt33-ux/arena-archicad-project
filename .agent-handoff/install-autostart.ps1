@@ -16,7 +16,8 @@ if (Test-Path $DispatcherPath) {
 }
 
 Write-Host 'Downloading dispatcher.py from GitHub...'
-Invoke-WebRequest -UseBasicParsing -Uri $DispatcherUrl -OutFile $DispatcherPath
+$downloadUrl = $DispatcherUrl + '?ts=' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -OutFile $DispatcherPath
 
 Write-Host 'Checking Python syntax...'
 & py -m py_compile $DispatcherPath
@@ -43,8 +44,8 @@ Write-Host "Autostart created: $VbsPath"
 Write-Host 'Stopping old dispatcher.py instances...'
 Get-CimInstance Win32_Process |
     Where-Object {
-        ($_.Name -match '^python(w)?\.exe$') -and
-        ($_.CommandLine -match '(?i)[\\/]dispatcher\.py(?:\s|$|\")')
+        ($_.Name -match '^(py|python|pythonw)(\.exe)?$') -and
+        ($_.CommandLine -match '(?i)[\\/]dispatcher\.py')
     } |
     ForEach-Object {
         try {
@@ -56,18 +57,40 @@ Get-CimInstance Win32_Process |
         }
     }
 
+Start-Sleep -Seconds 1
+$logBytesBefore = 0L
+if (Test-Path $LogPath) {
+    $logBytesBefore = (Get-Item $LogPath).Length
+}
+
 Write-Host 'Starting AI Dispatcher 2.2 hidden...'
-Start-Process -FilePath 'wscript.exe' -ArgumentList "`"$VbsPath`""
+# Startup path contains spaces. ProcessStartInfo keeps it one quoted argument on PS 5.1.
+$startInfo = New-Object System.Diagnostics.ProcessStartInfo
+$startInfo.FileName = 'wscript.exe'
+$startInfo.Arguments = '"' + $VbsPath + '"'
+$startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+$startInfo.UseShellExecute = $true
+[System.Diagnostics.Process]::Start($startInfo) | Out-Null
 
 $deadline = (Get-Date).AddSeconds(12)
+$started = $false
 while ((Get-Date) -lt $deadline) {
     if (Test-Path $LogPath) {
-        $tail = Get-Content $LogPath -Tail 20 -ErrorAction SilentlyContinue
-        if ($tail -match 'AI Dispatcher 2.2') {
-            break
+        $item = Get-Item $LogPath
+        if ($item.Length -gt $logBytesBefore) {
+            $tail = Get-Content $LogPath -Tail 20 -Encoding UTF8 -ErrorAction SilentlyContinue
+            if ($tail -match 'AI Dispatcher 2\.2') {
+                $started = $true
+                break
+            }
         }
     }
     Start-Sleep -Milliseconds 500
+}
+
+if (-not $started) {
+    Write-Warning "Shortcut created, but a new dispatcher start was not written to $LogPath"
+    exit 1
 }
 
 Write-Host ''
@@ -79,9 +102,9 @@ Write-Host ''
 
 if (Test-Path $LogPath) {
     Write-Host 'Last log lines:'
-    Get-Content $LogPath -Tail 15
+    Get-Content $LogPath -Tail 15 -Encoding UTF8
 }
 else {
     Write-Host 'Log has not appeared yet. Check in a few seconds:'
-    Write-Host "  Get-Content `"$LogPath`" -Tail 30"
+    Write-Host "  Get-Content `"$LogPath`" -Tail 30 -Encoding UTF8"
 }

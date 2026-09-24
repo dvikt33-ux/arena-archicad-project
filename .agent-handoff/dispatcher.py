@@ -15,10 +15,10 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.1
+# AI Dispatcher 2.2.2
 # =========================
 
-VERSION = "2.2.1"
+VERSION = "2.2.2"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -45,8 +45,9 @@ ARENA_RETRY_SECONDS = 60
 PAGE_TIMEOUT = 15000
 CHROME_START_TIMEOUT = 25
 
-TERMINAL_STATUSES = {"blocked", "paused", "cancelled", "canceled", "done"}
-READY_STATUSES = {"ready", "pending", "queued", ""}
+TERMINAL_STATUSES = {"cancelled", "canceled", "done"}
+HOLD_STATUSES = {"blocked", "paused", "idle"}
+READY_STATUSES = {"ready", "pending", "queued"}
 
 MUTEX_NAME = r"Local\AI_Dispatcher_22"
 
@@ -153,9 +154,61 @@ def port_open(host: str, port: int, timeout: float = 0.7) -> bool:
         return False
 
 
-def start_service_chrome() -> None:
-    if port_open(CDP_HOST, CDP_PORT):
+_CHROME_PROC = None
+
+
+def cdp_http_ready() -> bool:
+    try:
+        req = urllib.request.Request(
+            f"{CDP}/json/version",
+            headers={"User-Agent": "AI-Dispatcher-2.2.2"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            payload = json.loads(resp.read().decode("utf-8", "replace"))
+        return bool(payload.get("webSocketDebuggerUrl"))
+    except Exception:
+        return False
+
+
+def stop_owned_chrome() -> None:
+    global _CHROME_PROC
+    if _CHROME_PROC is not None and _CHROME_PROC.poll() is None:
+        _CHROME_PROC.terminate()
+        try:
+            _CHROME_PROC.wait(timeout=5)
+        except Exception:
+            _CHROME_PROC.kill()
+    _CHROME_PROC = None
+    if os.name != "nt":
         return
+    script = (
+        "Get-CimInstance Win32_Process -Filter \"Name = 'chrome.exe'\" | "
+        "Where-Object { $_.CommandLine -like '*AI-Dispatcher-Chrome*' -and "
+        "$_.CommandLine -like '*--remote-debugging-port=9223*' } | "
+        "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+    )
+    subprocess.run(
+        ["powershell", "-NoProfile", "-Command", script],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=20,
+    )
+    deadline = time.time() + 8
+    while time.time() < deadline and port_open(CDP_HOST, CDP_PORT):
+        time.sleep(0.3)
+
+
+def start_service_chrome(force: bool = False) -> None:
+    global _CHROME_PROC
+    if not force and cdp_http_ready():
+        return
+    if force or port_open(CDP_HOST, CDP_PORT):
+        log("CHROME: перезапускаю сервисный профиль.")
+        stop_owned_chrome()
+        if port_open(CDP_HOST, CDP_PORT):
+            raise RuntimeError(
+                f"Порт {CDP_PORT} занят, но это не CDP сервисного Chrome."
+            )
 
     if not CHROME_PATH.exists():
         raise FileNotFoundError(f"Chrome не найден: {CHROME_PATH}")
@@ -165,7 +218,10 @@ def start_service_chrome() -> None:
     args = [
         str(CHROME_PATH),
         f"--remote-debugging-port={CDP_PORT}",
+        "--remote-allow-origins=*",
         f"--user-data-dir={CHROME_PROFILE}",
+        "--no-first-run",
+        "--no-default-browser-check",
     ]
 
     creationflags = 0
@@ -175,7 +231,7 @@ def start_service_chrome() -> None:
             | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         )
 
-    subprocess.Popen(
+    _CHROME_PROC = subprocess.Popen(
         args,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -184,7 +240,7 @@ def start_service_chrome() -> None:
 
     deadline = time.time() + CHROME_START_TIMEOUT
     while time.time() < deadline:
-        if port_open(CDP_HOST, CDP_PORT):
+        if cdp_http_ready():
             log("CHROME: сервисный Chrome запущен.")
             return
         time.sleep(0.5)
@@ -199,14 +255,47 @@ def start_service_chrome() -> None:
 # GitHub signal
 # -------------------------
 
+def is_github_network_error(exc: BaseException) -> bool:
+    name = type(exc).__name__
+    if name in {
+        "URLError",
+        "TimeoutError",
+        "RemoteDisconnected",
+        "SSLError",
+        "ConnectionError",
+        "ConnectionResetError",
+    }:
+        return True
+    text = str(exc)
+    return any(
+        token in text
+        for token in ("RemoteDisconnected", "UNEXPECTED_EOF", "handshake", "timed out")
+    )
+
+
 def fetch_signal() -> dict:
+    last_exc: BaseException | None = None
+    for attempt in range(3):
+        try:
+            return _fetch_signal_once()
+        except Exception as exc:
+            if not is_github_network_error(exc) or attempt == 2:
+                raise
+            last_exc = exc
+            delay = 1 + attempt * 2
+            log(f"GITHUB: сеть недоступна ({type(exc).__name__}), повтор через {delay} сек.")
+            time.sleep(delay)
+    raise last_exc if last_exc else RuntimeError("fetch_signal failed")
+
+
+def _fetch_signal_once() -> dict:
     url = f"{SIGNAL_URL}?ts={time.time_ns()}"
     req = urllib.request.Request(
         url,
         headers={
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "AI-Dispatcher-2.2.1",
+            "User-Agent": "AI-Dispatcher-2.2.2",
         },
     )
 
@@ -239,6 +328,18 @@ def all_pages(browser):
             yield page
 
 
+def url_matches(url: str, expected: str) -> bool:
+    if not url or not expected:
+        return False
+    if url == expected:
+        return True
+    return (
+        url.startswith(expected + "/")
+        or url.startswith(expected + "?")
+        or url.startswith(expected + "#")
+    )
+
+
 def page_is_foreground(page) -> bool:
     try:
         return page.evaluate("document.visibilityState") == "visible"
@@ -260,7 +361,7 @@ def find_chatgpt_page(browser):
 
     for page in all_pages(browser):
         url = page.url or ""
-        if url == CHATGPT_URL:
+        if url_matches(url, CHATGPT_URL):
             exact.append(page)
         elif "chatgpt.com" in url:
             fallback.append(page)
@@ -271,10 +372,7 @@ def find_chatgpt_page(browser):
 
     page = choose_page(fallback)
     if page is not None:
-        try:
-            page.goto(CHATGPT_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
-        except Exception:
-            pass
+        page.goto(CHATGPT_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
         return page
 
     context = browser.contexts[0]
@@ -317,30 +415,19 @@ def find_arena_page(browser):
 
     for page in all_pages(browser):
         url = page.url or ""
-        if url == ARENA_URL:
+        if url_matches(url, ARENA_URL):
             exact.append(page)
         elif "arena.ai" in url:
             fallback.append(page)
 
-    candidates = exact + fallback
-    foreground = [page for page in candidates if page_is_foreground(page)]
-    background = [page for page in candidates if page not in foreground]
-
-    for page in foreground + background:
-        if arena_editor(page) is not None:
-            return page
-
     page = choose_page(exact)
-    if page is not None:
-        return page
-
-    page = choose_page(fallback)
-    if page is not None:
-        return page
-
-    context = browser.contexts[0]
-    page = context.new_page()
-    page.goto(ARENA_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    if page is None:
+        page = choose_page(fallback)
+    if page is None:
+        context = browser.contexts[0]
+        page = context.new_page()
+    if not url_matches(page.url or "", ARENA_URL):
+        page.goto(ARENA_URL, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
     return page
 
 
@@ -468,12 +555,39 @@ def refresh_desktop_chatgpt() -> None:
 # Arena handling
 # -------------------------
 
-def arena_wake_exists(page, wake: str) -> bool:
+def arena_user_texts(page) -> list[str]:
     try:
-        body_text = page.locator("body").inner_text(timeout=5000)
+        return page.locator("[data-message-author-role='user']").evaluate_all(
+            "nodes => nodes.map(n => (n.innerText || '').trim())"
+        )
+    except Exception:
+        return []
+
+
+def arena_wake_exists(page, wake: str) -> bool:
+    if any(text == wake for text in arena_user_texts(page)[-40:]):
+        return True
+    editor = arena_editor(page)
+    composer = editor_text(editor) if editor is not None else ""
+    try:
+        body = page.locator("body").inner_text(timeout=5000)
     except Exception:
         return False
-    return wake in body_text
+    # Exact line, not a substring: a quoted wake inside a longer message must not match.
+    # Skip the line when it is only the still-unsent composer text.
+    lines = [line.strip() for line in body.splitlines() if line.strip() == wake]
+    if composer == wake:
+        return len(lines) > 1
+    return len(lines) >= 1
+
+
+def editor_text(editor) -> str:
+    try:
+        return editor.evaluate(
+            """el => (el.innerText || el.value || '').trim()"""
+        )
+    except Exception:
+        return ""
 
 
 def send_to_arena(page, wake: str) -> None:
@@ -482,27 +596,29 @@ def send_to_arena(page, wake: str) -> None:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
     editor.click()
-
+    inserted = False
     try:
         editor.fill(wake)
+        inserted = editor_text(editor) == wake
     except Exception:
-        editor.evaluate(
-            """(el, text) => {
-                el.focus();
-                el.innerHTML = '';
-                const p = document.createElement('p');
-                p.textContent = text;
-                el.appendChild(p);
-                el.dispatchEvent(new InputEvent('input', {
-                    bubbles: true,
-                    inputType: 'insertText',
-                    data: text
-                }));
-            }""",
-            wake,
-        )
+        inserted = False
+
+    if not inserted:
+        try:
+            editor.press("Control+A")
+            editor.press("Backspace")
+            page.keyboard.insert_text(wake)
+            inserted = editor_text(editor) == wake
+        except Exception:
+            inserted = False
+
+    if not inserted:
+        raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
     editor.press("Enter")
+    page.wait_for_timeout(800)
+    if not arena_wake_exists(page, wake) and editor_text(editor) == wake:
+        raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
 
 # -------------------------
@@ -541,25 +657,27 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         refresh_desktop_chatgpt()
         return
 
-    if not chatgpt_wake_exists(page, wake):
-        send_to_chatgpt(page, wake)
-        inflight["submitted"] = True
-        inflight["submitted_at"] = time.time()
-        inflight["last_error"] = None
-        state["inflight"] = inflight
-        save_state(state)
-        log(f"GPT: команда отправлена ({wake})")
-    else:
+    if chatgpt_wake_exists(page, wake):
         if not inflight.get("submitted"):
             inflight["submitted"] = True
             inflight["submitted_at"] = time.time()
             state["inflight"] = inflight
             save_state(state)
         log(f"GPT: команда уже есть в чате, повтор не отправляю ({wake})")
+        return
 
-    # Не блокируем главный цикл. Через CHECK_INTERVAL снова сначала читаем GitHub.
-    # Если GPT уже записал следующий turn_id, новый сигнал сам подтверждает,
-    # что предыдущий handoff обработан.
+    # Protocol: a submitted wake is not sent again just because the DOM
+    # has not shown it yet. 2.2.1 returned every 5s and resent in that window.
+    if inflight.get("submitted"):
+        return
+
+    send_to_chatgpt(page, wake)
+    inflight["submitted"] = True
+    inflight["submitted_at"] = time.time()
+    inflight["last_error"] = None
+    state["inflight"] = inflight
+    save_state(state)
+    log(f"GPT: команда отправлена ({wake})")
 
 
 def process_arena(browser, state: dict, inflight: dict) -> None:
@@ -576,6 +694,9 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         consume_turn(state, turn_id, "Arena уже получила команду")
         return
 
+    if inflight.get("submitted"):
+        return
+
     try:
         send_to_arena(page, wake)
     except RuntimeError as exc:
@@ -590,6 +711,18 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         log(
             f"ARENA: поле ввода недоступно для turn_id={turn_id}. "
             f"Повтор через {ARENA_RETRY_SECONDS} сек., без дублирования."
+        )
+        return
+
+    if not arena_wake_exists(page, wake):
+        inflight["submitted"] = True
+        inflight["submitted_at"] = time.time()
+        inflight["last_error"] = "Arena wake not observed"
+        state["inflight"] = inflight
+        save_state(state)
+        log(
+            f"ARENA: Enter для turn_id={turn_id} не виден в истории. "
+            "Повтор не отправляю; жду подтверждение или новый turn_id."
         )
         return
 
@@ -630,6 +763,10 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
     if turn_id <= int(state.get("last_turn_id", 0)):
         return True
 
+    if status in HOLD_STATUSES and target != "NONE":
+        log(f"TURN {turn_id}: status={status}, отправка отложена без consume.")
+        return True
+
     if target == "NONE" or status in TERMINAL_STATUSES:
         consume_turn(
             state,
@@ -659,10 +796,13 @@ def watch() -> None:
     log(f"Лог: {LOG_PATH}")
 
     with sync_playwright() as p:
-        browser = p.chromium.connect_over_cdp(CDP)
+        browser = None
 
         while True:
             try:
+                if browser is None:
+                    start_service_chrome()
+                    browser = p.chromium.connect_over_cdp(CDP)
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 
@@ -679,12 +819,25 @@ def watch() -> None:
                     )
                     inflight = None
 
+                if (
+                    inflight
+                    and int(signal.get("turn_id", 0)) == int(inflight.get("turn_id", -1))
+                    and str(signal.get("status", "")).lower() in HOLD_STATUSES
+                    and str(signal.get("target", "")).upper() != "NONE"
+                ):
+                    log(
+                        f"TURN {int(inflight['turn_id'])}: "
+                        f"status={signal['status']}, inflight не отправляю."
+                    )
+                    time.sleep(CHECK_INTERVAL)
+                    continue
+
                 if inflight and current_signal_cancels_inflight(signal, inflight):
                     consume_turn(
                         state,
                         int(inflight["turn_id"]),
                         (
-                            f"handoff отменён/приостановлен: "
+                            f"handoff закрыт: "
                             f"status={signal['status']} target={signal['target']}"
                         ),
                     )
@@ -738,22 +891,22 @@ def watch() -> None:
                 raise
             except Exception as exc:
                 log(f"ERROR: {type(exc).__name__}: {exc}")
+                if is_github_network_error(exc):
+                    log("GITHUB: временная ошибка сети, CDP не перезапускаю.")
+                    time.sleep(CHECK_INTERVAL)
+                    continue
+                browser = None
 
-                if not port_open(CDP_HOST, CDP_PORT):
-                    try:
-                        log("CHROME: CDP потерян, запускаю Chrome заново.")
-                        start_service_chrome()
-                        try:
-                            browser.close()
-                        except Exception:
-                            pass
-                        browser = p.chromium.connect_over_cdp(CDP)
-                        log("CHROME: соединение восстановлено.")
-                    except Exception as chrome_exc:
-                        log(
-                            f"CHROME: восстановление не удалось: "
-                            f"{type(chrome_exc).__name__}: {chrome_exc}"
-                        )
+                try:
+                    log("CHROME: восстанавливаю CDP, не только если порт закрыт.")
+                    start_service_chrome(force=not cdp_http_ready())
+                    browser = p.chromium.connect_over_cdp(CDP)
+                    log("CHROME: соединение восстановлено.")
+                except Exception as chrome_exc:
+                    log(
+                        f"CHROME: восстановление не удалось: "
+                        f"{type(chrome_exc).__name__}: {chrome_exc}"
+                    )
 
             time.sleep(CHECK_INTERVAL)
 

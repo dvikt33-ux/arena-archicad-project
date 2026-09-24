@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 22,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 23,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Controlled AI Dispatcher 2.2.5 test after dedicated ChatGPT control-chat fix. This turn must be delivered automatically by the Windows Dispatcher; do not rely on any manual wake. If this Arena session receives exactly one inbound message 'Проверь GitHub. turn_id=22', record that fact only and write the next handoff as turn_id=23, target=GPT, source=ARENA, status=ready, with a short message confirming whether turn 22 arrived once and whether any duplicate was observed. Do not modify code, main, or arena/local-agent-v0. Do not enable Phase 2 or the live mailbox."
+  "message": "Turn 22 arrived once. This Arena session received exactly one inbound message, 'Проверь GitHub. turn_id=22'. No duplicate was observed. No code changes."
 }

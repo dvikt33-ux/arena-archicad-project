@@ -5,10 +5,11 @@ $RuntimeUrl = 'https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-proje
 $DispatcherPath = Join-Path $HOME 'dispatcher.py'
 $CorePath = Join-Path $HOME 'dispatcher_core.py'
 $LogPath = Join-Path $HOME 'ai-dispatcher.log'
+$BootstrapLog = Join-Path $HOME 'ai-dispatcher-bootstrap.log'
 $StartupDir = [Environment]::GetFolderPath('Startup')
 $VbsPath = Join-Path $StartupDir 'AI-Dispatcher.vbs'
 
-Write-Host '=== AI Dispatcher 2.2.4 installer ==='
+Write-Host '=== AI Dispatcher installer ==='
 
 if (Test-Path $DispatcherPath) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -29,10 +30,28 @@ if ($LASTEXITCODE -ne 0) {
     throw 'dispatcher syntax check failed.'
 }
 
+$coreVersionMatch = Select-String -Path $CorePath -Pattern '^VERSION\s*=\s*"([^"]+)"' | Select-Object -First 1
+$runtimeVersionMatch = Select-String -Path $DispatcherPath -Pattern '^VERSION\s*=\s*"([^"]+)"' | Select-Object -First 1
+if (-not $coreVersionMatch -or -not $runtimeVersionMatch) {
+    throw 'Could not determine Dispatcher version from downloaded files.'
+}
+$ExpectedVersion = $coreVersionMatch.Matches[0].Groups[1].Value
+$RuntimeVersion = $runtimeVersionMatch.Matches[0].Groups[1].Value
+if ($ExpectedVersion -ne $RuntimeVersion) {
+    throw "Dispatcher core/runtime version mismatch: core=$ExpectedVersion runtime=$RuntimeVersion"
+}
+Write-Host "Downloaded AI Dispatcher $ExpectedVersion"
+
 Write-Host 'Checking required Python packages...'
 & py -c "import playwright, pyautogui, pygetwindow; print('Python packages: OK')"
 if ($LASTEXITCODE -ne 0) {
     throw 'Required Python packages are missing. Install playwright, pyautogui and pygetwindow first.'
+}
+
+Write-Host 'Checking dispatcher core import...'
+& py -c "import importlib.util,pathlib; p=pathlib.Path.home()/'dispatcher_core.py'; s=importlib.util.spec_from_file_location('dispatcher_core_preflight',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print('Core import: OK', m.VERSION)"
+if ($LASTEXITCODE -ne 0) {
+    throw 'dispatcher core import check failed.'
 }
 
 $VbsContent = @'
@@ -62,12 +81,17 @@ Get-CimInstance Win32_Process |
     }
 
 Start-Sleep -Seconds 1
+
 $logBytesBefore = 0L
 if (Test-Path $LogPath) {
     $logBytesBefore = (Get-Item $LogPath).Length
 }
+$bootstrapBytesBefore = 0L
+if (Test-Path $BootstrapLog) {
+    $bootstrapBytesBefore = (Get-Item $BootstrapLog).Length
+}
 
-Write-Host 'Starting AI Dispatcher 2.2.4 hidden...'
+Write-Host "Starting AI Dispatcher $ExpectedVersion hidden..."
 $startInfo = New-Object System.Diagnostics.ProcessStartInfo
 $startInfo.FileName = 'wscript.exe'
 $startInfo.Arguments = '"' + $VbsPath + '"'
@@ -75,14 +99,16 @@ $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 $startInfo.UseShellExecute = $true
 [System.Diagnostics.Process]::Start($startInfo) | Out-Null
 
+$escapedVersion = [regex]::Escape($ExpectedVersion)
+$startPattern = "AI Dispatcher $escapedVersion запущен"
 $deadline = (Get-Date).AddSeconds(30)
 $started = $false
 while ((Get-Date) -lt $deadline) {
     if (Test-Path $LogPath) {
         $item = Get-Item $LogPath
         if ($item.Length -gt $logBytesBefore) {
-            $tail = Get-Content $LogPath -Tail 40 -Encoding UTF8 -ErrorAction SilentlyContinue
-            if ($tail -match 'AI Dispatcher 2\.2\.4 запущен') {
+            $tail = Get-Content $LogPath -Tail 60 -Encoding UTF8 -ErrorAction SilentlyContinue
+            if ($tail -match $startPattern) {
                 $started = $true
                 break
             }
@@ -91,23 +117,52 @@ while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 500
 }
 
-# Fallback: if log-tail timing raced the installer, confirm a live dispatcher process
-# together with a 2.2.4 startup line in the UTF-8 log.
 if (-not $started) {
     $proc = Get-CimInstance Win32_Process | Where-Object {
         ($_.Name -match '^(py|python|pythonw)(\.exe)?$') -and
         ($_.CommandLine -match '(?i)[\\/]dispatcher\.py')
     }
     if ($proc -and (Test-Path $LogPath)) {
-        $tail = Get-Content $LogPath -Tail 60 -Encoding UTF8 -ErrorAction SilentlyContinue
-        if ($tail -match 'AI Dispatcher 2\.2\.4 запущен') {
+        $tail = Get-Content $LogPath -Tail 80 -Encoding UTF8 -ErrorAction SilentlyContinue
+        if ($tail -match $startPattern) {
             $started = $true
         }
     }
 }
 
 if (-not $started) {
-    Write-Warning "Autostart created, but AI Dispatcher 2.2.4 startup could not be confirmed in $LogPath"
+    Write-Warning "Autostart created, but AI Dispatcher $ExpectedVersion startup could not be confirmed."
+    Write-Host ''
+    Write-Host '--- Dispatcher processes ---'
+    Get-CimInstance Win32_Process |
+        Where-Object {
+            ($_.Name -match '^(py|python|pythonw)(\.exe)?$') -and
+            ($_.CommandLine -match '(?i)[\\/]dispatcher\.py')
+        } |
+        Select-Object ProcessId, Name, CommandLine |
+        Format-List
+
+    Write-Host '--- ai-dispatcher.log ---'
+    if (Test-Path $LogPath) {
+        Get-Content $LogPath -Tail 80 -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    else {
+        Write-Host 'Log file not found.'
+    }
+
+    Write-Host '--- ai-dispatcher-bootstrap.log ---'
+    if (Test-Path $BootstrapLog) {
+        $bootItem = Get-Item $BootstrapLog
+        if ($bootItem.Length -gt $bootstrapBytesBefore) {
+            Get-Content $BootstrapLog -Tail 80 -Encoding UTF8 -ErrorAction SilentlyContinue
+        }
+        else {
+            Write-Host 'No new bootstrap error was recorded.'
+        }
+    }
+    else {
+        Write-Host 'Bootstrap log not found.'
+    }
     exit 1
 }
 
@@ -119,6 +174,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ''
 Write-Host '=== Installed ==='
+Write-Host "Version:    $ExpectedVersion"
 Write-Host "Dispatcher: $DispatcherPath"
 Write-Host "Core:       $CorePath"
 Write-Host "Autostart:  $VbsPath"
@@ -127,5 +183,5 @@ Write-Host ''
 
 if (Test-Path $LogPath) {
     Write-Host 'Last log lines:'
-    Get-Content $LogPath -Tail 25 -Encoding UTF8
+    Get-Content $LogPath -Tail 30 -Encoding UTF8
 }

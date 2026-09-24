@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 3,
-  "target": "NONE",
+  "turn_id": 4,
+  "target": "ARENA",
   "source": "GPT",
-  "status": "blocked",
-  "message": "Arena unavailable: usage limit exhausted. Handoff paused until Arena is available again."
+  "status": "ready",
+  "message": "Проведи полный recovery-аудит текущего Arena workspace после Workspace over budget: 211.8 MB, 1320 files, 401 files not saved. Репозиторий dvikt33-ux/arena-archicad-project. Проверь весь workspace против GitHub: git status, modified/untracked/deleted/ignored, важные локальные изменения, все ветки/актуальный main, крупнейшие файлы и каталоги, причину 211.8 MB, .gitignore, generated/build/cache/dependencies/logs/duplicates. Особое внимание 401 несохранённому файлу. Не удаляй и не очищай ничего до завершения аудита. Все уникальные важные данные, которых нет в GitHub, сначала сохрани в отдельный recovery branch/commit. В финале укажи: что гарантированно есть в GitHub; что было только в workspace; что восстановлено; что съело объём; есть ли фактическая потеря данных; что исключить/изменить, чтобы новый workspace был значительно ниже 128 MB. Не доверяй предыдущим отчётам — проверяй фактические файлы, git и содержимое коммитов."
 }

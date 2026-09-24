@@ -6,7 +6,9 @@ Control file: `.agent-handoff/signal.json`
 
 ## Wake command
 
-When either agent receives the short message `Проверь GitHub`, it must read this protocol and then read `.agent-handoff/signal.json` from the `agent-handoff` branch before doing anything else.
+When either agent receives a wake message beginning with `Проверь GitHub`, it must read this protocol and then read `.agent-handoff/signal.json` from the `agent-handoff` branch before doing anything else.
+
+The dispatcher should include the turn id when possible, for example `Проверь GitHub. turn_id=7`. The suffix is only for de-duplication; GitHub remains the source of truth.
 
 Do not inspect only `main` and do not infer the current turn from the latest main-branch commit.
 
@@ -25,6 +27,11 @@ Do not inspect only `main` and do not infer the current turn from the latest mai
 
 Valid targets: `GPT`, `ARENA`, `NONE`.
 
+Useful statuses:
+- `ready`: the target agent should act.
+- `done`: the turn was acknowledged/completed and must not be replayed.
+- `idle`: no agent action is pending.
+
 The dispatcher wakes an agent only when `status` is `ready` and the `turn_id` is newer than the locally processed turn.
 
 ## GPT turn
@@ -40,7 +47,7 @@ If `target` is `GPT` and `status` is `ready`:
    - `source`: `GPT`
    - `status`: `ready`
    - `message`: concise summary of what Arena should inspect/do
-5. If no further agent action is needed, set `target` to `NONE` and `status` to `idle` instead.
+5. If no further agent action is needed, keep the current `turn_id`, set `status` to `done` or set `target` to `NONE` and `status` to `idle`.
 
 ## Arena turn
 
@@ -55,14 +62,15 @@ If `target` is `ARENA` and `status` is `ready`:
    - `source`: `ARENA`
    - `status`: `ready`
    - `message`: concise summary of what GPT should inspect/do
-5. If no further agent action is needed, set `target` to `NONE` and `status` to `idle` instead.
+5. If no further agent action is needed, keep the current `turn_id`, set `status` to `done` or set `target` to `NONE` and `status` to `idle`.
 
 ## Safety / loop rules
 
-- Never decrement or reuse `turn_id`.
+- Never decrement or reuse `turn_id` for a new handoff.
 - Never emit the next handoff before durable GitHub output for the current turn exists.
 - Never modify `main` merely to signal another agent.
 - Never treat the wake message itself as the task; GitHub is the source of truth.
 - If the signal targets the other agent, do not act on that turn.
 - If the same `turn_id` is seen again, do not repeat the work.
+- A dispatcher that has already submitted a unique wake message for a turn must not submit it again merely because response detection timed out; it should resume monitoring that same turn.
 - If the control file is malformed or inconsistent, stop and report the error instead of guessing.

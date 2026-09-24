@@ -109,7 +109,7 @@ def dismiss_prompt_once() -> int:
     core.start_service_chrome()
     with core.sync_playwright() as p:
         browser = p.chromium.connect_over_cdp(core.CDP)
-        page = find_arena_page(browser)
+        page = _original_find_arena_page(browser)
         if dismiss_arena_completion_prompt(page):
             core.log("ARENA: одноразовое закрытие итогового табло выполнено.")
             return 0

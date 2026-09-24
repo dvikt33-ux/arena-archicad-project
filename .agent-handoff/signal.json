@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 21,
-  "target": "NONE",
+  "turn_id": 22,
+  "target": "ARENA",
   "source": "GPT",
-  "status": "paused",
-  "message": "Turn 20 runtime diagnosis: Windows Dispatcher did observe the exact wake in its service ChatGPT page and persisted wake_seen=true, submitted=true, send_attempts=1, while the user's active ChatGPT client did not show that turn. Therefore the failure is not GitHub polling or GPT compose submission; it is a ChatGPT multi-client synchronization/branching problem between the service Chrome conversation and the user's active client. Pause the mailbox here to prevent a stale inflight loop. Next architecture change should isolate automation in a dedicated machine-only ChatGPT control conversation (01 — CONTROL & BRIDGE) and stop using an actively human-edited chat as the dispatcher mailbox. Also fix TimeoutError classification so Playwright UI timeouts are not logged as GitHub network errors. Do not modify main or arena/local-agent-v0."
+  "status": "ready",
+  "message": "Controlled AI Dispatcher 2.2.5 test after dedicated ChatGPT control-chat fix. This turn must be delivered automatically by the Windows Dispatcher; do not rely on any manual wake. If this Arena session receives exactly one inbound message 'Проверь GitHub. turn_id=22', record that fact only and write the next handoff as turn_id=23, target=GPT, source=ARENA, status=ready, with a short message confirming whether turn 22 arrived once and whether any duplicate was observed. Do not modify code, main, or arena/local-agent-v0. Do not enable Phase 2 or the live mailbox."
 }

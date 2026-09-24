@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.15
+# AI Dispatcher 2.2.16
 # =========================
 
-VERSION = "2.2.15"
+VERSION = "2.2.16"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -78,6 +78,7 @@ CONTROL_RESTORE_COOLDOWN_SECONDS = 60
 CONTROL_RESTORE_GOTO_TIMEOUT = 10000
 RESTORE_PAGE_MARK = "ai-dispatcher-restore"
 REBIND_PAGE_MARK = "ai-dispatcher-rebind"
+REBIND_REPLACEMENT_PAGE_MARK = "ai-dispatcher-rebind-replacement"
 CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
@@ -598,6 +599,22 @@ def save_control_record(record: dict) -> None:
         payload["rebind_resume_status"] = resume_status
     if record.get("rebind_resume_for_url"):
         payload["rebind_resume_for_url"] = record["rebind_resume_for_url"]
+    if record.get("rebind_replacement_for_url"):
+        payload["rebind_replacement_for_url"] = record["rebind_replacement_for_url"]
+    if "rebind_replacement_count" in record:
+        payload["rebind_replacement_count"] = int(record.get("rebind_replacement_count") or 0)
+    replacement_status = str(record.get("rebind_replacement_status") or "")
+    if replacement_status in {"started", "failed", "done"}:
+        payload["rebind_replacement_status"] = replacement_status
+    replacement_reason = str(record.get("rebind_replacement_failure_reason") or "").strip()
+    if (
+        replacement_reason
+        and " " not in replacement_reason
+        and len(replacement_reason) <= 32
+        and replacement_reason == replacement_reason.lower()
+        and replacement_reason.replace("_", "").isalpha()
+    ):
+        payload["rebind_replacement_failure_reason"] = replacement_reason
     if record.get("replaced_from"):
         payload["replaced_from"] = record["replaced_from"]
     if record.get("bootstrap_previous_sent_at"):
@@ -839,6 +856,11 @@ def commit_rebind(new_url: str, old_url: str) -> None:
     existing.pop("blank_for_url", None)
     existing.pop("blank_checks", None)
     existing.pop("blank_since", None)
+    replacement_for = rebind_target(str(existing.get("rebind_replacement_for_url") or ""))
+    if replacement_for and replacement_for == (rebind_target(old_url) or str(old_url)):
+        existing["rebind_replacement_count"] = max(1, int(existing.get("rebind_replacement_count") or 0))
+        existing["rebind_replacement_status"] = "done"
+        existing.pop("rebind_replacement_failure_reason", None)
     save_control_record(existing)
     log("CONTROL: url_rebound")
 
@@ -1660,6 +1682,188 @@ def resume_control_rebind(browser, old_url: str):
     return page
 
 
+def _diag_replacement_status(record: dict | None) -> str:
+    token = str((record or {}).get("rebind_replacement_status") or "").strip()
+    return token if token in {"started", "failed", "done"} else "none"
+
+
+def rebind_replacement_bound(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    saved = rebind_target(saved_url)
+    bound = rebind_target(str(record.get("rebind_replacement_for_url") or ""))
+    return bool(saved) and saved == bound
+
+
+def rebind_replacement_started(record: dict | None, saved_url: str) -> bool:
+    record = record or {}
+    if not rebind_replacement_bound(record, saved_url):
+        return False
+    if int(record.get("rebind_replacement_count") or 0) < 1:
+        return False
+    return str(record.get("rebind_replacement_status") or "") == "started"
+
+
+def rebind_resume_consumed(record: dict | None) -> bool:
+    record = record or {}
+    return int(record.get("rebind_resume_count") or 0) >= 1
+
+
+def rebind_replacement_allowed(record: dict | None, saved_url: str) -> bool:
+    """One replacement, only for the 2.2.15 missing-page migration state."""
+    record = record or {}
+    if rebind_replacement_started(record, saved_url):
+        return False
+    if not rebind_bound(record, saved_url):
+        return False
+    if str(record.get("rebind_status") or "") != "failed":
+        return False
+    if int(record.get("rebind_count") or 0) < 1:
+        return False
+    if bool(record.get("rebind_bootstrap_sent")):
+        return False
+    if str(record.get("rebind_failure_reason") or "").strip() != "missing_page":
+        return False
+    if not rebind_resume_consumed(record):
+        return False
+    saved = rebind_target(saved_url)
+    current = rebind_target(str(record.get("chatgpt_control_url") or ""))
+    if not saved or current != saved:
+        return False
+    if str(record.get("rebind_replacement_status") or "") in {"started", "failed", "done"}:
+        return False
+    if int(record.get("rebind_replacement_count") or 0) >= 1:
+        return False
+    return True
+
+
+def should_replace_rebind(record: dict | None, saved_url: str, action: str) -> bool:
+    """Continue a started replacement, or start one from the missing-page state."""
+    if action == "ready":
+        return False
+    if rebind_replacement_started(record, saved_url):
+        return True
+    if action == "rebind":
+        return False
+    return rebind_replacement_allowed(record, saved_url)
+
+
+def mark_rebind_replacement_started(old_url: str) -> bool:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return False
+    existing["rebind_replacement_for_url"] = rebind_target(old_url) or str(old_url)
+    existing["rebind_replacement_count"] = max(1, int(existing.get("rebind_replacement_count") or 0))
+    existing["rebind_replacement_status"] = "started"
+    save_control_record(existing)
+    return True
+
+
+def mark_rebind_replacement_failed(old_url: str, reason: str) -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_replacement_for_url"] = rebind_target(old_url) or str(existing.get("rebind_replacement_for_url") or "")
+    existing["rebind_replacement_count"] = max(1, int(existing.get("rebind_replacement_count") or 0))
+    existing["rebind_replacement_status"] = "failed"
+    existing["rebind_replacement_failure_reason"] = stable_rebind_reason(reason)
+    save_control_record(existing)
+
+
+def mark_rebind_replacement_result(old_url: str, failure_reason: str = "") -> None:
+    existing = _read_control_file()
+    if not is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
+        return
+    existing["rebind_replacement_for_url"] = rebind_target(old_url) or str(existing.get("rebind_replacement_for_url") or "")
+    existing["rebind_replacement_count"] = max(1, int(existing.get("rebind_replacement_count") or 0))
+    if existing.get("rebind_status") == "done":
+        existing["rebind_replacement_status"] = "done"
+        existing.pop("rebind_replacement_failure_reason", None)
+    else:
+        existing["rebind_replacement_status"] = "failed"
+        reason = str(failure_reason or existing.get("rebind_failure_reason") or "").strip() or "failed"
+        existing["rebind_replacement_failure_reason"] = stable_rebind_reason(reason)
+    save_control_record(existing)
+
+
+def find_replacement_page(browser):
+    for page in all_pages(browser):
+        if page_restore_mark(page) == REBIND_REPLACEMENT_PAGE_MARK:
+            return page
+    return None
+
+
+def mark_replacement_page(page) -> None:
+    try:
+        page.evaluate("(name) => { window.name = name }", REBIND_REPLACEMENT_PAGE_MARK)
+    except Exception:
+        pass
+
+
+def finish_replacement_page(page, old_url: str, goto_home: bool) -> None:
+    """Hydrate one already-created replacement page. Never opens a tab."""
+    record = load_control_record()
+    if record.get("rebind_bootstrap_sent"):
+        url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
+        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
+            commit_rebind(url, old_url)
+            mark_rebind_replacement_result(old_url)
+            log("CONTROL: page=rebound")
+            return
+        mark_rebind_failed(old_url, "no_new_url")
+        mark_rebind_replacement_result(old_url, "no_new_url")
+        log("CONTROL: rebind=replacement_failed reason=no_new_url")
+        return
+    hydrate_rebind_page(page, old_url, goto_home=goto_home)
+    record = load_control_record()
+    if record.get("rebind_status") == "done":
+        mark_rebind_replacement_result(old_url)
+        log("CONTROL: rebind=replacement_done")
+        return
+    reason = str(record.get("rebind_failure_reason") or "").strip() or "failed"
+    mark_rebind_replacement_result(old_url, reason)
+    log(f"CONTROL: rebind=replacement_failed reason={stable_rebind_reason(reason)}")
+
+
+def replace_control_rebind(browser, old_url: str):
+    """One fresh service page after the missing-page migration. Never a second tab."""
+    record = load_control_record()
+    started = rebind_replacement_started(record, old_url)
+    if not started and not rebind_replacement_allowed(record, old_url):
+        return find_replacement_page(browser)
+    page = find_replacement_page(browser)
+    if started:
+        log("CONTROL: rebind=replacement_resume")
+        if page is None:
+            mark_rebind_replacement_failed(old_url, "missing_page")
+            log("CONTROL: rebind=replacement_failed reason=missing_page")
+            return None
+        current = str(getattr(page, "url", "") or "")
+        if (
+            is_usable_control_url(current)
+            and not same_conversation(current, old_url)
+            and not record.get("rebind_bootstrap_sent")
+        ):
+            mark_rebind_replacement_failed(old_url, "unexpected_url")
+            log("CONTROL: rebind=replacement_failed reason=unexpected_url")
+            return page
+        finish_replacement_page(page, old_url, goto_home=not rebind_page_on_home(current))
+        return page
+    if not mark_rebind_replacement_started(old_url):
+        log("CONTROL: rebind=replacement_failed reason=failed")
+        return None
+    log("CONTROL: rebind=replacement")
+    try:
+        page = browser.contexts[0].new_page()
+    except Exception as exc:
+        mark_rebind_replacement_failed(old_url, "failed")
+        log(f"CONTROL: rebind=replacement_failed reason=failed error={type(exc).__name__}")
+        return None
+    mark_replacement_page(page)
+    log("CONTROL: page=replacement_create")
+    finish_replacement_page(page, old_url, goto_home=True)
+    return page
+
+
 def find_arena_page(browser):
     exact = []
     fallback = []
@@ -1951,7 +2155,9 @@ def _log_control_diag(
         f"blank_checks={int(record.get('blank_checks') or 0)} "
         f"blank_rebind={int(bool(record.get('_blank_rebind')))} "
         f"fail={_diag_failure_reason(record)} "
-        f"resume_count={int(record.get('rebind_resume_count') or 0)}"
+        f"resume_count={int(record.get('rebind_resume_count') or 0)} "
+        f"replace_count={int(record.get('rebind_replacement_count') or 0)} "
+        f"replace_status={_diag_replacement_status(record)}"
     )
     return diagnosis
 
@@ -2036,6 +2242,14 @@ def ensure_control_ready(browser, wake: str = ""):
         now=now,
         page_unavailable=page_unavailable,
     )
+
+    if action != "ready" and should_replace_rebind(record, saved, action):
+        if rebind_replacement_started(record, saved):
+            log("CONTROL: rebind=replacement_resume")
+        else:
+            log("CONTROL: rebind=replacement_legacy")
+        page = replace_control_rebind(browser, saved)
+        return page, False
 
     if action == "rebind":
         log("CONTROL: rebind hard-unavailable")

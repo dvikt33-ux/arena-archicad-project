@@ -13,10 +13,14 @@ WANTED = {
     "conversation_identity",
     "same_conversation",
     "is_usable_control_url",
+    "is_provisional_control_url",
+    "is_durable_control_url",
     "normalize_conversation_url",
     "assistant_has_control_ready",
     "user_has_bootstrap_marker",
     "positive_control_identity",
+    "hard_unavailable_text",
+    "hard_control_unavailable",
     "_preferred_index",
     "plan_control_page",
     "page_is_foreground",
@@ -58,6 +62,8 @@ def load_helpers(control_path: Path):
                 "CONTROL_RESTORE_COOLDOWN_SECONDS",
                 "CONTROL_RESTORE_GOTO_TIMEOUT",
                 "RESTORE_PAGE_MARK",
+                "CONTROL_ERROR_MARKERS",
+                "CONTROL_UNAVAILABLE_MARKERS",
             }:
                 keep.append(node)
         elif isinstance(node, ast.FunctionDef) and node.name in WANTED:
@@ -191,6 +197,7 @@ def main() -> None:
 
         browser = FakeBrowser([stranger])
         ns["chatgpt_pages"] = lambda _browser: browser.pages
+        ns["composer_is_ready"] = lambda _page: True
         chosen = ns["find_control_page"](browser)
         assert chosen is browser.contexts[0].created[0]
         assert stranger.gotos == []

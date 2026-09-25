@@ -18,6 +18,8 @@ WANTED = {
     "conversation_identity",
     "same_conversation",
     "is_usable_control_url",
+    "is_provisional_control_url",
+    "is_durable_control_url",
     "normalize_conversation_url",
     "url_matches",
     "assistant_has_control_ready",

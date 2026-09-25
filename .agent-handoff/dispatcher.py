@@ -133,6 +133,8 @@ CONTROL_UNAVAILABLE_MARKERS = CONTROL_ERROR_MARKERS + (
     "could not load this conversation",
     "this conversation could not be loaded",
     "не удалось загрузить этот разговор",
+    "чат был удален",
+    "chat was deleted",
 )
 SIGN_IN_MARKERS = (
     "log in",
@@ -299,6 +301,16 @@ def is_usable_control_url(url: str) -> bool:
     return is_chatgpt_conversation_url(str(url or "").strip()) and bool(conversation_id(url))
 
 
+def is_provisional_control_url(url: str) -> bool:
+    """ChatGPT's local-chatgpt route is a transient client-side alias."""
+    return conversation_id(str(url or "")).lower().startswith("local-chatgpt:")
+
+
+def is_durable_control_url(url: str) -> bool:
+    """A URL that is safe to persist and restore in a later dispatcher run."""
+    return is_usable_control_url(url) and not is_provisional_control_url(url)
+
+
 def _last_bootstrap_index(messages: list[dict]) -> int | None:
     for idx in range(len(messages) - 1, -1, -1):
         item = messages[idx]
@@ -425,10 +437,12 @@ def diagnose_control(
     record = record or {}
     messages = list(messages or [])
     saved = str(record.get("chatgpt_control_url", "") or "").strip()
-    if assistant_has_control_ready(messages):
-        return "ready_marker"
+    # The page's current rendered failure wins over old transcript content.
+    # A deleted chat can still expose cached CONTROL READY in its DOM.
     if page_unavailable:
         return "unavailable"
+    if assistant_has_control_ready(messages):
+        return "ready_marker"
     if user_has_bootstrap_marker(messages):
         if assistant_error_after_bootstrap(messages):
             return "assistant_error"
@@ -1514,11 +1528,20 @@ def restore_observation_accepted(
     composer_ready: bool = False,
     wake: str = "",
 ) -> bool:
-    """Accept a restore when the page is the same conversation or shows control identity."""
-    del composer_ready
-    if same_conversation(observed_url, saved_url):
-        return True
-    return positive_control_identity(list(messages or []), wake)
+    """Accept only a hydrated, non-provisional restore observation.
+
+    URL identity alone is not evidence of a usable page: ChatGPT can briefly
+    expose the old URL on a blank redirect shell.  In particular, never turn a
+    ``/c/local-chatgpt:...`` alias into the durable CONTROL record.
+    """
+    observed = normalize_conversation_url(observed_url)
+    messages = list(messages or [])
+    if not is_durable_control_url(observed) or hard_control_unavailable(messages):
+        return False
+    identity = positive_control_identity(messages, wake)
+    if same_conversation(observed, saved_url):
+        return bool(messages) or bool(composer_ready)
+    return identity and (bool(messages) or bool(composer_ready))
 
 
 def restore_cooldown_active(record: dict | None, now: float | None = None) -> bool:
@@ -1555,7 +1578,8 @@ def plan_control_page(pages: list[dict], saved_url: str, wake: str = "") -> dict
     equivalent = [
         index
         for index, page in enumerate(pages)
-        if same_conversation(str(page.get("url") or ""), saved)
+        if not bool(page.get("unavailable"))
+        and same_conversation(str(page.get("url") or ""), saved)
     ]
     if equivalent:
         index = _preferred_index(pages, equivalent)
@@ -1568,7 +1592,7 @@ def plan_control_page(pages: list[dict], saved_url: str, wake: str = "") -> dict
     proven = []
     for index, page in enumerate(pages):
         url = str(page.get("url") or "")
-        if not is_chatgpt_conversation_url(url):
+        if bool(page.get("unavailable")) or not is_chatgpt_conversation_url(url):
             continue
         if positive_control_identity(list(page.get("messages") or []), wake):
             proven.append(index)
@@ -1597,28 +1621,45 @@ def find_control_page(browser, wake: str = ""):
         for page in chatgpt_pages(browser)
         if is_chatgpt_conversation_url(page.url or "")
     ]
-    equivalent_open = any(same_conversation(page.url or "", control_url) for page in pages)
     snapshots = []
     for page in pages:
         messages: list[dict] = []
-        if not equivalent_open:
-            try:
-                messages = chatgpt_messages(page)
-            except Exception:
-                messages = []
+        try:
+            messages = chatgpt_messages(page)
+        except Exception:
+            messages = []
+        unavailable_check = globals().get("page_shows_unavailable")
+        try:
+            unavailable = bool(unavailable_check and unavailable_check(page))
+        except Exception:
+            unavailable = False
         snapshots.append(
             {
                 "url": page.url or "",
                 "messages": messages,
                 "foreground": page_is_foreground(page),
+                "unavailable": unavailable,
             }
         )
     plan = plan_control_page(snapshots, control_url, wake)
     if plan["action"] == "use":
         page = pages[plan["index"]]
         observed = normalize_conversation_url(page.url or "")
-        if observed and observed != normalize_conversation_url(control_url):
-            canonicalize_control_url(page.url or "")
+        if (
+            is_durable_control_url(observed)
+            and observed != normalize_conversation_url(control_url)
+        ):
+            record = load_control_record()
+            rebind_matches = globals().get("rebind_bound")
+            if (
+                rebind_matches
+                and rebind_matches(record, control_url)
+                and record.get("rebind_status") == "pending"
+            ):
+                globals()["commit_rebind"](observed, control_url, browser=browser, keep=page)
+                log("CONTROL: page=rebound")
+            else:
+                canonicalize_control_url(page.url or "")
         log(f"CONTROL: page={plan['reason']}")
         return page
 
@@ -1640,12 +1681,15 @@ def mark_restore_page(page) -> None:
 
 
 def find_restore_page(browser):
-    page = registered_control_service_page(browser, "restore")
+    registry_lookup = globals().get("registered_control_service_page")
+    page = registry_lookup(browser, "restore") if registry_lookup else None
     if page is not None:
         return page
     for page in all_pages(browser):
         if page_restore_mark(page) == RESTORE_PAGE_MARK:
-            register_control_service_page(page, "restore")
+            register = globals().get("register_control_service_page")
+            if register:
+                register(page, "restore")
             return page
     return None
 
@@ -1692,7 +1736,9 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
         return None
     if action == "create":
         page = browser.contexts[0].new_page()
-        register_control_service_page(page, "restore")
+        register = globals().get("register_control_service_page")
+        if register:
+            register(page, "restore")
         mark_restore_page(page)
         log("CONTROL: page=restore_create")
     elif action == "reuse_idle":
@@ -1722,7 +1768,9 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
                 wait_until="domcontentloaded",
                 timeout=CONTROL_RESTORE_GOTO_TIMEOUT,
             )
-            register_control_service_page(page, "restore")
+            register = globals().get("register_control_service_page")
+            if register:
+                register(page, "restore")
             mark_restore_page(page)
         except Exception as exc:
             log(f"CONTROL: restore candidate={index} error={type(exc).__name__}")
@@ -1749,10 +1797,12 @@ def page_shows_unavailable(page) -> bool:
     try:
         text = page.evaluate(
             """() => {
-              const nodes = document.querySelectorAll('[role="alert"], [data-testid*="error"], h1, h2');
-              const headed = Array.from(nodes).slice(0, 12).map(n => n.innerText || '').join('\n');
-              const body = ((document.body && document.body.innerText) || '').slice(0, 1500);
-              return (headed + '\n' + body).slice(0, 2500);
+              const body = (document.body && document.body.innerText) || '';
+              // Errors may be appended after a long cached transcript. Keep
+              // both ends and do not depend on volatile CSS/test-id markup.
+              const limit = 6000;
+              if (body.length <= limit * 2) return body;
+              return body.slice(0, limit) + '\n' + body.slice(-limit);
             }"""
         )
     except Exception:
@@ -1772,12 +1822,15 @@ def page_signed_out(page) -> bool:
 
 
 def find_rebind_page(browser):
-    page = registered_control_service_page(browser, "rebind")
+    registry_lookup = globals().get("registered_control_service_page")
+    page = registry_lookup(browser, "rebind") if registry_lookup else None
     if page is not None:
         return page
     for page in all_pages(browser):
         if page_restore_mark(page) == REBIND_PAGE_MARK:
-            register_control_service_page(page, "rebind")
+            register = globals().get("register_control_service_page")
+            if register:
+                register(page, "rebind")
             return page
     return None
 
@@ -1893,9 +1946,11 @@ def hydrate_rebind_page(page, old_url: str, goto_home: bool = True, browser=None
     record = load_control_record()
     if record.get("rebind_bootstrap_sent"):
         url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
-        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
+        if url and is_durable_control_url(url) and not same_conversation(url, old_url):
             commit_rebind(url, old_url, browser=browser, keep=page)
             log("CONTROL: page=rebound")
+        elif is_provisional_control_url(str(getattr(page, "url", "") or "")):
+            log("CONTROL: rebind=awaiting_canonical_url")
         return page
 
     if goto_home:
@@ -1934,7 +1989,7 @@ def hydrate_rebind_page(page, old_url: str, goto_home: bool = True, browser=None
         log("CONTROL: rebind=failed reason=submit_unconfirmed")
         return page
     url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
-    if not url or not is_usable_control_url(url) or same_conversation(url, old_url):
+    if not url or not is_durable_control_url(url) or same_conversation(url, old_url):
         if submitted is True:
             existing = _read_control_file()
             if is_chatgpt_conversation_url(str(existing.get("chatgpt_control_url") or "")):
@@ -1942,8 +1997,14 @@ def hydrate_rebind_page(page, old_url: str, goto_home: bool = True, browser=None
                 existing["rebind_url_status"] = "pending"
                 existing["rebind_bootstrap_sent"] = True
                 save_control_record(existing)
-        mark_rebind_failed(old_url, "no_new_url")
-        log("CONTROL: rebind=failed reason=no_new_url")
+        else:
+            mark_rebind_failed(old_url, "no_new_url")
+            log("CONTROL: rebind=failed reason=no_new_url")
+            return page
+        # Submission is confirmed; a local-chatgpt URL is only a transient
+        # client alias. Keep this one marked page and wait for its canonical
+        # URL instead of restoring the retired chat or creating another tab.
+        log("CONTROL: rebind=awaiting_canonical_url")
         return page
     commit_rebind(url, old_url, browser=browser, keep=page)
     log("CONTROL: page=rebound")
@@ -1962,7 +2023,9 @@ def begin_control_rebind(browser, old_url: str):
     if action == "create":
         mark_rebind_started(old_url)
         page = browser.contexts[0].new_page()
-        register_control_service_page(page, "rebind")
+        register = globals().get("register_control_service_page")
+        if register:
+            register(page, "rebind")
         mark_rebind_page(page)
         log("CONTROL: page=rebind_create")
         result = hydrate_rebind_page(page, old_url, goto_home=True, browser=browser)
@@ -2120,20 +2183,21 @@ def finish_replacement_page(page, old_url: str, goto_home: bool, browser=None) -
     record = load_control_record()
     if record.get("rebind_bootstrap_sent"):
         url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
-        if url and is_usable_control_url(url) and not same_conversation(url, old_url):
+        if url and is_durable_control_url(url) and not same_conversation(url, old_url):
             commit_rebind(url, old_url, browser=browser, keep=page)
             mark_rebind_replacement_result(old_url)
             log("CONTROL: page=rebound")
             return
-        mark_rebind_failed(old_url, "no_new_url")
-        mark_rebind_replacement_result(old_url, "no_new_url")
-        log("CONTROL: rebind=replacement_failed reason=no_new_url")
+        log("CONTROL: rebind=replacement_awaiting_canonical_url")
         return
     hydrate_rebind_page(page, old_url, goto_home=goto_home, browser=browser)
     record = load_control_record()
     if record.get("rebind_status") == "done":
         mark_rebind_replacement_result(old_url)
         log("CONTROL: rebind=replacement_done")
+        return
+    if record.get("rebind_status") == "pending" and record.get("rebind_bootstrap_sent"):
+        log("CONTROL: rebind=replacement_awaiting_canonical_url")
         return
     reason = str(record.get("rebind_failure_reason") or "").strip() or "failed"
     mark_rebind_replacement_result(old_url, reason)
@@ -3073,6 +3137,7 @@ function inferTurnRole(roleAttr, labels) {
 # message-author selector as the primary source, but make the turn fallback
 # independent of the container tag.
 TURN_SELECTOR = "[data-testid^='conversation-turn-'], [data-message-id]"
+ACCESSIBLE_TURN_HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6, [role='heading']"
 
 
 def infer_turn_role(role_attr: str = "", labels: str = "") -> str:
@@ -3132,6 +3197,47 @@ nodes => nodes.map(n => {
         return []
 
 
+def _read_accessible_turn_nodes(page) -> list[dict]:
+    """Parse ChatGPT's screen-reader turn headings without CSS-class coupling."""
+    script = INFER_TURN_ROLE_JS + """
+() => {
+  const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
+  const result = [];
+  const seen = new Set();
+  for (const heading of document.querySelectorAll(%r)) {
+    const label = clean([
+      heading.getAttribute('aria-label') || '',
+      heading.innerText || heading.textContent || ''
+    ].join(' '));
+    const role = inferTurnRole('', label);
+    if (!role) continue;
+    let node = heading.parentElement;
+    let text = '';
+    while (node && node !== document.body) {
+      const candidate = clean(node.innerText || node.textContent || '');
+      const withoutLabel = clean(candidate.replace(label, ''));
+      if (withoutLabel) {
+        text = withoutLabel;
+        break;
+      }
+      node = node.parentElement;
+    }
+    if (!text || text.length > 50000) continue;
+    const key = role + '\\n' + text;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({role, text});
+    }
+  }
+  return result;
+}
+""" % ACCESSIBLE_TURN_HEADING_SELECTOR
+    try:
+        return page.evaluate(script)
+    except Exception:
+        return []
+
+
 def _normalize_message(item: dict) -> dict:
     role = infer_turn_role(str(item.get("role") or ""), "")
     if not role:
@@ -3155,6 +3261,10 @@ def chatgpt_messages(page) -> list[dict]:
     if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in fallback):
         log(f"CONTROL: primary selector empty, fallback messages={len(fallback)}")
         return fallback
+    accessible = [_normalize_message(item) for item in _read_accessible_turn_nodes(page)]
+    if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in accessible):
+        log(f"CONTROL: accessibility fallback messages={len(accessible)}")
+        return accessible
     return []
 
 
@@ -3285,7 +3395,7 @@ def wait_for_conversation_url(page, timeout_seconds: int = 30) -> str:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         url = page.url or ""
-        if is_usable_control_url(url):
+        if is_durable_control_url(url):
             return url.split("?", 1)[0].split("#", 1)[0]
         time.sleep(0.25)
     return ""
@@ -3429,6 +3539,16 @@ def ensure_control_ready(browser, wake: str = ""):
         page_unavailable=page_unavailable,
         blank_rebind=blank_rebind,
     )
+    # A bootstrap/READY transcript on ChatGPT's local alias proves that the
+    # newly created page is alive, but it is not yet a recoverable CONTROL
+    # endpoint. Hold the pending wake until the URL is canonical and committed.
+    if (
+        action == "ready"
+        and page is not None
+        and not same_conversation(page_url, saved)
+        and not is_durable_control_url(page_url)
+    ):
+        action = "wait"
     _log_control_diag(
         record,
         messages,

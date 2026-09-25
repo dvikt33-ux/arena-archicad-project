@@ -14,10 +14,14 @@ WANTED = {
     "conversation_identity",
     "same_conversation",
     "is_usable_control_url",
+    "is_provisional_control_url",
+    "is_durable_control_url",
     "normalize_conversation_url",
     "assistant_has_control_ready",
     "user_has_bootstrap_marker",
     "positive_control_identity",
+    "hard_unavailable_text",
+    "hard_control_unavailable",
     "restore_candidates",
     "restore_observation_accepted",
     "restore_cooldown_active",
@@ -43,6 +47,8 @@ def load_helpers(control_path: Path):
                 "CONTROL_BOOTSTRAP_MARKER",
                 "CONTROL_RESTORE_WAIT_SECONDS",
                 "CONTROL_RESTORE_COOLDOWN_SECONDS",
+                "CONTROL_ERROR_MARKERS",
+                "CONTROL_UNAVAILABLE_MARKERS",
             }:
                 keep.append(node)
         elif isinstance(node, ast.FunctionDef) and node.name in WANTED:
@@ -72,9 +78,11 @@ def main() -> None:
         assert ns["restore_candidates"](canonical) == [canonical]
         assert ns["restore_candidates"](web + "?ref=1") == [canonical, web]
 
-        assert ns["restore_observation_accepted"](web, canonical, [], False) is True
+        # A URL match alone can be ChatGPT's blank redirect shell.
+        assert ns["restore_observation_accepted"](web, canonical, [], False) is False
+        assert ns["restore_observation_accepted"](web, canonical, [], True) is True
         assert ns["restore_observation_accepted"](web, "https://chatgpt.com/", [], True) is False
-        assert ns["restore_observation_accepted"](normal, normal, [], False) is True
+        assert ns["restore_observation_accepted"](normal, normal, [], False) is False
         marker = ns["CONTROL_BOOTSTRAP_MARKER"]
         assert ns["restore_observation_accepted"](
             web,

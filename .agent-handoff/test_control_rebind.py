@@ -14,6 +14,8 @@ WANTED = {
     "conversation_identity",
     "same_conversation",
     "is_usable_control_url",
+    "is_provisional_control_url",
+    "is_durable_control_url",
     "normalize_conversation_url",
     "url_matches",
     "assistant_has_control_ready",
@@ -139,6 +141,7 @@ class FakeBrowser:
 def main() -> None:
     old = "https://chatgpt.com/c/WEB:4f943fa5-39fa-4b25-95f8-e06ea1ffabed"
     new = "https://chatgpt.com/c/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    local = "https://chatgpt.com/c/local-chatgpt:temporary-57"
     other = "https://chatgpt.com/c/11111111-1111-1111-1111-111111111111"
     with tempfile.TemporaryDirectory() as tmp:
         ns = load_helpers(Path(tmp) / "control.json")
@@ -238,6 +241,26 @@ def main() -> None:
         assert len(browser.contexts[0].created) == created
         assert again is chosen or again is None or again is chosen
         assert len(sends) == 1
+
+        # Confirmed bootstrap on ChatGPT's transient local route keeps the
+        # same service page; it neither commits that URL nor grows tabs.
+        path.write_text(json.dumps(record), encoding="utf-8")
+        browser = FakeBrowser([stranger])
+        sends.clear()
+        ns["composer_is_ready"] = lambda _page: True
+        ns["page_signed_out"] = lambda _page: False
+        ns["send_to_chatgpt"] = lambda _page, text: (sends.append(text), True)[1]
+        ns["wait_for_conversation_url"] = lambda _page, _timeout: local
+        provisional = ns["begin_control_rebind"](browser, old)
+        pending = json.loads(path.read_text(encoding="utf-8"))
+        assert provisional is browser.contexts[0].created[0]
+        assert pending["chatgpt_control_url"] == old
+        assert pending["rebind_status"] == "pending"
+        assert pending["rebind_bootstrap_sent"] is True
+        assert len(browser.contexts[0].created) == 1
+        assert ns["begin_control_rebind"](browser, old) is provisional
+        assert len(browser.contexts[0].created) == 1
+        assert sends == [ns["CONTROL_BOOTSTRAP"]]
 
         path.write_text(json.dumps(record), encoding="utf-8")
         browser = FakeBrowser([stranger])

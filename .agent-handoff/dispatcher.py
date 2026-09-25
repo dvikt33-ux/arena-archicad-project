@@ -3312,6 +3312,27 @@ def chatgpt_wake_exists(page, wake: str) -> bool:
     return chatgpt_user_message_exists(page, wake)
 
 
+def control_wake_identity(page) -> str:
+    """Stable identity for the active CONTROL conversation used by wake ACKs."""
+    return conversation_identity(str(getattr(page, "url", "") or ""))
+
+
+def bind_wake_to_control(inflight: dict, page) -> None:
+    identity = control_wake_identity(page)
+    if identity:
+        inflight["wake_seen_control_identity"] = identity
+        inflight["wake_seen_control_url"] = normalize_conversation_url(str(getattr(page, "url", "") or ""))
+
+
+def clear_wake_binding(inflight: dict) -> None:
+    for key in ("wake_seen_control_identity", "wake_seen_control_url", "submitted_at"):
+        inflight.pop(key, None)
+    inflight["wake_seen"] = False
+    inflight["submitted"] = False
+    inflight["send_attempts"] = 0
+    inflight["retry_after"] = 0
+
+
 def chatgpt_response_complete(page, user_text: str) -> bool:
     messages = chatgpt_messages(page)
 
@@ -3912,9 +3933,31 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         consume_turn(state, turn_id, "GPT control chat уже ответил")
         return
 
-    if chatgpt_wake_exists(page, wake) or inflight.get("wake_seen"):
+    current_control = control_wake_identity(page)
+    wake_exists = chatgpt_wake_exists(page, wake)
+    bound_control = str(inflight.get("wake_seen_control_identity") or "").lower()
+    legacy_seen = bool(inflight.get("wake_seen")) and not bound_control
+    if legacy_seen and not wake_exists:
+        clear_wake_binding(inflight)
+        state["inflight"] = inflight
+        save_state(state)
+        bound_control = ""
+    elif legacy_seen and wake_exists:
+        bind_wake_to_control(inflight, page)
+        state["inflight"] = inflight
+        save_state(state)
+        bound_control = current_control
+
+    if bound_control and current_control and bound_control != current_control:
+        clear_wake_binding(inflight)
+        state["inflight"] = inflight
+        save_state(state)
+        bound_control = ""
+
+    if wake_exists or (bool(inflight.get("wake_seen")) and bool(current_control) and bound_control == current_control):
         if not inflight.get("wake_seen"):
             inflight["wake_seen"] = True
+            bind_wake_to_control(inflight, page)
             inflight["submitted"] = True
             inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
             inflight["last_error"] = None
@@ -3936,6 +3979,7 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
 
     if chatgpt_wake_exists(page, wake):
         inflight["wake_seen"] = True
+        bind_wake_to_control(inflight, page)
         inflight["submitted"] = True
         inflight["submitted_at"] = time.time()
         inflight["send_attempts"] = wake_attempt_count(inflight) + 1

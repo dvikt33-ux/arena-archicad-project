@@ -63,6 +63,20 @@ def test_rebind_registry_survives_lost_window_name():
     assert len(browser.contexts[0].pages) == 1
 
 
+def test_retired_chat_delete_is_fail_closed_for_non_previous_url():
+    current = "https://chatgpt.com/c/current"
+    active = "https://chatgpt.com/c/active"
+    unrelated = "https://chatgpt.com/c/user"
+    assert not dispatcher.retired_control_chat_allowed(current, unrelated, active)
+    assert not dispatcher.retired_control_chat_allowed(current, current, current)
+
+
+def test_retired_chat_delete_allows_only_previous_control_after_rebind():
+    previous = "https://chatgpt.com/c/old"
+    active = "https://chatgpt.com/c/new"
+    assert dispatcher.retired_control_chat_allowed(previous, previous, active)
+
+
 def test_repeated_cleanup_does_not_grow_service_pages():
     old = Page("https://chatgpt.com/c/old")
     restore = Page("https://chatgpt.com/", dispatcher.RESTORE_PAGE_MARK)

@@ -105,6 +105,7 @@ CONTROL_REBIND_COMPOSER_WAIT = 20
 CONTROL_FINALIZE_URL_WAIT = 60
 CONTROL_REPROVISION_URL_WAIT = 90
 CONTROL_SUBMIT_CONFIRM_SECONDS = 8
+CONTROL_CHAT_DELETE_TIMEOUT = 10000
 REBIND_COMPOSER_POLL_SECONDS = 0.5
 REBIND_FAILURE_REASONS = (
     "no_composer",
@@ -929,6 +930,7 @@ def mark_rebind_failed(old_url: str, reason: str = "") -> None:
 def commit_rebind(new_url: str, old_url: str, browser=None, keep=None) -> None:
     """Replace the URL once. Keep recovery fields and drop only the restore latch."""
     existing = _read_control_file()
+    previous_url = normalize_conversation_url(str(existing.get("chatgpt_control_url") or ""))
     observed = normalize_conversation_url(new_url)
     if not observed:
         raise ValueError(f"Некорректный control URL: {new_url!r}")
@@ -970,9 +972,122 @@ def commit_rebind(new_url: str, old_url: str, browser=None, keep=None) -> None:
     existing["rebind_url_status"] = "committed"
     existing["rebind_bootstrap_attempted"] = True
     save_control_record(existing)
+
+
+def retired_control_chat_allowed(
+    previous_url: str, retired_url: str, active_url: str
+) -> bool:
+    """Allow deletion only for the exact previous CONTROL conversation."""
+    previous = normalize_conversation_url(previous_url)
+    retired = normalize_conversation_url(retired_url)
+    active = normalize_conversation_url(active_url)
+    return bool(
+        previous
+        and retired
+        and active
+        and same_conversation(previous, retired)
+        and not same_conversation(previous, active)
+    )
+
+
+def _visible_button(page, selectors: tuple[str, ...]):
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            for index in range(loc.count()):
+                candidate = loc.nth(index)
+                if candidate.is_visible():
+                    return candidate
+        except Exception:
+            continue
+    return None
+
+
+def delete_retired_control_chat(
+    browser,
+    previous_url: str,
+    retired_url: str,
+    active_url: str,
+) -> bool:
+    """Delete one retired CONTROL chat through ChatGPT's visible UI.
+
+    This is deliberately fail-closed: no exact previous URL, identity mismatch,
+    missing menu, or unexpected navigation means no deletion.
+    """
+    if not retired_control_chat_allowed(previous_url, retired_url, active_url):
+        return False
+
+    page = None
+    try:
+        page = browser.contexts[0].new_page()
+        page.goto(
+            normalize_conversation_url(retired_url),
+            wait_until="domcontentloaded",
+            timeout=CONTROL_CHAT_DELETE_TIMEOUT,
+        )
+        if not same_conversation(str(page.url or ""), retired_url):
+            log("CONTROL: retired_chat_delete=skip reason=unexpected_url")
+            return False
+
+        more = _visible_button(
+            page,
+            (
+                'button[aria-label="Ещё"]',
+                'button[aria-label="More"]',
+                'button:has-text("Ещё")',
+                'button:has-text("More")',
+            ),
+        )
+        if more is None:
+            log("CONTROL: retired_chat_delete=skip reason=no_menu")
+            return False
+        more.click()
+
+        delete = _visible_button(
+            page,
+            (
+                'text="Удалить"',
+                'text="Delete"',
+                '[role="menuitem"]:has-text("Удалить")',
+                '[role="menuitem"]:has-text("Delete")',
+            ),
+        )
+        if delete is None:
+            log("CONTROL: retired_chat_delete=skip reason=no_delete_action")
+            return False
+        delete.click()
+
+        confirm = _visible_button(
+            page,
+            (
+                'button:has-text("Удалить чат")',
+                'button:has-text("Delete chat")',
+            ),
+        )
+        if confirm is None:
+            log("CONTROL: retired_chat_delete=skip reason=no_confirmation")
+            return False
+        confirm.click()
+        log("CONTROL: retired_chat_delete=done")
+        return True
+    except Exception as exc:
+        log(f"CONTROL: retired_chat_delete=skip reason={type(exc).__name__}")
+        return False
+    finally:
+        if page is not None:
+            try:
+                page.close()
+            except Exception:
+                pass
     cleanup = globals().get("close_control_service_pages")
     if browser is not None and callable(cleanup):
         cleanup(browser, keep=keep, old_url=old_url)
+        delete_retired_control_chat(
+            browser,
+            previous_url=previous_url,
+            retired_url=old_url,
+            active_url=observed,
+        )
     log("CONTROL: url_rebound")
 
 

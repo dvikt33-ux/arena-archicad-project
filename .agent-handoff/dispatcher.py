@@ -93,6 +93,10 @@ CONTROL_SERVICE_PAGE_MARKS = frozenset(
         CONTROL_PROVISION_PAGE_MARK,
     }
 )
+# ChatGPT can clear window.name during navigation. Keep process-local page
+# identity as the primary ownership signal; the marker remains a restart
+# fallback.
+_SERVICE_PAGE_REGISTRY: dict[str, object] = {}
 CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
@@ -1281,6 +1285,19 @@ def all_pages(browser):
             yield page
 
 
+def register_control_service_page(page, role: str) -> None:
+    _SERVICE_PAGE_REGISTRY[str(role)] = page
+
+
+def registered_control_service_page(browser, role: str):
+    key = str(role)
+    page = _SERVICE_PAGE_REGISTRY.get(key)
+    if page is None or page not in list(all_pages(browser)):
+        _SERVICE_PAGE_REGISTRY.pop(key, None)
+        return None
+    return page
+
+
 def url_matches(url: str, expected: str) -> bool:
     if not url or not expected:
         return False
@@ -1506,8 +1523,12 @@ def mark_restore_page(page) -> None:
 
 
 def find_restore_page(browser):
+    page = registered_control_service_page(browser, "restore")
+    if page is not None:
+        return page
     for page in all_pages(browser):
         if page_restore_mark(page) == RESTORE_PAGE_MARK:
+            register_control_service_page(page, "restore")
             return page
     return None
 
@@ -1554,6 +1575,7 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
         return None
     if action == "create":
         page = browser.contexts[0].new_page()
+        register_control_service_page(page, "restore")
         mark_restore_page(page)
         log("CONTROL: page=restore_create")
     elif action == "reuse_idle":
@@ -1583,6 +1605,8 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
                 wait_until="domcontentloaded",
                 timeout=CONTROL_RESTORE_GOTO_TIMEOUT,
             )
+            register_control_service_page(page, "restore")
+            mark_restore_page(page)
         except Exception as exc:
             log(f"CONTROL: restore candidate={index} error={type(exc).__name__}")
             continue
@@ -1631,8 +1655,12 @@ def page_signed_out(page) -> bool:
 
 
 def find_rebind_page(browser):
+    page = registered_control_service_page(browser, "rebind")
+    if page is not None:
+        return page
     for page in all_pages(browser):
         if page_restore_mark(page) == REBIND_PAGE_MARK:
+            register_control_service_page(page, "rebind")
             return page
     return None
 
@@ -1817,6 +1845,7 @@ def begin_control_rebind(browser, old_url: str):
     if action == "create":
         mark_rebind_started(old_url)
         page = browser.contexts[0].new_page()
+        register_control_service_page(page, "rebind")
         mark_rebind_page(page)
         log("CONTROL: page=rebind_create")
         result = hydrate_rebind_page(page, old_url, goto_home=True, browser=browser)

@@ -43,6 +43,26 @@ class Browser:
         self.contexts = [Context(pages)]
 
 
+def test_restore_registry_survives_lost_window_name():
+    dispatcher._SERVICE_PAGE_REGISTRY.clear()
+    page = Page("https://chatgpt.com/")
+    browser = Browser([page])
+    dispatcher.register_control_service_page(page, "restore")
+    assert dispatcher.find_restore_page(browser) is page
+    assert dispatcher.find_restore_page(browser) is page
+    assert len(browser.contexts[0].pages) == 1
+
+
+def test_rebind_registry_survives_lost_window_name():
+    dispatcher._SERVICE_PAGE_REGISTRY.clear()
+    page = Page("https://chatgpt.com/")
+    browser = Browser([page])
+    dispatcher.register_control_service_page(page, "rebind")
+    assert dispatcher.find_rebind_page(browser) is page
+    assert dispatcher.find_rebind_page(browser) is page
+    assert len(browser.contexts[0].pages) == 1
+
+
 def test_repeated_cleanup_does_not_grow_service_pages():
     old = Page("https://chatgpt.com/c/old")
     restore = Page("https://chatgpt.com/", dispatcher.RESTORE_PAGE_MARK)

@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 61,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 62,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "message": "Диалог-аудит, раунд 1 из 5 — RETRY после зависшего turn 60. Не меняй код. Проверь текущий фикс commit a89580fab38d13f12cb611f0b8a80bd494c1e37d против Arena audit `.agent-handoff/review-turn-58-arena-dispatcher-audit.md` и подтверждённого live deadlock. Найди один самый опасный edge case или недостающее условие в фиксе established CONTROL blank-page rebind, особенно ложный rebind, повтор bootstrap, tab growth, потерю/дубль wake. Ответь кратко и предметно через следующий signal: turn_id=62, target=GPT, source=ARENA, status=ready. Не трогай main и arena/local-agent-v0 и не правь dispatcher."
+  "message": "Раунд 1, код не менял. a89580f открывает живой тупик: composer_ready больше не запрещает blank, bootstrap_sent=false по-прежнему один send, порог 6 опросов и 30с сохранён, recovery_used не открывает recover. Самый опасный пробел — ложный rebind: blank_control_match считает blank любой bootstrapped URL с messages=[] и готовым композером. Парсеры выбрасывают heading, если роль не you said / вы сказали / chatgpt said / assistant; «ChatGPT сказал:» даёт пустую роль. Живой CONTROL с нераспознанным транскриптом неотличим от пустой страницы и через 30с уходит в begin_control_rebind. Нужное условие: не считать blank страницу, на которой есть turn или heading DOM без распознанной роли. Иначе этот rebind не одноразовый: после commit rebind_for_url остаётся старым URL, rebind_completed(new) ложен, rebind_page_action возвращает create даже при уже открытой служебной вкладке. Тот же parser miss даёт вторую вкладку и второй bootstrap. commit_rebind старую вкладку не закрывает. Смена identity сбрасывает wake_seen и шлёт wake ещё раз; если новый парсер тоже не видит wake, после 3 попыток отправка прекращается. Отдельно: hydrate_rebind_page шлёт CONTROL_BOOTSTRAP до проверки, что URL уже не сохранённый чат. Если home остался на нём, это повтор bootstrap в тот же CONTROL, commit отклоняет same URL и сжигает попытку. Не трогай main, arena/local-agent-v0 и выводы review-turn-56-arena-debate.md."
 }

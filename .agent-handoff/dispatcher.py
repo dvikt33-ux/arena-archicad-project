@@ -127,6 +127,18 @@ CONTROL_ERROR_MARKERS = (
     "conversation not found",
     "не удалось загрузить",
 )
+CONTROL_PAGE_UNAVAILABLE_MARKERS = (
+    "unable to load this conversation",
+    "unable to load conversation",
+    "couldn't load this conversation",
+    "could not load this conversation",
+    "this conversation could not be loaded",
+    "не удалось загрузить этот разговор",
+    "чат был удален",
+    "чат был удалён",
+    "chat was deleted",
+)
+# Keep the legacy aggregate for message-level callers and isolated test loaders.
 CONTROL_UNAVAILABLE_MARKERS = CONTROL_ERROR_MARKERS + (
     "unable to load this conversation",
     "unable to load conversation",
@@ -1823,7 +1835,12 @@ def page_shows_unavailable(page) -> bool:
         )
     except Exception:
         return False
-    return hard_unavailable_text(text)
+    lowered = str(text or "").lower()
+    page_markers = globals().get(
+        "CONTROL_PAGE_UNAVAILABLE_MARKERS",
+        CONTROL_UNAVAILABLE_MARKERS[len(CONTROL_ERROR_MARKERS) :],
+    )
+    return bool(lowered.strip()) and any(marker in lowered for marker in page_markers)
 
 
 def page_signed_out(page) -> bool:

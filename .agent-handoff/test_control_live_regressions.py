@@ -44,6 +44,7 @@ def helpers():
         "CONTROL_BOOTSTRAP_MARKER",
         "CONTROL_ERROR_MARKERS",
         "CONTROL_UNAVAILABLE_MARKERS",
+        "CONTROL_PAGE_UNAVAILABLE_MARKERS",
         "INFER_TURN_ROLE_JS",
         "TURN_SELECTOR",
         "ACCESSIBLE_TURN_HEADING_SELECTOR",
@@ -85,6 +86,14 @@ class TailDeletedPage:
         return "cached transcript\n" + ("x" * 7000) + "\nЧат был удален. Начните новый чат."
 
 
+class BodyPage:
+    def __init__(self, text):
+        self.text = text
+
+    def evaluate(self, _script):
+        return self.text
+
+
 def main() -> None:
     ns = helpers()
     old = "https://chatgpt.com/c/WEB:4f943fa5-39fa-4b25-95f8-e06ea1ffabed"
@@ -101,6 +110,18 @@ def main() -> None:
 
     assert ns["hard_unavailable_text"]("cached transcript\n" + deleted) is True
     assert ns["page_shows_unavailable"](TailDeletedPage()) is True
+    assert ns["page_shows_unavailable"](
+        BodyPage("Не удалось загрузить историю")
+    ) is False
+    assert ns["page_shows_unavailable"](
+        BodyPage("Unable to load history")
+    ) is False
+    assert ns["page_shows_unavailable"](
+        BodyPage("Чат был удален")
+    ) is True
+    assert ns["page_shows_unavailable"](
+        BodyPage("Chat was deleted")
+    ) is True
     ready_then_deleted = [
         {"role": "assistant", "text": "CONTROL READY"},
         {"role": "user", "text": deleted},

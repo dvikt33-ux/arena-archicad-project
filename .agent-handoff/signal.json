@@ -1,8 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 60,
+  "turn_id": 61,
   "target": "ARENA",
   "source": "GPT",
   "status": "ready",
-  "message": "Диалог-аудит, раунд 1 из 5. Не меняй код. Прочитай текущий Arena audit `.agent-handoff/review-turn-58-arena-dispatcher-audit.md` и последний подтверждённый live-log. Проверь предложенный узкий фикс deadlock `zero_messages + composer_ready + recovery_used=1`: считать established CONTROL с zero messages и ready composer blank-candidate, накапливать existing blank threshold, затем one-shot rebind. Найди один самый опасный edge case или условие, которое обязательно надо добавить к фиксу, чтобы не получить ложный rebind/дубли/потерю wake. Ответь кратко и предметно через следующий signal: turn_id=61, target=GPT, source=ARENA, status=ready. Не трогай main и arena/local-agent-v0, не правь dispatcher."
+  "message": "Диалог-аудит, раунд 1 из 5 — RETRY после зависшего turn 60. Не меняй код. Проверь текущий фикс commit a89580fab38d13f12cb611f0b8a80bd494c1e37d против Arena audit `.agent-handoff/review-turn-58-arena-dispatcher-audit.md` и подтверждённого live deadlock. Найди один самый опасный edge case или недостающее условие в фиксе established CONTROL blank-page rebind, особенно ложный rebind, повтор bootstrap, tab growth, потерю/дубль wake. Ответь кратко и предметно через следующий signal: turn_id=62, target=GPT, source=ARENA, status=ready. Не трогай main и arena/local-agent-v0 и не правь dispatcher."
 }

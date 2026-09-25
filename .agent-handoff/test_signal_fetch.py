@@ -109,7 +109,7 @@ def api_bytes(payload: bytes, content: str | None = None, encoding: str = "base6
 
 def main() -> None:
     ns = load_fetchers()
-    assert ns["VERSION"] == "2.2.18"
+    assert ns["VERSION"] == "2.2.19"
     assert ns["CHECK_INTERVAL"] == 5
     assert ns["SIGNAL_FETCH_TIMEOUT"] == 8
     assert "api.github.com" in ns["SIGNAL_API_URL"]
@@ -129,11 +129,21 @@ def main() -> None:
     got = ns["fetch_signal"](opener=opener)
     assert got["turn_id"] == 36
     assert got["target"] == "ARENA"
+    assert got["requires_codex"] is False
     assert got["message"] == "SECRET-TURN-BODY"
     assert len(opener.calls) == 1
     assert opener.calls[0][0].startswith(ns["SIGNAL_URL"])
     assert opener.calls[0][1] == 8
     assert not any("SECRET-TURN-BODY" in line for line in ns["logs"])
+
+    assert ns["parse_signal"](json.loads(signal_bytes(requires_codex=True)))["requires_codex"] is True
+    for invalid in ("true", 1, None):
+        try:
+            ns["parse_signal"](json.loads(signal_bytes(requires_codex=invalid)))
+        except ns["GitHubSignalError"] as exc:
+            assert str(exc) == "requires_codex_invalid"
+        else:
+            raise AssertionError(f"requires_codex={invalid!r} was accepted")
 
     ns["logs"].clear()
     opener = Opener({

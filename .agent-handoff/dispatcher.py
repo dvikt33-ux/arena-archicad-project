@@ -20,10 +20,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 # =========================
-# AI Dispatcher 2.2.18
+# AI Dispatcher 2.2.19
 # =========================
 
-VERSION = "2.2.18"
+VERSION = "2.2.19"
 
 HOME = Path.home()
 STATE_PATH = HOME / ".ai-dispatcher-state.json"
@@ -54,11 +54,14 @@ ARENA_URL = "https://arena.ai/agent/01a09014-9139-71e7-b51b-5b3f8a49d904"
 
 CONTROL_BOOTSTRAP = (
     "Служебный чат 01 — CONTROL & BRIDGE. "
-    "Этот чат используется только локальным AI Dispatcher как машинный транспортный канал. "
+    "Этот чат используется только локальным AI Dispatcher как машинный транспортный канал "
+    "в обычном ChatGPT, не в Codex/Work. "
     "Когда приходит сообщение вида «Проверь GitHub. turn_id=N», открой через подключённый GitHub "
     "репозиторий dvikt33-ux/arena-archicad-project, ветку agent-handoff, файл "
     ".agent-handoff/signal.json; проверь, что turn_id совпадает, выполни только инструкцию из поля "
     "message и при необходимости запиши следующий handoff обратно в этот signal.json. "
+    "Не запускай, не открывай и не расходуй Codex/Work, если signal не содержит точное JSON-поле "
+    "requires_codex=true. Отсутствующий requires_codex означает false. "
     "Не меняй main и arena/local-agent-v0. Не включай Phase 2 или live mailbox без явной инструкции "
     "в signal. Этот чат не предназначен для ручной переписки пользователя. "
     "На это инициализирующее сообщение ответь только: CONTROL READY."
@@ -1158,6 +1161,9 @@ def parse_signal(data: dict) -> dict:
     """Normalize a signal object. Raises GitHubSignalError; does not log message text."""
     if not isinstance(data, dict):
         raise GitHubSignalError("signal_not_object")
+    requires_codex = data.get("requires_codex", False)
+    if not isinstance(requires_codex, bool):
+        raise GitHubSignalError("requires_codex_invalid")
     try:
         return {
             "protocol": int(data.get("protocol", 0) or 0),
@@ -1166,6 +1172,7 @@ def parse_signal(data: dict) -> dict:
             "source": str(data.get("source", "") or "").upper(),
             "status": str(data.get("status", "") or "").lower(),
             "message": str(data.get("message", "") or ""),
+            "requires_codex": requires_codex,
         }
     except (TypeError, ValueError) as exc:
         raise GitHubSignalError("signal_fields_invalid") from exc
@@ -3499,6 +3506,7 @@ def create_inflight(state: dict, signal: dict) -> dict:
     inflight = {
         "turn_id": signal["turn_id"],
         "target": signal["target"],
+        "requires_codex": bool(signal.get("requires_codex", False)),
         "wake": wake_text(signal["turn_id"]),
         "submitted": False,
         "send_attempts": 0,

@@ -85,7 +85,7 @@ def main() -> None:
     other = "https://chatgpt.com/c/11111111-1111-1111-1111-111111111111"
     with tempfile.TemporaryDirectory() as tmp:
         ns = load_helpers(Path(tmp) / "control.json")
-        assert ns["VERSION"] == "2.2.18"
+        assert ns["VERSION"] == "2.2.19"
         assert ns["CHECK_INTERVAL"] == 5
         polls = ns["BLANK_REBIND_POLLS"]
         seconds = ns["BLANK_REBIND_SECONDS"]

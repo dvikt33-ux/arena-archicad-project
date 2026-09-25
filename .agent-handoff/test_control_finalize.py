@@ -396,7 +396,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "control.json"
         ns = load_helpers(path)
-        assert ns["VERSION"] == "2.2.18"
+        assert ns["VERSION"] == "2.2.19"
         assert ns["CHECK_INTERVAL"] == 5
         assert ns["CONTROL_FINALIZE_URL_WAIT"] >= 60
         live = no_new_url_state(old)

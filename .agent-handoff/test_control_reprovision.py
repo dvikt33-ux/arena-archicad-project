@@ -427,7 +427,7 @@ def func_source(name: str) -> str:
 
 
 def test_constants(ns) -> None:
-    assert ns["VERSION"] == "2.2.18"
+    assert ns["VERSION"] == "2.2.19"
     assert ns["CHECK_INTERVAL"] == 5
     assert ns["CONTROL_REPROVISION_URL_WAIT"] >= 90
     assert ns["CONTROL_REBIND_COMPOSER_WAIT"] >= 20
@@ -500,7 +500,7 @@ def test_save_roundtrip(ns, path: Path) -> None:
     assert saved["rebind_reprovision_submit_retry_count"] == 1
     assert saved["rebind_reprovision_submit_retry_status"] == "started"
     assert saved["rebind_reprovision_submit_retry_for_url"] == OLD
-    assert saved["dispatcher_version"] == "2.2.18"
+    assert saved["dispatcher_version"] == "2.2.19"
 
 
 def test_eligibility(ns, path: Path) -> None:

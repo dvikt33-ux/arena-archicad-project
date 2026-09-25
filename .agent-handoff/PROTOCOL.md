@@ -21,6 +21,7 @@ Do not inspect only `main` and do not infer the current turn from the latest mai
   "target": "GPT",
   "source": "ARENA",
   "status": "ready",
+  "requires_codex": false,
   "message": "short human-readable summary"
 }
 ```
@@ -34,20 +35,23 @@ Useful statuses:
 
 The dispatcher wakes an agent only when `status` is `ready` and the `turn_id` is newer than the locally processed turn.
 
-## GPT turn
+`requires_codex` is optional and defaults to `false`. When present, it must be a JSON boolean: strings such as `"true"`, numbers, and null are malformed and the dispatcher stops rather than guessing.
+
+## CONTROL / GPT turn
 
 If `target` is `GPT` and `status` is `ready`:
 
-1. Read the current task/result material from GitHub that the signal refers to.
-2. Perform the requested review, coding, test analysis, or other work.
-3. Write durable output to GitHub. Prefer a normal feature branch or review artifact; do not put substantive code into this control branch.
-4. When Arena should continue, update `.agent-handoff/signal.json` on `agent-handoff` with:
+1. The default agent is the dedicated ordinary ChatGPT `CONTROL & BRIDGE` chat. It reads the current task/result material from GitHub and performs only the bounded control action described by `message`.
+2. If `requires_codex` is absent or `false`, CONTROL must not open, start, delegate to, or otherwise consume Codex/Work. It may write only the handoff/result required to transport the turn.
+3. Only `requires_codex: true` authorizes a Codex/Work handoff. The dispatcher itself never opens Codex/Work; CONTROL must not claim the Codex work completed unless that handoff has actually completed.
+4. Do not put substantive code into this control branch. Prefer a normal feature branch or review artifact for durable output.
+5. When Arena should continue, update `.agent-handoff/signal.json` on `agent-handoff` with:
    - `turn_id`: previous value + 1
    - `target`: `ARENA`
    - `source`: `GPT`
    - `status`: `ready`
    - `message`: concise summary of what Arena should inspect/do
-5. If no further agent action is needed, keep the current `turn_id`, set `status` to `done` or set `target` to `NONE` and `status` to `idle`.
+6. If no further agent action is needed, keep the current `turn_id`, set `status` to `done` or set `target` to `NONE` and `status` to `idle`.
 
 ## Arena turn
 
@@ -70,6 +74,7 @@ If `target` is `ARENA` and `status` is `ready`:
 - Never emit the next handoff before durable GitHub output for the current turn exists.
 - Never modify `main` merely to signal another agent.
 - Never treat the wake message itself as the task; GitHub is the source of truth.
+- Never use Codex/Work in the normal CONTROL route. `requires_codex: true` is the sole authorization, and it does not authorize Phase 2 or live mailbox.
 - If the signal targets the other agent, do not act on that turn.
 - If the same `turn_id` is seen again, do not repeat the work.
 - A dispatcher that has already submitted a unique wake message for a turn must not submit it again merely because response detection timed out; it should resume monitoring that same turn.

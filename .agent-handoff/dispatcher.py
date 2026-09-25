@@ -83,6 +83,16 @@ RESTORE_PAGE_MARK = "ai-dispatcher-restore"
 REBIND_PAGE_MARK = "ai-dispatcher-rebind"
 REBIND_REPLACEMENT_PAGE_MARK = "ai-dispatcher-rebind-replacement"
 REBIND_REPROVISION_PAGE_MARK = "ai-dispatcher-rebind-reprovision"
+CONTROL_PROVISION_PAGE_MARK = "ai-dispatcher-provision"
+CONTROL_SERVICE_PAGE_MARKS = frozenset(
+    {
+        RESTORE_PAGE_MARK,
+        REBIND_PAGE_MARK,
+        REBIND_REPLACEMENT_PAGE_MARK,
+        REBIND_REPROVISION_PAGE_MARK,
+        CONTROL_PROVISION_PAGE_MARK,
+    }
+)
 CONTROL_REBIND_COOLDOWN_SECONDS = 60
 CONTROL_REBIND_URL_WAIT = 20
 BLANK_REBIND_POLLS = 6
@@ -912,7 +922,7 @@ def mark_rebind_failed(old_url: str, reason: str = "") -> None:
     _write_rebind_state(old_url, "failed", bootstrap_sent=sent, failure_reason=token)
 
 
-def commit_rebind(new_url: str, old_url: str) -> None:
+def commit_rebind(new_url: str, old_url: str, browser=None, keep=None) -> None:
     """Replace the URL once. Keep recovery fields and drop only the restore latch."""
     existing = _read_control_file()
     observed = normalize_conversation_url(new_url)
@@ -956,6 +966,9 @@ def commit_rebind(new_url: str, old_url: str) -> None:
     existing["rebind_url_status"] = "committed"
     existing["rebind_bootstrap_attempted"] = True
     save_control_record(existing)
+    cleanup = globals().get("close_control_service_pages")
+    if browser is not None and callable(cleanup):
+        cleanup(browser, keep=keep, old_url=old_url)
     log("CONTROL: url_rebound")
 
 
@@ -1303,6 +1316,38 @@ def chatgpt_pages(browser):
     ]
 
 
+def close_control_service_pages(browser, keep=None, old_url: str = "") -> int:
+    """Close only dispatcher-owned pages after a control transition.
+
+    Ownership is proved by a dispatcher window.name marker or the previously
+    persisted CONTROL URL. Unmarked conversations are always left alone.
+    """
+    old = normalize_conversation_url(old_url)
+    closed = 0
+    for page in list(all_pages(browser)):
+        if page is keep:
+            continue
+        mark = page_restore_mark(page)
+        url = normalize_conversation_url(str(getattr(page, "url", "") or ""))
+        owned = mark in CONTROL_SERVICE_PAGE_MARKS or (old and same_conversation(url, old))
+        if not owned:
+            continue
+        try:
+            page.close()
+        except Exception:
+            # Cleanup is best effort; routing state remains fail-closed.
+            continue
+        closed += 1
+    return closed
+
+
+def mark_control_service_page(page, mark: str) -> None:
+    try:
+        page.evaluate("(name) => { window.name = name }", mark)
+    except Exception:
+        pass
+
+
 def _preferred_index(pages: list[dict], indexes: list[int]) -> int:
     for index in indexes:
         if pages[index].get("foreground"):
@@ -1527,6 +1572,7 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
     if accepted and is_usable_control_url(observed):
         canonicalize_control_url(observed)
         clear_restore_latch()
+        globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=page, old_url=control_url)
         log("CONTROL: page=restored")
         return page
 
@@ -1549,6 +1595,7 @@ def begin_control_restore(browser, control_url: str, wake: str = ""):
         if accepted and is_usable_control_url(observed):
             canonicalize_control_url(observed)
             clear_restore_latch()
+            globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=page, old_url=control_url)
             log("CONTROL: page=restored")
             return page
     note_restore_failure()
@@ -1696,13 +1743,13 @@ def wait_for_rebind_composer(page, timeout_seconds: float | None = None) -> str:
         time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
 
 
-def hydrate_rebind_page(page, old_url: str, goto_home: bool = True):
+def hydrate_rebind_page(page, old_url: str, goto_home: bool = True, browser=None):
     """Bootstrap once on a page that already exists. Never opens a tab."""
     record = load_control_record()
     if record.get("rebind_bootstrap_sent"):
         url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
         if url and is_usable_control_url(url) and not same_conversation(url, old_url):
-            commit_rebind(url, old_url)
+            commit_rebind(url, old_url, browser=browser, keep=page)
             log("CONTROL: page=rebound")
         return page
 
@@ -1753,7 +1800,7 @@ def hydrate_rebind_page(page, old_url: str, goto_home: bool = True):
         mark_rebind_failed(old_url, "no_new_url")
         log("CONTROL: rebind=failed reason=no_new_url")
         return page
-    commit_rebind(url, old_url)
+    commit_rebind(url, old_url, browser=browser, keep=page)
     log("CONTROL: page=rebound")
     return page
 
@@ -1772,10 +1819,13 @@ def begin_control_rebind(browser, old_url: str):
         page = browser.contexts[0].new_page()
         mark_rebind_page(page)
         log("CONTROL: page=rebind_create")
-        return hydrate_rebind_page(page, old_url, goto_home=True)
+        result = hydrate_rebind_page(page, old_url, goto_home=True, browser=browser)
+        if str(load_control_record().get("rebind_status") or "") == "failed":
+            globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=None)
+        return result
     log("CONTROL: page=rebind_reuse")
     on_home = rebind_page_on_home(str(getattr(page, "url", "") or ""))
-    return hydrate_rebind_page(page, old_url, goto_home=not on_home)
+    return hydrate_rebind_page(page, old_url, goto_home=not on_home, browser=browser)
 
 
 def resume_control_rebind(browser, old_url: str):
@@ -1797,7 +1847,7 @@ def resume_control_rebind(browser, old_url: str):
         mark_rebind_resume_result(old_url)
         log("CONTROL: rebind=resume_failed reason=unexpected_url")
         return page
-    hydrate_rebind_page(page, old_url, goto_home=not rebind_page_on_home(current))
+    hydrate_rebind_page(page, old_url, goto_home=not rebind_page_on_home(current), browser=browser)
     mark_rebind_resume_result(old_url)
     return page
 
@@ -1919,13 +1969,13 @@ def mark_replacement_page(page) -> None:
         pass
 
 
-def finish_replacement_page(page, old_url: str, goto_home: bool) -> None:
+def finish_replacement_page(page, old_url: str, goto_home: bool, browser=None) -> None:
     """Hydrate one already-created replacement page. Never opens a tab."""
     record = load_control_record()
     if record.get("rebind_bootstrap_sent"):
         url = wait_for_conversation_url(page, CONTROL_REBIND_URL_WAIT)
         if url and is_usable_control_url(url) and not same_conversation(url, old_url):
-            commit_rebind(url, old_url)
+            commit_rebind(url, old_url, browser=browser, keep=page)
             mark_rebind_replacement_result(old_url)
             log("CONTROL: page=rebound")
             return
@@ -1933,7 +1983,7 @@ def finish_replacement_page(page, old_url: str, goto_home: bool) -> None:
         mark_rebind_replacement_result(old_url, "no_new_url")
         log("CONTROL: rebind=replacement_failed reason=no_new_url")
         return
-    hydrate_rebind_page(page, old_url, goto_home=goto_home)
+    hydrate_rebind_page(page, old_url, goto_home=goto_home, browser=browser)
     record = load_control_record()
     if record.get("rebind_status") == "done":
         mark_rebind_replacement_result(old_url)
@@ -1966,7 +2016,9 @@ def replace_control_rebind(browser, old_url: str):
             mark_rebind_replacement_failed(old_url, "unexpected_url")
             log("CONTROL: rebind=replacement_failed reason=unexpected_url")
             return page
-        finish_replacement_page(page, old_url, goto_home=not rebind_page_on_home(current))
+        finish_replacement_page(page, old_url, goto_home=not rebind_page_on_home(current), browser=browser)
+        if str(load_control_record().get("rebind_replacement_status") or "") == "failed":
+            globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=None)
         return page
     if not mark_rebind_replacement_started(old_url):
         log("CONTROL: rebind=replacement_failed reason=failed")
@@ -1980,7 +2032,9 @@ def replace_control_rebind(browser, old_url: str):
         return None
     mark_replacement_page(page)
     log("CONTROL: page=replacement_create")
-    finish_replacement_page(page, old_url, goto_home=True)
+    finish_replacement_page(page, old_url, goto_home=True, browser=browser)
+    if str(load_control_record().get("rebind_replacement_status") or "") == "failed":
+        globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=None)
     return page
 
 
@@ -2324,8 +2378,8 @@ def wait_for_finalize_commit(browser, old_url: str, submission_confirmed: bool):
         time.sleep(min(REBIND_COMPOSER_POLL_SECONDS, max(0.05, remaining)))
 
 
-def _commit_finalize(page, url: str, old_url: str):
-    commit_rebind(url, old_url)
+def _commit_finalize(browser, page, url: str, old_url: str):
+    commit_rebind(url, old_url, browser=browser, keep=page)
     log("CONTROL: page=finalize_commit")
     return page
 
@@ -2343,7 +2397,7 @@ def finalize_control_rebind(browser, old_url: str):
     observations = finalize_page_observations(browser)
     page, url = _pick_finalize_commit(observations, old_url, False)
     if url:
-        return _commit_finalize(page, url, old_url)
+        return _commit_finalize(browser, page, url, old_url)
     if already_submitted:
         log("CONTROL: rebind=finalize_scan")
         return find_replacement_page(browser)
@@ -2358,7 +2412,7 @@ def finalize_control_rebind(browser, old_url: str):
     if positive:
         page, url = wait_for_finalize_commit(browser, old_url, True)
         if url:
-            return _commit_finalize(page, url, old_url)
+            return _commit_finalize(browser, page, url, old_url)
         mark_finalize_submitted(old_url)
         log("CONTROL: rebind=finalize_submitted")
         return marked
@@ -2382,11 +2436,11 @@ def finalize_control_rebind(browser, old_url: str):
         observations = finalize_page_observations(browser)
         page, url = _pick_finalize_commit(observations, old_url, True)
         if url:
-            return _commit_finalize(page, url, old_url)
+            return _commit_finalize(browser, page, url, old_url)
         if _finalize_positive(observations) or any(item[1].get("generation") and item[1].get("marked") for item in observations):
             page, url = wait_for_finalize_commit(browser, old_url, True)
             if url:
-                return _commit_finalize(page, url, old_url)
+                return _commit_finalize(browser, page, url, old_url)
             mark_finalize_submitted(old_url)
             log("CONTROL: rebind=finalize_submitted")
             return marked
@@ -2708,14 +2762,14 @@ def submit_reprovision_bootstrap(page, old_url: str) -> str:
     return "submit_unconfirmed"
 
 
-def _commit_reprovision(page, url: str, old_url: str):
+def _commit_reprovision(browser, page, url: str, old_url: str):
     observed = normalize_conversation_url(url)
     if not observed or same_conversation(observed, old_url):
         mark_reprovision_failed(old_url, "no_new_url")
         log("CONTROL: rebind=reprovision_failed reason=no_new_url")
         return page
     try:
-        commit_rebind(observed, old_url)
+        commit_rebind(observed, old_url, browser=browser, keep=page)
     except Exception as exc:
         mark_reprovision_failed(old_url, "failed")
         log(f"CONTROL: rebind=reprovision_failed reason=failed error={type(exc).__name__}")
@@ -2771,7 +2825,7 @@ def finish_reprovision_page(browser, page, old_url: str, goto_home: bool):
             return page
     found, url = wait_for_reprovision_commit(browser, old_url, True)
     if url:
-        return _commit_reprovision(found, url, old_url)
+        return _commit_reprovision(browser, found, url, old_url)
     mark_reprovision_failed(old_url, "no_new_url")
     log("CONTROL: rebind=reprovision_failed reason=no_new_url")
     return page
@@ -2790,7 +2844,7 @@ def reprovision_control_rebind(browser, old_url: str):
             if not mark_reprovision_started(old_url):
                 log("CONTROL: rebind=reprovision_failed reason=failed")
                 return page
-            return _commit_reprovision(page, url, old_url)
+            return _commit_reprovision(browser, page, url, old_url)
         if not mark_reprovision_started(old_url):
             log("CONTROL: rebind=reprovision_failed reason=failed")
             return None
@@ -2815,16 +2869,19 @@ def reprovision_control_rebind(browser, old_url: str):
         evidence = page_control_evidence(page)
         confirmed = str(record.get("rebind_reprovision_submission_status") or "") == "confirmed"
         if positive_finalize_identity(evidence.get("messages") or []) or confirmed:
-            return _commit_reprovision(page, current, old_url)
+            return _commit_reprovision(browser, page, current, old_url)
         mark_reprovision_failed(old_url, "unexpected_url")
         log("CONTROL: rebind=reprovision_failed reason=unexpected_url")
         return page
-    return finish_reprovision_page(
+    result = finish_reprovision_page(
         browser,
         page,
         old_url,
         not rebind_page_on_home(current),
     )
+    if str(load_control_record().get("rebind_reprovision_status") or "") == "failed":
+        globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=None)
+    return result
 
 
 def find_arena_page(browser):
@@ -3084,19 +3141,25 @@ def wait_for_conversation_url(page, timeout_seconds: int = 30) -> str:
 def provision_control_chat(browser):
     context = browser.contexts[0]
     page = context.new_page()
-    page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+    mark_control_service_page(page, CONTROL_PROVISION_PAGE_MARK)
+    try:
+        page.goto(CHATGPT_HOME, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
 
-    log("CONTROL: создаю отдельный машинный ChatGPT-чат 01 — CONTROL & BRIDGE.")
-    submitted = send_to_chatgpt(page, CONTROL_BOOTSTRAP)
-    if submitted is False:
-        raise RuntimeError("CONTROL_BOOTSTRAP_NOT_SUBMITTED")
+        log("CONTROL: создаю отдельный машинный ChatGPT-чат 01 — CONTROL & BRIDGE.")
+        submitted = send_to_chatgpt(page, CONTROL_BOOTSTRAP)
+        if submitted is False:
+            raise RuntimeError("CONTROL_BOOTSTRAP_NOT_SUBMITTED")
 
-    control_url = wait_for_conversation_url(page, 30)
-    if not control_url:
-        raise RuntimeError("CONTROL_CHAT_URL_NOT_CREATED")
+        control_url = wait_for_conversation_url(page, 30)
+        if not control_url:
+            raise RuntimeError("CONTROL_CHAT_URL_NOT_CREATED")
 
-    save_control_url(control_url)
-    return page
+        save_control_url(control_url)
+        globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser, keep=page, old_url=control_url)
+        return page
+    except Exception:
+        globals().get("close_control_service_pages", lambda *_a, **_k: 0)(browser)
+        raise
 
 
 def _log_control_diag(

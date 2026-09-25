@@ -60,6 +60,7 @@ def load_helpers(control_path: Path):
                 "CONTROL_UNAVAILABLE_MARKERS",
                 "BLANK_REBIND_POLLS",
                 "BLANK_REBIND_SECONDS",
+                "CONTROL_RECOVERY_CHECKS",
             }:
                 keep.append(node)
         elif isinstance(node, ast.FunctionDef) and node.name in WANTED:
@@ -102,7 +103,7 @@ def main() -> None:
             "unready_checks": 100,
         }
         assert ns["blank_control_match"](record, canonical, [], False, False, False, False) is True
-        assert ns["blank_control_match"](record, canonical, [], True, False, False, False) is False
+        assert ns["blank_control_match"](record, canonical, [], True, False, False, False) is True
         assert ns["blank_control_match"](record, canonical, [{"role": "user", "text": "x"}], False, False, False, False) is False
         assert ns["blank_control_match"](record, other, [], False, False, False, False) is False
         assert ns["blank_control_match"](record, canonical, [], False, False, True, False) is False
@@ -155,6 +156,15 @@ def main() -> None:
 
         fresh = dict(record)
         assert ns["next_control_action"](fresh, [], canonical, page_unavailable=True, now=start) == "rebind"
+        brand_new = {
+            "chatgpt_control_url": saved,
+            "bootstrap_sent": False,
+            "recovery_used": False,
+        }
+        assert ns["blank_control_match"](brand_new, canonical, [], True, False, False, False) is False
+        assert ns["next_control_action"](
+            brand_new, [], "", composer_ready=True, now=start
+        ) == "send"
         assert ns["diagnose_control"](fresh, [], page_unavailable=True) == "unavailable"
         assert ns["hard_unavailable_text"]("Не удалось загрузить этот разговор ChatGPT") is True
 

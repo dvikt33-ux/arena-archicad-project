@@ -799,13 +799,19 @@ def blank_control_match(
     signed_out: bool,
     page_unavailable: bool,
 ) -> bool:
-    """A blank equivalent control page. One observation is not enough to rebind."""
-    if page_unavailable or signed_out or composer_ready or generation_active:
+    """A blank established control page. One observation is not enough to rebind.
+
+    A ready composer is normally evidence that a brand-new page can take the
+    bootstrap.  Once this durable CONTROL has already been bootstrapped,
+    however, an equivalent page with no transcript is the live blank-page
+    failure mode and must remain eligible for bounded rebind.
+    """
+    if page_unavailable or signed_out or generation_active:
         return False
     if messages:
         return False
     saved = str((record or {}).get("chatgpt_control_url") or "")
-    if not is_usable_control_url(saved) or not page_url:
+    if not bootstrap_was_sent(record) or not is_usable_control_url(saved) or not page_url:
         return False
     return same_conversation(page_url, saved) or url_matches(page_url, saved)
 

@@ -1019,12 +1019,14 @@ def delete_retired_control_chat(
 
     page = None
     try:
-        page = browser.contexts[0].new_page()
-        page.goto(
-            normalize_conversation_url(retired_url),
-            wait_until="domcontentloaded",
-            timeout=CONTROL_CHAT_DELETE_TIMEOUT,
-        )
+        retired = normalize_conversation_url(retired_url)
+        for candidate in all_pages(browser):
+            if same_conversation(str(getattr(candidate, "url", "") or ""), retired):
+                page = candidate
+                break
+        if page is None:
+            log("CONTROL: retired_chat_delete=skip reason=no_existing_page")
+            return False
         if not same_conversation(str(page.url or ""), retired_url):
             log("CONTROL: retired_chat_delete=skip reason=unexpected_url")
             return False
@@ -1081,13 +1083,13 @@ def delete_retired_control_chat(
                 pass
     cleanup = globals().get("close_control_service_pages")
     if browser is not None and callable(cleanup):
-        cleanup(browser, keep=keep, old_url=old_url)
         delete_retired_control_chat(
             browser,
             previous_url=previous_url,
             retired_url=old_url,
             active_url=observed,
         )
+        cleanup(browser, keep=keep, old_url=old_url)
     log("CONTROL: url_rebound")
 
 

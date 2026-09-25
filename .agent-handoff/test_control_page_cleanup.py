@@ -77,6 +77,24 @@ def test_retired_chat_delete_allows_only_previous_control_after_rebind():
     assert dispatcher.retired_control_chat_allowed(previous, previous, active)
 
 
+def test_retired_chat_delete_never_creates_a_page():
+    class NoNewPageContext:
+        pages = []
+
+        def new_page(self):
+            raise AssertionError("retired-chat cleanup must not create a page")
+
+    class NoNewPageBrowser:
+        contexts = [NoNewPageContext()]
+
+    assert not dispatcher.delete_retired_control_chat(
+        NoNewPageBrowser(),
+        "https://chatgpt.com/c/old",
+        "https://chatgpt.com/c/old",
+        "https://chatgpt.com/c/new",
+    )
+
+
 def test_repeated_cleanup_does_not_grow_service_pages():
     old = Page("https://chatgpt.com/c/old")
     restore = Page("https://chatgpt.com/", dispatcher.RESTORE_PAGE_MARK)

@@ -3069,7 +3069,10 @@ function inferTurnRole(roleAttr, labels) {
 }
 """
 
-TURN_SELECTOR = "article[data-testid^='conversation-turn-'], [data-message-id]"
+# ChatGPT has used both article and div/section turn containers.  Keep the
+# message-author selector as the primary source, but make the turn fallback
+# independent of the container tag.
+TURN_SELECTOR = "[data-testid^='conversation-turn-'], [data-message-id]"
 
 
 def infer_turn_role(role_attr: str = "", labels: str = "") -> str:
@@ -3091,7 +3094,9 @@ def _read_message_nodes(page, selector: str) -> list[dict]:
     try:
         return page.locator(selector).evaluate_all(
             """nodes => nodes.map(n => ({
-                role: n.getAttribute('data-message-author-role') || '',
+                role: n.getAttribute('data-message-author-role') ||
+                    n.getAttribute('data-message-author') ||
+                    n.getAttribute('aria-label') || '',
                 text: (n.innerText || '').trim()
             }))"""
         )
@@ -3111,6 +3116,8 @@ nodes => nodes.map(n => {
   const labelNode = n.querySelector('h5, h6, [class*="sr-only"], [class*="screen-reader"]');
   const labels = [
     n.getAttribute('aria-label') || '',
+    n.getAttribute('data-message-author-role') || '',
+    n.getAttribute('data-message-author') || '',
     labelNode ? (labelNode.innerText || '') : ''
   ].join(' ');
   return {

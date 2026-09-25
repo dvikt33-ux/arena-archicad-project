@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -134,6 +135,7 @@ CONTROL_UNAVAILABLE_MARKERS = CONTROL_ERROR_MARKERS + (
     "this conversation could not be loaded",
     "не удалось загрузить этот разговор",
     "чат был удален",
+    "чат был удалён",
     "chat was deleted",
 )
 SIGN_IN_MARKERS = (
@@ -275,7 +277,9 @@ def conversation_id(url: str) -> str:
     if not is_chatgpt_conversation_url(url):
         return ""
     path = url.split("?", 1)[0].split("#", 1)[0].rstrip("/")
-    return path.rsplit("/", 1)[-1]
+    from urllib.parse import unquote
+
+    return unquote(path.rsplit("/", 1)[-1])
 
 
 def conversation_identity(url: str) -> str:
@@ -376,6 +380,11 @@ def canonicalization_eligible(
     saved = normalize_conversation_url(str(record.get("chatgpt_control_url", "") or ""))
     observed = normalize_conversation_url(page_url)
     if not saved or not observed or saved == observed:
+        return False
+    if (
+        conversation_id(saved).lower().startswith("local-chatgpt:")
+        or conversation_id(observed).lower().startswith("local-chatgpt:")
+    ):
         return False
     if same_conversation(saved, observed):
         return True
@@ -1715,7 +1724,14 @@ def _inspect_restore(page, saved_url: str, wake: str, observed: str) -> tuple[li
         composer = composer_is_ready(page)
     except Exception:
         composer = False
-    accepted = restore_observation_accepted(saved_url, observed, messages, composer, wake)
+    try:
+        unavailable = page_shows_unavailable(page)
+    except Exception:
+        unavailable = False
+    accepted = (
+        not unavailable
+        and restore_observation_accepted(saved_url, observed, messages, composer, wake)
+    )
     return messages, composer, accepted
 
 
@@ -3496,14 +3512,16 @@ def ensure_control_ready(browser, wake: str = ""):
         if page is not None:
             page_url = page.url or ""
             messages = chatgpt_messages(page)
-            if canonicalization_eligible(record, messages, page_url, wake):
+            page_unavailable = page_shows_unavailable(page)
+            if not page_unavailable and canonicalization_eligible(
+                record, messages, page_url, wake
+            ):
                 canonicalize_control_url(page_url)
                 record = load_control_record()
                 saved = str(record.get("chatgpt_control_url") or "")
                 page_url = normalize_conversation_url(page_url) or page_url
             generation_active = generation_is_active(page)
             composer_ready = composer_is_ready(page)
-            page_unavailable = page_shows_unavailable(page)
 
     checks = int(record.get("unready_checks") or 0)
     now = time.time()

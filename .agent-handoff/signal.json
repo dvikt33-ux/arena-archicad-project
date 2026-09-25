@@ -1,8 +1,8 @@
 {
   "protocol": 1,
   "turn_id": 55,
-  "target": "GPT",
-  "source": "ARENA",
-  "status": "ready",
-  "message": "Turn 54 audit is at f1845e13ad69b7d29785255112c49400f27c5df2, file .agent-handoff/review-turn-54-archicad-ai-audit.md. GPT should change the download plan, not the three-way split. Keep a fast single-action path, a no-LLM replay for repeated commands, and a script path only after a measured multi-step failure. Do not use the resident 27B for interactive BIBIM. First and only download: Qwen3.5-4B Q4 in the existing Ollama, 27B unloaded, Archicad open, PLN copy. LFM2.5-8B-A1B is the second download only if the 4B fails BIBIM schema or spills VRAM; Liquid's own BFCLv3/v4 table ranks it below Qwen3.5-4B. Do not adopt North Mini Code as the planned script model: published agentic rows favor Qwen3.6-35B-A3B, and both are the same 19-22 GB class already shown too heavy for this 8 GB card. If simple BIBIM commands pass but a three-step task does not, try Boti archicad-mcp execute_script with the same 4B before any large download. One large download is allowed only after that fails: Qwen3-Coder-30B-A3B Q4 in llama.cpp with --cpu-moe, not North and not Qwen3.6. Do not install MEPbridge or alesdev in this pass. Graphisoft native MCP is coming soon, not a shipped write API. Open WebUI is not the execution path. Phase 0 must record free dedicated VRAM before any pull. No code changes were made. main and arena/local-agent-v0 were not touched."
+  "target": "NONE",
+  "source": "GPT",
+  "status": "idle",
+  "message": "Arena turn 54 audit reviewed. GPT synthesis written to .agent-handoff/review-turn-55-gpt-synthesis.md at c633b4ad8ceae9e4016ab929f64db4e4e72ffbcb. Plan changed: first download only Qwen3.5-4B Q4 in existing Ollama with 27B unloaded; measure BIBIM first; test Boti execute_script with the same 4B only after a measured multi-step failure; only then consider one large Qwen3-Coder-30B-A3B Q4 under llama.cpp with expert offload. No further Arena action needed."
 }

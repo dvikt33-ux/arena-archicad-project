@@ -1,0 +1,56 @@
+verified_as_of: 2026-09-30
+purpose: "Execution policy for a BIM/architectural agent using the normative database."
+principles:
+  - id: ENGINE.FAIL_CLOSED
+    rule: "If applicability, trigger data, edition status or required project input is unknown, do not auto-apply a numeric rule; return manual_check with the missing inputs."
+
+  - id: ENGINE.SCOPE_FIRST
+    rule: "Evaluate document scope and rule trigger before comparing numeric values. A numerically stricter rule is not automatically applicable."
+
+  - id: ENGINE.NO_MEMORY_NUMBERS
+    rule: "A number not represented by an active or conditional database rule with source and clause cannot be presented as a normative requirement."
+
+  - id: ENGINE.VERSION_GUARD
+    rule: "Before applying a rule, verify that its edition and effective date are valid for the verification date. Future or replaced sources cannot be promoted to active from model memory or a legacy library object."
+
+  - id: ENGINE.DIMENSION_LAYERS
+    rule: "Keep coordination, construction, product and actual dimensions in separate fields. Do not round actual BIM geometry to 100 mm merely because modular coordination is enabled."
+
+  - id: ENGINE.CALCULATION_BOUNDARY
+    rule: "Geometry and product tables may generate candidates. Structural capacity, fire evacuation, accessibility, thermal, acoustic, daylight/insolation, seismic, geotechnical and MEP-dependent decisions require their own applicable checks."
+
+  - id: ENGINE.TRACEABILITY
+    rule: "Every automatic decision must emit rule_id, source, clause, edition/effective date, known trigger inputs, selected value and unresolved dependent checks."
+
+  - id: ENGINE.CONFLICT_REPORT
+    rule: "If two active applicable rules appear contradictory and there is no verified precedence or exception logic, stop automatic selection and report both rules for review."
+
+  - id: ENGINE.LIBRARY_REFERENCE_ONLY
+    rule: "BIM/GDL/library object names, dimensions and marks are reference data only until mapped to a current standard or manufacturer system."
+
+  - id: ENGINE.DERIVED_VALUE_LABEL
+    rule: "Any value calculated from normative facts must be labeled derived and preserve the derivation. A derived geometry value must not be presented as a standalone normative minimum or maximum."
+
+required_output_fields_for_normative_decision:
+  - decision_id
+  - element_reference
+  - rule_id
+  - source
+  - clause
+  - source_status
+  - verification_date
+  - trigger_inputs
+  - result
+  - automation_level
+  - derived_from
+  - unresolved_checks
+  - warnings
+
+known_high_risk_shortcuts:
+  - "rounding geometry to the nearest 100 mm without a coordination rule"
+  - "one universal minimum for masonry piers"
+  - "one universal precast slab bearing depth"
+  - "one universal lintel bearing length"
+  - "one universal window catalog size"
+  - "one universal door width without use/fire/accessibility triggers"
+  - "using a superseded standard only because it is present in a CAD/BIM template"

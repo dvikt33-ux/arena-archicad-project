@@ -1,0 +1,143 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: SP-54.13330.2022
+    status_source: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - id: SP-118.13330.2022
+    status_source: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - id: SP-59.13330.2020
+    status_source: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
+  - id: SP-131.13330.2025
+    status_source: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+  - id: SP-1.13130.2020
+    authority: "MChS Russia"
+rules:
+  - id: RESIDENTIAL.CLEAR_HEIGHT.LIVING_KITCHEN
+    state: conditional
+    source: SP-54.13330.2022
+    clause: "5.12"
+    scope: "Жилые комнаты и кухни/кухни-столовые многоквартирных жилых зданий в области применения СП 54.13330.2022."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_clear_height_mm:
+        climate_subregions_IA_IB_IG_ID_IVA: 2700
+        other_climate_subregions: 2500
+      climate_source_current: SP-131.13330.2025
+    must_not_assume:
+      - "Высота задается от пола до потолка, а не как координационная высота этажа."
+      - "Климатический подрайон должен быть установлен по действующей строительной климатологии; не угадывать по городу."
+      - "Для мансард/наклонных ограждений действует отдельное допускаемое снижение на части площади."
+
+  - id: RESIDENTIAL.CLEAR_HEIGHT.INTERNAL_CIRCULATION
+    state: active
+    source: SP-54.13330.2022
+    clause: "5.12"
+    scope: "Внутриквартирные коридоры, холлы, передние, пространство на антресоли и под ней."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_clear_height_mm: 2100
+    must_not_assume:
+      - "Не применять к общедомовым путям эвакуации без проверки пожарных требований."
+
+  - id: PUBLIC.CLEAR_HEIGHT.GENERAL
+    state: conditional
+    source: SP-118.13330.2022
+    clause: "4.26"
+    scope: "Помещения с постоянным и/или массовым пребыванием людей во вновь проектируемых общественных зданиях, если специальное положение СП не устанавливает иное."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_clear_height_mm: 3000
+      measured: "from finished floor to ceiling, including suspended ceiling"
+    must_not_assume:
+      - "СП 118 содержит специальные исключения; общий минимум нельзя применять вместо проверки конкретного назначения помещения."
+      - "Не путать с высотой этажа от уровня до уровня."
+
+  - id: PUBLIC.CLEAR_HEIGHT.EXCEPTIONS
+    state: conditional
+    source: SP-118.13330.2022
+    clause: "4.27"
+    scope: "Отдельные категории помещений общественных зданий, прямо перечисленные в СП 118.13330.2022."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      administrative_and_service_rooms_mm: 2700
+      dormitories_and_residential_institutions_mm: 2700
+      educational_buildings_climate_subregion_IA_mm: 2700
+      permanent_occupancy_reduced_height_mm: 2600
+      reduced_height_max_share_of_total_public_room_area_percent: 20
+      corridors_non_recreation_and_visitor_halls_and_no_permanent_occupancy_mm: 2400
+    must_not_assume:
+      - "Каждое исключение имеет собственную область применения; 2400 мм не является общим минимумом для всех коридоров всех зданий."
+
+  - id: ACCESSIBLE.DOOR.CLEAR_WIDTH.ENTRY
+    state: conditional
+    source: SP-59.13330.2020
+    clause: "6.1.5"
+    scope: "Дверные проемы, доступные для инвалидов на креслах-колясках, во вновь проектируемых и реконструируемых зданиях/сооружениях в области применения СП."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_clear_width_mm: 900
+      reconstruction_loadbearing_exception_mm: 800
+      two_leaf_entry_one_leaf_clear_width_mm: 900
+      measurement: "door opened 90 degrees"
+    must_not_assume:
+      - "Пожарная эвакуация и расчет потока могут потребовать большую ширину."
+      - "Номинальная ширина полотна не равна автоматически ширине в свету."
+
+  - id: ACCESSIBLE.DOOR.AND.OPENING.WIDTH
+    state: conditional
+    source: SP-59.13330.2020
+    clause: "6.2.4"
+    scope: "Дверные полотна, открытые проемы в стене, выходы из помещений и коридоров на лестничную клетку на доступном пути."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_width_mm: 900
+      if_reveal_depth_over_mm: 1000
+      min_width_for_deep_reveal_mm: 1200
+      max_threshold_or_level_difference_mm: 14
+    must_not_assume:
+      - "Требования пожарной безопасности проверяются параллельно."
+
+  - id: FIRE.EXIT.CLEAR_HEIGHT
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.2.18, current text with amendments 1-3"
+    scope: "Эвакуационные выходы в области применения СП 1.13130.2020."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      general_min_clear_height_mm: 1900
+      no_permanent_occupancy_or_single_workplace_min_mm: 1800
+      reconstruction_or_heritage_exception_min_mm: 1500
+      exception_requires_justification: true
+    must_not_assume:
+      - "Исключения нельзя применять к новому обычному объекту без соответствующих условий."
+
+  - id: FIRE.EXIT.CLEAR_WIDTH
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.2.19, current text with amendments 1-3"
+    scope: "Эвакуационные выходы; итоговая ширина зависит от назначения и числа эвакуирующихся."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      general_min_clear_width_mm: 800
+      if_evacuees_over_50_min_mm: 1200
+      note: "Additional exceptions and building-class rules must be checked in the same SP."
+    must_not_assume:
+      - "800 мм не является универсально допустимой шириной любой двери: требования МГН часто дают минимум 900 мм, а расчет эвакуации/назначение могут требовать больше."
+
+  - id: DOOR.CONSOLIDATED.MINIMUM
+    state: conditional
+    source: "SP-1.13130.2020 + SP-59.13330.2020"
+    clause: "SP1 4.2.19; SP59 6.1.5/6.2.4"
+    scope: "Проем, одновременно являющийся эвакуационным и доступным для МГН."
+    rule_kind: geometry
+    automation: auto_check
+    rule: "Check every applicable requirement independently; the final clear width must satisfy all applicable constraints. Do not hard-code one universal door width."
+    must_not_assume:
+      - "Нельзя автоматически выбирать 'более строгую цифру' без подтверждения, что оба требования применимы к конкретному проему."

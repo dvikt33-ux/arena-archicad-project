@@ -1,4 +1,4 @@
-manifest_version: 35
+manifest_version: 36
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -98,6 +98,7 @@ rule_files:
   - 46_garant_vertical_transport_verification.yaml
   - 47_highrise_fire_2027.yaml
   - 48_garant_materials_products_verification.yaml
+  - 48_sp70_change8_2027_gate.yaml
   - 49_garant_egress_entrance_verification.yaml
   - 50_garant_modular_structural_products_verification.yaml
 

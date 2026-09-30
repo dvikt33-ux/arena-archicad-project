@@ -1,6 +1,6 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Эвакуационные двери и выходы: размер в свету, высота, ширина, наружные площадки и конфликт с доступностью."
+purpose: "Эвакуационные двери и выходы: размер в свету, высота, ширина, направление открывания, двупольные двери, турникеты и конфликт с доступностью."
 
 revision_dependencies:
   - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
@@ -9,12 +9,10 @@ revision_dependencies:
 
 semantics:
   - id: door.egress.dimensions_are_clear
-    source:
-      document: SP_1_13130_2020
-      clause: "4.1.4"
+    source: {document: SP_1_13130_2020, clause: "4.1.4"}
     automation: auto
     dimension_semantics: clear
-    statement: "Размеры эвакуационных путей и выходов по СП 1, если специально не оговорено иное, задаются в свету. Размер в свету — минимальное расстояние между выступающими конструкциями измеряемого элемента в нормальной проекции."
+    statement: "Размеры эвакуационных путей и выходов по СП 1, если специально не оговорено иное, задаются в свету. Размер в свету — минимальное расстояние между выступающими конструкциями измеряемого элемента."
 
 exit_height:
   source: SP_1_13130_2020
@@ -77,7 +75,7 @@ stair_exit_width:
       clause: "4.2.20"
       automation: conditional
       dimension_semantics: clear
-      statement: "Ширина выхода из лестничной клетки наружу или в вестибюль должна быть не менее требуемой ширины пути по маршу лестницы; для отдельных функциональных классов действует специальное условие пункта."
+      statement: "Ширина выхода из лестничной клетки наружу или в вестибюль должна быть не менее требуемой ширины пути по маршу лестницы; для Ф2.1, Ф2.2 и Ф4.1 действует специальное условие пункта."
       requires_object_classification: true
       requires_calculation: true
 
@@ -90,9 +88,7 @@ stair_exit_width:
 
 external_landing:
   - id: door.egress.external_landing
-    source:
-      document: SP_1_13130_2020
-      clause: "4.2.21"
+    source: {document: SP_1_13130_2020, clause: "4.2.21"}
     automation: conditional
     statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную площадку с длиной и шириной не менее 1,5 ширины полотна наружной двери."
     formula: "landing_min_dimension >= 1.5 * exterior_door_leaf_width"
@@ -100,17 +96,59 @@ external_landing:
 
 opening_direction:
   - id: door.egress.opening_direction
-    source:
-      document: SP_1_13130_2020
-      clause: "4.2.22"
+    source: {document: SP_1_13130_2020, clause: "4.2.22"}
     automation: validation_only
-    statement: "Двери эвакуационных выходов и двери на путях эвакуации в общем случае открываются по направлению выхода из здания; пункт содержит перечисленные исключения, которые необходимо проверять до назначения направления открывания."
+    statement: "Двери эвакуационных выходов и двери на путях эвакуации в общем случае открываются по направлению выхода из здания; исключения пункта 4.2.22 проверять по классификации помещения и здания."
+
+self_closing_and_smoke_control:
+  - id: door.egress.smoke_control_self_closing
+    source: {document: SP_1_13130_2020, clause: "4.2.24"}
+    automation: conditional
+    statement: "Двери эвакуационных выходов из помещений и коридоров, защищаемых противодымной вентиляцией, а также двери в перегородках, разделяющих коридоры, должны иметь самозакрывание и уплотнение в притворах в области применения пункта."
+    requires_object_classification: true
+
+  - id: door.egress.held_open_fire_release
+    source: {document: SP_1_13130_2020, clause: "4.2.24"}
+    automation: validation_only
+    statement: "Если дверь с требуемым самозакрыванием должна эксплуатироваться открытой, предусматривать устройство автоматического закрывания при пожаре."
+
+leaf_logic:
+  - id: door.egress.double_leaf_passive_leaf
+    source: {document: SP_1_13130_2020, clause: "4.2.27"}
+    automation: auto
+    dimension_semantics: clear
+    statement: "У двупольной двери с зафиксированной пассивной створкой ширина эвакуационного выхода определяется только шириной прохода через активную створку."
+    conflict_policy: "Нельзя суммировать ширину пассивной створки с активной."
+
+  - id: door.egress.double_leaf_two_active
+    source: {document: SP_1_13130_2020, clause: "4.2.27"}
+    automation: conditional
+    dimension_semantics: clear
+    statement: "У двупольной двери с двумя активными створками ширина эвакуационного выхода определяется проходом через обе активные створки; требуется координация последовательного закрывания полотен."
+
+  - id: door.egress.antipanic_active_leaf
+    source: {document: SP_1_13130_2020, clause: "4.2.27"}
+    automation: validation_only
+    statement: "Если требуется устройство типа «Антипаника», оно устанавливается на активных дверных полотнах."
+
+turnstiles:
+  - id: door.egress.turnstile_clear_width
+    source: {document: SP_1_13130_2020, clause: "4.2.28"}
+    automation: conditional
+    dimension_semantics: clear
+    statement: "Проход через управляемое преграждающее устройство в вестибюле/холле — не менее 0,7 м, а при эвакуации МГН — не менее 0,9 м; суммарная ширина проходов должна быть не меньше требуемой ширины пути эвакуации."
+    values: {general_min_mm: 700, mgn_min_mm: 900}
+
+  - id: door.egress.turnstile_gate_over_50
+    source: {document: SP_1_13130_2020, clause: "4.2.28"}
+    automation: conditional
+    statement: "При эвакуации через турникеты более 50 человек перед эвакуационными выходами предусматривать распашные калитки шириной не менее ширины соответствующих выходов."
+    values: {trigger_people_over: 50}
+    requires_calculation: true
 
 accessibility_intersection:
   - id: door.accessible.route_clear_width
-    source:
-      document: SP_59_13330_2020
-      clause: "6.2.4"
+    source: {document: SP_59_13330_2020, clause: "6.2.4"}
     automation: conditional
     dimension_semantics: clear
     statement: "На доступном маршруте внутренний дверной проем для МГН в общем случае должен обеспечивать не менее 0,9 м в свету."
@@ -123,11 +161,17 @@ BIM_required_parameters:
   - structural_opening_height
   - frame_outer_width
   - frame_outer_height
-  - leaf_width
-  - clear_opening_width_at_90deg_or_normal_use
+  - leaf_count
+  - each_leaf_width
+  - active_leaf_flags
+  - clear_opening_width_at_normal_use
   - clear_opening_height
   - threshold_height
   - swing_direction
+  - self_closer_required
+  - hold_open_device
+  - smoke_seal_required
+  - antipanic_required
   - room_occupancy
   - calculated_evacuating_people
   - accessible_route_status
@@ -135,10 +179,11 @@ BIM_required_parameters:
 
 agent_logic:
   - "Никогда не считать библиотечную дверь с названием D900 автоматически проходом 900 мм в свету."
-  - "После установки дверного объекта вычислять фактический свободный проход с учетом коробки, полотна, угла открывания и выступающей фурнитуры, если она влияет на минимальное расстояние."
-  - "Строительный проем, наружный габарит коробки, ширина полотна и размер в свету — четыре разных параметра."
+  - "После установки дверного объекта вычислять фактический свободный проход с учетом коробки, створок и режима эксплуатации."
+  - "Строительный проем, наружный габарит коробки, ширина полотна и размер в свету — разные параметры."
   - "Исключение 600 мм не применять к обычным помещениям и не использовать на доступном маршруте, если СП 59 требует 900 мм."
-  - "Для двупольных дверей проверять фактически доступную створку/комбинацию створок по условиям применимого пункта, а не суммарную ширину коробки."
+  - "Для двупольной двери хранить состояние каждой створки active/passive; пассивную фиксированную створку не включать в расчет эвакуационной ширины."
+  - "Наличие широкой коробки не компенсирует неправильное направление открывания, отсутствие самозакрывания или требуемой фурнитуры."
 
 sources:
   - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"

@@ -1,4 +1,4 @@
-manifest_version: 21
+manifest_version: 22
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -82,6 +82,7 @@ rule_files:
   - 34_multifunctional_atriums.yaml
   - 35_residential_planning_minima.yaml
   - 36_residential_wet_zone_stacking.yaml
+  - 37_residential_balconies_loggias.yaml
 
 hard_fail_states:
   - yaml_parse_error

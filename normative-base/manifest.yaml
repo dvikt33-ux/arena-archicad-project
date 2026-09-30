@@ -1,4 +1,4 @@
-manifest_version: 31
+manifest_version: 32
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -96,6 +96,7 @@ rule_files:
   - 44_area_measurement_semantics.yaml
   - 45_parking_ramps.yaml
   - 46_garant_vertical_transport_verification.yaml
+  - 47_highrise_fire_2027.yaml
 
 hard_fail_states:
   - yaml_parse_error

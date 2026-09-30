@@ -1,4 +1,4 @@
-manifest_version: 28
+manifest_version: 29
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -93,6 +93,7 @@ rule_files:
   - 41_ceramic_masonry_units.yaml
   - 42_aac_masonry_units.yaml
   - 43_public_sanitary_facilities.yaml
+  - 44_area_measurement_semantics.yaml
 
 hard_fail_states:
   - yaml_parse_error

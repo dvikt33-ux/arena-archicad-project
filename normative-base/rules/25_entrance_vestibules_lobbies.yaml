@@ -1,0 +1,129 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Входные площадки, тамбуры и тамбур-шлюзы: геометрия доступного маршрута, двери и границы между МГН и пожарными требованиями."
+
+revision_dependencies:
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+
+accessible_entrance_platforms:
+  source: SP_59_13330_2020
+  rules:
+    - id: entrance.platform.with_ramp
+      clause: "6.1.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Размер входной площадки при наличии пандуса должен быть не менее 2,2 x 2,2 м."
+      values: {min_width_mm: 2200, min_depth_mm: 2200}
+
+    - id: entrance.platform.new_without_ramp
+      clause: "6.1.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При новом строительстве входная площадка без пандуса должна быть не менее 1,6 x 2,2 м."
+      values: {min_width_mm: 1600, min_depth_mm: 2200}
+
+    - id: entrance.platform.automatic_sliding
+      clause: "6.1.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При автоматических раздвижных дверях входная площадка должна быть не менее 1,9 x 1,2 м в области применения пункта."
+      values: {min_width_mm: 1900, min_depth_mm: 1200}
+
+accessible_door:
+  source: SP_59_13330_2020
+  rules:
+    - id: entrance.door.accessible_clear_width
+      clause: "6.1.5"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Доступный входной дверной проем для пользователя кресла-коляски при новом строительстве должен обеспечивать не менее 0,9 м в свету."
+      values: {min_clear_width_mm: 900}
+      conflict_policy: "Если вход одновременно эвакуационный, применять совместно с СП 1.13130.2020 и специальными требованиями объекта."
+
+    - id: entrance.door.double_leaf_accessible_leaf
+      clause: "6.1.5"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для двустворчатой входной двери одна створка должна обеспечивать требуемую доступную ширину 0,9 м в свету."
+      values: {accessible_leaf_clear_width_mm: 900}
+
+accessible_vestibules:
+  source: SP_59_13330_2020
+  rules:
+    - id: vestibule.accessible.straight_one_way_swing
+      clause: "6.1.8"
+      amendment: 3
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При прямом движении и одностороннем открывании дверей глубина тамбура или тамбур-шлюза должна быть не менее 2,45 м, ширина — не менее 1,60 м."
+      values: {min_depth_mm: 2450, min_width_mm: 1600}
+
+    - id: vestibule.accessible.alternative_geometry
+      clause: "6.1.8"
+      amendment: 3
+      automation: validation_only
+      statement: "Иные габариты тамбура допускаются только при обеспечении требуемых зон маневрирования пользователя кресла-коляски и зон открывания дверей."
+      values:
+        wheelchair_180_turn_min_diameter_mm: 1400
+        manoeuvre_before_pull_door_min_depth_mm: 1500
+        manoeuvre_before_pull_door_min_width_mm: 1500
+        handle_side_clearance_pull_door_min_mm: 600
+      conflict_policy: "Зона разворота не должна пересекаться с зоной открывания двери внутрь тамбура."
+
+    - id: vestibule.no_mirror_surfaces_on_egress_access
+      clause: "6.1.8"
+      automation: validation_only
+      statement: "В тамбурах, лестничных клетках и у эвакуационных выходов не применять зеркальные стены/поверхности и зеркальные стекла в дверях в области требований СП 59."
+
+fire_and_egress_intersection:
+  - id: vestibule.egress.swing_direction
+    source:
+      document: SP_1_13130_2020
+      clause: "4.2.22"
+    automation: validation_only
+    statement: "Двери на путях эвакуации в общем случае открываются по направлению выхода; исключения пункта 4.2.22 проверять по классификации помещения/здания."
+
+  - id: vestibule.fire_tambour_no_universal_plan_size
+    automation: forbidden_to_infer
+    statement: "Габарит пожарного тамбур-шлюза нельзя назначать только по правилу 2,45 x 1,60 м СП 59: это геометрия доступности при конкретной схеме движения. Пожарный тамбур-шлюз дополнительно проверяется по требованиям пожарной безопасности, подпору воздуха, классу функциональной опасности и защищаемому проему."
+    requires_calculation: true
+
+BIM_required_parameters:
+  - entrance_accessible_status
+  - entrance_egress_status
+  - entrance_platform_clear_width_mm
+  - entrance_platform_clear_depth_mm
+  - vestibule_clear_width_mm
+  - vestibule_clear_depth_mm
+  - door_1_clear_width_mm
+  - door_2_clear_width_mm
+  - door_1_swing_direction
+  - door_2_swing_direction
+  - wheelchair_turning_zone_geometry
+  - handle_side_clearance_mm
+  - ramp_presence
+  - automatic_door_type
+  - fire_tambour_status
+  - fire_pressurization_requirement
+
+layout_algorithm:
+  steps:
+    - "1. Определить, является ли вход доступным для МГН, эвакуационным, пожарным тамбур-шлюзом или сочетанием этих функций."
+    - "2. Сначала назначить требуемые размеры дверей в свету по СП 59 и СП 1."
+    - "3. Для доступного входа проверить входную площадку по 6.1.4 СП 59."
+    - "4. Для прямого доступного тамбура с односторонним открыванием проверить 2450 x 1600 мм; при иной схеме построить реальные зоны маневрирования и открывания дверей."
+    - "5. Не считать наружный габарит коробки размером в свету и не считать размер помещения между стенами достаточным, если дверные полотна перекрывают требуемые зоны."
+    - "6. Если это пожарный тамбур-шлюз, выполнить отдельную пожарную проверку; доступность не заменяет пожарные требования."
+
+agent_logic:
+  - "Не рисовать тамбур 1,5 x 1,5 м по памяти, если он входит в доступный маршрут нового здания."
+  - "Не проверять тамбур только по размерам стен: учитывать фактические зоны открывания обоих полотен."
+  - "Если альтернативная геометрия проходит по площади, но зона разворота пересекается с полотном, решение отклонить."
+  - "При коллизии размеров входа не уменьшать доступную/эвакуационную ширину ради модульной сетки фасада."
+
+sources:
+  - "https://base.garant.ru/400382837/"
+  - "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"

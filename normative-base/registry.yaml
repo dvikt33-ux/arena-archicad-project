@@ -1,0 +1,129 @@
+checked_at: 2026-09-30
+jurisdiction: RU
+legal_status_rule:
+  note: >-
+    С 2024-09-01 постановление Правительства РФ №815 утратило силу. Для определения
+    применимости требований при проектировании/экспертизе используется Реестр требований
+    ЕИС «Стройкомплекс.РФ»; статус документа и его редакция проверяются отдельно в Росстандарте.
+  registry_url: https://xn--e1ahdbdflckekkc.xn--p1ai/rntd
+
+documents:
+  - id: GOST_28984_2011
+    title: Модульная координация размеров в строительстве. Основные положения
+    status: active
+    effective_from: 2013-01-01
+    amendments: ["Поправка ИУС 6-2022"]
+    source_url: https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514
+  - id: GOST_530_2012
+    title: Кирпич и камень керамические. Общие технические условия
+    status: active
+    effective_from: 2013-07-01
+    source_url: https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc
+  - id: SP_15_13330_2020
+    title: Каменные и армокаменные конструкции
+    status: active
+    effective_from: 2021-07-01
+    amendments: [1]
+    source_url: https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187
+  - id: SP_70_13330_2012
+    title: Несущие и ограждающие конструкции
+    status: active
+    amendments: [1,3,4,5,6,7]
+    source_url: https://protect.gost.ru/sp
+  - id: GOST_26434_2025
+    title: Плиты перекрытий железобетонные для жилых зданий. Типы и основные параметры
+    status: active
+    effective_from: 2026-01-01
+    replaces: GOST_26434_2015
+    source_url: https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc
+  - id: GOST_9561_2025
+    title: Плиты перекрытий железобетонные многопустотные для зданий и сооружений. Технические условия
+    status: active
+    effective_from: 2026-01-01
+    replaces: GOST_9561_2016
+    corrections: ["Поправка ИУС 6-2026, действует с 2026-06-17"]
+    source_url: https://protect.gost.ru/gost/details/2cad8d31-5b41-45ad-9eb6-0e0125c69b15
+  - id: GOST_23166_2024
+    title: Блоки оконные и балконные. Общие технические условия
+    status: active
+    effective_from: 2024-04-01
+    source_url: https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d
+  - id: GOST_475_2016
+    title: Блоки дверные деревянные и комбинированные. Общие технические условия
+    status: active_until_2026_09_30
+    replaced_by: GOST_475_2026
+    note: На дату проверки 2026-09-30 новая редакция вступает в силу 2026-10-01.
+    source_url: https://protect.gost.ru/gost/details/15817887-7157-43ed-acfa-8364cb533610
+  - id: GOST_475_2026
+    title: Блоки дверные деревянные и комбинированные. Общие технические условия
+    status: future_effective
+    effective_from: 2026-10-01
+    replaces: GOST_475_2016
+    source_url: https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16
+  - id: GOST_25772_2025
+    title: Ограждения металлические лестниц, балконов, крыш, лестничных маршей и площадок. Общие технические условия
+    status: active
+    effective_from: 2026-01-01
+    replaces: GOST_25772_2021
+    corrections: ["Поправка ИУС 6-2026, действует с 2026-06-17"]
+    source_url: https://protect.gost.ru/gost/details/0201c996-021b-408c-b36e-778f77f18f70
+  - id: SP_1_13130_2020
+    title: Системы противопожарной защиты. Эвакуационные пути и выходы
+    status: active
+    effective_from: 2020-09-19
+    amendments: [1,2,3]
+    source_url: https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3
+  - id: SP_2_13130_2020
+    title: Системы противопожарной защиты. Обеспечение огнестойкости объектов защиты
+    status: active
+    amendments: [1,2]
+    source_url: https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1
+  - id: SP_59_13330_2020
+    title: Доступность зданий и сооружений для маломобильных групп населения
+    status: active
+    effective_from: 2021-06-30
+    amendments: [1,2,3,4]
+    source_url: https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51
+  - id: SP_54_13330_2022
+    title: Здания жилые многоквартирные
+    status: active
+    effective_from: 2022-06-14
+    amendments: [1,2]
+    source_url: https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263
+  - id: SP_118_13330_2022
+    title: Общественные здания и сооружения
+    status: active
+    effective_from: 2022-06-20
+    amendments: [1,2,3,4,5]
+    source_url: https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e
+  - id: SP_50_13330_2024
+    title: Тепловая защита зданий
+    status: active
+    effective_from: 2024-06-16
+    replaces: SP_50_13330_2012
+    source_url: https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c
+  - id: SP_131_13330_2025
+    title: Строительная климатология
+    status: active
+    effective_from: 2025-09-09
+    replaces: SP_131_13330_2020
+    source_url: https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99
+  - id: SP_20_13330_2016
+    title: Нагрузки и воздействия
+    status: active
+    amendments: [1,2,3,4,5,6]
+    source_url: https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821
+  - id: GOST_R_21_101_2026
+    title: СПДС. Основные требования к проектной и рабочей документации
+    status: active
+    effective_from: 2026-04-01
+    source_url: https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f
+
+rejected_as_current:
+  - GOST_26434_2015
+  - GOST_9561_2016
+  - GOST_R_21_101_2020
+  - GOST_23166_2021
+  - GOST_25772_2021
+  - SP_50_13330_2012
+  - SP_131_13330_2020

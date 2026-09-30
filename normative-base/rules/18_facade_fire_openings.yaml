@@ -1,0 +1,140 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Пожарные ограничения геометрии оконных/иных проемов, междуэтажных поясов и фасадных простенков. Эти требования накладываются поверх модульной, кладочной и эстетической раскладки фасада."
+
+revision_dependencies:
+  - document: SP_2_13130_2020
+    verified_changes: [1,2]
+    change_2_effective_from: 2026-01-01
+    target_2027_action: apply
+
+terms:
+  source: SP_2_13130_2020
+  - id: facade.fire.interstory_belt_term
+    clause: "3.23"
+    automation: validation_only
+    statement: "Междуэтажный пояс — участок наружной стены с нормируемым пределом огнестойкости между смежными по высоте проемами/светопрозрачными участками; такой пояс выполняется глухим."
+  - id: facade.fire.pier_term
+    clause: "3.24"
+    automation: validation_only
+    statement: "Простенок в смысле СП 2 — участок наружной стены с нормируемым пределом огнестойкости между смежными по горизонтали проемами/светопрозрачными участками; такой простенок выполняется глухим."
+
+fire_barrier_junctions:
+  source: SP_2_13130_2020
+  rules:
+    - id: facade.fire.barrier_junction_pier_type2wall_type1partition
+      clause: "5.3.6"
+      automation: conditional
+      statement: "В местах примыкания противопожарных стен 2-го типа и перегородок 1-го типа к наружным стенам предусматривать простенок шириной не менее 1,0 м."
+      values: {min_width_mm: 1000}
+      dimension_semantics: clear
+
+    - id: facade.fire.barrier_junction_pier_type2partition
+      clause: "5.3.6"
+      automation: conditional
+      statement: "В местах примыкания противопожарных перегородок 2-го типа к наружным стенам предусматривать простенок шириной не менее 0,8 м."
+      values: {min_width_mm: 800}
+      dimension_semantics: clear
+
+    - id: facade.fire.barrier_junction_transparency
+      clause: "5.3.6"
+      automation: validation_only
+      statement: >-
+        Указанные простенки могут быть частично/полностью светопрозрачными либо содержать проемы
+        только при выполнении требований пункта к пределу огнестойкости простенка и заполнения.
+        Нельзя считать обычное окно эквивалентным глухому противопожарному простенку.
+
+interfloor_facade_fire_spread:
+  source: SP_2_13130_2020
+  clause: "5.4.18"
+  rules:
+    - id: facade.fire.interstory_belt_general
+      automation: conditional
+      statement: >-
+        В местах примыкания наружной стены к перекрытию высота междуэтажного пояса по вертикали
+        должна быть не менее 1,2 м; ширина пояса — не менее ширины нижерасположенного проема.
+      values: {min_vertical_height_mm: 1200}
+      dimension_semantics: clear
+      note: "Предел огнестойкости пояса определяется условиями п.5.4.18 и не выводится только из геометрии."
+
+    - id: facade.fire.interstory_belt_horizontal_compensation
+      automation: conditional
+      statement: >-
+        Если междуэтажный пояс выполняется высотой менее 1,2 м, в уровне перекрытия предусматривают
+        горизонтальный глухой выступ из НГ материалов; сумма горизонтальной проекции выступа и
+        вертикальной проекции пояса должна быть не менее 1,2 м.
+      formula: "horizontal_projection_mm + vertical_belt_projection_mm >= 1200"
+      requires_calculation: false
+      note: "Применять только при выполнении полного набора требований п.5.4.18."
+
+    - id: facade.fire.pier_at_fire_rated_internal_wall
+      automation: conditional
+      statement: >-
+        В местах примыкания нормируемых по огнестойкости внутренних стен и перегородок ширина
+        фасадного простенка должна быть не менее 0,8 м с учетом связанных требований п.5.3.6 и
+        подп. «д» п.5.4.16.
+      values: {min_width_mm: 800}
+      dimension_semantics: clear
+      conflict_policy: "Не применять 800 мм как универсальный минимум каждого межоконного простенка; это специальный пожарный случай."
+
+    - id: facade.fire.transparent_belt_or_pier
+      automation: conditional
+      statement: >-
+        Если требуемые междуэтажные пояса/простенки выполняются частично или полностью
+        светопрозрачными, в пределах нормируемой высоты/ширины они должны быть глухими
+        (неоткрывающимися) и иметь требуемый пунктом предел огнестойкости.
+
+    - id: facade.fire.F1_3_belt_exception
+      automation: conditional
+      statement: >-
+        Для зданий Ф1.3 II и III степеней огнестойкости допускается междуэтажный пояс не менее
+        0,9 м при выполнении предусмотренного пунктом предела огнестойкости и наличии глухой
+        фрамуги не менее 0,3 м с двухкамерным стеклопакетом.
+      values:
+        min_belt_height_mm: 900
+        min_fixed_transom_height_mm: 300
+      requires_object_classification: true
+
+    - id: facade.fire.opening_area_affects_belt_resistance
+      automation: validation_only
+      statement: >-
+        Требуемый предел огнестойкости междуэтажного пояса зависит в том числе от площади
+        ненормируемых по огнестойкости участков/проемов и ширины простенков согласно п.5.4.18.
+        Агент не должен назначать класс огнестойкости пояса только по его высоте.
+      requires_calculation: true
+
+facade_opening_layout_algorithm:
+  type: design_procedure
+  normative_basis: [GOST_28984_2011, SP_2_13130_2020, SP_15_13330_2020, applicable_functional_SP]
+  steps:
+    - "Определить конструктивную роль фасадной стены и положение нормируемых противопожарных стен/перегородок/перекрытий."
+    - "Определить минимальные размеры в свету, требования естественного освещения/инсоляции, доступности и тип выбранного окна."
+    - "Наложить пожарные зоны простенков и междуэтажных поясов до модульного округления фасада."
+    - "Для несущей кладки получить минимально допустимый простенок из КР/расчета СП 15; пожарный минимум не заменяет расчет несущей способности."
+    - "После выполнения обязательных минимумов согласовать проемы/простенки с координационными модулями ГОСТ 28984 и реальным размерным рядом изделий."
+    - "После округления повторно проверить пожарные размеры, размер в свету, конструктив и выбранный оконный узел."
+
+BIM_parameters_required:
+  - facade_wall_fire_resistance
+  - fire_compartment_boundaries
+  - fire_rated_internal_wall_junctions
+  - floor_slab_levels
+  - opening_width_height
+  - opening_fire_rating_or_unrated_status
+  - pier_width_between_openings
+  - interstory_belt_vertical_height
+  - horizontal_noncombustible_projection
+  - transparent_fire_rated_fixed_area
+  - building_functional_fire_class
+  - building_fire_resistance_degree
+
+agent_logic:
+  - "Не принимать 800 мм как универсальную ширину всех оконных простенков."
+  - "Не считать 1200 мм универсальной высотой подоконного/надоконного участка: 1,2 м относится к конкретному противопожарному междуэтажному поясу в области п.5.4.18."
+  - "Не размещать открывающуюся створку внутри зоны, которая должна выполнять функцию глухого противопожарного пояса/простенка."
+  - "Не уменьшать противопожарный пояс/простенок ради кратности 3M/6M; модульная сетка подстраивается после выполнения пожарного ограничения."
+  - "Пожарный минимум простенка не доказывает достаточную несущую способность кладки."
+
+sources:
+  - https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1
+  - https://protect.gost.ru/sp/changesdetails/fd8720c4-ae0b-496f-8796-eec45a151fbf

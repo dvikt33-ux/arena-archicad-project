@@ -1,0 +1,110 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Пожаробезопасные зоны для МГН: необходимость, типы, расчет вместимости и архитектурные границы автоматизации."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+
+need_for_zone:
+  - id: firesafe.mgn.zone_required
+    source: {document: SP_59_13330_2020, clause: "6.2.25", amendment: 2}
+    automation: conditional
+    statement: "На этажах жилых, общественных и производственных зданий, на которые обеспечен доступ МГН группы М4, если их эвакуация за пределы здания не обеспечена иным способом (например, пандусом или непосредственным выходом наружу), предусматривают не менее одной пожаробезопасной зоны на этаж."
+    requires_object_classification: true
+
+  - id: firesafe.mgn.no_zone_when_no_M4_access_or_direct_exit
+    source: {document: SP_59_13330_2020, clause: "6.2.25"}
+    automation: validation_only
+    statement: "На этажах без доступа групп М4/НТ и в частях этажей с эвакуационным выходом непосредственно наружу пожаробезопасная зона может не требоваться в области примечания к п.6.2.25; применять только после точной проверки маршрута."
+
+types:
+  source: SP_1_13130_2020
+  source_clause: "9.2.1"
+  values:
+    type_1: "помещение/зона, выделенная конструкциями с нормируемой огнестойкостью и предусмотренной защитой от дыма; допускается размещение в отдельном помещении или лифтовом холле"
+    type_2: "зона на эксплуатируемой кровле, открытом балконе, лоджии, веранде или галерее"
+    type_3: "пожарный отсек или пожарная секция с самостоятельными эвакуационными путями и противопожарными преградами"
+    type_4: "лестничная клетка"
+
+rules:
+  - id: firesafe.zone.type_must_be_explicit
+    automation: auto
+    statement: "В BIM пожаробезопасная зона должна иметь явный тип 1/2/3/4; обозначения 'refuge area' или 'МГН-зона' без типа недостаточно."
+
+  - id: firesafe.zone.type4_scope
+    source: {document: SP_1_13130_2020, clause: "9.2.6"}
+    automation: conditional
+    statement: "Пожаробезопасная зона 4-го типа допускается только в зданиях класса Ф1.3 при соблюдении нормативной геометрии путей и выходов с учетом размещения МГН на площадках лестничной клетки."
+    conditions: {functional_fire_class: F1.3}
+
+  - id: firesafe.zone.type1_fire_barriers
+    source: {document: SP_1_13130_2020, clause: "9.2.2"}
+    automation: conditional
+    statement: "Пожаробезопасную зону 1-го типа отделяют от смежных помещений противопожарными преградами; требуемые пределы огнестойкости и типы заполнения проемов зависят от высотности и степени огнестойкости здания и должны подбираться по действующему п.9.2.2."
+    requires_object_classification: true
+
+  - id: firesafe.zone.lift_lobby_firefighter_lift
+    source: {document: SP_1_13130_2020, clause: "9.2.2"}
+    automation: conditional
+    statement: "При размещении пожаробезопасной зоны 1-го типа в лифтовом холле минимум один лифт должен быть предназначен для транспортировки пожарных подразделений; двери шахт и противодымная вентиляция холла/шахт дополнительно проверяются по актуальному п.9.2.2 и профильным нормам."
+    conflict_policy: "Проверять совместно с rules/30_firefighter_lifts.yaml."
+
+  - id: firesafe.zone.type2_smoke_protection
+    source: {document: SP_1_13130_2020, clause: "9.2.3"}
+    automation: validation_only
+    statement: "Для пожаробезопасной зоны 2-го типа должна обеспечиваться незадымляемость; наружные стены в местах примыкания зоны выполняются без проемов, кроме предусмотренных пунктом проемов лестничной клетки и эвакуационных выходов."
+
+  - id: firesafe.zone.type2_H1_balcony_or_type3_stair
+    source: {document: SP_1_13130_2020, clause: "9.2.3", amendment: 2}
+    automation: validation_only
+    statement: "Допускается размещение пожаробезопасной зоны на открытом балконе лестничной клетки Н1 или площадке наружной открытой лестницы 3-го типа при обеспечении нормативных геометрических параметров эвакуационных путей и выходов."
+
+capacity_and_area:
+  - id: firesafe.zone.area_by_population
+    source: {document: SP_59_13330_2020, clause: "6.2.26"}
+    automation: manual_calculation
+    statement: "Площадь пожаробезопасной зоны рассчитывается исходя из количества инвалидов, которые не могут самостоятельно эвакуироваться по лестничным клеткам, с использованием таблицы Б.2 и действующей пожарной методики; необходима зона маневрирования кресла-коляски."
+    requires_calculation: true
+
+  - id: firesafe.zone.no_old_specific_area_constants
+    automation: forbidden_to_infer
+    statement: "Не использовать автоматически старые удельные площади 2,40/2,65/0,75/1,00 м² на человека из СП 59.13330.2016 как действующее правило СП 59.13330.2020."
+
+  - id: firesafe.zone.F1_3_min_one_wheelchair_user
+    source: {document: SP_59_13330_2020, clause: "Appendix B, table B.2"}
+    automation: conditional
+    statement: "Для многоквартирных жилых зданий Ф1.3 при расчете пожаробезопасной зоны учитывать не менее одного инвалида/посетителя в кресле-коляске на этаж (этаж секции)."
+    values: {min_wheelchair_users_per_floor_or_section_floor: 1}
+
+  - id: firesafe.zone.M4_accessibility_of_places
+    source: {document: SP_1_13130_2020, clause: "9.2.5", amendment: 2}
+    automation: validation_only
+    statement: "Места МГН М4 в пожаробезопасной зоне размещают так, чтобы доступ к любому месту не был затруднен более чем одним соседним местом."
+
+BIM_required_parameters:
+  - fire_safe_zone_required
+  - fire_safe_zone_type
+  - functional_fire_class
+  - building_fire_resistance_degree
+  - high_rise_status
+  - fire_compartment_id
+  - M4_access_to_floor
+  - alternative_external_evacuation_available
+  - calculated_MGN_population
+  - wheelchair_turning_zone
+  - fire_barrier_types
+  - fire_door_types
+  - smoke_control_reference
+  - firefighter_lift_reference_if_lift_lobby
+
+agent_logic:
+  - "Не создавать пожаробезопасную зону фиксированной площади по старой таблице; сначала определить расчетное количество МГН и актуальную методику."
+  - "Не считать обычный лифтовой холл пожаробезопасной зоной без противопожарного выделения, противодымной защиты и пожарного лифта там, где это требуется."
+  - "Не считать площадку любой лестничной клетки зоной 4-го типа вне Ф1.3."
+  - "Пожаробезопасная зона входит в расчет эвакуации и должна иметь нормативный доступ до нее; ее наличие не исправляет ненормативный путь к зоне."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/48029732e498bf91a596b6edbd9ea69b508d13ab/"
+  - "https://base.garant.ru/400382837/"
+  - "https://base.garant.ru/400382837/f7ee959fd36b5699076b35abf4f52c5c/"

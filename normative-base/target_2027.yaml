@@ -6,6 +6,7 @@ purpose: "Нормативный профиль для проектов, реа�
 selection_policy:
   - "Если будущая редакция или изменение официально утверждены и имеют точную дату вступления в силу в 2027 году, применять их при проектировании уже сейчас."
   - "Не применять проекты изменений, планы стандартизации и неутвержденные документы."
+  - "Документ со статусом 'Принят', но без статуса 'Действует' и без подтвержденной применимой даты введения не становится активным правилом автоматически."
   - "Текущую редакцию, которая будет отменена или изменена до реализации проекта, хранить только как переходную/историческую."
   - "Если будущее изменение удаляет числовое правило без универсальной замены, старое число запрещается использовать автоматически. Возвращать needs_project_or_manufacturer_data или needs_calculation."
   - "Если действующий документ прекращает действие в 2027 году, а замена еще не утверждена, правила из него блокируются для периода после даты прекращения. Проект замены не использовать как норму."
@@ -42,7 +43,7 @@ confirmed_transitions:
     effective_from: 2026-10-03
     target_profile_action: apply
     scope: "стоянки автомобилей"
-    effect: "Для профиля 2027 использовать СП 113.13330.2023 с изменениями №1-4. Изменение №4 актуализирует нормативные ссылки, включая СП 42.13330.2026, СП 70 с Изм. №8, СП 60 с Изм. №6 и СП 256 с Изм. №9."
+    effect: "Для профиля 2027 использовать СП 113.13330.2023 с изменениями №1-4."
     source_url: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
 
   - id: SANPIN_1_2_3685_21_EXPIRY
@@ -52,10 +53,10 @@ confirmed_transitions:
     affected_topics: ["insolation","daylighting sanitary limits","noise sanitary limits","microclimate sanitary limits"]
     effect: >-
       СанПиН 1.2.3685-21 имеет установленный срок действия до 01.03.2027. На дату аудита
-      опубликован проект нового СанПиН, предполагаемый к введению с 01.03.2027, но он не является
-      утвержденным нормативным актом. Поэтому значения действующего СанПиН нельзя автоматически
-      переносить на проекты, реализация/экспертиза которых относится к периоду после 01.03.2027.
-    replacement_status: draft_not_allowed
+      официальный заменяющий санитарный документ для периода после этой даты не подтвержден как
+      действующий. Значения прекращающего действие документа нельзя автоматически переносить на
+      проектные проверки после 01.03.2027.
+    replacement_status: not_officially_active_on_audit_date
     agent_action_after_2027_03_01: blocked_pending_official_replacement
 
   - id: SP45_CHANGE4_DEFERRED
@@ -64,6 +65,7 @@ confirmed_transitions:
     effective_from: 2027-03-01
     target_profile_action: apply_when_scope_matches
     scope: "земляные сооружения, основания и фундаменты; смежный КР/ПОС слой"
+    affected_parts: ["4.8","4.9","5.52","11.11","11.14","11.15","12.8.3","12.8.4","12.8.5","12.8.21","12.9.31","12.9.50","12.9.51","12.9.52","12.10.19","14.1.33","16.2.4","16.4.11","B.1","Ц.13","appendices A, Ш, Щ, Ю, Я, 1"]
     note: "Архитектурный агент не выводит из этого изменения размеры фундаментов; используется как сигнал обязательной проверки смежного раздела."
     source_url: "https://protect.gost.ru/sp/changesdetails/af748f79-c5de-443b-a10f-7542d35b9bce"
 
@@ -73,12 +75,46 @@ confirmed_transitions:
     effective_from: 2027-03-01
     target_profile_action: apply_when_scope_matches
     scope: "внутренние санитарно-технические системы; смежный инженерный слой"
+    affected_parts: ["6.1.12","7.1.1","7.6.2","appendix В","appendix Г","appendix Д"]
     note: "Учитывать при резервировании инженерных зон и междисциплинарной координации; архитектурный агент не рассчитывает системы самостоятельно."
     source_url: "https://protect.gost.ru/sp/changesdetails/b595a91d-d798-4c82-9345-8419ea696528"
+
+  - id: SP129_CHANGE2_DEFERRED
+    document: SP_129_13330_2019
+    amendment: 2
+    effective_from: 2027-03-01
+    target_profile_action: apply_when_scope_matches
+    scope: "наружные сети и сооружения водоснабжения и канализации; смежный инженерный/генпланировочный слой"
+    affected_parts: ["6.2.26","9.5","10.1.2","10.1.3","10.2.7","10.3.14","appendix Б","appendix В","appendix Д","appendix Е"]
+    note: "Не создавать архитектурные числовые правила из СП 129; использовать как revision gate для наружных сетей и генплановой координации."
+    source_url: "https://protect.gost.ru/sp/changesdetails/ad63a3b9-7f8a-494f-a9b2-14c1bc11833c"
+
+  - id: SP433_CHANGE1_DEFERRED
+    document: SP_433_1325800_2019
+    amendment: 1
+    effective_from: 2027-03-01
+    target_profile_action: apply_when_scope_matches
+    scope: "огнезащита стальных конструкций; смежный КР/пожарный/строительно-технологический слой"
+    affected_parts: ["6.2.2","6.2.3"]
+    note: "Архитектурный агент не выбирает систему огнезащиты по этому переходу; проверяет актуальность задания КР/пожарного раздела."
+    source_url: "https://protect.gost.ru/sp/changesdetails/d68f59b9-f4bc-4adf-8f8a-8ca695de41ff"
+
+confirmed_current_levels_for_2027:
+  note: "Это не будущие переходы, а уже действующие уровни редакций, выявленные future-sweep и обязательные для любых смежных решений целевого профиля."
+  documents:
+    - {document: SP_14_13330_2018, latest_change: 4}
+    - {document: SP_16_13330_2017, latest_change: 6}
+    - {document: SP_22_13330_2016, latest_change: 5}
+    - {document: SP_24_13330_2021, latest_change: 2, change_2_effective_from: 2026-08-29}
+    - {document: SP_28_13330_2017, latest_change: 4}
+    - {document: SP_48_13330_2019, latest_change: 2}
+    - {document: SP_71_13330_2017, latest_change: 4}
 
 agent_gate:
   before_model_generation:
     - "load target_2027.yaml"
+    - "load revision_watch_2027.yaml"
+    - "load revision_watch_adjacent_2027.yaml"
     - "reject rules superseded by confirmed_transitions"
     - "reject expired documents without an officially adopted replacement"
     - "verify object_function and special_code applicability"

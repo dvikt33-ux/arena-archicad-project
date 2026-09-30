@@ -1,0 +1,170 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Маршрутизатор специальных СП по функциональному назначению здания. Общие нормы не применяются вместо специальных требований конкретного типа объекта."
+
+base_documents:
+  - {document: SP_118_13330_2022, role: "general public buildings", verified_changes: [1,2,3,4,5]}
+  - {document: SP_54_13330_2022, role: "multifamily residential buildings", verified_changes: [1,2]}
+  - {document: SP_1_13130_2020, role: "egress", verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, role: "accessibility", verified_changes: [1,2,3,4]}
+
+routing_rules:
+  - id: functional.router.classification_required
+    automation: forbidden_to_infer
+    statement: "До применения специальных геометрических норм агент обязан определить функциональное назначение здания и, при смешанном объекте, назначение каждого пожарного отсека/функциональной части."
+    requires_object_classification: true
+
+  - id: functional.router.special_over_general
+    automation: auto
+    statement: "Специальный СП применяется в своей области совместно с общими СП; общий СП 118 не должен заменять специальные требования школы, сада, больницы, гостиницы, спорта, ТРК и т. п."
+
+catalog:
+  residential_multifamily:
+    document: SP_54_13330_2022
+    status: active
+    verified_changes: [1,2]
+    scope_action: "load for F1.3 multifamily residential design"
+
+  public_general:
+    document: SP_118_13330_2022
+    status: active
+    verified_changes: [1,2,3,4,5]
+    scope_action: "load as general public-building layer, then load special functional SP where applicable"
+
+  schools_general_education:
+    document: SP_251_1325800_2016
+    status: active
+    verified_changes: [1,2,3,4,5]
+    scope: "new and reconstructed general-education organizations and school complexes"
+    official_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+
+  preschool:
+    document: SP_252_1325800_2016
+    status: active
+    verified_changes: [1,2,3]
+    scope: "new and reconstructed preschool educational organization buildings"
+    official_url: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+
+  higher_education:
+    document: SP_278_1325800_2024
+    status: active
+    effective_from: 2025-01-26
+    replaces: SP_278_1325800_2016
+    scope: "higher-education buildings and university campuses"
+    official_url: "https://protect.gost.ru/sp/details/ceef6cd1-aabc-4be1-81a4-edcc348b9974"
+
+  vocational_education:
+    document: SP_279_1325800_2016
+    status: active
+    scope: "professional educational organizations"
+    official_url: "https://protect.gost.ru/sp/details/5a4676cb-c293-4345-96ba-7d1c83024b91"
+
+  medical:
+    document: SP_158_13330_2014
+    status: active
+    verified_changes: [1,2,3,4]
+    scope: "medical organization buildings and medical-purpose rooms embedded in other buildings"
+    official_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+
+  hotels:
+    document: SP_257_1325800_2020
+    status: active
+    verified_changes: [1]
+    replaces: SP_257_1325800_2016
+    scope: "new/reconstructed hotel buildings and hotel premises in public/mixed-use/nonresidential parts of multifamily buildings"
+    official_url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
+
+  sports:
+    document: SP_332_1325800_2017
+    status: active
+    verified_changes: [1,2,3,4]
+    scope: "sports facilities including arenas, multipurpose sports complexes and applicable sports sites"
+    official_url: "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
+    related_acoustics: SP_415_1325800_2023
+
+  theatres_cinemas_concert:
+    document: SP_309_1325800_2017
+    status: active
+    verified_changes: [1]
+    scope: "theatres, cinemas and concert halls within the standard scope"
+    official_url: "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"
+
+  shopping_entertainment_complex:
+    document: SP_464_1325800_2019
+    status: active
+    verified_changes: [1]
+    scope: "new/reconstructed/capital-repaired shopping and entertainment complexes up to 50 m, underground depth up to 15 m within scope"
+    official_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+    fire_related: SP_456_1311500_2020
+
+  mixed_use:
+    document: SP_160_1325800_2014
+    status: active
+    verified_changes: [1,2,3]
+    scope: "mixed-use buildings up to 75 m, public premises not above 55 m, underground part up to 15 m, plus complexes within scope"
+    official_url: "https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896"
+    fire_related: SP_456_1311500_2020
+
+  high_rise:
+    document: SP_267_1325800_2016
+    status: active
+    verified_changes: [1,2,3]
+    scope_note: "applies to new high-rise buildings/complexes; may apply to public buildings over 50 m and mixed-use buildings with public premises above 50 m according to its scope"
+    official_url: "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"
+
+  production_and_warehouses:
+    document: SP_56_13330_2021
+    status: active
+    scope: "production/laboratory F5.1 and warehouse F5.2 buildings/premises within scope"
+    official_url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
+
+  industrial_admin_amenity:
+    document: SP_44_13330_2011
+    status: active
+    scope: "administrative and amenity buildings of industrial enterprises within scope, height up to 55 m"
+    official_url: "https://protect.gost.ru/sp/details/d4e8fda2-e2a9-45a4-b686-d21347d36ab2"
+
+  children_camps:
+    document: SP_535_1325800_2024
+    status: active
+    scope: "stationary child recreation/health camps, seasonal and year-round, with overnight stay"
+    official_url: "https://protect.gost.ru/sp/details/0b6088cc-24f7-4dd4-8b4c-b4f994a91717"
+
+mixed_function_algorithm:
+  steps:
+    - "1. Classify every major functional block and fire compartment, not only the marketing name of the whole building."
+    - "2. Load base general documents plus every applicable special functional SP."
+    - "3. Check the stated scope limits of each SP: height, depth, type of use, new/reconstruction, special exclusions."
+    - "4. Resolve conflicts by legal/applicability hierarchy and specific scope; do not simply choose the numerically stricter value when the rules describe different objects."
+    - "5. For mixed-use/ТРК additionally load applicable fire-safety SP for multifunctional buildings/atriums/galleries and special functions such as cinema/sport/hotel/parking."
+    - "6. If the object's parameters exceed a special SP scope, return needs_special_technical_conditions_or_additional_basis rather than extrapolating the SP."
+
+BIM_required_parameters:
+  - building_primary_function
+  - functional_zones
+  - functional_fire_classes
+  - fire_compartment_assignments
+  - building_height_definition_and_value
+  - underground_depth
+  - occupancy_categories
+  - special_room_types
+  - applicable_special_codes
+  - code_scope_validation_status
+
+agent_logic:
+  - "Название проекта 'ТРК', 'школа', 'больница' или 'жилой дом' должно преобразовываться в набор нормативных профилей до генерации помещений."
+  - "Не применять таблицы площадей/высот/санузлов/лестниц из СП 118, если специальный СП объекта задает собственное требование."
+  - "Не использовать замененный СП 278.1325800.2016 для вузов; профиль 2027 использует СП 278.1325800.2024."
+  - "Не использовать замененный СП 257.1325800.2016 для гостиниц; использовать СП 257.1325800.2020 с Изм. №1."
+  - "Для высотного объекта использовать СП 267 с Изм. №1-3; более ранние сборки считать устаревшими."
+
+sources:
+  - "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+  - "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+  - "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+  - "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
+  - "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
+  - "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"
+  - "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+  - "https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896"
+  - "https://protect.gost.ru/sp/details/ceef6cd1-aabc-4be1-81a4-edcc348b9974"

@@ -1,0 +1,97 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Геометрия лестниц как пересечение функциональных требований общественного здания, пожарной эвакуации, МГН и ограждений."
+
+revision_dependencies:
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+  - {document: GOST_25772_2025, role: guardrail_product_geometry}
+
+public_visitor_stairs:
+  source: SP_118_13330_2022
+  - id: stair.public_tread_riser
+    clause: "5.7"
+    automation: conditional
+    applies_to: "stairs permanently used by visitors"
+    tread:
+      preferred_mm: 300
+      allowed_range_mm: [280,350]
+    riser:
+      preferred_mm: 150
+      allowed_range_mm: [130,170]
+    same_flight_uniformity: true
+    edge_radius_max_mm: 50
+    note: "Проходы зрительных залов и трибун имеют специальное исключение и не должны генерироваться этим правилом."
+
+  - id: stair.public_slope
+    clause: "5.8"
+    automation: conditional
+    cases:
+      - {condition: "visitor stair in above-ground floors", slope: "1:2"}
+      - {condition: "to basement/cellar/attic or above-ground stair not for visitors", max_slope: "1:1.5"}
+      - {condition: "second stair not permanently used by visitors in public building with elevators", max_slope: "1:1"}
+
+  - id: stair.public_landing
+    clause: "5.10"
+    automation: true
+    landing_width_rule: "not less than flight width"
+    straight_intermediate_landing_min_length_mm: 1000
+
+  - id: stair.public_risers_count
+    clause: "5.11 -> SP 1.13130.2020 4.4.4"
+    automation: validation_only
+    statement: "Число подъемов между площадками проверять по СП 1; не дублировать старое значение без актуальной пожарной проверки."
+
+egress_stairs_general:
+  source: SP_1_13130_2020
+  - id: stair.egress_tread_riser
+    clause: "4.4.3"
+    automation: conditional
+    tread_general_min_mm: 250
+    tread_qualifier: "as a rule; exceptions are defined by the full clause/special sections"
+    riser_min_mm: 50
+    riser_max_mm: 220
+    max_slope_general: "1:1"
+    note: "Для конкретного функционального класса и типа лестницы проверять специальные требования разделов СП 1; значения не заменяют СП 118, если общественная посетительская лестница требует более строгую/специальную геометрию."
+
+  - id: stair.egress_risers_count
+    clause: "4.4.4"
+    automation: auto
+    normal_flight: {min: 3, max: 16}
+    first_floor_specific_exception_max: 18
+    exception_note: "Исключение применять только в точной области п.4.4.4, а не ко всем маршам первого этажа."
+
+conflict_resolution:
+  algorithm:
+    - "Определить: является ли лестница эвакуационной, посетительской, служебной, внутренней/наружной, доступной МГН, специальной лестницей трибун/зала."
+    - "Собрать требования СП 118/специального СП здания, СП 1, СП 59 и требования ограждений."
+    - "Не выбирать 'наиболее строгое число' механически, если нормы задают разные области применения; сначала отфильтровать применимые правила."
+    - "После выбора rise/run проверить фактический уклон, число подъемов, длину марша, размеры площадок и чистую ширину."
+    - "Размер марша в свету не заменять расстоянием между координационными осями стен."
+
+BIM_parameters_required:
+  - stair_function
+  - functional_fire_class
+  - egress_status
+  - visitor_use
+  - accessible_route_status
+  - clear_flight_width
+  - tread_depth
+  - riser_height
+  - riser_count_per_flight
+  - landing_clear_width
+  - landing_clear_length
+  - finished_floor_levels
+  - guardrail_type_and_height
+
+agent_logic:
+  - "Не применять 150x300 мм как универсальную ступень: это правило общественной лестницы для посетителей в области СП 118."
+  - "Не проектировать лестницу только по этажной высоте: учитывать чистовые отметки полов, одинаковость подступенков и допустимое число подъемов."
+  - "Если высота между чистыми полами не делится на допустимое число равных подъемов, оптимизировать количество подъемов внутри допустимого диапазона; не вводить одну отличающуюся ступень."
+  - "Площадку проверять после определения чистой ширины марша."
+  - "Ограждение и поручни проверять отдельно по rules/07_guardrails_roofs.yaml, СП 1 и СП 59."
+
+source_quality:
+  SP_118_clause_5_7_5_10: "cross-checked against current consolidated text and official Rosstandart revision level"
+  SP_1_clause_4_4_3: "cross-checked against FGBU VNIIPO MChS clarification and official Rosstandart revision level"

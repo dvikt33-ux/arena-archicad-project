@@ -1,6 +1,6 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Лифты для пожарных подразделений: два действующих взаимодополняющих стандарта и защита от преждевременного применения ПНСТ 1072-2026."
+purpose: "Лифты для пожарных подразделений: два действующих взаимодополняющих стандарта, подтвержденные параметры по ГАРАНТ и защита от преждевременного применения ПНСТ 1072-2026."
 
 current_standards:
   - document: GOST_34305_2017
@@ -10,12 +10,13 @@ current_standards:
     role: "требования к лифту для пожарных как изделию/системе"
     corrections: ["ИУС 4-2020", "ИУС 7-2023"]
     official_url: "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+    garant_url: "https://base.garant.ru/72242386/"
   - document: GOST_R_53296_2009
     title: "Установка лифтов для пожарных в зданиях и сооружениях. Требования пожарной безопасности"
     status: active
-    effective_from: 2009-05-01
     role: "требования пожарной безопасности к размещению/установке лифтов для пожарных в здании"
     official_url: "https://protect.gost.ru/gost/details/8a77c255-c71c-49b1-9639-38665f5150e1"
+    garant_url: "https://base.garant.ru/195800/"
 
 relationship:
   statement: "ГОСТ 34305-2017 и ГОСТ Р 53296-2009 не являются взаимозаменяемыми редакциями одного стандарта: оба действуют и должны проверяться совместно в своей области."
@@ -42,10 +43,38 @@ rules:
     source: {document: GOST_R_53296_2009, clause: "scope/status"}
     statement: "Размещение и установка лифта для пожарных в здании должны дополнительно проверяться по действующему ГОСТ Р 53296-2009."
 
+  - id: vertical.firefighter.min_capacity
+    automation: conditional
+    source: {document: GOST_34305_2017, clause: "5.2.1", url: "https://base.garant.ru/72242386/"}
+    statement: "Грузоподъемность лифта для пожарных должна быть не менее 630 кг."
+    values: {min_capacity_kg: 630}
+
+  - id: vertical.firefighter.stretcher_geometry
+    automation: conditional
+    dimension_semantics: clear
+    source: {document: GOST_34305_2017, clause: "5.2.2", url: "https://base.garant.ru/72242386/"}
+    statement: "Если лифт для пожарных предусматривает транспортирование спасаемых людей на носилках, кабина должна быть не менее 1100×2100 или 2100×1100 мм, а дверной проем — не менее 800 мм."
+    values:
+      accepted_min_cabin_sizes_mm: [[1100,2100],[2100,1100]]
+      min_clear_door_opening_mm: 800
+    conditions: {stretcher_transport_required: true}
+
+  - id: vertical.firefighter.travel_time
+    automation: manual_calculation
+    source: {document: GOST_34305_2017, clause: "5.2.3", url: "https://base.garant.ru/72242386/"}
+    statement: "Скорость пожарного лифта должна обеспечивать доставку пожарных от основного посадочного этажа на верхний обслуживаемый этаж не более чем за 60 с с момента закрытия дверей; для подъема свыше 200 м стандарт содержит специальную добавку времени."
+    values: {base_max_time_s: 60, base_height_limit_m: 200, additional_time_s_per_extra_3m: 1}
+    requires_calculation: true
+
   - id: vertical.firefighter.safe_zone_lobby_gate
     automation: validation_only
     source: {document: SP_1_13130_2020, clause: "9.2.2"}
     statement: "Если пожаробезопасная зона 1-го типа размещена в лифтовом холле, как минимум один лифт в таком холле должен быть лифтом для пожарных подразделений; дополнительно проверять требования СП 1 к дверям шахт и противодымной вентиляции."
+
+  - id: vertical.firefighter.not_an_egress_route
+    automation: auto
+    source: {document: GOST_34305_2017, clause: "1.3", url: "https://base.garant.ru/72242386/"}
+    statement: "Лифт для пожарных по ГОСТ 34305-2017 не рассматривается как путь эвакуации людей. Не засчитывать его вместо требуемой лестницы/эвакуационного выхода."
 
   - id: vertical.firefighter.geometry_equipment_gate
     automation: forbidden_to_infer
@@ -60,6 +89,9 @@ BIM_required_parameters:
   - selected_lift_product
   - cabin_dimensions
   - clear_door_opening
+  - nominal_capacity_kg
+  - calculated_travel_time_to_top_served_floor_s
+  - stretcher_transport_required
   - shaft_dimensions
   - fire_safe_access_solution
   - fire_safe_zone_lobby_status
@@ -70,10 +102,17 @@ BIM_required_parameters:
 agent_logic:
   - "Если по пожарным требованиям требуется лифт для пожарных, не подменять его обычным доступным лифтом МГН."
   - "Не выбирать между ГОСТ 34305-2017 и ГОСТ Р 53296-2009: проверять оба в соответствующих областях."
+  - "Не засчитывать пожарный лифт как эвакуационный выход."
   - "Статус «Принят» у ПНСТ не равен замене действующих стандартов."
   - "При изменении статуса ПНСТ 1072-2026 выполнить отдельный аудит его юридической роли и связи с двумя действующими ГОСТ."
+
+source_quality:
+  - "ГОСТ 34305-2017 повторно сверён по актуальному тексту ГАРАНТ с учетом поправок ИУС 4-2020 и ИУС 7-2023."
+  - "ГОСТ Р 53296-2009 проверен как отдельный действующий стандарт установки пожарных лифтов."
 
 sources:
   - "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
   - "https://protect.gost.ru/gost/details/8a77c255-c71c-49b1-9639-38665f5150e1"
+  - "https://base.garant.ru/72242386/"
+  - "https://base.garant.ru/195800/"
   - "https://protect.gost.ru/gost?month=6&year=2026"

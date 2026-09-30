@@ -1,0 +1,99 @@
+policy_id: RU_ARCH_DIMENSION_SELECTION_2027
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+type: agent_design_policy
+note: "Это алгоритм применения подтвержденных норм, а не самостоятельный нормативный документ."
+
+required_dimension_semantics:
+  - axis
+  - coordination
+  - nominal_product
+  - system_product
+  - gross_product
+  - constructive_product
+  - clear
+  - actual
+  - level_structural
+  - level_finished
+
+priority_order:
+  - priority: 1
+    source_type: explicit_safety_or_accessibility_limit
+    examples: [egress_clear_width, accessible_clear_width, fire_access_geometry]
+  - priority: 2
+    source_type: special_code_for_object_or_element
+    rule: "Специальная норма конкретного назначения имеет приоритет над общей в пределах своей области применения."
+  - priority: 3
+    source_type: required_calculation
+    examples: [structural_capacity, thermal, acoustic, daylight, insolation, fire_when_calculation_required]
+  - priority: 4
+    source_type: certified_or_standardized_product_geometry
+    examples: [floor_slab, masonry_unit, window_system, door_system]
+  - priority: 5
+    source_type: modular_coordination
+    basis: GOST_28984_2011
+    rule: "Выбирать совместимую модульную сетку после определения конструктивной системы и изделий."
+  - priority: 6
+    source_type: project_preference
+    rule: "Эстетическое/технологическое округление допускается только после выполнения требований выше."
+
+selection_algorithm:
+  - "Определить назначение здания и помещения, конструктивную систему, пожарный класс, доступность и климатический контекст."
+  - "Определить семантику каждого размера: ось, в свету, изделие, координационный, фактический, отметка и т.д."
+  - "Собрать все применимые минимумы/максимумы/ряды размеров и требования расчета."
+  - "Отбросить правила, отмененные или будущими утвержденными изменениями замененные для профиля 2027."
+  - "Разрешить коллизии по области применения; не сравнивать несопоставимые семантики размеров."
+  - "Выбрать изделие/систему и проверить возможность сопряжения с модульной сеткой."
+  - "Только после этого выполнять оптимизацию кратности и унификацию."
+  - "После округления повторно проверить все ограничения; округление не должно ухудшить размер в свету или расчетный запас."
+
+rounding_policy:
+  forbidden:
+    - "round_everything_to_100mm"
+    - "round_clear_dimension_to_axis_dimension"
+    - "force_opening_to_3M_or_6M_when_clear_width_requirement_would_fail"
+    - "force_structural_pier_to_masonry_pitch_without_structural_check"
+    - "infer_joint_thickness_from_pre_2027_SP70_clause_9_2_4"
+  allowed_when_verified:
+    - "coordinate grids to compatible GOST 28984 modules"
+    - "repeat product/system dimensions to reduce cutting and nonstandard elements"
+    - "choose nearest larger standardized size when a minimum clear dimension governs, subject to all other checks"
+
+openings:
+  store_separately:
+    - wall_construction_opening
+    - frame_outer_size
+    - installation_joint
+    - leaf_size
+    - clear_passage
+  validation: "Норматив, требующий размер в свету, проверять по clear_passage, а не по строительному проему."
+
+masonry:
+  rule: >-
+    Раскладку строить от выбранного изделия и подтвержденной технологии шва. Для профиля 2027
+    старые 12/10 мм из исключаемого п. 9.2.4 СП 70 не являются автоматической базой.
+  structural_piers: "Ширина несущего простенка определяется не только раскладкой; требуется КР/СП 15."
+
+precast:
+  rule: "Координационный размер плиты, конструктивный габарит и опирание хранить отдельно. Опирание не выводить из типоразмера без КР/документации изделия."
+
+levels:
+  store_separately:
+    - structural_slab_top
+    - finished_floor_level
+    - structural_slab_bottom
+    - suspended_ceiling_level
+    - clear_room_height
+  validation: "Минимальную высоту помещения в чистоте нельзя проверять по высоте этажа между структурными отметками."
+
+failure_states:
+  missing_normative_replacement_2027: blocked
+  missing_structural_input: needs_structural_calculation
+  missing_manufacturer_geometry: needs_manufacturer_data
+  missing_site_context_for_insolation: unresolved
+  unknown_dimension_semantics: reject_dimension_check
+
+output_requirements:
+  - "Каждый автоматически назначенный размер должен иметь rule_id/source или явно обозначаться как проектное предпочтение."
+  - "Для производного размера хранить формулу и исходные параметры."
+  - "Для нестандартного размера хранить причину отклонения от выбранной модульной сетки."

@@ -1,4 +1,4 @@
-manifest_version: 23
+manifest_version: 24
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -84,6 +84,7 @@ rule_files:
   - 36_residential_wet_zone_stacking.yaml
   - 37_residential_balconies_loggias.yaml
   - 38_axis_grid_generation.yaml
+  - 39_technical_spaces_and_service_clearances.yaml
 
 hard_fail_states:
   - yaml_parse_error

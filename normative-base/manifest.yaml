@@ -1,4 +1,4 @@
-manifest_version: 11
+manifest_version: 12
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -62,6 +62,7 @@ rule_files:
   - 26_spds_model_coordinates.yaml
   - 27_thermal_acoustic_envelope.yaml
   - 28_functional_code_router.yaml
+  - 29_corridor_clearances.yaml
 
 hard_fail_states:
   - yaml_parse_error

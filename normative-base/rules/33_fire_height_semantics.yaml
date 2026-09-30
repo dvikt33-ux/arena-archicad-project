@@ -1,0 +1,80 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Разделение пожарно-технической высоты, архитектурных отметок и специальных табличных определений высоты. Запрещает использовать одно поле building_height во всех нормативных проверках."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_2_13130_2020, verified_changes: [1,2]}
+
+fire_technical_height:
+  source: SP_1_13130_2020
+  source_clause: "3.1"
+  rules:
+    - id: height.fire_technical.openable_opening
+      automation: conditional
+      dimension_semantics: level
+      statement: "Пожарно-техническая высота здания определяется по высоте расположения верхнего этажа, не считая верхнего технического этажа. При наличии открывающегося проема в наружной стене используется максимальная разность отметок поверхности подъезда пожарных автомобилей и нижней границы открывающегося проема верхнего этажа."
+      formula: "H_fire = max(level_bottom_openable_opening_top_floor - fire_appliance_access_surface_level)"
+
+    - id: height.fire_technical.no_openable_opening
+      automation: conditional
+      dimension_semantics: level
+      statement: "При отсутствии открывающихся окон/проемов высота расположения верхнего этажа определяется по полусумме отметок пола и потолка этого этажа относительно поверхности подъезда пожарных автомобилей."
+      formula: "H_fire = 0.5 * (top_floor_finished_floor_level + top_floor_ceiling_level) - fire_appliance_access_surface_level"
+
+    - id: height.fire_technical.occupied_roof
+      automation: conditional
+      dimension_semantics: level
+      statement: "При наличии эксплуатируемого покрытия пожарно-техническую высоту определяют по максимальной разнице отметок поверхности подъезда пожарных автомобилей и верхней границы ограждения покрытия."
+      conditions: {occupied_roof: true}
+
+    - id: height.fire_technical.nonoccupied_roof
+      automation: validation_only
+      statement: "Покрытие не считается эксплуатируемым для определения пожарно-технической высоты, если на нем не предусмотрено постоянное пребывание людей."
+
+    - id: height.fire_technical.balcony_or_window_guard
+      automation: conditional
+      dimension_semantics: level
+      statement: "При наличии балконов/лоджий или ограждений окон пожарно-техническая высота определяется по максимальной разнице отметок поверхности подъезда пожарных автомобилей и верхней границы соответствующего ограждения в области примечания к п.3.1."
+
+special_table_height:
+  - id: height.SP2.table_specific_definition
+    source: {document: SP_2_13130_2020, clause: "table-specific notes"}
+    automation: validation_only
+    statement: "Если конкретная таблица СП 2 содержит собственное определение высоты, применять именно его только в рамках этой таблицы. Нельзя автоматически подставлять пожарно-техническую высоту СП 1 вместо специально определенной табличной величины и наоборот."
+
+  - id: height.no_single_universal_field
+    automation: forbidden_to_infer
+    statement: "Запрещено использовать одно числовое поле building_height для проверок пожарной высоты, градостроительной высоты, высоты до карниза, отметки верхнего этажа и специальных таблиц СП 2."
+
+BIM_required_parameters:
+  - architectural_total_height
+  - fire_technical_height
+  - fire_appliance_access_surface_levels_by_facade
+  - top_occupied_floor_finished_floor_level
+  - top_occupied_floor_ceiling_level
+  - top_floor_openable_opening_bottom_levels
+  - top_technical_floor_status
+  - occupied_roof_status
+  - occupied_roof_guard_top_level
+  - balcony_and_window_guard_top_levels
+  - height_semantics_used_for_each_code_check
+
+calculation_algorithm:
+  steps:
+    - "1. Для каждой пожарной проверки определить, какое определение высоты требует конкретный пункт/таблица."
+    - "2. Получить поверхность подъезда пожарных автомобилей по соответствующему фасаду, а не условный общий ноль проекта."
+    - "3. Определить верхний этаж с учетом исключения верхнего технического этажа по п.3.1 СП 1."
+    - "4. Проверить наличие открывающегося проема; при его отсутствии применить альтернативное определение п.3.1."
+    - "5. Отдельно проверить эксплуатируемое покрытие, балконы/лоджии и ограждения окон."
+    - "6. Перед использованием таблицы СП 2 проверить примечания к конкретной таблице на специальную семантику высоты."
+
+agent_logic:
+  - "Не определять пожарную высоту как этажность × типовую высоту этажа."
+  - "Не использовать отметку конька или парапета автоматически как пожарно-техническую высоту."
+  - "Не использовать абсолютную отметку 0.000 как поверхность подъезда пожарных автомобилей без проверки генплана."
+  - "Хранить исходные отметки, формулу и источник определения пожарной высоты, чтобы результат можно было пересчитать при изменении рельефа/проезда/фасада."
+
+sources:
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://www.consultant.ru/document/cons_doc_LAW_361298/"

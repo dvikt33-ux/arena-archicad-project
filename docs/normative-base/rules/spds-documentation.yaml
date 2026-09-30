@@ -1,0 +1,122 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: GOST-R-21.101-2026
+    status_source: "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"
+  - id: GOST-21.501-2018
+    status_source: "https://protect.gost.ru/gost/details/a241e289-aac3-4ee2-ad44-3259f9774799"
+  - id: GOST-21.201-2011
+    status_source: "https://protect.gost.ru/gost/details/a7ca3664-3906-4158-9b28-0cb7acbe9be9"
+  - id: GOST-21.110-2013
+    status_source: "https://protect.gost.ru/gost/details/e135d52a-eccd-4b7d-b96f-e758c3fce18c"
+rules:
+  - id: SPDS.VERSION.21_101
+    state: active
+    source: GOST-R-21.101-2026
+    clause: "status record"
+    scope: "Оформление проектной и рабочей документации в РФ."
+    rule_kind: version_guard
+    automation: auto_check
+    rule: "Use GOST R 21.101-2026 from 2026-04-01; do not use GOST R 21.101-2020 as the current edition."
+    must_not_assume:
+      - "Номер старого стандарта в шаблоне CAD/BIM не подтверждает его актуальность."
+
+  - id: SPDS.DIMENSIONS.UNITS
+    state: active
+    source: GOST-R-21.101-2026
+    clause: "5.4.1"
+    scope: "Линейные размеры на строительных чертежах."
+    rule_kind: documentation
+    automation: auto_check
+    rule:
+      general_drawings: "millimetres without unit designation"
+      external_networks_general_plan_transport: "metres with two decimal places unless another SPDS standard states otherwise"
+      digital_vector_project_graphics: "millimetres without unit designation on all drawing types"
+    must_not_assume:
+      - "Единицы модели BIM и единицы размерных надписей — не одно и то же правило."
+
+  - id: SPDS.LEVEL.MARKS
+    state: active
+    source: GOST-R-21.101-2026
+    clause: "5.4.3"
+    scope: "Отметки уровней на строительных чертежах."
+    rule_kind: documentation
+    automation: auto_check
+    rule:
+      units: metres
+      decimals: 3
+      unit_label: omitted
+    must_not_assume:
+      - "Отметка уровня не заменяет линейный размер высоты помещения."
+
+  - id: SPDS.AR.OPENINGS.REQUIRED_DIMENSIONS
+    state: active
+    source: GOST-21.501-2018
+    clause: "4.8; 5.3.2"
+    scope: "Рабочие чертежи стен, перегородок, перекрытий и планы этажей."
+    rule_kind: documentation
+    automation: auto_check
+    rule: "Show openings, chases, niches, sockets/recesses and holes with the dimensions and positional references needed to construct them; floor plans also show wall/partition thicknesses and their references to coordination axes or nearby construction surfaces, plus openings with required dimensions and axis references."
+    must_not_assume:
+      - "Наличие объекта в BIM без размерной/координатной информации не означает полноту рабочего чертежа."
+
+  - id: SPDS.AR.PACKAGE.COMPLETENESS
+    state: active
+    source: GOST-21.501-2018
+    clause: "5.1.1-5.1.2"
+    scope: "Основной комплект рабочих чертежей марки АР."
+    rule_kind: documentation
+    automation: auto_check
+    rule:
+      core_drawings:
+        - "general data"
+        - "floor plans including applicable basement/technical/attic levels"
+        - "sections"
+        - "facades"
+        - "roof plan"
+      conditional_items:
+        - "floor plans/schedules where required"
+        - "layout diagrams for prefabricated partitions"
+        - "window/other opening infill layouts"
+        - "project-specific layouts"
+        - "details, fragments, local sections"
+        - "specifications to plans/layouts"
+    must_not_assume:
+      - "Conditional items are not automatically mandatory if the triggering construction/system is absent."
+
+  - id: SPDS.AR.RECOMMENDED.SCALES
+    state: active
+    source: GOST-21.501-2018
+    clause: "4.9, table 1"
+    scope: "Recommended scales for AR working drawings."
+    rule_kind: documentation
+    automation: suggest_only
+    rule:
+      floor_plans_sections_facades: ["1:50", "1:100", "1:200", "1:400", "1:500"]
+      roof_floor_technical_floor_plans: ["1:200", "1:500"]
+      plan_facade_fragments: ["1:50", "1:100"]
+      details: ["1:10", "1:20"]
+      selection_basis: "building size and drawing information density"
+    must_not_assume:
+      - "This is a recommended scale row, not a prohibition on every other scale in every circumstance."
+
+  - id: SPDS.SYMBOLS.BUILDING_ELEMENTS
+    state: active
+    source: GOST-21.201-2011
+    clause: "scope and standard tables"
+    scope: "Условные графические изображения стен, проемов, ниш, колонн, пандусов, лестниц, дверей, окон и других строительных элементов."
+    rule_kind: documentation
+    automation: auto_check
+    rule: "Use the standard graphical conventions of GOST 21.201-2011 for the element categories covered by that standard."
+    must_not_assume:
+      - "Не заменять нормативное условное изображение произвольной пиктограммой библиотеки без проверки оформления."
+
+  - id: SPDS.SPECIFICATION.STANDARD
+    state: active
+    source: GOST-21.110-2013
+    clause: "scope"
+    scope: "Спецификация оборудования, изделий и материалов в составе рабочей документации."
+    rule_kind: documentation
+    automation: auto_check
+    rule: "Generate/format specifications of equipment, products and materials using GOST 21.110-2013 and its registered correction."
+    must_not_assume:
+      - "Ведомость элементов модели не автоматически является нормативно оформленной спецификацией."

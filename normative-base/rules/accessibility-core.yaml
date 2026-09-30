@@ -1,0 +1,169 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  source_document: "СП 59.13330.2020"
+  source_revision: "с изменениями №1, №2, №3, №4"
+  source_status_url: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
+  source_current_text_url: "https://base.garant.ru/400382837/"
+  policy: "Accessibility geometry is condition-rich. Clear dimensions and route continuity must be checked together with fire requirements and functional standards."
+
+rules:
+  - id: ACCESS-ENTRANCE-001
+    topic: accessible_entrance_platform
+    rule_type: conditional_rule
+    statement: "Minimum entrance-platform plan dimensions depend on ramp/door condition."
+    source_clause: "6.1.4"
+    cases:
+      - condition: "entrance platform with ramp"
+        minimum_width_mm: 2200
+        minimum_depth_mm: 2200
+      - condition: "without ramp, new construction"
+        minimum_width_mm: 1600
+        minimum_depth_mm: 2200
+      - condition: "without ramp, reconstruction/reasonable accommodation and handles placed per 6.4.2"
+        minimum_width_mm: 1400
+        minimum_depth_mm: 1800
+      - condition: "automatic sliding doors"
+        minimum_width_mm: 1900
+        minimum_depth_mm: 1200
+    confidence: high
+
+  - id: ACCESS-DOOR-001
+    topic: accessible_door_clear_width
+    rule_type: conditional_rule
+    statement: "Door openings accessible to wheelchair users in new and reconstructed buildings must generally have at least 0.9 m clear width."
+    source_clause: "6.1.5"
+    minimum_clear_width_mm: 900
+    exceptions:
+      - condition: "reconstruction and opening is in a load-bearing structure"
+        minimum_clear_width_mm: 800
+      - condition: "reveal depth >1.0 m"
+        minimum_clear_width_mm: 1200
+        note: "opening width is taken according to communication-passage width, but not less than 1.2 m"
+    confidence: high
+
+  - id: ACCESS-THRESHOLD-001
+    topic: accessible_threshold
+    rule_type: conditional_rule
+    statement: "Accessible door openings should not have thresholds/floor-level changes; where a threshold is necessary in the stated cases, its height/level difference must not exceed 14 mm."
+    source_clause: "6.1.5 / 6.2.4"
+    maximum_threshold_or_level_difference_mm: 14
+    confidence: high
+
+  - id: ACCESS-CORRIDOR-001
+    topic: accessible_internal_route_width
+    rule_type: conditional_rule
+    statement: "Width of movement paths in corridors/galleries is generally at least 1.8 m; narrower 1.5-1.2 m sections require passing pockets under the clause conditions."
+    source_clause: "6.2.1"
+    general_minimum_clear_width_mm: 1800
+    reduced_width_case:
+      minimum_clear_width_mm: 1200
+      maximum_reduced_width_mm: 1500
+      passing_pocket_min_length_mm: 2000
+      combined_pocket_and_corridor_min_width_mm: 1800
+      visibility_condition: "next passing pocket within direct visibility"
+    single_wheelchair_per_floor_case:
+      condition: "calculation shows no more than one wheelchair user on the floor"
+      minimum_clear_width_mm: 1400
+    interbuilding_passage_minimum_clear_width_mm: 2000
+    confidence: high
+
+  - id: ACCESS-TURN-001
+    topic: wheelchair_turning_space
+    rule_type: hard_rule
+    statement: "Minimum wheelchair maneuvering spaces on accessible routes."
+    source_clauses: ["6.2.1", "6.2.2"]
+    turn_90_minimum_mm: [1200, 1200]
+    turn_180_minimum_diameter_mm: 1400
+    dead_end_condition: "A dead-end corridor must provide 180-degree wheelchair turning capability."
+    confidence: high
+
+  - id: ACCESS-ROUTE-HEIGHT-001
+    topic: accessible_route_clear_height
+    rule_type: hard_rule
+    statement: "Clear height of movement routes along their full length and width must be at least 2.1 m."
+    source_clause: "6.2.1"
+    minimum_clear_height_mm: 2100
+    confidence: high
+
+  - id: ACCESS-APPROACH-001
+    topic: equipment_approach
+    rule_type: conditional_rule
+    statement: "Approach width to equipment/furniture is at least 0.9 m; where a wheelchair must turn 90 degrees, at least 1.2 m is required."
+    source_clause: "6.2.2"
+    minimum_clear_width_mm: 900
+    minimum_when_90_degree_turn_mm: 1200
+    confidence: high
+
+  - id: ACCESS-RAMP-001
+    topic: internal_ramp_geometry
+    rule_type: conditional_rule
+    statement: "Core internal-ramp geometry under clause 6.2.9."
+    source_clause: "6.2.9"
+    straight_or_turn_landing_minimum_length_along_travel_mm: 1500
+    landing_interval_vertical_rise_mm: 500
+    turning_section_over_45deg_min_inscribed_circle_diameter_mm: 1500
+    top_bottom_free_space_minimum_mm: [1500, 1500]
+    one_way_ramp_width_between_handrails_mm: {minimum: 900, maximum: 1000}
+    common_route_maximum_slope: "1:20 (5%)"
+    spiral_ramp:
+      minimum_inner_radius_mm: 3000
+      minimum_width_mm: 1200
+      maximum_slope: "1:20 (5%)"
+    portable_ramp:
+      minimum_width_mm: 800
+      maximum_longitudinal_slope: "1:12"
+      minimum_load_kg_per_m2: 250
+    confidence: high
+
+  - id: ACCESS-DOOR-INTERNAL-001
+    topic: accessible_internal_openings
+    rule_type: conditional_rule
+    statement: "Door leaves/open wall openings and exits from rooms/corridors to a stair enclosure on accessible routes must be at least 0.9 m wide; a wall reveal deeper than 1.0 m requires opening width equal to communication passage width but at least 1.2 m."
+    source_clause: "6.2.4"
+    minimum_width_mm: 900
+    deep_reveal_threshold_mm: 1000
+    deep_reveal_minimum_width_mm: 1200
+    confidence: high
+
+  - id: ACCESS-REST-001
+    topic: rest_zones
+    rule_type: conditional_rule
+    statement: "On each floor where visitors are expected, provide rest zones for 2-3 places including wheelchair users; with long floors, provide them every 25-30 m."
+    source_clause: "6.2.5"
+    rest_places_range: [2, 3]
+    long_floor_spacing_m: [25, 30]
+    confidence: high
+
+  - id: ACCESS-SAN-001
+    topic: accessible_sanitary_rooms
+    rule_type: catalog_value
+    statement: "Minimum clear plan dimensions of accessible sanitary spaces in public/industrial buildings per Table 6.1."
+    source_clause: "6.3.7, Table 6.1"
+    spaces:
+      - {type: "accessible_toilet_cubicle_in_toilet_block", min_width_mm: 1650, min_depth_mm: 2200}
+      - {type: "universal_toilet_central_wc", min_width_mm: 2200, min_depth_mm: 2250}
+      - {type: "universal_toilet_side_wc", min_width_mm: 1700, min_depth_mm: 2200}
+      - {type: "closed_shower", min_width_mm: 1800, min_depth_mm: 1800}
+      - {type: "open_or_through_shower", min_width_mm: 1200, min_depth_mm: 900}
+      - {type: "bathroom_shower_wc_basin", min_width_mm: 2300, min_depth_mm: 2400}
+      - {type: "bathroom_shower_and_changing_zone", min_width_mm: 2700, min_depth_mm: 2700}
+    guardrail: "Table dimensions do not replace equipment clearances, transfer zones, door swing and other clause requirements."
+    confidence: high
+
+  - id: ACCESS-FIRE-001
+    topic: accessibility_fire_interaction
+    rule_type: hard_rule
+    statement: "Accessible-route acceptance must also run applicable СП 1.13130.2020 section 9.3 checks; an accessibility pass alone does not establish fire-safe evacuation."
+    references:
+      - "СП 59.13330.2020"
+      - "СП 1.13130.2020, section 9.3"
+    confidence: high
+
+  - id: ACCESS-GUARD-001
+    topic: accessibility_dispatch
+    rule_type: do_not_infer
+    statement: "Do not reuse one wheelchair template for every object. New construction, reconstruction, residential/public/industrial function, mobility group, fire class, route direction and actual user count can change the applicable geometry."
+    confidence: high

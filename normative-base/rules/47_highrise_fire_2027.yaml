@@ -1,0 +1,155 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Архитектурно-планировочные пожарные требования для высотных зданий по СП 550.1311500.2026, действующему с 2026-06-01. Включены только положения, однозначно подтвержденные по актуальному тексту ГАРАНТ."
+
+source_document:
+  id: SP_550_1311500_2026
+  title: "Здания высотные. Требования пожарной безопасности"
+  status: active
+  effective_from: 2026-06-01
+  garant_url: "https://base.garant.ru/414094185/"
+
+scope:
+  source_clause: "1.1; 3.2"
+  rules:
+    - id: highrise.scope.residential_F1_3
+      automation: auto
+      statement: "СП 550 применяется к жилым зданиям класса Ф1.3 пожарной высотой более 75 м."
+      conditions: {functional_fire_class: F1.3}
+      values: {fire_height_strictly_over_mm: 75000}
+
+    - id: highrise.scope.public_and_mixed
+      automation: auto
+      statement: "СП 550 применяется к зданиям общественного назначения, включая многофункциональные, пожарной высотой более 50 м."
+      conditions: {building_use: public_or_multifunctional}
+      values: {fire_height_strictly_over_mm: 50000}
+
+    - id: highrise.height_semantics
+      automation: validation_only
+      statement: "Для определения высотного здания используется высота здания по п.3.1 СП 1.13130, а не архитектурная абсолютная высота до конька/парапета."
+      conflict_policy: "Применять совместно с rules/33_fire_height_semantics.yaml."
+
+construction_and_compartments:
+  rules:
+    - id: highrise.fire_resistance_and_structural_class
+      source: {document: SP_550_1311500_2026, clause: "6.1"}
+      automation: conditional
+      statement: "Высотные здания проектируют I степени огнестойкости и класса конструктивной пожарной опасности С0; повышенные пределы огнестойкости элементов проверяются по таблице 6.1 СП 550."
+      values: {fire_resistance_degree: I, structural_fire_hazard_class: C0}
+
+    - id: highrise.max_floor_area_in_compartment
+      source: {document: SP_550_1311500_2026, clause: "5"}
+      automation: conditional
+      statement: "Наибольшая площадь надземного этажа в пределах пожарного отсека зависит от функционального класса помещений."
+      cases:
+        - {functional_fire_class: F1.2, max_floor_area_m2: 1500}
+        - {functional_fire_class: F1.3, max_floor_area_m2: 2000}
+        - {functional_fire_class: other, max_floor_area_m2: 2500}
+      conflict_policy: "Специальные случаи нижнего надземного отсека и подземных этажей проверять по полному тексту СП 550 и СП 2.13130; не расширять эти пределы автоматически."
+
+atriums:
+  rules:
+    - id: highrise.atrium.max_height
+      source: {document: SP_550_1311500_2026, clause: "5.6"}
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота атриума в высотном здании должна быть не более 28 м."
+      values: {max_atrium_height_mm: 28000}
+
+    - id: highrise.atrium.one_fire_compartment
+      source: {document: SP_550_1311500_2026, clause: "5.6"}
+      automation: validation_only
+      statement: "Атриум высотного здания должен располагаться в объеме одного пожарного отсека; размещение открытых лестниц, эскалаторов, траволаторов и панорамных лифтов требует выполнения специального пакета противопожарных мероприятий СП 550."
+
+firefighter_lifts:
+  source: SP_550_1311500_2026
+  rules:
+    - id: highrise.firefighter_lifts.count
+      clause: "8.1"
+      automation: conditional
+      statement: "Для деятельности пожарных подразделений и спасения МГН в высотном здании предусматривают не менее двух лифтов для пожарных; при высоте более 150 м — не менее трех. При зонной схеме указанное количество предусматривают в каждой зоне."
+      cases:
+        - {condition: "fire_height <= 150 m within SP550 scope", min_firefighter_lifts: 2}
+        - {condition: "fire_height > 150 m", min_firefighter_lifts: 3}
+      zone_rule: "При зонной организации работы лифтов минимум относится к каждой зоне."
+      conflict_policy: "Исполнение пожарных лифтов проверять по ГОСТ Р 53296 и rules/30_firefighter_lifts.yaml."
+
+stairwells_and_egress:
+  rules:
+    - id: highrise.stairwells.smokeproof_required
+      source: {document: SP_550_1311500_2026, clause: "9.3"}
+      automation: conditional
+      statement: "В высотных зданиях предусматривают незадымляемые лестничные клетки. Не менее 50% лестничных клеток должны соответствовать специальному требованию п.9.3 к типам Н1/Н2 и защищенному входу."
+      values: {special_smokeproof_share_min_percent: 50}
+      conflict_policy: "Точный тип и схема входа выбираются по полному п.9.3 и rules/31_stairwell_types.yaml; не сводить требование к одному типу Н1 или Н2 автоматически."
+
+    - id: highrise.stair.clear_width
+      source: {document: SP_550_1311500_2026, clause: "9.4"}
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимальная ширина пути эвакуации по лестничному маршу в высотном здании зависит от назначения пожарного отсека и численности людей на этажах."
+      cases:
+        - {condition: "residential fire compartment", min_clear_width_mm: 1200}
+        - {condition: "nonresidential fire compartment and people_on_any_floor_above_first <= 600", min_clear_width_mm: 1350}
+        - {condition: "people_on_any_floor_above_first > 600", min_clear_width_mm: 1600}
+      conflict_policy: "Дополнительно проверять СП 1, СП 59 и специальные требования функционального назначения; использовать наиболее строгое применимое после фильтрации области."
+
+    - id: highrise.floor_exit_count_non_F1_3
+      source: {document: SP_550_1311500_2026, clause: "9.9"}
+      automation: conditional
+      statement: "Для этажей высотных зданий, кроме Ф1.3, минимальное число эвакуационных выходов зависит от одновременной численности людей."
+      cases:
+        - {people_max: 500, min_exits: 2}
+        - {people_min: 501, people_max: 1000, min_exits: 3}
+        - {people_min: 1001, min_exits: 4}
+      requires_calculation: true
+      conditions: {functional_fire_class_not: F1.3}
+
+fire_service_site_access:
+  rules:
+    - id: highrise.fire_access.all_sides
+      source: {document: SP_550_1311500_2026, clause: "10.3"}
+      automation: conditional
+      statement: "Проезды и подъезды пожарно-спасательных подразделений к высотным зданиям предусматриваются со всех сторон с учетом СП 4.13130."
+      conflict_policy: "Геометрию проезда и расстояния дополнительно проверять по rules/13_fire_site_access.yaml."
+
+    - id: highrise.fire_access.analysis_report
+      source: {document: SP_550_1311500_2026, clause: "10.4"}
+      automation: manual_calculation
+      statement: "Для высотного здания требуется анализ пожарных проездов, подъездов и доступа подразделений пожарной охраны с устройством специальных площадок для пожарной техники."
+      requires_calculation: true
+
+stair_gap_fire_hose:
+  - id: highrise.stair.flight_gap
+    source: {document: SP_550_1311500_2026, clause: "10.6"}
+    automation: conditional
+    dimension_semantics: clear
+    statement: "В лестничных клетках высотных зданий зазор между лестничными маршами должен быть не менее 120 мм в свету. Исключение возможно при специальном решении с сухотрубом DN80 и спаренными пожарными кранами при сохранении нормативной ширины эвакуации."
+    values: {general_min_clear_gap_mm: 120}
+    conflict_policy: "Исключение не применять без подтвержденного пожарного/инженерного решения."
+
+BIM_required_parameters:
+  - functional_fire_class
+  - building_use
+  - fire_height_mm
+  - fire_compartment_id
+  - fire_compartment_function
+  - floor_area_within_fire_compartment_m2
+  - atrium_height_mm
+  - stairwell_type
+  - stair_clear_width_mm
+  - people_on_floor
+  - firefighter_lift_count
+  - lift_zone_id
+  - fire_access_sides
+  - stair_interflight_clear_gap_mm
+
+agent_logic:
+  - "Если объект попадает в область СП 550, профильные требования СП 550 маршрутизировать до общих правил СП 54/СП 118 там, где СП 550 устанавливает специальные требования."
+  - "Не определять высотность по отметке парапета или общей архитектурной высоте: использовать пожарную высоту по СП 1."
+  - "Не считать обычный пассажирский лифт одним из требуемых пожарных лифтов без подтвержденного соответствия."
+  - "Не увеличивать площадь пожарного отсека автоматически на основании общей нормы СП 2 без проверки специальных условий самого СП 550."
+  - "Все числовые правила этого файла применяются только внутри области СП 550."
+
+sources:
+  - "https://base.garant.ru/414094185/"

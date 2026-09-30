@@ -1,0 +1,116 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Безопасность оконного, балконного и панорамного остекления; отделение геометрии проема от требуемого типа стекла и защитного ограждения."
+
+revision_dependencies:
+  - {document: GOST_23166_2024, status: active, correction: "ИУС 1-2025"}
+  - {document: GOST_30698_2014, status: active, verified_change: 1, change_1_effective_from: 2025-11-01, correction: "ИУС 8-2026"}
+  - {document: GOST_30826_2014, status: active, correction: "ИУС 8-2026"}
+  - {document: GOST_24866_2014, status: active, verified_change: 2, change_2_effective_from: 2026-09-01}
+  - {document: SP_426_1325800_2020, status: active, replaces: SP_426_1325800_2018}
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+
+residential:
+  source: SP_54_13330_2022
+  rules:
+    - id: glazing.residential.child_safety
+      clause: "6.4.8"
+      automation: validation_only
+      statement: "Оконные блоки МКД проектировать по ГОСТ 23166 с системами безопасности, предотвращающими самостоятельное открывание детьми и случайное выпадение детей."
+
+    - id: glazing.residential.low_sill_safety
+      clause: "6.4.9"
+      automation: conditional
+      statement: "Если нижний уровень светопрозрачного заполнения оконного блока расположен ниже 0,9 м от уровня чистого пола, предусматривать мероприятия по обеспечению безопасности с учетом ГОСТ Р 56926."
+      values:
+        trigger_height_below_finished_floor_mm: 900
+      dimension_semantics: clear
+      note: "900 мм — порог включения проверки безопасности, а не обязательная высота подоконника каждого окна."
+
+public_panorama:
+  source: SP_118_13330_2022
+  clause: "6.17, Change 5"
+  rules:
+    - id: glazing.public.panorama_guard
+      automation: conditional
+      statement: "Для наружного и внутреннего панорамного остекления общественных зданий с внутренней стороны предусматривается защитное ограждение высотой не менее 1,2 м, если не применяется допустимая нормативом альтернатива."
+      values:
+        min_guard_height_mm: 1200
+      dimension_semantics: clear
+
+    - id: glazing.public.panorama_without_guard
+      automation: conditional
+      statement: "При панорамном остеклении без дополнительного защитного ограждения светопрозрачное заполнение должно соответствовать классу защиты СМ 4 по ГОСТ 30826 в области применения п. 6.17 СП 118."
+      values:
+        required_impact_protection_class: "CM4"
+      requires_manufacturer_data: true
+      conflict_policy: "Не трактовать наличие стекла класса CM4 как отмену других требований фасадной, пожарной, теплотехнической и конструктивной безопасности."
+
+window_and_balcony_blocks:
+  source: GOST_23166_2024
+  rules:
+    - id: glazing.balcony.floor_level_lower_part
+      clause: "5.3.2"
+      automation: conditional
+      statement: >-
+        Светопрозрачное заполнение нижней части блока остекления балкона "в пол", отделенной
+        горизонтальным ригелем, выполняют многослойным безопасным или закаленным стеклом
+        установленного стандартом класса; при отсутствии горизонтального ригеля безопасное
+        заполнение требуется для блока остекления в соответствии с этим пунктом.
+      accepted_standard_paths:
+        - {glass: "tempered", standard: GOST_30698_2014, min_class: "CM3"}
+        - {glass: "laminated", standard: GOST_30826_2014, min_classes: ["CM3","P3A"]}
+      requires_manufacturer_data: true
+
+    - id: glazing.window.child_safety_devices
+      clause: "5.2.12"
+      automation: conditional
+      statement: "Оконные блоки жилых помещений и помещений с массовым пребыванием детей комплектовать устройствами, препятствующими самостоятельному распашному открыванию створок ребенком."
+
+    - id: glazing.window.not_all_safe_glass_mandatory
+      clause: "6.1.6"
+      automation: validation_only
+      statement: "ГОСТ 23166 рекомендует применение безопасных стекол для безопасной эксплуатации, но это положение само по себе не означает, что все обычные окна любого здания обязаны быть выполнены только из закаленного/многослойного стекла. Обязательность определяется специальными условиями объекта и проекта."
+
+product_status:
+  - id: glazing.tempered.current_revision
+    automation: validation_only
+    statement: "Закаленное стекло проверять по ГОСТ 30698-2014 с Изменением №1 и поправкой ИУС 8-2026."
+  - id: glazing.laminated.current_revision
+    automation: validation_only
+    statement: "Многослойное стекло проверять по ГОСТ 30826-2014 с актуальными изменениями/поправками, включая ИУС 8-2026."
+  - id: glazing.insulating_glass.current_revision
+    automation: validation_only
+    statement: "Стеклопакеты проверять по ГОСТ 24866-2014 с Изменением №2, действующим с 01.09.2026."
+
+BIM_required_parameters:
+  - glazing_location
+  - room_function
+  - child_mass_presence_status
+  - finished_floor_level
+  - transparent_fill_bottom_level
+  - panoramic_glazing_status
+  - protective_guard_presence
+  - protective_guard_height
+  - glass_standard
+  - glass_type
+  - impact_protection_class
+  - laminated_protection_class_if_applicable
+  - opening_mode
+  - child_safety_device
+  - manufacturer_product_id
+
+agent_logic:
+  - "Не определять безопасность окна только по размеру проема. Проверять нижнюю отметку остекления, назначение помещения, этаж/зону и тип стекла."
+  - "Не считать низкое окно автоматически панорамным; классификацию панорамного остекления выполнять по профильному СП."
+  - "Не заменять требуемое защитное ограждение обычным импостом оконной рамы без доказанной функции ограждения."
+  - "Не использовать старый СП 426.1325800.2018: он заменен СП 426.1325800.2020."
+  - "Хранить класс стекла как свойство конкретного светопрозрачного заполнения, а не только семейства окна."
+
+sources:
+  - "https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d"
+  - "https://protect.gost.ru/gost/details/819a214b-9ead-4946-9a6f-c7a11685a223"
+  - "https://protect.gost.ru/gost/details/554770cd-bce1-4b31-b6bd-fcf89d614795"
+  - "https://protect.gost.ru/gost/changesdetails/89028051-8dc6-4b83-a612-9e652764c20d"
+  - "https://protect.gost.ru/sp/details/b7213cf9-fb50-4cfc-93bd-687b6f7aea64"

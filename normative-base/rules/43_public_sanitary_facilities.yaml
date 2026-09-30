@@ -1,0 +1,157 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Санитарно-бытовые помещения общественных зданий: расчет приборов, удаленность уборных, МГН и переход на санитарные правила 2026/2027."
+
+revision_dependencies:
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+  - {document: SP_SAN_2_1_4284_26, status: active, effective_from: 2026-09-01}
+
+sanitary_transition:
+  - id: sanitary.public.no_old_3678_route
+    automation: auto
+    statement: "Для профиля 2027 не использовать СП 2.1.3678-20 как действующий санитарный документ: он признан утратившим силу с 01.09.2026 постановлением №20; специальные санитарные требования проверять по СП 2.1.4284-26 и иным актуальным санитарным актам для конкретного назначения."
+
+public_building_baseline:
+  source: SP_118_13330_2022
+  rules:
+    - id: sanitary.public.staff_and_visitors
+      clause: "5.54"
+      automation: validation_only
+      statement: "В общественных зданиях санитарно-бытовые помещения предусматривают для персонала и обслуживаемого контингента; мужские и женские помещения в общем случае предусматривают раздельно, с учетом специальных требований объекта."
+
+    - id: sanitary.public.small_building_common_toilet
+      clause: "5.54"
+      automation: conditional
+      statement: "Для организаций с персоналом не более 10 человек и числом единовременных посетителей не более 10 человек допускается один общий санузел."
+      values: {staff_max: 10, simultaneous_visitors_max: 10}
+      requires_object_classification: true
+
+    - id: sanitary.public.common_staff_visitor_condition
+      clause: "5.54"
+      automation: conditional
+      statement: "Если одновременно в общественном здании может находиться менее 50 человек или время пребывания посетителей составляет менее 60 минут, по заданию на проектирование допускается устройство общих уборных для персонала и посетителей либо только для персонала, кроме специальных функциональных случаев."
+      values: {simultaneous_people_less_than: 50, visitor_stay_minutes_less_than: 60}
+      conflict_policy: "Медицинские, социальные и иные специальные объекты проверять по специальным санитарным/функциональным требованиям; это разрешение не универсально."
+
+fixture_calculation_fallback:
+  source: SP_118_13330_2022
+  source_clause: "5.55"
+  policy: "Применять только при отсутствии специальных требований для конкретного типа общественного здания; сначала проверять профильный СП и действующие санитарные правила."
+  rules:
+    - id: sanitary.public.male_staff_wc
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для персонала: один мужской унитаз на 20-30 человек. Выбор внутри диапазона должен быть обоснован проектом/специальной нормой; агент не выбирает автоматически 30."
+      values: {people_per_wc_range: [20,30]}
+      requires_calculation: true
+
+    - id: sanitary.public.male_visitors_wc
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для посетителей: один мужской унитаз на 50-60 человек."
+      values: {people_per_wc_range: [50,60]}
+      requires_calculation: true
+
+    - id: sanitary.public.male_staff_urinal
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для персонала: один писсуар на 15-18 мужчин."
+      values: {people_per_urinal_range: [15,18]}
+      requires_calculation: true
+
+    - id: sanitary.public.male_visitors_urinal
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для посетителей: один писсуар на 50-80 мужчин."
+      values: {people_per_urinal_range: [50,80]}
+      requires_calculation: true
+
+    - id: sanitary.public.female_staff_wc
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для персонала: один женский унитаз на 15 сотрудников."
+      values: {people_per_wc: 15}
+      requires_calculation: true
+
+    - id: sanitary.public.female_visitors_wc
+      automation: manual_calculation
+      statement: "При отсутствии специальных требований ориентир СП 118 для посетителей: один женский унитаз на 25-30 человек."
+      values: {people_per_wc_range: [25,30]}
+      requires_calculation: true
+
+    - id: sanitary.public.male_washbasins
+      automation: conditional
+      statement: "При отсутствии специальных требований: один умывальник на четыре мужских унитаза, но не менее одного на уборную."
+      values: {wc_per_washbasin: 4, min_washbasins_per_toilet_room: 1}
+
+    - id: sanitary.public.female_washbasins
+      automation: conditional
+      statement: "При отсутствии специальных требований: один умывальник на два женских унитаза, но не менее одного на уборную."
+      values: {wc_per_washbasin: 2, min_washbasins_per_toilet_room: 1}
+
+    - id: sanitary.public.shared_facilities_factor
+      automation: manual_calculation
+      statement: "Если персонал и посетители используют общие санитарно-бытовые помещения, проектное число санитарных приборов должно быть не менее чем в 1,5 раза больше максимального числа, полученного при раздельном расчете для персонала и посетителей."
+      values: {multiplier: 1.5}
+      requires_calculation: true
+
+retail_specific_fallback:
+  source: SP_118_13330_2022
+  source_clause: "5.55"
+  rules:
+    - id: sanitary.retail.food_wc_area_ratio
+      automation: manual_calculation
+      statement: "Для уборных покупателей продовольственного магазина СП 118 задает один унитаз на каждые 400 м² торговой площади при отсутствии более специальных требований."
+      values: {sales_area_m2_per_wc: 400}
+      requires_calculation: true
+
+    - id: sanitary.retail.nonfood_wc_area_ratio
+      automation: manual_calculation
+      statement: "Для уборных покупателей непродовольственного магазина СП 118 задает один унитаз на каждые 600 м² торговой площади, но не менее двух унитазов, при отсутствии более специальных требований."
+      values: {sales_area_m2_per_wc: 600, min_wc: 2}
+      requires_calculation: true
+
+    - id: sanitary.retail.small_sales_area_gate
+      automation: validation_only
+      statement: "Для предприятий торговли с площадью торгового зала не более 300 м² необходимость уборных устанавливают заданием на проектирование."
+      values: {sales_area_max_m2: 300}
+
+location:
+  source: SP_118_13330_2022
+  rules:
+    - id: sanitary.public.toilet_max_distance
+      clause: "5.57"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "В общественных зданиях и сооружениях, кроме открытых спортивных сооружений, уборные для посетителей размещают не далее 75 м от наиболее удаленного места постоянного пребывания людей."
+      values: {max_route_distance_m: 75}
+      conflict_policy: "Проверять фактический маршрут движения, а не расстояние по прямой через стены."
+
+mgn:
+  - id: sanitary.public.mgn_route
+    source: {document: SP_118_13330_2022, clause: "5.55/5.60"}
+    automation: validation_only
+    statement: "Универсальные и доступные кабины МГН и их габариты принимать по СП 59.13330.2020; обычный расчет количества приборов не заменяет проверку доступности."
+
+BIM_required_parameters:
+  - building_function
+  - special_functional_code
+  - staff_population
+  - visitor_population
+  - simultaneous_population
+  - visitor_stay_duration_min
+  - sex_ratio_if_defined
+  - sales_area_m2_if_retail
+  - toilet_room_type
+  - fixture_counts
+  - accessible_cabin_count
+  - accessible_route_status
+  - route_distance_from_farthest_occupied_point_m
+
+agent_logic:
+  - "Перед расчетом приборов искать специальный СП/санитарный раздел конкретного назначения; правила 5.55 СП 118 являются fallback, а не универсальной нормой для всех объектов."
+  - "Не округлять диапазоны 20-30, 50-60, 25-30 к наиболее выгодной границе автоматически."
+  - "Не использовать СП 2.1.3678-20 в модели 2027: санитарную проверку маршрутизировать на СП 2.1.4284-26 и специальные действующие акты."
+  - "75 м проверять по доступному фактическому пути посетителя, а не геометрическим радиусом."
+
+sources:
+  - "https://base.garant.ru/404976079/"
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://www.consultant.ru/document/cons_doc_LAW_535828/"
+  - "https://base.garant.ru/414329111/"

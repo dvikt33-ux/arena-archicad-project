@@ -1,36 +1,36 @@
-manifest_version: 2
+manifest_version: 3
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
 load_order:
   - priority: 1
     file: target_2027.yaml
-    role: "future confirmed transitions, expiries and 2027 overrides"
+    role: future confirmed transitions and 2027 overrides
   - priority: 2
     file: revision_watch_2027.yaml
-    role: "official latest revision levels and draft watch; invalidates stale rule files"
+    role: official latest revision levels
   - priority: 3
     file: registry.yaml
-    role: "document identity/status registry checked on audit date"
+    role: document identity and audit-date status
   - priority: 4
     file: schema/dimension_selection_policy.yaml
-    role: "dimension semantics and conflict/rounding policy"
+    role: dimension semantics and conflict policy
   - priority: 5
-    files: "rules/*.yaml"
-    role: "verified architectural/BIM rules"
+    files: rules/*.yaml
+    role: verified architectural and BIM rules
   - priority: 6
     file: AUDIT.md
-    role: "human-readable audit trail, pending topics and known hazards"
+    role: human-readable audit trail
 
 precedence_rules:
-  - "target_2027.yaml overrides a current-date status in registry.yaml when an officially confirmed transition occurs before/during the target period."
-  - "revision_watch_2027.yaml invalidates a rule file whose claimed revision is below the current official_latest_change."
-  - "A special functional/fire/accessibility rule overrides a general rule only within its explicit scope."
-  - "A direct numeric requirement cannot be replaced by modular rounding."
-  - "A calculation requirement cannot be replaced by a typical value."
-  - "A manufacturer/product dimension cannot be invented from a common market size."
-  - "Draft or unapproved future documents never override an active/confirmed rule."
-  - "An expired rule with no official replacement produces blocked/unresolved, not a fallback to memory."
+  - target_2027.yaml overrides current-date status when an officially confirmed transition applies to 2027.
+  - revision_watch_2027.yaml invalidates a rule file whose claimed revision is below official_latest_change.
+  - Special functional, fire or accessibility requirements apply within their explicit scope before general rules.
+  - Direct numeric requirements cannot be replaced by modular rounding.
+  - Calculation requirements cannot be replaced by typical values.
+  - Manufacturer or product geometry cannot be invented from common market sizes.
+  - Draft or unapproved future documents never become active rules.
+  - Expired rules without official replacement produce blocked or unresolved state.
 
 rule_files:
   - 00_modular_coordination.yaml
@@ -49,8 +49,11 @@ rule_files:
   - 13_fire_site_access.yaml
   - 14_parking_geometry.yaml
   - 15_roofs.yaml
+  - 16_stair_geometry.yaml
 
 hard_fail_states:
+  - yaml_parse_error
+  - duplicate_rule_id
   - missing_target_profile
   - source_status_unknown
   - rule_revision_below_official_latest
@@ -63,10 +66,12 @@ hard_fail_states:
 
 release_gate:
   require:
-    - "no auto_rule references a superseded clause for target 2027"
-    - "all numeric auto rules have source document + clause/table + checked_at"
-    - "all future transitions have official effective date"
-    - "all core rule files match revision_watch_2027.yaml"
-    - "no draft normative document is marked active"
-    - "all clear dimensions are validated as clear, not axis/opening dimensions"
-    - "all pending topics remain fail-closed"
+    - all YAML files parse successfully
+    - no duplicate machine rule ids across rules
+    - no automatic rule references a superseded clause for target 2027
+    - numeric automatic rules have source document and clause or table
+    - future transitions have official effective dates
+    - core rule files match revision_watch_2027.yaml
+    - draft normative documents are never marked active
+    - clear dimensions are validated as clear dimensions
+    - pending topics remain fail-closed

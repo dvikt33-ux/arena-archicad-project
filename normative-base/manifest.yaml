@@ -1,4 +1,4 @@
-manifest_version: 27
+manifest_version: 28
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -22,12 +22,15 @@ load_order:
     file: registry_additions_2027.yaml
     role: verified additions and revision-metadata overrides discovered after the first registry pass
   - priority: 7
+    file: sanitary_registry_2027.yaml
+    role: sanitary rules and replacement status for the 2027 target profile
+  - priority: 8
     file: schema/dimension_selection_policy.yaml
     role: dimension semantics and conflict policy
-  - priority: 8
+  - priority: 9
     files: rules/*.yaml
     role: verified architectural and BIM rules
-  - priority: 9
+  - priority: 10
     file: AUDIT.md
     role: human-readable audit trail
 
@@ -37,12 +40,13 @@ precedence_rules:
   - revision_watch_adjacent_2027.yaml blocks coordination with stale KR/POS/engineering inputs but does not authorize the architectural agent to perform those discipline calculations.
   - functional_revision_audit_2027.yaml overrides stale special-code revision metadata and can block amendment-specific rules when effective status is ambiguous.
   - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change document identity without explicit replacement metadata.
-  - Special functional, fire or accessibility requirements apply within their explicit scope before general rules.
+  - sanitary_registry_2027.yaml overrides stale sanitary references when a sanitary act is repealed or replaced.
+  - Special functional, fire, accessibility or sanitary requirements apply within their explicit scope before general rules.
   - Direct numeric requirements cannot be replaced by modular rounding.
   - Calculation requirements cannot be replaced by typical values.
   - Manufacturer or product geometry cannot be invented from common market sizes.
   - Draft, accepted-but-not-active, or otherwise unapproved future documents never become active rules.
-  - Expired rules without official replacement produce blocked or unresolved state.
+  - Expired or repealed rules without an applicable official replacement produce blocked or unresolved state.
 
 rule_files:
   - 00_modular_coordination.yaml
@@ -88,6 +92,7 @@ rule_files:
   - 40_residential_vertical_transport.yaml
   - 41_ceramic_masonry_units.yaml
   - 42_aac_masonry_units.yaml
+  - 43_public_sanitary_facilities.yaml
 
 hard_fail_states:
   - yaml_parse_error
@@ -97,6 +102,7 @@ hard_fail_states:
   - rule_revision_below_official_latest
   - adjacent_discipline_revision_below_official_latest
   - functional_amendment_effective_status_ambiguous
+  - sanitary_source_repealed
   - rule_expired_for_target
   - future_replacement_is_only_draft
   - future_document_not_active
@@ -115,6 +121,7 @@ release_gate:
     - core rule files match revision_watch_2027.yaml
     - adjacent discipline coordination inputs match revision_watch_adjacent_2027.yaml when used
     - special functional rules match functional_revision_audit_2027.yaml when used
+    - sanitary references match sanitary_registry_2027.yaml when used
     - draft and accepted-but-not-active normative documents are never marked active
     - clear dimensions are validated as clear dimensions
     - pending topics remain fail-closed

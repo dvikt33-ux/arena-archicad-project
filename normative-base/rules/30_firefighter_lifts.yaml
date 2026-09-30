@@ -1,31 +1,51 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Лифты для пожарных подразделений: действующий стандарт и защита от преждевременного применения принятого, но еще не действующего ПНСТ."
+purpose: "Лифты для пожарных подразделений: два действующих взаимодополняющих стандарта и защита от преждевременного применения ПНСТ 1072-2026."
 
-current_standard:
-  document: GOST_34305_2017
-  title: "Лифты пассажирские. Лифты для пожарных"
-  status: active
-  effective_from: 2019-03-01
-  corrections: ["ИУС 4-2020", "ИУС 7-2023"]
-  official_url: "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+current_standards:
+  - document: GOST_34305_2017
+    title: "Лифты пассажирские. Лифты для пожарных"
+    status: active
+    effective_from: 2019-03-01
+    role: "требования к лифту для пожарных как изделию/системе"
+    corrections: ["ИУС 4-2020", "ИУС 7-2023"]
+    official_url: "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+  - document: GOST_R_53296_2009
+    title: "Установка лифтов для пожарных в зданиях и сооружениях. Требования пожарной безопасности"
+    status: active
+    effective_from: 2009-05-01
+    role: "требования пожарной безопасности к размещению/установке лифтов для пожарных в здании"
+    official_url: "https://protect.gost.ru/gost/details/8a77c255-c71c-49b1-9639-38665f5150e1"
+
+relationship:
+  statement: "ГОСТ 34305-2017 и ГОСТ Р 53296-2009 не являются взаимозаменяемыми редакциями одного стандарта: оба действуют и должны проверяться совместно в своей области."
 
 future_watch:
   - document: PNST_1072_2026
     title: "Лифты. Международные существенные требования безопасности к устройству и применению лифтов для пожарных"
     status_on_2026_09_30: accepted_not_active
     automation: forbidden_to_infer
-    statement: "ПНСТ 1072-2026 на дату аудита имеет статус «Принят», а не «Действует». Не заменять им ГОСТ 34305-2017 и не использовать как основание для проектных размеров до официального введения в действие и проверки области применения."
+    statement: "ПНСТ 1072-2026 на дату аудита не заменяет действующие ГОСТ 34305-2017 и ГОСТ Р 53296-2009. Не использовать его как основание для проектных размеров или отмены действующих стандартов без нового официального статуса/анализа."
 
 rules:
   - id: vertical.firefighter.not_ordinary_passenger_lift
     automation: validation_only
-    statement: "Обычный пассажирский лифт не считать автоматически лифтом для пожарных подразделений. Требование и исполнение пожарного лифта проверяются отдельно по пожарным нормам объекта и ГОСТ 34305-2017."
+    statement: "Обычный пассажирский лифт не считать автоматически лифтом для пожарных подразделений. Требование и исполнение пожарного лифта проверяются отдельно по пожарным нормам объекта и обоим действующим стандартам."
 
-  - id: vertical.firefighter.standard_2017
+  - id: vertical.firefighter.product_standard_2017
     automation: validation_only
     source: {document: GOST_34305_2017, clause: "scope/status"}
-    statement: "Для нового лифта, предназначенного для работы пожарных подразделений, применять действующий ГОСТ 34305-2017 совместно с общими требованиями к лифтам и пожарными требованиями здания."
+    statement: "Лифт для пожарных как изделие/система должен соответствовать действующему ГОСТ 34305-2017 в его области применения."
+
+  - id: vertical.firefighter.building_installation_standard_2009
+    automation: validation_only
+    source: {document: GOST_R_53296_2009, clause: "scope/status"}
+    statement: "Размещение и установка лифта для пожарных в здании должны дополнительно проверяться по действующему ГОСТ Р 53296-2009."
+
+  - id: vertical.firefighter.safe_zone_lobby_gate
+    automation: validation_only
+    source: {document: SP_1_13130_2020, clause: "9.2.2"}
+    statement: "Если пожаробезопасная зона 1-го типа размещена в лифтовом холле, как минимум один лифт в таком холле должен быть лифтом для пожарных подразделений; дополнительно проверять требования СП 1 к дверям шахт и противодымной вентиляции."
 
   - id: vertical.firefighter.geometry_equipment_gate
     automation: forbidden_to_infer
@@ -35,21 +55,25 @@ rules:
 
 BIM_required_parameters:
   - firefighter_lift_required
-  - firefighter_lift_standard
+  - firefighter_lift_product_standard
+  - firefighter_lift_installation_standard
   - selected_lift_product
   - cabin_dimensions
   - clear_door_opening
   - shaft_dimensions
   - fire_safe_access_solution
+  - fire_safe_zone_lobby_status
   - fire_compartment_reference
   - smoke_control_reference
   - power_supply_category_reference
 
 agent_logic:
   - "Если по пожарным требованиям требуется лифт для пожарных, не подменять его обычным доступным лифтом МГН."
-  - "Статус «Принят» у ПНСТ не равен статусу «Действует»."
-  - "При появлении даты введения ПНСТ 1072-2026 выполнить отдельный аудит: является ли он заменой, дополнительным документом или добровольным экспериментальным стандартом."
+  - "Не выбирать между ГОСТ 34305-2017 и ГОСТ Р 53296-2009: проверять оба в соответствующих областях."
+  - "Статус «Принят» у ПНСТ не равен замене действующих стандартов."
+  - "При изменении статуса ПНСТ 1072-2026 выполнить отдельный аудит его юридической роли и связи с двумя действующими ГОСТ."
 
 sources:
   - "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+  - "https://protect.gost.ru/gost/details/8a77c255-c71c-49b1-9639-38665f5150e1"
   - "https://protect.gost.ru/gost?month=6&year=2026"

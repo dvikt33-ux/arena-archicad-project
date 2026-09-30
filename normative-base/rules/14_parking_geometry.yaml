@@ -1,0 +1,72 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+primary_document: SP_113_13330_2023
+verified_changes: [1,2,3,4]
+purpose: "Геометрия машино-мест и базовая архитектурная координация стоянок автомобилей."
+
+revision_note:
+  change_4_effective_from: 2026-10-03
+  target_2027_action: apply
+  note: "Изменение №4 актуализирует нормативные ссылки; правила геометрии ниже проверять совместно с актуальной редакцией приложения А."
+
+ordinary_parking_space:
+  source: "Appendix A, Table A.1 note 4"
+  automation: true
+  min_length_mm: 5300
+  min_width_mm: 2500
+  note: "Минимальный габарит машино-места; фактическая схема должна также удовлетворять зазорам безопасности, колоннам, стенам и маневрированию."
+
+accessible_parking_space:
+  source_clause: "5.6"
+  cross_reference: SP_59_13330_2020
+  automation: true
+  min_length_mm: 6000
+  min_width_mm: 3600
+  applies_to: "automobiles of wheelchair users"
+  note: "Размещение и количество мест МГН проверять дополнительно по СП 59 и градостроительным нормативам."
+
+vehicle_classes:
+  source: "Appendix A, Table A.1"
+  automation: conditional
+  classes:
+    - {class: small, max_length_mm: 3700, max_width_mm: 1600, max_height_mm: 1700, min_outer_turn_radius_mm: 5500}
+    - {class: medium, max_length_mm: 4300, max_width_mm: 1700, max_height_mm: 1800, min_outer_turn_radius_mm: 6000}
+    - {class: large, max_length_mm: 5160, max_width_mm: 1995, max_height_mm: 1970, min_outer_turn_radius_mm: 6200}
+    - {class: minibus, max_length_mm: 5500, max_width_mm: 2380, max_height_mm: 2300, min_outer_turn_radius_mm: 6900}
+  project_input_required: "Типы/классы расчетных автомобилей должны задаваться заданием на проектирование."
+
+indoor_safety_clearances:
+  source: "Appendix A, Table A.1 notes"
+  automation: conditional
+  min_mm:
+    car_long_side_to_wall: 800
+    parallel_cars_long_sides: 800
+    car_long_side_to_column_or_pilaster: 500
+    car_front_to_wall_or_gate: 700
+    car_rear_to_wall_or_gate: 700
+    cars_end_to_end: 600
+  note: "Применять к соответствующей схеме хранения в помещении; не смешивать с кадастровыми границами машино-места."
+
+aisles_and_ramps:
+  source_clause: "5.4"
+  automation: forbidden_to_use_single_default
+  statement: >-
+    Ширина проездов и параметры рамп устанавливаются проектом в зависимости от класса автомобилей,
+    способа хранения, габаритов, маневренности и схемы расстановки в соответствии с приложением А.
+  agent_action: "calculate_or_select_from_applicable_parking_scheme"
+
+site_coordination:
+  source_clause: "4.4"
+  dependencies: [SP_42_13330_2026, SP_396_1325800_2018, SP_4_13130_2013, regional_and_local_urban_design_standards]
+  rule: "Число и размещение стоянок на участке нельзя определять только СП 113; проверять РНГП/МНГП и специальную норму объекта."
+
+agent_logic:
+  - "Не строить парковку сеткой 2500x5300 без проверки колонн, стен, зазоров безопасности и маневренности."
+  - "Не принимать одну ширину межрядного проезда для всех углов парковки и классов автомобилей."
+  - "Отдельно хранить геометрию автомобиля, геометрию машино-места, безопасные зазоры и траекторию маневра."
+  - "Для подземных/встроенных стоянок до фиксации сетки колонн выполнить итерацию parking-layout <-> structural-grid; колонна не должна уменьшать требуемый полезный габарит."
+  - "Парковочные места МГН связывать с доступным маршрутом до входа/лифта по СП 59, а не только маркировать символом."
+
+sources:
+  - https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131
+  - https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9

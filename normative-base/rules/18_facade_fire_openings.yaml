@@ -10,14 +10,15 @@ revision_dependencies:
 
 terms:
   source: SP_2_13130_2020
-  - id: facade.fire.interstory_belt_term
-    clause: "3.23"
-    automation: validation_only
-    statement: "Междуэтажный пояс — участок наружной стены с нормируемым пределом огнестойкости между смежными по высоте проемами/светопрозрачными участками; такой пояс выполняется глухим."
-  - id: facade.fire.pier_term
-    clause: "3.24"
-    automation: validation_only
-    statement: "Простенок в смысле СП 2 — участок наружной стены с нормируемым пределом огнестойкости между смежными по горизонтали проемами/светопрозрачными участками; такой простенок выполняется глухим."
+  rules:
+    - id: facade.fire.interstory_belt_term
+      clause: "3.23"
+      automation: validation_only
+      statement: "Междуэтажный пояс — участок наружной стены с нормируемым пределом огнестойкости между смежными по высоте проемами/светопрозрачными участками; такой пояс выполняется глухим."
+    - id: facade.fire.pier_term
+      clause: "3.24"
+      automation: validation_only
+      statement: "Простенок в смысле СП 2 — участок наружной стены с нормируемым пределом огнестойкости между смежными по горизонтали проемами/светопрозрачными участками; такой простенок выполняется глухим."
 
 fire_barrier_junctions:
   source: SP_2_13130_2020
@@ -27,14 +28,14 @@ fire_barrier_junctions:
       automation: conditional
       statement: "В местах примыкания противопожарных стен 2-го типа и перегородок 1-го типа к наружным стенам предусматривать простенок шириной не менее 1,0 м."
       values: {min_width_mm: 1000}
-      dimension_semantics: clear
+      dimension_semantics: actual
 
     - id: facade.fire.barrier_junction_pier_type2partition
       clause: "5.3.6"
       automation: conditional
       statement: "В местах примыкания противопожарных перегородок 2-го типа к наружным стенам предусматривать простенок шириной не менее 0,8 м."
       values: {min_width_mm: 800}
-      dimension_semantics: clear
+      dimension_semantics: actual
 
     - id: facade.fire.barrier_junction_transparency
       clause: "5.3.6"
@@ -54,7 +55,7 @@ interfloor_facade_fire_spread:
         В местах примыкания наружной стены к перекрытию высота междуэтажного пояса по вертикали
         должна быть не менее 1,2 м; ширина пояса — не менее ширины нижерасположенного проема.
       values: {min_vertical_height_mm: 1200}
-      dimension_semantics: clear
+      dimension_semantics: actual
       note: "Предел огнестойкости пояса определяется условиями п.5.4.18 и не выводится только из геометрии."
 
     - id: facade.fire.interstory_belt_horizontal_compensation
@@ -64,7 +65,6 @@ interfloor_facade_fire_spread:
         горизонтальный глухой выступ из НГ материалов; сумма горизонтальной проекции выступа и
         вертикальной проекции пояса должна быть не менее 1,2 м.
       formula: "horizontal_projection_mm + vertical_belt_projection_mm >= 1200"
-      requires_calculation: false
       note: "Применять только при выполнении полного набора требований п.5.4.18."
 
     - id: facade.fire.pier_at_fire_rated_internal_wall
@@ -74,7 +74,7 @@ interfloor_facade_fire_spread:
         фасадного простенка должна быть не менее 0,8 м с учетом связанных требований п.5.3.6 и
         подп. «д» п.5.4.16.
       values: {min_width_mm: 800}
-      dimension_semantics: clear
+      dimension_semantics: actual
       conflict_policy: "Не применять 800 мм как универсальный минимум каждого межоконного простенка; это специальный пожарный случай."
 
     - id: facade.fire.transparent_belt_or_pier

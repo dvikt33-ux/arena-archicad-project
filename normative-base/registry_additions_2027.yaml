@@ -1,0 +1,115 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Дополнения и уточнения к registry.yaml для документов, введенных в rule-файлы после первого прохода. Загружается после registry.yaml; при совпадении id уточняет revision metadata, но не меняет идентичность документа."
+
+policy:
+  - "Добавлять запись только после проверки официальной карточки Росстандарта."
+  - "verified_changes означает подтвержденный состав изменений на дату checked_at, а не утверждение, что каждый пункт документа изменен."
+  - "Если изменение утверждено, но дата введения отсутствует и нельзя доказать действительность, не переводить его числовые правила в auto."
+  - "Этот файл должен быть позже механически слит с registry.yaml после проверки на дубли идентичности."
+
+documents:
+  - id: GOST_948_2016
+    title: "Перемычки железобетонные для зданий с кирпичными стенами. Технические условия"
+    status: active
+    effective_from: 2017-03-01
+    replaces: GOST_948_84
+    verified_changes:
+      - {number: 1, effective_from: 2025-06-01, publication: "ИУС 5-2025"}
+      - {number: 0, kind: "correction_to_change", effective_from: 2026-01-22, publication: "ИУС 1-2026"}
+    corrections:
+      - "ИУС 12-2021"
+      - "ИУС 7-2023"
+    source_url: "https://protect.gost.ru/gost/details/33107f24-da2a-4700-8d8e-a3fdcba7ffb4"
+
+  - id: SP_538_1325800_2024
+    title: "Конструкции оконные и балконные. Правила проектирования"
+    status: active
+    effective_from: 2024-06-16
+    source_url: "https://protect.gost.ru/sp/details/fad4db83-c22c-4629-b7cf-456ef675ce85"
+
+  - id: SP_71_13330_2017
+    title: "Изоляционные и отделочные покрытия"
+    status: active
+    effective_from: 2017-08-28
+    replaces: SP_71_13330_2011
+    verified_changes: [1,2,3,4]
+    latest_change_effective_from: 2025-11-04
+    source_url: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"
+
+  - id: SP_158_13330_2014
+    title: "Здания и помещения медицинских организаций. Правила проектирования"
+    status: active
+    verified_changes: [1,2,3,4,5,6,7]
+    latest_change_effective_from: 2026-08-10
+    source_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+
+  - id: SP_160_1325800_2014
+    title: "Здания и комплексы многофункциональные. Правила проектирования"
+    status: active
+    effective_from: 2014-09-01
+    verified_changes: [1,2,3]
+    source_url: "https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896"
+
+  - id: SP_251_1325800_2016
+    title: "Здания общеобразовательных организаций. Правила проектирования"
+    status: active
+    effective_from: 2017-02-18
+    verified_changes: [1,2,3,4,5,6,7]
+    latest_change_effective_from: 2026-01-01
+    source_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+
+  - id: SP_252_1325800_2016
+    title: "Здания дошкольных образовательных организаций. Правила проектирования"
+    status: active
+    effective_from: 2017-02-18
+    verified_changes: [1,2,3]
+    source_url: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+
+  - id: SP_257_1325800_2020
+    title: "Здания гостиниц. Правила проектирования"
+    status: active
+    effective_from: 2021-07-01
+    replaces: SP_257_1325800_2016
+    verified_changes: [1]
+    source_url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
+
+  - id: SP_267_1325800_2016
+    title: "Здания и комплексы высотные. Правила проектирования"
+    status: active
+    effective_from: 2017-07-01
+    verified_changes: [1,2,3]
+    latest_change_effective_from: 2026-07-15
+    source_url: "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"
+
+  - id: SP_278_1325800_2024
+    title: "Здания образовательных организаций высшего образования. Правила проектирования"
+    status: active
+    effective_from: 2025-01-26
+    replaces: SP_278_1325800_2016
+    source_url: "https://protect.gost.ru/sp/details/ceef6cd1-aabc-4be1-81a4-edcc348b9974"
+
+  - id: SP_309_1325800_2017
+    title: "Здания театрально-зрелищные. Правила проектирования"
+    status: active
+    effective_from: 2018-03-02
+    verified_changes: [1]
+    source_url: "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"
+
+  - id: SP_332_1325800_2017
+    title: "Спортивные сооружения. Правила проектирования"
+    status: active
+    effective_from: 2018-05-15
+    verified_changes: [1,2,3,4]
+    source_url: "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
+
+  - id: SP_464_1325800_2019
+    title: "Здания торгово-развлекательных комплексов. Правила проектирования"
+    status: active
+    effective_from: 2020-06-03
+    verified_changes: [1]
+    change_1_effective_from: 2024-01-16
+    scope_limits:
+      height_max_m: 50
+      underground_depth_max_m: 15
+    source_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"

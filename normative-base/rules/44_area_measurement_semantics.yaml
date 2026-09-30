@@ -1,0 +1,137 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Правила вычисления площадей в BIM: отделение геометрии модели от нормативной семантики общей, полезной, расчетной площади и площади квартиры."
+
+revision_dependencies:
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: GOST_R_21_101_2026, status: active, effective_from: 2026-04-01}
+
+public_buildings:
+  source: SP_118_13330_2022
+  appendix: A
+  rules:
+    - id: area.public.total_all_floors
+      clause: "A.1"
+      automation: conditional
+      statement: "Общую площадь общественного здания определять как сумму площадей всех этажей, включая технические, мансардные, цокольные, подвальные и иные этажи, а также эксплуатируемую кровлю, с учетом специальных исключений приложения А."
+
+    - id: area.public.multilevel_space_count_once
+      clause: "A.1/A.4"
+      automation: auto
+      statement: "Многосветные помещения, атриумы, проемы в перекрытиях, лифтовые и другие шахты включать в площадь только нижнего по отношению к такому пространству этажа/помещения; не дублировать площадь пустоты на верхних уровнях."
+
+    - id: area.public.floor_finish_boundary
+      clause: "A.2"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Площадь этажа общественного здания измерять на уровне пола в пределах внутренних поверхностей наружных стен с чистой отделкой."
+
+    - id: area.public.room_finished_surfaces
+      clause: "A.4"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Площадь общественного помещения определять между отделанными поверхностями стен и перегородок на уровне пола без учета плинтусов."
+
+    - id: area.public.mansard_height_filter
+      clause: "A.3"
+      automation: conditional
+      statement: "Для мансардного этажа общественного здания границу учитываемой площади при наклонной поверхности определять по высоте: 1,5 м при уклоне 30°, 1,1 м при 45°, 0,5 м при 60° и более; промежуточные значения интерполировать."
+      values:
+        points:
+          - {slope_deg: 30, limit_height_mm: 1500}
+          - {slope_deg: 45, limit_height_mm: 1100}
+          - {slope_deg: 60, limit_height_mm: 500}
+        interpolate_between_points: true
+
+    - id: area.public.useful_area_exclusions
+      clause: "A.5"
+      automation: conditional
+      statement: "При расчете полезной площади общественного здания не включать лестничные клетки, лифтовые шахты, внутренние открытые лестницы и пандусы, шахты и пространства инженерных коммуникаций; применять полный перечень приложения А."
+
+    - id: area.public.calculated_area_exclusions
+      clause: "A.6"
+      automation: conditional
+      statement: "Расчетная площадь общественного здания исключает коридоры, тамбуры, переходы, лестничные клетки, внутренние открытые лестницы и пандусы, лифтовые шахты и помещения/пространства инженерного оборудования и сетей; пространство под наклонной поверхностью ниже 1,5 м также не включается."
+      values: {inclined_surface_exclusion_below_mm: 1500}
+
+residential_buildings:
+  source: SP_54_13330_2022
+  appendix: A
+  rules:
+    - id: area.residential.building_sum_of_floors
+      clause: "A.1.2"
+      automation: conditional
+      statement: "Площадь многоквартирного жилого здания определять как сумму площадей этажей; техническое подполье, чердак, технический чердак, технические пространства и вертикальные внеквартирные инженерные коммуникации в площадь здания не включать в области приложения А."
+
+    - id: area.residential.floor_measurement_height
+      clause: "A.1.3"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Площадь этажа МКД измерять между внутренними поверхностями наружных стен на высоте от 0 до 1,10 м от уровня пола; при наклонных наружных стенах — на уровне пола, без учета плинтусов."
+      values: {measurement_height_range_mm: [0,1100]}
+
+    - id: area.apartment.heated_rooms_only
+      clause: "A.2.1"
+      automation: auto
+      statement: "Площадь квартиры определять как сумму площадей всех отапливаемых помещений и антресолей в них, без учета неотапливаемых лоджий, веранд, холодных кладовых и тамбуров, балконов и террас."
+
+    - id: area.apartment.intrastair_low_space_exclusion
+      clause: "A.2.2"
+      automation: auto
+      statement: "Площадь под маршем внутриквартирной лестницы на участке с высотой от пола до низа выступающих конструкций 1,6 м и менее не включать в площадь помещения."
+      values: {exclude_when_clear_height_mm_lte: 1600}
+
+    - id: area.apartment.measurement_height
+      clause: "A.2.2"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Расстояния для определения площади помещения квартиры измерять по периметру стен на высоте 1,1-1,3 м от пола."
+      values: {measurement_height_range_mm: [1100,1300]}
+
+    - id: area.apartment.mansard_measurement
+      clause: "A.2.2"
+      automation: conditional
+      statement: "Для помещения мансардного этажа квартиры расстояния измерять на высоте наклонного потолка/стены 1,6 м при наклоне до 45° и 1,9 м при 45° и более; промежуточные значения применять по правилам пункта."
+      values:
+        up_to_45deg_height_mm: 1600
+        at_or_above_45deg_height_mm: 1900
+
+area_semantics_required:
+  - gross_building_area
+  - floor_area
+  - room_area
+  - useful_area
+  - calculated_area
+  - apartment_area
+  - apartment_total_area
+  - sales_area
+  - heated_area
+  - glazing_area
+
+BIM_required_parameters:
+  - area_semantic_type
+  - source_document
+  - source_clause
+  - finish_boundary_reference
+  - measurement_height_mm
+  - multilevel_space_owner_floor
+  - included_in_total_area
+  - included_in_useful_area
+  - included_in_calculated_area
+  - included_in_apartment_area
+  - heated_status
+  - exterior_space_type
+
+agent_logic:
+  - "Не использовать одно универсальное поле Area для всех нормативных показателей."
+  - "Площадь зоны по линии ядра стены или конструктивной грани не подменяет нормативную площадь помещения между отделанными поверхностями."
+  - "Многосветную пустоту не считать площадью на каждом этаже только потому, что зона присутствует в плане BIM."
+  - "Не смешивать площадь квартиры и общую площадь квартиры; наружные неотапливаемые пространства учитываются по разным показателям по правилам приложения А и применимому законодательству."
+  - "ТЭП должен хранить формулу и источник каждого показателя площади, а не только итоговое число."
+
+sources:
+  - "https://base.garant.ru/404976079/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"

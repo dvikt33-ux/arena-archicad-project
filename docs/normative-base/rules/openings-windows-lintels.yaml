@@ -1,0 +1,76 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: GOST-23166-2024
+    status_source: "https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d"
+  - id: GOST-30971-2012
+    status_source: "https://protect.gost.ru/gost/details/09b731bf-531e-428b-8ef9-556ed2d1c110"
+  - id: GOST-948-2016
+    status_source: "https://protect.gost.ru/gost/details/33107f24-da2a-4700-8d8e-a3fdcba7ffb4"
+rules:
+  - id: WINDOW.NO_UNIVERSAL.CATALOG.SIZE
+    state: conditional
+    source: GOST-23166-2024
+    clause: "5.2.4"
+    scope: "Оконные и балконные блоки."
+    rule_kind: product
+    automation: suggest_only
+    rule: "Габариты изделия, площадь, размеры/масса открывающихся створок и соотношение ширины/высоты принимают по рекомендациям системодателя и изготовителя фурнитуры; вне их технической документации возможность изготовления подтверждается испытаниями."
+    must_not_assume:
+      - "Нет универсального нормативного ряда ширин/высот окна, который можно безусловно подставить в любое здание."
+      - "Размер оконного блока не равен автоматически размеру строительного проема."
+      - "Оконный размер также должен удовлетворять светотехнике, теплотехнике, проветриванию, безопасности и архитектурному решению."
+
+  - id: WINDOW.OPENING.FROM.PROJECT
+    state: active
+    source: GOST-30971-2012
+    clause: "5.2.2"
+    scope: "Оконные проемы и узлы примыкания в области применения ГОСТ 30971-2012."
+    rule_kind: geometry
+    automation: auto_check
+    rule: "Размеры и конфигурация оконных проемов должны соответствовать рабочей проектной документации."
+    must_not_assume:
+      - "Монтажный зазор нельзя игнорировать при переходе от размера блока к размеру проема."
+
+  - id: WINDOW.30971.PARTIAL.OVERRIDE
+    state: active
+    source: GOST-30971-2012
+    clause: "Rosstandart change record effective 2022-02-01"
+    scope: "Применение ГОСТ 30971-2012 на территории РФ."
+    rule_kind: version_guard
+    automation: auto_check
+    rule:
+      clauses_not_valid_in_rf_under_gost_30971_since_2022_02_01: ["7.1.2", "7.1.5", "7.1.6", "7.1.8", "A.3.5", "Table A.2"]
+      use_instead: "GOST R 59599-2021 for the superseded part"
+    must_not_assume:
+      - "Не помечать весь ГОСТ 30971-2012 как отмененный: Росстандарт указывает частичную утрату силы в РФ."
+
+  - id: LINTEL.TYPES.CURRENT.MARKING
+    state: active
+    source: GOST-948-2016
+    clause: "4.1 as amended by Amendment 1 effective 2025-06-01"
+    scope: "Железобетонные перемычки для проемов в кирпичных стенах; допускаемая стандартом область применения."
+    rule_kind: product
+    automation: suggest_only
+    rule:
+      types:
+        PRB: "брусковая, ширина до 250 мм включительно"
+        PRP: "плитная, ширина более 250 мм"
+        PRG: "балочная, с четвертью для опирания или примыкания плит перекрытий"
+        PRF: "фасадная, для проемов с четвертями при толщине выступающей части кладки в проеме 250 мм и более"
+      current_marking_guard: "Use PRB/PRP/PRG/PRF. Legacy PB/PP/PG/PF markings were changed by Amendment 1."
+    must_not_assume:
+      - "Старая библиотечная маркировка ПБ/ПП/ПГ/ПФ не является текущей маркировкой ГОСТ 948-2016 после Изменения №1."
+      - "Тип не выбирается только по толщине стены: требуется конкретная марка и расчетная нагрузка."
+
+  - id: LINTEL.SELECTION.MANUAL
+    state: manual_check
+    source: GOST-948-2016
+    clause: "4.1-4.8, tables 1-7; project-specific structural requirements"
+    scope: "Окончательный выбор железобетонной перемычки."
+    rule_kind: calculation
+    automation: manual_check
+    rule: "Select a current GOST 948-2016 lintel mark only after determining opening geometry, wall build-up, load condition, required support/bearing arrangement and environmental/seismic project requirements."
+    must_not_assume:
+      - "Не вычислять длину перемычки как 'ширина проема + одна универсальная величина опирания'."
+      - "Не считать одну и ту же глубину опирания нормативной для всех марок, стен и нагрузок."
+      - "Для сейсмичности 7 баллов и более стандарт прямо требует дополнительных требований проектной документации."

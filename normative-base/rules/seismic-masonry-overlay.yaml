@@ -1,0 +1,75 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  source_document: "СП 14.13330.2018"
+  source_revision: "с изменениями №2, №3, №4"
+  source_status_url: "https://protect.gost.ru/sp/changesdetails/625a9ee3-c446-4886-af7a-08691970a308"
+  source_text_url: "https://meganorm.ru/mega_doc/norm_update_29032025/metodika/0/sp_14_13330_2018_svod_pravil_stroitelstvo_v_seysmicheskikh.html"
+  applicability: "Only when design seismicity requires СП 14.13330.2018. Resolve site seismicity and masonry category first."
+
+rules:
+  - id: SEISM-MASONRY-001
+    topic: masonry_pier_and_opening_limits
+    rule_type: conditional_rule
+    statement: "Wall-element dimensions in masonry buildings must be determined by calculation and must also satisfy Table 6.3 limits for the applicable seismicity and masonry category."
+    source_clause: "6.14.10, Table 6.3"
+    conditions:
+      7:
+        category_I_min_pier_width_mm: 640
+        category_II_min_pier_width_mm: 770
+        max_opening_width_mm: 3500
+        min_pier_to_opening_width_ratio: 0.33
+      8:
+        category_I_min_pier_width_mm: 900
+        category_II_min_pier_width_mm: 1160
+        max_opening_width_mm: 3000
+        min_pier_to_opening_width_ratio: 0.50
+      9:
+        category_I_min_pier_width_mm: 1160
+        category_II_min_pier_width_mm: 1550
+        max_opening_width_mm: 2500
+        min_pier_to_opening_width_ratio: 0.75
+    notes:
+      - "Corner pier width must be 250 mm greater than the listed minimum."
+      - "Piers narrower than the listed minimum require reinforced-concrete framing."
+      - "Openings wider than the listed maximum require reinforced-concrete framing."
+    guardrail: "Meeting Table 6.3 is necessary but not sufficient; the clause explicitly requires calculation."
+    confidence: high
+
+  - id: SEISM-MASONRY-002
+    topic: masonry_storey_height
+    rule_type: conditional_rule
+    statement: "For buildings with load-bearing brick/stone walls, maximum storey height depends on seismicity and whether masonry is strengthened by reinforcement or reinforced-concrete inclusions. Height-to-wall-thickness ratio must not exceed 12."
+    source_clause: "6.14.7"
+    unstrengthened_max_storey_height_mm:
+      7: 5000
+      8: 4000
+      9: 3500
+    strengthened_max_storey_height_mm:
+      7: 6000
+      8: 5000
+      9: 4500
+    maximum_storey_height_to_wall_thickness_ratio: 12
+    confidence: high
+
+  - id: SEISM-MASONRY-003
+    topic: natural_stone_special_case
+    rule_type: conditional_rule
+    statement: "At design seismicity 7, natural-stone masonry is permitted only under the clause conditions; the geometric limits include building height no more than three storeys, pier width at least 0.9 m, opening width no more than 2.0 m and wall-axis spacing no more than 12 m."
+    source_clause: "6.14.6 note"
+    seismicity: 7
+    max_storeys: 3
+    min_pier_width_mm: 900
+    max_opening_width_mm: 2000
+    max_wall_axis_spacing_mm: 12000
+    guardrail: "Additional material/bond-strength conditions in the clause must also be satisfied; geometry alone is insufficient."
+    confidence: high
+
+  - id: SEISM-GUARD-001
+    topic: seismic_dispatch
+    rule_type: hard_rule
+    statement: "If seismicity applicability is unresolved, the model generator must not certify masonry pier/opening dimensions using only the non-seismic rules."
+    missing_condition_action: "BLOCK_AND_RESOLVE_SEISMICITY"
+    confidence: high

@@ -1,0 +1,18 @@
+verified_as_of: 2026-09-30
+source: SP-1.13130.2020
+source_revision: "Amendment 3, MChS Order No. 502 dated 2025-06-16, effective 2025-07-03"
+rules:
+  - id: FIRE.STAIR.HANDRAIL.TRIGGERS
+    state: active
+    source: SP-1.13130.2020
+    clause: "4.3.5 as amended by Amendment 3"
+    scope: "Лестницы на путях эвакуации в области применения пункта."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      railing_required_if_stair_height_over_mm: 450
+      handrails_both_sides_if_flight_width_over_mm: 1500
+      intermediate_handrails_required_if_flight_width_at_least_mm: 2400
+    must_not_assume:
+      - "Это пожарное правило не отменяет более специальные требования доступности или норм по назначению здания."
+      - "Параметры самого ограждения/поручня проверяются по применимым СП и ГОСТ отдельно."

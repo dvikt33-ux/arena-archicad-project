@@ -1,0 +1,72 @@
+checked_at: 2026-09-30
+primary_documents: [GOST_26434_2025, GOST_9561_2025]
+scope_note: "ГОСТ 26434-2025 относится к плитам для несущей части перекрытий жилых зданий. Для общественных/производственных зданий не переносить его область применения автоматически."
+
+slab_types:
+  source: GOST_26434_2025
+  clause: "4.1"
+  solid:
+    - {type: "1P", thickness_mm: 120}
+    - {type: "2P", thickness_mm: 160}
+  hollow_core:
+    - {type: "1PK", thickness_mm: 220, void: "round 159 mm", bearing: "2 sides"}
+    - {type: "1PKT", thickness_mm: 220, void: "round 159 mm", bearing: "3 sides"}
+    - {type: "1PKK", thickness_mm: 220, void: "round 159 mm", bearing: "4 sides"}
+    - {type: "2PK", thickness_mm: 220, void: "round 140 mm", bearing: "2 sides"}
+    - {type: "2PKT", thickness_mm: 220, void: "round 140 mm", bearing: "3 sides"}
+    - {type: "2PKK", thickness_mm: 220, void: "round 140 mm", bearing: "4 sides"}
+    - {type: "3PK", thickness_mm: 220, void: "round 127 mm", bearing: "2 sides"}
+    - {type: "3PKT", thickness_mm: 220, void: "round 127 mm", bearing: "3 sides"}
+    - {type: "3PKK", thickness_mm: 220, void: "round 127 mm", bearing: "4 sides"}
+    - {type: "7PK", thickness_mm: 160, void: "round 114 mm"}
+  continuous_forming:
+    - {type: "1.5PB", thickness_mm: 150, bearing: "2 sides"}
+    - {type: "1.6PB", thickness_mm: 160, bearing: "2 sides"}
+    - {type: "1.8PB", thickness_mm: 180, bearing: "2 sides"}
+    - {type: "2.2PB", thickness_mm: 220, bearing: "2 sides"}
+    - {type: "2.65PB", thickness_mm: 265, bearing: "2 sides"}
+    - {type: "3PB", thickness_mm: 300, bearing: "2 sides"}
+    - {type: "3.2PB", thickness_mm: 320, bearing: "2 sides"}
+    - {type: "3.3PB", thickness_mm: 330, bearing: "2 sides"}
+    - {type: "4PB", thickness_mm: 400, bearing: "2 sides"}
+    - {type: "4.5PB", thickness_mm: 450, bearing: "2 sides"}
+    - {type: "5PB", thickness_mm: 500, bearing: "2 sides"}
+
+coordination_rules:
+  - id: slab.table_membership
+    auto_rule: true
+    source_clause: "4.4, table 1"
+    statement: "Координационные длина и ширина сборной плиты должны выбираться из рядов/типоразмеров ГОСТ 26434-2025 для соответствующего типа."
+  - id: slab.PB_widths
+    auto_rule: true
+    source_clause: "table 1 note 4"
+    applies_to: ["1.5PB","1.6PB","1.8PB","2.2PB","2.65PB","3PB","3.2PB","3.3PB","4PB","4.5PB","5PB"]
+    coordination_widths_mm: [1000,1200,1500]
+  - id: slab.PKT_ranges
+    auto_rule: false
+    source_clause: "table 1 note 2"
+    statement: >-
+      Для 1PKT/2PKT/3PKT координационная длина: 3600..6600 мм с шагом 300 мм,
+      а также 7200 и 7500 мм; координационная ширина: 2400..3600 мм с шагом 300 мм.
+  - id: slab.PKK_ranges
+    auto_rule: false
+    source_clause: "table 1 note 3"
+    statement: >-
+      Для 1PKK/2PKK/3PKK координационная длина: 2400..6600 мм с шагом 300 мм;
+      координационная ширина: 4800..6600 мм с шагом 300 мм, а также 7200 мм.
+
+modeling_logic:
+  - "Не создавать произвольную длину/ширину сборной плиты, если выбран нормативный тип: валидировать по таблице ГОСТ."
+  - "Не путать координационный размер с конструктивным размером изделия; зазоры и допуски должны учитываться отдельно."
+  - "Не 'подрезать' пустотную плиту в BIM как обычный прямоугольник без подтверждения стандарта/ТУ изготовителя и конструктивного решения."
+  - "Не назначать несущую способность, класс бетона, армирование и расчетную нагрузку только по геометрическому типу плиты."
+  - "Не назначать глубину опирания универсальным числом: она зависит от конструкции, материала опоры, расчетов и требований конкретной системы."
+  - "При выборе многопустотной плиты дополнительно применять действующий ГОСТ 9561-2025 с поправкой ИУС 6-2026."
+
+replaced_documents:
+  - GOST_26434_2015
+  - GOST_9561_2016
+
+sources:
+  - https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc
+  - https://protect.gost.ru/gost/details/2cad8d31-5b41-45ad-9eb6-0e0125c69b15

@@ -1,0 +1,115 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: GOST-26434-2025
+    status: active
+    status_source: "https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc"
+  - id: GOST-9561-2025
+    status: active_with_correction
+    status_source: "https://protect.gost.ru/gost/details/2cad8d31-5b41-45ad-9eb6-0e0125c69b15"
+  - id: SP-63.13330.2018
+    status: active_with_amendments
+    status_source: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c667"
+rules:
+  - id: SLAB.VERSION.GUARD.26434
+    state: active
+    source: GOST-26434-2025
+    clause: "status record"
+    scope: "Сборные железобетонные плиты перекрытий жилых зданий в области применения стандарта."
+    rule_kind: version_guard
+    automation: auto_check
+    rule: "Use GOST 26434-2025; reject GOST 26434-2015 as the current source after 2026-01-01."
+    must_not_assume:
+      - "Старые каталоги/серии могут содержать изделия, но нормативный статус документа должен быть указан явно."
+
+  - id: SLAB.VERSION.GUARD.9561
+    state: active
+    source: GOST-9561-2025
+    clause: "status record"
+    scope: "Многопустотные железобетонные плиты перекрытий для зданий и сооружений."
+    rule_kind: version_guard
+    automation: auto_check
+    rule: "Use GOST 9561-2025; GOST 9561-2016 is replaced from 2026-01-01. Apply the correction effective 2026-06-17."
+    must_not_assume:
+      - "Название/марка изделия из старой библиотеки Archicad не подтверждает соответствие текущему стандарту."
+
+  - id: SLAB.PK.COORDINATION.GRID
+    state: active
+    source: GOST-26434-2025
+    clause: "4.4, table 1 and notes"
+    scope: "Плиты типов 1ПК/2ПК/3ПК в жилых зданиях по ГОСТ 26434-2025."
+    rule_kind: product
+    automation: suggest_only
+    rule:
+      common_coordination_lengths_mm:
+        start: 2400
+        end: 6600
+        step: 300
+      additional_lengths_mm: [7200, 7500]
+      length_9000_mm: "only type 1PK"
+      standard_coordination_widths_mm: [1000, 1200, 1500, 1800, 2400, 3000, 3600]
+      note: "Exact allowed length/width pair must be checked against table 1; do not generate a Cartesian product blindly."
+    must_not_assume:
+      - "Не любая комбинация длины и ширины из этих рядов присутствует в таблице."
+      - "Координационный размер не равен автоматически конструктивному размеру плиты."
+      - "Геометрическое попадание в типоразмер не подтверждает несущую способность."
+
+  - id: SLAB.PKT.COORDINATION
+    state: active
+    source: GOST-26434-2025
+    clause: "table 1, note 2"
+    scope: "Плиты 1ПКТ/2ПКТ/3ПКТ."
+    rule_kind: product
+    automation: suggest_only
+    rule:
+      coordination_length_mm:
+        range: [3600, 6600]
+        step: 300
+        additional: [7200, 7500]
+      coordination_width_mm:
+        range: [2400, 3600]
+        step: 300
+    must_not_assume:
+      - "Тип опирания и армирование должны соответствовать конкретной плите/проекту."
+
+  - id: SLAB.PKK.COORDINATION
+    state: active
+    source: GOST-26434-2025
+    clause: "table 1, note 3"
+    scope: "Плиты 1ПКК/2ПКК/3ПКК."
+    rule_kind: product
+    automation: suggest_only
+    rule:
+      coordination_length_mm:
+        range: [2400, 6600]
+        step: 300
+      coordination_width_mm:
+        range: [4800, 6600]
+        step: 300
+        additional: [7200]
+    must_not_assume:
+      - "Не выбирать плиту без проверки расчетной схемы и марки."
+
+  - id: SLAB.PB.COORDINATION
+    state: active
+    source: GOST-26434-2025
+    clause: "table 1, note 4"
+    scope: "Плиты непрерывного формования типов 1.5ПБ, 1.6ПБ, 1.8ПБ, 2.2ПБ, 2.65ПБ, 3ПБ, 3.2ПБ, 3.3ПБ, 4ПБ, 4.5ПБ, 5ПБ."
+    rule_kind: product
+    automation: suggest_only
+    rule:
+      coordination_widths_mm: [1000, 1200, 1500]
+      coordination_length: "set by manufacturer forming-equipment parameters"
+    must_not_assume:
+      - "Не округлять длину ПБ к фиксированному каталожному ряду без каталога выбранного изготовителя."
+
+  - id: SLAB.SELECTION.REQUIRES.ENGINEERING
+    state: manual_check
+    source: "GOST-26434-2025 + GOST-9561-2025 + SP-63.13330.2018"
+    clause: "combined scope / design requirements"
+    scope: "Окончательный выбор сборной железобетонной плиты."
+    rule_kind: calculation
+    automation: manual_check
+    rule: "Final slab selection requires verification of design span/support scheme, design load, bearing/support details, concrete/reinforcement/product mark and all project-specific limit states; a geometry-only selector must not finalize the slab."
+    must_not_assume:
+      - "Не выбирать плиту только по длине комнаты или расстоянию между осями."
+      - "Не назначать глубину опирания универсальной константой без проверки стены, плиты, узла и проекта."

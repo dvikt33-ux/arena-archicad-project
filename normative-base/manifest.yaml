@@ -1,4 +1,4 @@
-manifest_version: 16
+manifest_version: 17
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -8,27 +8,31 @@ load_order:
     role: future confirmed transitions and 2027 overrides
   - priority: 2
     file: revision_watch_2027.yaml
-    role: official latest revision levels
+    role: official latest revision levels of architectural/core documents
   - priority: 3
+    file: revision_watch_adjacent_2027.yaml
+    role: official revision levels of adjacent structural, construction and engineering documents
+  - priority: 4
     file: registry.yaml
     role: base document identity and audit-date status
-  - priority: 4
+  - priority: 5
     file: registry_additions_2027.yaml
     role: verified additions and revision-metadata overrides discovered after the first registry pass
-  - priority: 5
+  - priority: 6
     file: schema/dimension_selection_policy.yaml
     role: dimension semantics and conflict policy
-  - priority: 6
+  - priority: 7
     files: rules/*.yaml
     role: verified architectural and BIM rules
-  - priority: 7
+  - priority: 8
     file: AUDIT.md
     role: human-readable audit trail
 
 precedence_rules:
   - target_2027.yaml overrides current-date status when an officially confirmed transition applies to 2027.
-  - revision_watch_2027.yaml invalidates a rule file whose claimed revision is below official_latest_change.
-  - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change the document identity.
+  - revision_watch_2027.yaml invalidates an architectural/core rule whose claimed revision is below official_latest_change.
+  - revision_watch_adjacent_2027.yaml blocks coordination with stale KR/POS/engineering inputs but does not authorize the architectural agent to perform those discipline calculations.
+  - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change document identity without explicit replacement metadata.
   - Special functional, fire or accessibility requirements apply within their explicit scope before general rules.
   - Direct numeric requirements cannot be replaced by modular rounding.
   - Calculation requirements cannot be replaced by typical values.
@@ -78,6 +82,7 @@ hard_fail_states:
   - missing_target_profile
   - source_status_unknown
   - rule_revision_below_official_latest
+  - adjacent_discipline_revision_below_official_latest
   - rule_expired_for_target
   - future_replacement_is_only_draft
   - future_document_not_active
@@ -94,6 +99,7 @@ release_gate:
     - numeric automatic rules have source document and clause or table
     - future transitions have official effective dates
     - core rule files match revision_watch_2027.yaml
+    - adjacent discipline coordination inputs match revision_watch_adjacent_2027.yaml when used
     - draft and accepted-but-not-active normative documents are never marked active
     - clear dimensions are validated as clear dimensions
     - pending topics remain fail-closed

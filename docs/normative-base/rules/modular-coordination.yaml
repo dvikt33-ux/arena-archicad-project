@@ -1,0 +1,138 @@
+verified_as_of: 2026-09-30
+source_status: active
+source: GOST-28984-2011
+source_title: "Модульная координация размеров в строительстве. Основные положения"
+status_source: "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+text_source: "https://base.garant.ru/70413624/"
+rules:
+  - id: MKRS.M.BASE
+    state: active
+    clause: "5.1"
+    scope: "Координационные размеры зданий, элементов, изделий и оборудования в области применения ГОСТ 28984-2011."
+    rule_kind: coordination
+    automation: auto_apply
+    rule:
+      symbol: M
+      value_mm: 100
+    must_not_assume:
+      - "Это не означает, что каждый фактический/конструктивный размер обязан быть кратен 100 мм."
+      - "Не смешивать координационный размер с конструктивным и фактическим размером."
+
+  - id: MKRS.MULTIMODULES
+    state: active
+    clause: "5.2.1"
+    scope: "Назначение координационных размеров и модульных сеток."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      modules_mm:
+        "60M": 6000
+        "30M": 3000
+        "15M": 1500
+        "12M": 1200
+        "6M": 600
+        "3M": 300
+    must_not_assume:
+      - "Наличие мультимодуля не делает любой ближайший размер нормативно обязательным."
+
+  - id: MKRS.SUBMODULES
+    state: active
+    clause: "5.2.2"
+    scope: "Размеры меньше основного модуля, когда применение M невозможно/нецелесообразно в рамках стандарта."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      modules_mm:
+        "1/2M": 50
+        "1/4M": 25
+        "1/5M": 20
+    must_not_assume:
+      - "Субмодули не заменяют технологические допуски, швы и требования конкретного изделия."
+
+  - id: MKRS.FRAME.STEPS
+    state: conditional
+    clause: "5.11"
+    scope: "Модульные шаги каркасных зданий и соответствующие длины плит, балок, ферм."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      preferred_modules: ["60M", "30M", "12M", "15M"]
+      note: "60M и 30M предпочтительны; для некоторых видов зданий также 12M и 15M."
+    must_not_assume:
+      - "Это рекомендация предпочтительной координации, а не универсальный обязательный шаг колонн."
+      - "Конструктивная схема и расчет имеют приоритет при выборе реального шага."
+
+  - id: MKRS.OPENINGS.PIERS.EXTERIOR
+    state: conditional
+    clause: "5.12"
+    scope: "Размеры проемов и простенков наружных стен, размещение перегородок и отдельные шаги."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      preferred_modules: ["3M", "6M"]
+      preferred_increments_mm: [300, 600]
+    must_not_assume:
+      - "300/600 мм — координационная рекомендация, а не минимальная допустимая ширина простенка."
+      - "Несущие простенки требуют расчета по материалу, нагрузке, гибкости и условиям опирания."
+      - "Пожарные, теплотехнические, светотехнические и фасадные требования могут изменить решение."
+
+  - id: MKRS.SECTIONS.FACADE
+    state: conditional
+    clause: "5.13"
+    scope: "Координационные размеры сечений колонн/балок, толщин стен/плит, членение фасадов и интерьеров, доборные элементы, проемы, перегородки."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      preferred_modules: ["M", "1/2M"]
+      preferred_increments_mm: [100, 50]
+    must_not_assume:
+      - "Предпочтительная кратность не определяет требуемую несущую толщину или ограждающую конструкцию."
+
+  - id: MKRS.INTERNAL.PARTITIONS.DOORS
+    state: conditional
+    clause: "5.14"
+    scope: "Ненесущие перегородки и проемы внутренних дверей при экономической целесообразности и согласовании с примыкающими модульными элементами."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      preferred_modules: ["M", "1/2M"]
+      preferred_increments_mm: [100, 50]
+    must_not_assume:
+      - "Размер двери в свету проверяется отдельными требованиями эвакуации и доступности."
+      - "Размер строительного проема не равен автоматически номинальному размеру дверного блока."
+
+  - id: MKRS.SMALL.THICKNESSES
+    state: conditional
+    clause: "5.15"
+    scope: "Относительно малые толщины стен, перегородок, плит перекрытий и покрытий."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      preferred_module: "1/5M"
+      preferred_increment_mm: 20
+    must_not_assume:
+      - "Толщина определяется также расчетом, огнестойкостью, звукоизоляцией, теплотехникой и системой производителя."
+
+  - id: MKRS.FLOOR.HEIGHT
+    state: conditional
+    clause: "6.5-6.6"
+    scope: "Координационные высоты этажей и вертикальные размеры крупных элементов/проемов."
+    rule_kind: coordination
+    automation: suggest_only
+    rule:
+      floor_height_preferred_modules: ["3M", "6M"]
+      floor_height_preferred_increments_mm: [300, 600]
+      small_openings_windows_doors_module: "M"
+    must_not_assume:
+      - "Координационная высота этажа не является минимальной высотой помещения в чистоте."
+      - "Минимальная высота помещения определяется нормой по назначению здания и условиям проекта."
+
+  - id: MKRS.NONMODULAR.ALLOWED
+    state: active
+    clause: "4.8, 5.16"
+    scope: "Общее ограничение автоматизатора."
+    rule_kind: version_guard
+    automation: auto_check
+    rule: "Не считать немодульный размер автоматически ошибкой: стандарт прямо не запрещает продукцию/размерные ситуации, не соответствующие модульной системе, и предусматривает исключения для слагаемых размеров."
+    must_not_assume:
+      - "Некратность M сама по себе не доказывает нарушение нормы."

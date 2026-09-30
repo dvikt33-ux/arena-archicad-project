@@ -1,0 +1,117 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Планировочные минимумы квартир по действующему СП 54.13330.2022 с Изм. №1-2. Отделяет действующие площади от устаревших типовых минимальных ширин."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+
+apartment_area_reference:
+  source: SP_54_13330_2022
+  rules:
+    - id: residential.apartment.table5_1_area
+      clause: "5.2, table 5.1"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Таблица 5.1 приводит минимальные площади квартир без учета балконов, лоджий, террас, холодных кладовых и приквартирных тамбуров в зависимости от числа жилых комнат. Примечание к таблице допускает отклонения в предусмотренных законодательством условиях, поэтому значения нельзя применять без проверки типа жилищного фонда/задания и правового основания."
+      values_m2:
+        rooms_1: 28
+        rooms_2: 44
+        rooms_3: 56
+        rooms_4: 70
+        rooms_5: 84
+        rooms_6: 103
+      conflict_policy: "Не использовать как безусловный hard minimum без проверки примечания к таблице 5.1 и конкретного жилищного режима."
+
+room_areas:
+  source: SP_54_13330_2022
+  clause: "5.11"
+  rules:
+    - id: residential.room.living_1room_min_area
+      automation: conditional
+      statement: "Общая жилая комната в однокомнатной квартире — не менее 14 м²."
+      values: {min_area_m2: 14}
+
+    - id: residential.room.living_multiroom_min_area
+      automation: conditional
+      statement: "Общая жилая комната в квартире с двумя и более жилыми комнатами — не менее 16 м²."
+      values: {min_area_m2: 16}
+
+    - id: residential.room.bedroom_min_area
+      automation: conditional
+      statement: "Спальня — не менее 8 м²; спальня на двух человек — не менее 10 м²."
+      values: {one_person_min_area_m2: 8, two_person_min_area_m2: 10}
+
+    - id: residential.room.kitchen_min_area
+      automation: conditional
+      statement: "Кухня — не менее 8 м²."
+      values: {min_area_m2: 8}
+
+    - id: residential.room.kitchen_dining_zone_min_area
+      automation: conditional
+      statement: "Кухонная зона в кухне-столовой — не менее 6 м²."
+      values: {min_area_m2: 6}
+
+    - id: residential.room.one_room_kitchen_niche
+      automation: conditional
+      statement: "В однокомнатной квартире допускается кухня или кухня-ниша площадью не менее 5 м²."
+      conditions: {apartment_living_room_count: 1}
+      values: {min_area_m2: 5}
+
+    - id: residential.room.attic_bedroom_kitchen_exception
+      automation: conditional
+      statement: "В мансардном этаже или этаже с наклонными ограждающими конструкциями площадь спальни и кухни допускается не менее 7 м² при условии площади общей жилой комнаты не менее 16 м²."
+      conditions: {attic_or_sloped_enclosure: true}
+      values: {bedroom_or_kitchen_min_area_m2: 7, living_room_required_min_area_m2: 16}
+
+room_geometry:
+  - id: residential.room.no_universal_min_width_from_SP54
+    source: {document: SP_54_13330_2022, clause: "5.11"}
+    automation: forbidden_to_infer
+    statement: "Не вводить универсальные минимальные ширины общей комнаты, спальни или кухни как правило СП 54.13330.2022: действующий п.5.11 требует определять габариты с учетом эргономики и размещения необходимого оборудования/мебели и численно задает площади, а не общий ряд минимальных ширин."
+    conflict_policy: "Если ширина требуется специальной нормой, заданием, МГН или технологией — применять соответствующий источник отдельно."
+
+  - id: residential.room.ergonomic_furniture_check
+    source: {document: SP_54_13330_2022, clause: "5.11"}
+    automation: validation_only
+    statement: "Даже при достаточной площади помещение должно иметь габариты, позволяющие разместить требуемый набор внутриквартирного оборудования и мебели с учетом эргономики."
+
+area_measurement:
+  - id: residential.room.area_measurement_height
+    source: {document: SP_54_13330_2022, clause: "A.1.4"}
+    automation: validation_only
+    dimension_semantics: actual
+    statement: "Площадь жилых комнат, вспомогательных и других помещений МКД определяют по размерам, измеряемым на высоте от 0 до 1,10 м от уровня пола; плинтусы, декоративные элементы, кабельные короба и системы отопления/кондиционирования не учитываются."
+    values: {measurement_height_range_mm: [0,1100]}
+
+  - id: residential.kitchen_niche.area_separate
+    source: {document: SP_54_13330_2022, clause: "A.1.4 note 1"}
+    automation: validation_only
+    statement: "Площадь кухни-ниши рассчитывают отдельно от помещения, смежно с которым она расположена."
+
+height_cross_reference:
+  - id: residential.room.clear_height_reference
+    source: {document: SP_54_13330_2022, clause: "5.12"}
+    automation: validation_only
+    statement: "Высоты жилых комнат/кухни проверять по rules/04_architectural_baseline.yaml: 2,7 м для IA, IБ, IГ, IД, IVА и 2,5 м для остальных климатических подрайонов; внутриквартирные коридоры/холлы/передние/антресольные зоны — не менее 2,1 м в области пункта."
+
+BIM_required_parameters:
+  - apartment_housing_regime
+  - apartment_living_room_count
+  - apartment_net_area_excluding_external_summer_spaces
+  - room_function
+  - room_occupancy_persons
+  - room_measured_area
+  - kitchen_zone_area_if_combined
+  - attic_or_sloped_enclosure
+  - furniture_and_equipment_layout_validation
+
+agent_logic:
+  - "Сначала классифицировать помещение и квартиру, затем применять площадь; не подгонять площадь округлением осей после расстановки стен."
+  - "Не считать помещение нормативным только потому, что площадь достаточна: выполнить эргономическую проверку фактической геометрии."
+  - "Не переносить минимальные ширины из СП 54.13330.2016, ВСН 61-89 или методичек в профиль 2027 без отдельного действующего основания."
+  - "Площадь кухни-ниши хранить отдельным BIM-параметром/зоной, даже если она визуально объединена с соседним помещением."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://e-ecolog.ru/docs/zSuL0AfxZ5PnqVJTkLUG3/full"
+  - "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"

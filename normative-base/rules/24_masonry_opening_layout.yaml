@@ -1,0 +1,128 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Алгоритм кладочной раскладки оконных/дверных проемов и простенков для профиля 2027+: изделие + подтвержденная технология шва + модульная координация + обязательный КР-gate для несущих простенков."
+
+revision_dependencies:
+  - {document: GOST_28984_2011, correction: "ИУС 6-2022", role: modular_coordination}
+  - {document: GOST_530_2012, status: active, role: ceramic_unit_geometry}
+  - {document: SP_15_13330_2020, verified_changes: [1], role: masonry_structural_design}
+  - {document: SP_70_13330_2012, target_2027_change: 8, role: masonry_execution}
+
+2027_joint_policy:
+  - id: masonry.layout.no_universal_12_10_joint
+    source:
+      document: SP_70_13330_2012
+      clause: "9.2.4; Change 8"
+      amendment: 8
+    effective_from: 2027-03-01
+    automation: forbidden_to_infer
+    statement: "Для целевого профиля 2027 нельзя использовать прежние 12 мм горизонтального и 10 мм вертикального шва как универсальные нормативные значения: п. 9.2.4 исключается Изменением №8 с 01.03.2027. Толщину шва получать из проектной технологии кладки, действующих требований к выбранному изделию/раствору и документации системы."
+    requires_manufacturer_data: true
+
+product_and_joint_inputs:
+  - id: masonry.layout.unit_geometry_required
+    automation: conditional
+    statement: "До расчета раскладки должны быть известны фактический нормативный/каталожный тип кладочного изделия, его номинальные размеры и ориентация в конкретном ряду."
+    requires_manufacturer_data: true
+
+  - id: masonry.layout.joint_system_required
+    automation: conditional
+    statement: "До вычисления рядового шага должна быть определена применяемая технология шва/раствора/клея. Запрещено переносить толщину шва обычной кирпичной кладки на крупноформатные камни, газобетон или тонкошовную технологию."
+    requires_manufacturer_data: true
+
+safe_derived_geometry:
+  - id: masonry.layout.course_pitch_formula
+    automation: conditional
+    derived: true
+    statement: "Для регулярного горизонтального ряда проверочный высотный шаг вычисляется как номинальная высота выбранного изделия плюс подтвержденная проектная толщина горизонтального шва. Это производная геометрия, а не самостоятельная нормативная величина."
+    formula: "course_pitch = unit_nominal_height + confirmed_horizontal_joint"
+    dimension_semantics: constructive_product
+
+  - id: masonry.layout.running_pitch_formula
+    automation: conditional
+    derived: true
+    statement: "Для регулярного ложкового участка проверочный продольный шаг вычисляется как номинальная длина изделия в направлении ряда плюс подтвержденная проектная толщина вертикального шва. Для тычковых/комбинированных рядов использовать фактическую ориентацию изделия, а не этот шаг автоматически."
+    formula: "running_pitch = unit_dimension_along_wall + confirmed_vertical_joint"
+    dimension_semantics: constructive_product
+
+whole_unit_rules:
+  source: SP_70_13330_2012
+  rules:
+    - id: masonry.layout.small_piers_whole_brick
+      clause: "9.2.2"
+      automation: validation_only
+      statement: "Кирпичные столбы, пилястры и простенки шириной два с половиной кирпича и менее, а также рядовые кирпичные перемычки и карнизы выполняют из отборного целого кирпича."
+      conflict_policy: "Применять только к области обычной кирпичной кладки данного пункта; несущую ширину простенка все равно подтверждать расчетом СП 15."
+
+    - id: masonry.layout.half_brick_restriction
+      clause: "9.2.3"
+      automation: validation_only
+      statement: "Кирпич-половняк допускается только в забутовочных рядах и мало нагруженных каменных конструкциях, включая предусмотренные пунктом участки под окнами, в количестве не более 10 %."
+      values: {max_half_brick_share_percent: 10}
+      conflict_policy: "Не использовать это правило как разрешение формировать несущий узкий простенок большим количеством резаных элементов."
+
+modular_coordination:
+  source: GOST_28984_2011
+  rules:
+    - id: masonry.layout.modular_opening_preference
+      clause: "5.12"
+      automation: validation_only
+      statement: "Мультимодули 3M и 6M используются преимущественно для размеров проемов и простенков наружных стен и других координационных задач, если это совместимо с конструктивной системой и изделием. Это не правило обязательного округления каждого проема к 300/600 мм."
+
+    - id: masonry.layout.no_modular_override
+      automation: auto
+      statement: "Модульная корректировка не имеет права уменьшать нормативный размер в свету двери/пути эвакуации, пожарный простенок, подтвержденную КР ширину несущего простенка или требуемую геометрию изделия."
+
+opening_layout_algorithm:
+  type: design_procedure
+  steps:
+    - "1. Определить функциональные требования к проему: размер в свету, эвакуация, МГН, освещение/инсоляция, пожарные ограничения."
+    - "2. Определить конструктивную роль стены и минимальную/подтвержденную КР геометрию простенков; для несущих простенков использовать rules/22_masonry_piers_precheck.yaml."
+    - "3. Выбрать реальное кладочное изделие/семейство и подтвержденную технологию кладочного шва."
+    - "4. Выбрать совместимую координационную сетку ГОСТ 28984; использовать 3M/6M как предпочтительный инструмент, а не абсолютное ограничение."
+    - "5. Построить несколько кандидатов положения граней проемов, минимизируя резаные элементы и нарушения перевязки."
+    - "6. Для узких кирпичных простенков проверить требование целого кирпича по п. 9.2.2 и ограничения половняка по п. 9.2.3 СП 70."
+    - "7. Проверить перемычку: для сборной железобетонной применять rules/19_reinforced_concrete_lintels.yaml и подтвержденное решение КР."
+    - "8. После выбора кандидата выполнить послойную/порядовую проверку хотя бы в зонах углов, проемов, перемычек, опираний плит/балок и примыканий."
+    - "9. Если для согласования раскладки требуется изменить нормативный размер проема или расчетную ширину простенка, кандидат отклонить; не исправлять норму кладочным модулем."
+
+BIM_required_parameters:
+  - wall_structural_role
+  - wall_material_family
+  - masonry_unit_standard
+  - masonry_unit_product_id
+  - unit_nominal_length_mm
+  - unit_nominal_width_mm
+  - unit_nominal_height_mm
+  - masonry_bond_type
+  - confirmed_horizontal_joint_mm
+  - confirmed_vertical_joint_mm
+  - joint_system_reference
+  - opening_clear_width_mm
+  - opening_structural_width_mm
+  - opening_structural_height_mm
+  - pier_left_width_mm
+  - pier_right_width_mm
+  - pier_structural_check_status
+  - lintel_system
+  - modular_grid_reference
+  - masonry_layout_status
+
+hard_fail_conditions:
+  - "joint thickness is assumed from pre-2027 SP 70 clause 9.2.4"
+  - "bearing pier width has no structural verification where required"
+  - "opening clear dimension is replaced by nominal block/door/window dimension"
+  - "nonexistent masonry product is synthesized only to fit residual geometry"
+  - "layout requires prohibited or unverified cutting in a structural zone"
+
+agent_logic:
+  - "Не выдавать 260/77/100 мм как нормативные модули кладки в профиле 2027; эти значения допустимы только как производные конкретного изделия и подтвержденного шва."
+  - "Не выводить толщину несущей стены или ширину простенка из формата кирпича без расчета СП 15 и теплотехнической проверки."
+  - "Не подгонять окно под кладку ценой уменьшения нормативного размера в свету."
+  - "Если идеальной раскладки без резки нет, сохранять нормативную/расчетную геометрию и передавать узел на технологическую деталировку, а не менять требования."
+
+sources:
+  - "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+  - "https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc"
+  - "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  - "https://protect.gost.ru/sp/changesdetails/c1b0a1c8-73c5-480b-a9dc-0ad44d636d09"

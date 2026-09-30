@@ -3,7 +3,7 @@ target_profile: RU_2027_PLUS
 purpose: "Контроль последней официально опубликованной редакции ключевых СП. Этот файл не заменяет правила; он блокирует применение rule-файла, если его revision_level ниже подтвержденного уровня."
 
 policy:
-  - "Источник уровня ревизии — официальная карточка Росстандарта/официальный орган, а не поисковая выдача или проект изменения."
+  - "Источник уровня ревизии — официальная карточка Росстандарта/официальный орган; ГАРАНТ используется как независимая текстовая и датировочная сверка."
   - "Проекты изменений хранятся только как watch_item и не применяются."
   - "Если официальная карточка получает новое изменение, затронутые rule-файлы переводятся в needs_reaudit до постатейной проверки."
   - "Номер изменения сам по себе не означает, что каждый пункт базового СП изменен; числовые правила перепроверяются по содержанию изменения."
@@ -20,11 +20,12 @@ core_documents:
       - {amendment: 6, status: draft_do_not_apply}
     source_url: "https://protect.gost.ru/sp/details/fe915813-95ec-43a6-ab1c-91027e06bf1c"
   - {document: SP_15_13330_2020, topic: masonry_structural_design, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"}
-  - {document: SP_17_13330_2017, topic: roofs, official_latest_change: 5, status: active, source_url: "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"}
+  - {document: SP_17_13330_2017, topic: roofs, official_latest_change: 5, latest_change_effective_from: 2025-01-10, status: active, source_url: "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8", garant_url: "https://base.garant.ru/71729740/"}
   - {document: SP_20_13330_2016, topic: loads_and_actions, official_latest_change: 6, status: active, source_url: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"}
+  - {document: SP_29_13330_2011, topic: floors, official_latest_change: 4, latest_change_effective_from: 2025-11-28, status: active, source_url: "https://protect.gost.ru/sp/details/a2711156-c40f-4d0f-89f1-7e3c366bc430", garant_url: "https://base.garant.ru/413424280/"}
   - {document: SP_50_13330_2024, topic: thermal_protection, official_latest_change: null, official_card_has_no_changes: true, status: active, source_url: "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"}
   - {document: SP_51_13330_2011, topic: acoustics, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/04d467f1-c956-4238-8bc6-a066ecb17990"}
-  - {document: SP_52_13330_2016, topic: lighting, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/9c938e6d-bd3f-4c81-904f-ba8d4c14357b"}
+  - {document: SP_52_13330_2016, topic: lighting, official_latest_change: 2, latest_change_effective_from: 2022-01-29, status: active, source_url: "https://protect.gost.ru/sp/details/9c938e6d-bd3f-4c81-904f-ba8d4c14357b", garant_url: "https://base.garant.ru/71692340/"}
   - {document: SP_54_13330_2022, topic: apartment_buildings, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"}
   - {document: SP_59_13330_2020, topic: accessibility, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"}
   - {document: SP_60_13330_2020, topic: hvac, official_latest_change: 6, status: active, source_url: "https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262"}
@@ -38,7 +39,7 @@ core_documents:
     target_2027_action: apply_all_parts_effective_by_project_period
     source_url: "https://protect.gost.ru/sp"
   - {document: SP_71_13330_2017, topic: insulation_and_finishes, official_latest_change: 4, change_4_effective_from: 2025-11-04, status: active, source_url: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"}
-  - {document: SP_113_13330_2023, topic: parking, official_latest_change: 4, change_4_effective_from: 2026-10-03, target_2027_action: apply, status: active, source_url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131"}
+  - {document: SP_113_13330_2023, topic: parking, official_latest_change: 4, change_4_effective_from: 2026-10-03, target_2027_action: apply, status: active, source_url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131", garant_url: "https://base.garant.ru/407887809/"}
   - {document: SP_118_13330_2022, topic: public_buildings, official_latest_change: 5, status: active, source_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"}
   - {document: SP_131_13330_2025, topic: climatology, official_latest_change: null, status: active, source_url: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"}
   - document: SP_256_1325800_2016

@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Normative BIM rule",
   "type": "object",
-  "required": ["id", "source", "checked_at", "automation", "statement"],
+  "required": ["id", "source", "checked_at", "automation", "statement", "confidence"],
   "properties": {
     "id": {"type": "string"},
+    "target_profile": {"type": ["string", "null"]},
     "source": {
       "type": "object",
       "required": ["document", "clause"],
@@ -12,20 +13,27 @@
         "document": {"type": "string"},
         "clause": {"type": "string"},
         "amendment": {"type": ["string", "integer", "null"]},
-        "url": {"type": ["string", "null"]}
+        "url": {"type": ["string", "null"]},
+        "source_authority": {"enum": ["official_primary", "official_secondary", "legal_system", "secondary_crosscheck", "project_document", "manufacturer_document", null]}
       }
     },
     "checked_at": {"type": "string", "format": "date"},
     "effective_from": {"type": ["string", "null"], "format": "date"},
     "effective_until": {"type": ["string", "null"], "format": "date"},
+    "target_effective_status": {
+      "enum": ["active", "future_confirmed_apply_for_target", "expires_before_target", "replaced_before_target", "pending_effective_date", "draft_forbidden", "not_applicable", null]
+    },
+    "target_action": {
+      "enum": ["apply", "apply_conditionally", "block", "historical_only", "needs_reaudit", null]
+    },
     "registry_requirement_status": {
       "enum": ["not_checked", "registered_requirement", "not_registered_as_requirement", "conditional", "not_applicable"]
     },
     "automation": {
-      "enum": ["auto", "conditional", "validation_only", "manual_calculation", "forbidden_to_infer"]
+      "enum": ["auto", "conditional", "validation_only", "manual_calculation", "forbidden_to_infer", "blocked_pending_replacement"]
     },
     "dimension_semantics": {
-      "enum": ["clear", "coordination", "nominal_product", "constructive_product", "actual", "axis", "level", "not_applicable"]
+      "enum": ["clear", "coordination", "nominal_product", "system_product", "gross_product", "constructive_product", "actual", "axis", "level_structural", "level_finished", "not_applicable"]
     },
     "statement": {"type": "string"},
     "conditions": {"type": ["object", "array", "null"]},
@@ -34,9 +42,12 @@
     "derived_from": {"type": ["array", "null"], "items": {"type": "string"}},
     "requires_calculation": {"type": "boolean", "default": false},
     "requires_manufacturer_data": {"type": "boolean", "default": false},
+    "requires_object_classification": {"type": "boolean", "default": false},
     "conflict_policy": {"type": ["string", "null"]},
+    "supersedes_rule_ids": {"type": ["array", "null"], "items": {"type": "string"}},
+    "invalidated_by": {"type": ["string", "null"]},
     "notes": {"type": ["array", "string", "null"]},
-    "confidence": {"enum": ["verified_primary", "verified_secondary_against_primary_status", "pending"]}
+    "confidence": {"enum": ["verified_primary", "verified_secondary_against_primary_status", "verified_cross_source", "pending"]}
   },
   "additionalProperties": true
 }

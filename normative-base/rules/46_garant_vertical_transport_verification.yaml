@@ -1,0 +1,163 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимый контроль блока вертикального транспорта по консолидированным текстам и изменениям в системе ГАРАНТ. Не заменяет первичный реестр Росстандарта; используется как второй проход аудита и разрешение текстовых коллизий."
+
+verified_document_state:
+  - document: SP_59_13330_2020
+    garant_url: "https://base.garant.ru/400382837/"
+    verified_changes: [1, 2, 3, 4]
+    change_effective_dates:
+      1: 2022-06-30
+      2: 2023-12-21
+      3: 2024-10-16
+      4: 2025-02-27
+  - document: SP_118_13330_2022
+    garant_url: "https://base.garant.ru/404976079/"
+    verified_changes: [1, 2, 3, 4, 5]
+    change_effective_dates:
+      1: 2022-09-17
+      2: 2023-04-03
+      3: 2023-11-26
+      4: 2024-10-17
+      5: 2025-02-28
+  - document: SP_1_13130_2020
+    garant_url: "https://base.garant.ru/74019594/"
+    verified_changes: [1, 2, 3]
+  - document: GOST_33984_1_2023
+    garant_url: "https://base.garant.ru/408195451/"
+    status: active
+    effective_from: 2024-11-01
+    replaces: GOST_33984_1_2016
+
+public_vertical_transport:
+  source: SP_118_13330_2022
+  garant_url: "https://base.garant.ru/404976079/"
+  rules:
+    - id: garant.vertical.public.passenger_lift_threshold
+      clause: "5.13"
+      automation: conditional
+      dimension_semantics: level
+      statement: "В проектируемом общественном здании пассажирский лифт предусматривают при отметке пола верхнего этажа 9,9 м и более от уровня пола первого этажа."
+      values: {upper_floor_level_threshold_mm: 9900}
+      exception: "Допускается не предусматривать лифт при надстройке существующего общественного здания мансардным этажом."
+
+    - id: garant.vertical.public.lift_count_by_calculation
+      clause: "5.14"
+      automation: manual_calculation
+      statement: "Число пассажирских лифтов определяют расчетом с учетом требований СП 1.13130 и СП 59.13330."
+      requires_calculation: true
+
+    - id: garant.vertical.public.max_distance_to_lift
+      clause: "5.16"
+      automation: validation_only
+      dimension_semantics: clear
+      statement: "Расстояние от двери наиболее удаленного помещения с постоянным пребыванием людей до двери ближайшего пассажирского лифта — не более 60 м."
+      values: {max_distance_m: 60}
+
+    - id: garant.vertical.public.single_row_lobby_width
+      clause: "5.16"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для однорядного расположения пассажирских лифтов ширину лифтового холла назначают по глубине кабины."
+      cases:
+        - {cabin_depth_condition: "<= 1.5 m", min_lobby_width_mm: 2000}
+        - {cabin_depth_condition: "> 1.5 m and <= 2.0 m", min_lobby_width_mm: 2500}
+        - {cabin_depth_condition: "> 2.0 m", formula: "min_lobby_width >= 1.3 * cabin_depth"}
+      source_resolution: >-
+        В консолидированном отображении ГАРАНТ встречается строка «1,3 м», однако официальный текст
+        Изменения №1 к СП 118.13330.2022 на ГАРАНТ прямо устанавливает «1,3 глубины лифта».
+        Для машинной базы используется текст изменения как более точный источник формулировки.
+      change_1_url: "https://base.garant.ru/405277335/"
+
+    - id: garant.vertical.public.double_row_lobby_width
+      clause: "5.16"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При двухрядном расположении пассажирских лифтов ширина общего лифтового холла должна быть не менее удвоенной глубины меньшей кабины."
+      formula: "min_lobby_width >= 2 * smaller_cabin_depth"
+
+accessibility_vertical_transport:
+  source: SP_59_13330_2020
+  garant_url: "https://base.garant.ru/400382837/"
+  rules:
+    - id: garant.vertical.mgn.new_building_lift_door
+      clause: "6.2.13"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для нового строительства общественных и производственных зданий доступный лифт должен иметь ширину дверного проема не менее 0,9 м."
+      values: {min_clear_door_opening_mm: 900}
+
+    - id: garant.vertical.mgn.separate_call_station
+      clause: "6.2.13"
+      automation: conditional
+      statement: "При наличии двух и более лифтов в лифтовом холле не менее одного лифта на каждом этаже оборудуют раздельным постом вызова, доступным для МГН."
+      conditions: {lifts_in_lobby_min: 2}
+
+    - id: garant.vertical.mgn.cabin_minimum
+      clause: "6.2.14"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Пассажирский лифт, доступный для МГН, должен обеспечивать размещение пользователя кресла-коляски с сопровождающим; кабина — не менее 1100×1400 мм (ширина×глубина)."
+      values: {min_cabin_width_mm: 1100, min_cabin_depth_mm: 1400}
+
+    - id: garant.vertical.mgn.platform_front_clear_area
+      clause: "6.2.17"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Свободная площадка перед подъемной платформой должна быть не менее 1,6×1,6 м."
+      values: {min_width_mm: 1600, min_depth_mm: 1600}
+
+    - id: garant.vertical.mgn.platform_front_reconstruction_exception
+      clause: "6.2.17"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При капитальном ремонте жилых зданий в стесненных условиях площадку перед подъемной платформой допускается уменьшать до 1,2×1,2 м."
+      values: {min_width_mm: 1200, min_depth_mm: 1200}
+      conditions: {project_type: capital_repair, building_type: residential, constrained_conditions: true}
+      conflict_policy: "Не применять к новому строительству."
+
+external_accessibility_vertical_selection:
+  source: SP_59_13330_2020
+  garant_url: "https://base.garant.ru/400382837/"
+  rules:
+    - id: garant.vertical.mgn.external_platform_up_to_3m
+      clause: "5.1.14"
+      automation: conditional
+      statement: "Для внешнего перепада высот до 3,0 м допускается предусматривать подъемную платформу с вертикальным перемещением по профильному ГОСТ."
+      values: {max_height_difference_mm: 3000}
+
+    - id: garant.vertical.mgn.external_lift_from_3m
+      clause: "5.1.14"
+      automation: conditional
+      statement: "Для внешнего перепада высот от 3,0 м и более СП 59 предусматривает лифт как средство вертикального перемещения МГН."
+      values: {min_height_difference_mm: 3000}
+
+lift_product_coordination:
+  source: GOST_33984_1_2023
+  garant_url: "https://base.garant.ru/408195451/"
+  rules:
+    - id: garant.vertical.product.building_part_from_selected_lift
+      clause: "5.1.1"
+      automation: forbidden_to_infer
+      statement: "Размеры строительной части, необходимые для размещения оборудования лифта, устанавливают при проектировании здания в соответствии с требованиями изготовителя выбранного лифта. Универсальный размер шахты/приямка/верхнего этажа из библиотеки не допускается считать нормативным."
+      requires_manufacturer_data: true
+
+    - id: garant.vertical.product.machine_access_door
+      clause: "5.2.3.2"
+      automation: validation_only
+      dimension_semantics: clear
+      statement: "Двери доступа в машинные помещения и двери доступа в шахту по ГОСТ 33984.1-2023 должны иметь в свету высоту не менее 2,0 м и ширину не менее 0,60 м в области применения пункта."
+      values: {min_clear_height_mm: 2000, min_clear_width_mm: 600}
+      conflict_policy: "Не использовать эти сервисные размеры как размеры пассажирских лифтовых дверей."
+
+cross_check_policy:
+  - "При расхождении краткого отображения консолидированного текста ГАРАНТ и официального текста изменения внутри ГАРАНТ применять точную формулировку изменения и фиксировать коллизию."
+  - "Этот файл подтверждает только перечисленные пункты. Он не делает все содержание СП автоматически допустимым для машинного применения."
+  - "Для проектов 2027+ перед выпуском П/Р повторно проверить наличие новых изменений СП 59, СП 118, СП 1 и ГОСТ 33984.1."
+
+sources:
+  - "https://base.garant.ru/400382837/"
+  - "https://base.garant.ru/404976079/"
+  - "https://base.garant.ru/405277335/"
+  - "https://base.garant.ru/74019594/"
+  - "https://base.garant.ru/408195451/"

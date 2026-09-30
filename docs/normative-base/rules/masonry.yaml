@@ -1,0 +1,109 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: SP-15.13330.2020
+    status_source: "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  - id: SP-70.13330.2012
+    status_source: "https://protect.gost.ru/sp/details/2239acf1-711f-4f1f-aaa7-902fa06a8a60"
+  - id: GOST-530-2012
+    status_source: "https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc"
+rules:
+  - id: MASONRY.BRICK.1NF
+    state: active
+    source: GOST-530-2012
+    clause: "3.2; 4.2.1, table 2"
+    scope: "Керамический кирпич нормального формата 1NF."
+    rule_kind: product
+    automation: auto_check
+    rule:
+      nominal_size_mm:
+        length: 250
+        width: 120
+        height: 65
+      format: "1NF"
+    must_not_assume:
+      - "Не считать 1NF единственным допустимым форматом кирпича."
+      - "Не применять размеры к силикатному кирпичу или блокам без проверки их стандарта."
+
+  - id: MASONRY.BRICK.FORMATS
+    state: active
+    source: GOST-530-2012
+    clause: "4.2.1, table 2"
+    scope: "Номинальные размеры керамического кирпича по ГОСТ 530-2012."
+    rule_kind: product
+    automation: auto_check
+    rule:
+      formats:
+        - {format: "0.7NF", size_mm: [250, 85, 65]}
+        - {format: "1NF", size_mm: [250, 120, 65]}
+        - {format: "1.4NF", size_mm: [250, 120, 88]}
+        - {format: "0.5NF", size_mm: [250, 60, 65]}
+        - {format: "1.3NF", size_mm: [288, 138, 65]}
+        - {format: "1.8NF", size_mm: [288, 138, 88]}
+        - {format: "0.8NF", size_mm: [250, 120, 55]}
+    must_not_assume:
+      - "Формат изделия не задает автоматически толщину стены, перевязку или несущую способность."
+
+  - id: MASONRY.MORTAR.JOINTS
+    state: active
+    source: SP-70.13330.2012
+    clause: "9.2.4"
+    scope: "Кладка из кирпича и камней правильной формы."
+    rule_kind: construction
+    automation: auto_check
+    rule:
+      horizontal_joint_mm: 12
+      vertical_joint_mm: 10
+    must_not_assume:
+      - "Не переносить эти значения на тонкошовную кладку блоков или иные системы без проверки их норм."
+
+  - id: MASONRY.1NF.DERIVED.REPEAT
+    state: conditional
+    source: "derived from GOST-530-2012 + SP-70.13330.2012"
+    clause: "GOST 530-2012 4.2.1 table 2; SP 70.13330.2012 9.2.4"
+    scope: "Предварительная геометрическая раскладка обычной кладки из 1NF с нормативной толщиной швов."
+    rule_kind: geometry
+    automation: suggest_only
+    rule:
+      stretcher_repeat_mm: 260
+      course_repeat_mm: 77
+      derivation:
+        stretcher_repeat: "250 brick length + 10 vertical joint"
+        course_repeat: "65 brick height + 12 horizontal joint"
+    must_not_assume:
+      - "260/77 мм не являются модулями M по ГОСТ 28984-2011."
+      - "Эти повторы нельзя использовать как универсальную формулу для ширины проема или простенка."
+      - "Перевязка, доборные изделия, швы деформации и узлы могут изменить раскладку."
+
+  - id: MASONRY.HALF.BRICK.LIMIT
+    state: active
+    source: SP-70.13330.2012
+    clause: "9.2.3"
+    scope: "Обычная кирпичная кладка."
+    rule_kind: construction
+    automation: auto_check
+    rule: "Кирпич-половняк допускается только в забутовочных рядах и мало нагруженных элементах (включая участки стен под окнами), не более 10%."
+    must_not_assume:
+      - "Это не разрешение использовать половняк в расчетных простенках, столбах или перемычках без ограничений."
+
+  - id: MASONRY.PIERS.NO_UNIVERSAL_MINIMUM
+    state: manual_check
+    source: SP-15.13330.2020
+    clause: "scope; structural calculation provisions"
+    scope: "Несущие и армокаменные простенки, столбы и участки стен."
+    rule_kind: calculation
+    automation: manual_check
+    rule: "Ширина/толщина несущего простенка не должна назначаться только по модульной кратности или кирпичной раскладке; требуется расчет и проверка проектной схемы по СП 15.13330.2020 с учетом материала, прочности кладки, нагрузки, гибкости, опирания и иных применимых воздействий."
+    must_not_assume:
+      - "Не существует одного универсального безопасного минимума простенка для всех зданий."
+      - "Кратность 300/600 мм по ГОСТ 28984-2011 не является проверкой несущей способности."
+
+  - id: MASONRY.LINTEL.ADJACENT.PIER
+    state: active
+    source: SP-70.13330.2012
+    clause: "9.2.7"
+    scope: "Участки стен между рядовыми кирпичными перемычками при простенках шириной менее 1 м."
+    rule_kind: construction
+    automation: auto_check
+    rule: "Кладку участка стены выполнять на том же растворе, что и перемычку."
+    must_not_assume:
+      - "Правило не определяет допустимость самого простенка менее 1 м по несущей способности."

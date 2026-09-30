@@ -1,0 +1,36 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимый аудит уровней редакций специальных СП по функциональному назначению. Имеет приоритет над старой метаинформацией rule-файлов при обнаружении неоднозначного статуса."
+
+verified_active:
+  - {document: SP_251_1325800_2016, topic: schools, latest_change: 7, effective_from: 2026-01-01, source_url: "https://protect.gost.ru/sp/changesdetails/22851f99-de6b-44bc-aecf-063bd7681867"}
+  - {document: SP_252_1325800_2016, topic: preschool, latest_change: 3, effective_from: 2025-01-21, source_url: "https://protect.gost.ru/sp/changesdetails/e7ca9118-ffd2-4ebf-b8bd-05a0b12932ac"}
+  - {document: SP_158_13330_2014, topic: medical, latest_change: 7, effective_from: 2026-08-10, source_url: "https://protect.gost.ru/sp/changesdetails/61857d2f-e38b-4971-9112-77b21d98fcf8"}
+  - {document: SP_310_1325800_2017, topic: swimming_pools, latest_change: 3, effective_from: 2026-08-11, source_url: "https://protect.gost.ru/sp/changesdetails/e4012ce6-2856-430f-80bf-f90cce7cb959"}
+  - {document: SP_464_1325800_2019, topic: shopping_entertainment_complex, latest_change: 1, effective_from: 2024-01-16, source_url: "https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a"}
+  - {document: SP_160_1325800_2014, topic: mixed_use, latest_change: 3, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/e804f047-0719-4407-8ab5-88c7e5485bc5"}
+  - {document: SP_332_1325800_2017, topic: sports, latest_change: 4, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/37a85293-e2cf-4732-a6e1-8e0d7965c164"}
+  - {document: SP_257_1325800_2020, topic: hotels, latest_change: 1, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"}
+  - {document: SP_309_1325800_2017, topic: theatres_cinemas_concert, latest_change: 1, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/4eaa2215-cc20-4965-a05d-2912766bdbeb"}
+
+ambiguous_effective_status:
+  - document: SP_267_1325800_2016
+    topic: high_rise
+    amendment: 3
+    approved_on: 2026-06-08
+    officially_published_on: 2026-07-15
+    official_card_effective_date_field: null
+    official_card_note: "Карточка отображает прежнее значение измененного ЭД: 'Дата введения - с даты опубликования', но отдельное текущее поле даты введения пустое."
+    target_profile_action: needs_effective_status_recheck
+    rule: "Не использовать положения, внесенные именно Изменением №3, как подтвержденные действующие машинные правила до однозначной проверки статуса введения. Базовый СП и ранее подтвержденные изменения применять в своей действующей области."
+    source_url: "https://protect.gost.ru/sp/changesdetails/f62e4140-c0e1-4685-8f54-d05ddad6314f"
+
+cross_reference_findings:
+  - "СП 310 Изм. №3 уже ссылается на СП 42.13330.2026, СП 60 с Изм. №1-6, СП 59 с Изм. №1-4, СП 118 с Изм. №1-5 и СП 256 с Изм. №1-9; это дополнительный контроль актуальности общих слоев базы."
+  - "СП 158 Изм. №7 подтверждает СП 60 Изм. №1-6 и СП 256 Изм. №1-9 для медицинского профиля."
+  - "СП 251 Изм. №7 подтверждает СП 1 Изм. №1-3, СП 17 Изм. №1-5, СП 59 Изм. №1-4 и СП 118 Изм. №1-5 для школьного профиля."
+
+agent_gate:
+  - "До загрузки специального функционального rule-set сверять его claimed_revision с verified_active."
+  - "Если документ находится в ambiguous_effective_status, не активировать amendment-specific machine rules без повторной проверки официального статуса."
+  - "Отсутствие нового изменения в этом файле не доказывает отсутствие будущего изменения; перед выпуском проекта выполнять fresh status check применимых специальных СП."

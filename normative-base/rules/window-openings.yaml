@@ -1,0 +1,142 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  sources:
+    - "ГОСТ 23166-2024"
+    - "ГОСТ 30971-2012"
+    - "ГОСТ 28984-2011"
+  policy: "A coordinated wall opening, rough opening, installation joint and manufactured window block are separate dimensions."
+
+rules:
+  - id: WINDOW-PRODUCT-001
+    topic: window_product_dimensions
+    rule_type: conditional_rule
+    statement: "Window/balcony block construction, overall dimensions, opening schemes and key performance parameters are defined in the product assignment or project documentation; sizes and opening-sash limits must follow system-provider and hardware-manufacturer recommendations."
+    source_document: "ГОСТ 23166-2024"
+    source_clauses: ["5.2.2", "5.2.4"]
+    source_status_url: "https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d"
+    confidence: high
+
+  - id: WINDOW-PRODUCT-TOL-001
+    topic: window_product_manufacturing_tolerance
+    rule_type: hard_rule
+    statement: "Permissible positive/negative deviations of overall window/balcony block dimensions are +2 mm / -1 mm at manufacture acceptance under ГОСТ 23166-2024."
+    source_document: "ГОСТ 23166-2024"
+    source_clause: "5.4.2"
+    positive_tolerance_mm: 2
+    negative_tolerance_mm: -1
+    guardrail: "The standard states this manufacturing acceptance control is not to be reused as acceptance criteria for already installed/in-service products."
+    confidence: high
+
+  - id: WINDOW-JOINT-001
+    topic: window_installation_gap
+    rule_type: conditional_rule
+    statement: "Minimum/design installation gaps must satisfy ГОСТ 30971-2012 Table 2/Figure 3 and allow free thermal expansion; project gap dimensions are recommended to be checked by temperature-movement calculation for the construction climate."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.1, Table 2, Figure 3"
+    source_status_url: "https://protect.gost.ru/gost/details/09b731bf-531e-428b-8ef9-556ed2d1c110"
+    general_recommended_max_gap_mm: 60
+    guardrail: "The maximum is governed by the central-layer material properties; do not use 60 mm as an automatic target."
+    confidence: high
+
+  - id: WINDOW-JOINT-PVC-WHITE-001
+    topic: pvc_white_window_installation_gap
+    rule_type: catalog_value
+    statement: "ГОСТ 30971-2012 Table 2 recommended installation-gap ranges for white PVC window blocks."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.1, Table 2"
+    cases:
+      - block_overall_dimension_mm: {maximum: 2000}
+        gap_a_mm: {minimum: 20, maximum: 60}
+        gap_b_mm: {minimum: 10, maximum: 20}
+      - block_overall_dimension_mm: {minimum: 2000, maximum: 3500}
+        gap_a_mm: {minimum: 25, maximum: 60}
+        gap_b_mm: {minimum: 10, maximum: 20}
+    guardrail: "Keep the Table-2 a/b geometry semantics tied to Figure 3 in implementation; do not collapse a and b into one generic side gap."
+    confidence: high
+
+  - id: WINDOW-JOINT-PVC-COLORED-001
+    topic: pvc_colored_window_installation_gap
+    rule_type: catalog_value
+    statement: "ГОСТ 30971-2012 Table 2 recommended installation-gap ranges for PVC colored in mass."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.1, Table 2"
+    cases:
+      - block_overall_dimension_mm: {maximum: 2000}
+        gap_a_mm: {minimum: 15, maximum: 65}
+        gap_b_mm: {minimum: 10, maximum: 20}
+      - block_overall_dimension_mm: {minimum: 2000, maximum: 3500}
+        gap_a_mm: {minimum: 15, maximum: 60}
+        gap_b_mm: {minimum: 15, maximum: 20}
+    confidence: high
+
+  - id: WINDOW-JOINT-WOOD-AL-001
+    topic: wood_aluminium_window_installation_gap
+    rule_type: catalog_value
+    statement: "Only the explicitly verified Table-2 rows are encoded: for overall dimension over 2000 mm, wood uses a=10-45 mm and b=5-20 mm; aluminium alloys use a=15-60 mm and b=5-20 mm."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.1, Table 2"
+    cases:
+      - material: wood
+        block_overall_dimension_mm: {minimum_exclusive: 2000}
+        gap_a_mm: {minimum: 10, maximum: 45}
+        gap_b_mm: {minimum: 5, maximum: 20}
+      - material: aluminium_alloy
+        block_overall_dimension_mm: {minimum_exclusive: 2000}
+        gap_a_mm: {minimum: 15, maximum: 60}
+        gap_b_mm: {minimum: 5, maximum: 20}
+    guardrail: "No unverified <=2000 row is invented. Resolve the exact system/manufacturer/design condition when the table row is not explicit."
+    confidence: high
+
+  - id: WINDOW-OPENING-001
+    topic: rough_opening_geometry
+    rule_type: hard_rule
+    statement: "Window-opening dimensions and configuration must follow the working project documentation. Rough-opening geometry must be stored separately from product geometry."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.2"
+    confidence: high
+
+  - id: WINDOW-OPENING-TOL-001
+    topic: rough_opening_tolerance
+    rule_type: hard_rule
+    statement: "Deviation of opening sides from vertical/horizontal must not exceed 4.0 mm per 1 m."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.3"
+    maximum_deviation_mm_per_m: 4.0
+    confidence: high
+
+  - id: WINDOW-INSTALL-TOL-001
+    topic: installed_window_alignment
+    rule_type: hard_rule
+    statement: "Deviation of installed window blocks from vertical/horizontal must not exceed 1.5 mm per 1 m and 3 mm over product height. Installation into openings exceeding the opening-geometry deviations of 5.2.3 is not permitted."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.4"
+    maximum_deviation_mm_per_m: 1.5
+    maximum_deviation_over_product_height_mm: 3
+    confidence: high
+
+  - id: WINDOW-LARGE-GLAZING-001
+    topic: ribbon_and_facade_glazing
+    rule_type: requires_calculation
+    statement: "For ribbon glazing longer than 6 m and façade glazing, installation-gap value is determined by technical calculation/manufacturer profile-system recommendations."
+    source_document: "ГОСТ 30971-2012"
+    source_clause: "5.2.1"
+    ribbon_glazing_length_trigger_mm: 6000
+    confidence: high
+
+  - id: WINDOW-COORD-001
+    topic: window_opening_coordination
+    rule_type: preferred_coordination
+    statement: "ГОСТ 28984 modular opening coordination may be used to organize façade/opening geometry, but the coordinated opening must then be reconciled with the actual rough opening, installation joint and selected window system."
+    source_document: "ГОСТ 28984-2011"
+    source_clauses: ["5.12", "6.6"]
+    preferred_modules_mm: [100, 300, 600]
+    confidence: high
+
+  - id: WINDOW-GUARD-001
+    topic: opening_product_relation
+    rule_type: do_not_infer
+    statement: "Never generate rough_opening = window_product_size. Resolve installation-gap geometry, tolerances, thermal movement, wall detail, sill/head/jamb design and selected system first."
+    confidence: high

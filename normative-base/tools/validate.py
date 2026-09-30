@@ -11,16 +11,30 @@ RULES = ROOT / "rules"
 EXPECTED_PROFILE = "RU_2027_PLUS"
 
 
-def walk_ids(node: Any, path: str = ""):
+def is_machine_rule(node: dict[str, Any]) -> bool:
+    """Distinguish rule identifiers from repeated document/dependency identifiers."""
+    rule_markers = {
+        "automation",
+        "auto_rule",
+        "statement",
+        "dimension_semantics",
+        "requires_calculation",
+        "requires_manufacturer_data",
+        "agent_action",
+    }
+    return isinstance(node.get("id"), str) and bool(rule_markers.intersection(node))
+
+
+def walk_rule_ids(node: Any, path: str = ""):
     if isinstance(node, dict):
-        if isinstance(node.get("id"), str):
+        if is_machine_rule(node):
             yield node["id"], path
         for key, value in node.items():
             child = f"{path}.{key}" if path else str(key)
-            yield from walk_ids(value, child)
+            yield from walk_rule_ids(value, child)
     elif isinstance(node, list):
         for i, value in enumerate(node):
-            yield from walk_ids(value, f"{path}[{i}]")
+            yield from walk_rule_ids(value, f"{path}[{i}]")
 
 
 def main() -> int:
@@ -37,7 +51,7 @@ def main() -> int:
         except Exception as exc:
             errors.append(f"YAML parse error: {file.relative_to(ROOT)}: {exc}")
 
-    seen_ids: dict[str, tuple[Path, str]] = {}
+    seen_rule_ids: dict[str, tuple[Path, str]] = {}
     for file, doc in parsed.items():
         if file.parent == RULES:
             if not isinstance(doc, dict):
@@ -51,17 +65,17 @@ def main() -> int:
             if "checked_at" not in doc:
                 errors.append(f"missing checked_at: {file.relative_to(ROOT)}")
 
-        for rule_id, node_path in walk_ids(doc):
-            previous = seen_ids.get(rule_id)
-            if previous:
-                p_file, p_path = previous
-                errors.append(
-                    "duplicate id "
-                    f"{rule_id!r}: {p_file.relative_to(ROOT)}:{p_path} and "
-                    f"{file.relative_to(ROOT)}:{node_path}"
-                )
-            else:
-                seen_ids[rule_id] = (file, node_path)
+            for rule_id, node_path in walk_rule_ids(doc):
+                previous = seen_rule_ids.get(rule_id)
+                if previous:
+                    p_file, p_path = previous
+                    errors.append(
+                        "duplicate machine rule id "
+                        f"{rule_id!r}: {p_file.relative_to(ROOT)}:{p_path} and "
+                        f"{file.relative_to(ROOT)}:{node_path}"
+                    )
+                else:
+                    seen_rule_ids[rule_id] = (file, node_path)
 
     manifest = parsed.get(ROOT / "manifest.yaml")
     if isinstance(manifest, dict):
@@ -84,7 +98,7 @@ def main() -> int:
 
     print(
         f"OK: {len(yaml_files)} YAML files parsed; "
-        f"{len(seen_ids)} unique rule ids; manifest synchronized."
+        f"{len(seen_rule_ids)} unique machine rule ids; manifest synchronized."
     )
     return 0
 

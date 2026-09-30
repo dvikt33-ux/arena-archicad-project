@@ -1,4 +1,4 @@
-manifest_version: 20
+manifest_version: 21
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -81,6 +81,7 @@ rule_files:
   - 33_fire_height_semantics.yaml
   - 34_multifunctional_atriums.yaml
   - 35_residential_planning_minima.yaml
+  - 36_residential_wet_zone_stacking.yaml
 
 hard_fail_states:
   - yaml_parse_error

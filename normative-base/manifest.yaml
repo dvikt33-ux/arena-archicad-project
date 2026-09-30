@@ -1,4 +1,4 @@
-manifest_version: 9
+manifest_version: 10
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -58,6 +58,7 @@ rule_files:
   - 22_masonry_piers_precheck.yaml
   - 23_precast_slab_layout.yaml
   - 24_masonry_opening_layout.yaml
+  - 25_entrance_vestibules_lobbies.yaml
 
 hard_fail_states:
   - yaml_parse_error

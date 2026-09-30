@@ -37,6 +37,7 @@ core_documents:
     change_8_deferred_parts_effective_from: 2027-03-01
     target_2027_action: apply_all_parts_effective_by_project_period
     source_url: "https://protect.gost.ru/sp"
+  - {document: SP_71_13330_2017, topic: insulation_and_finishes, official_latest_change: 4, change_4_effective_from: 2025-11-04, status: active, source_url: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"}
   - {document: SP_113_13330_2023, topic: parking, official_latest_change: 4, change_4_effective_from: 2026-10-03, target_2027_action: apply, status: active, source_url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131"}
   - {document: SP_118_13330_2022, topic: public_buildings, official_latest_change: 5, status: active, source_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"}
   - {document: SP_131_13330_2025, topic: climatology, official_latest_change: null, status: active, source_url: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"}
@@ -48,12 +49,12 @@ core_documents:
     source_url: "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"
 
 functional_documents:
-  - {document: SP_158_13330_2014, topic: medical, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"}
+  - {document: SP_158_13330_2014, topic: medical, official_latest_change: 7, latest_change_effective_from: 2026-08-10, status: active, source_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"}
   - {document: SP_160_1325800_2014, topic: mixed_use, official_latest_change: 3, status: active, source_url: "https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896"}
-  - {document: SP_251_1325800_2016, topic: schools, official_latest_change: 5, status: active, source_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"}
+  - {document: SP_251_1325800_2016, topic: schools, official_latest_change: 7, latest_change_effective_from: 2026-01-01, status: active, source_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"}
   - {document: SP_252_1325800_2016, topic: preschool, official_latest_change: 3, status: active, source_url: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"}
   - {document: SP_257_1325800_2020, topic: hotels, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"}
-  - {document: SP_267_1325800_2016, topic: high_rise, official_latest_change: 3, status: active, source_url: "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"}
+  - {document: SP_267_1325800_2016, topic: high_rise, official_latest_change: 3, latest_change_effective_from: 2026-07-15, status: active, source_url: "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"}
   - {document: SP_278_1325800_2024, topic: higher_education, official_latest_change: null, status: active, replaces: SP_278_1325800_2016, source_url: "https://protect.gost.ru/sp/details/ceef6cd1-aabc-4be1-81a4-edcc348b9974"}
   - {document: SP_279_1325800_2016, topic: vocational_education, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/5a4676cb-c293-4345-96ba-7d1c83024b91"}
   - {document: SP_309_1325800_2017, topic: theatres_cinemas_concert, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"}

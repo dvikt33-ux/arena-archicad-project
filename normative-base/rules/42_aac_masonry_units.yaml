@@ -1,0 +1,181 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Автоклавные ячеистобетонные блоки: актуальный ГОСТ 31360-2024, категории геометрической точности, границы размерного каталога и безопасная BIM-логика без выдумывания типовых толщин стены."
+
+revision_dependencies:
+  - {document: GOST_31360_2024, status: active, effective_from: 2025-01-01, replaces: GOST_31360_2007}
+  - {document: GOST_31359_2024, status: active, role: AAC_material_properties}
+  - {document: SP_339_1325800_2017, status: active, verified_changes: [1], role: AAC_structural_design}
+  - {document: SP_15_13330_2020, verified_changes: [1], role: masonry_structural_calculation}
+  - {document: SP_50_13330_2024, status: active, role: thermal_calculation}
+
+scope:
+  source: GOST_31360_2024
+  clause: "1"
+  rules:
+    - id: aac.scope.unreinforced_blocks
+      automation: validation_only
+      statement: "ГОСТ 31360-2024 распространяется на неармированные стеновые блоки из конструкционно-теплоизоляционного автоклавного ячеистого бетона для несущих и самонесущих наружных/внутренних стен и перегородок в неагрессивной среде."
+
+    - id: aac.scope.wet_room_external_protection
+      automation: conditional
+      statement: "При применении блоков в наружных ограждениях помещений с влажным или мокрым режимом должна быть обеспечена защита изделий от переувлажнения."
+      conditions: {external_enclosure: true, room_moisture_mode: [humid, wet]}
+
+product_forms:
+  source: GOST_31360_2024
+  clause: "4.2.1"
+  allowed_features:
+    - rectangular_block
+    - tongue_and_groove_system
+    - grooves
+    - hand_grips
+    - channel_U_shape
+    - through_or_blind_technological_voids
+  rule:
+    id: aac.product.void_wall_minimum
+    automation: conditional
+    statement: "Если блок имеет технологические пустоты, толщина наружной стенки блока и стенки между пустотами должна быть не менее 25 мм."
+    values: {min_wall_between_or_outside_voids_mm: 25}
+
+size_policy:
+  source: GOST_31360_2024
+  rules:
+    - id: aac.product.maximum_dimensions_general
+      clause: "4.2.2"
+      automation: validation_only
+      dimension_semantics: nominal_product
+      statement: "Максимальные размеры неармированных изделий, как правило, не должны превышать 1500 мм по длине, 650 мм по ширине и 1000 мм по высоте."
+      values: {max_length_mm: 1500, max_width_mm: 650, max_height_mm: 1000}
+      note: "Формулировка стандарта 'как правило'; не превращать эти значения в закрытый каталог типоразмеров."
+
+    - id: aac.product.no_standard_nominal_catalog
+      clause: "4.2.4"
+      automation: forbidden_to_infer
+      statement: "ГОСТ 31360-2024 не устанавливает обязательный дискретный ряд обычных номинальных размеров блока: изготовитель по заявке потребителя может выпускать иные размеры с учетом требований к геометрии и возможностей оборудования. Поэтому размеры 600×200×300, 625×250×300 и подобные нельзя объявлять нормативными типоразмерами без данных конкретного производителя."
+      requires_manufacturer_data: true
+
+    - id: aac.product.size_definition_semantics
+      automation: auto
+      statement: "В BIM различать: ширина/толщина блока формирует толщину стены при типовой кладке в один блок; длина формирует направление стены; высота определяет высоту блока/ряда. Фактическая ориентация полнотелого прямоугольного блока может быть иной, поэтому ориентацию хранить явно."
+
+tolerance_categories:
+  source: GOST_31360_2024
+  clause: "4.2.3, table 1"
+  categories:
+    I:
+      linear_tolerance_mm: {length: 3.0, width: 2.0, height: 1.0}
+      max_diagonal_difference_mm: 2
+      max_edge_straightness_deviation_mm: 1
+      recommended_masonry: thin_joint
+    II:
+      linear_tolerance_mm: {length: 4.0, width: 3.0, height: 4.0}
+      max_diagonal_difference_mm: 4
+      max_edge_straightness_deviation_mm: 3
+      recommended_masonry: general_purpose_masonry_mortar
+  rules:
+    - id: aac.category.I_thin_joint_preference
+      automation: conditional
+      statement: "Изделия категории I ГОСТ 31360-2024 рекомендуются для кладки с тонким швом."
+      conditions: {product_accuracy_category: I}
+      conflict_policy: "Стандарт продукта не задает здесь универсальную фактическую толщину шва; толщину/систему клея брать из применимого проекта/СП и документации изготовителя."
+
+    - id: aac.category.II_general_mortar_preference
+      automation: conditional
+      statement: "Изделия категории II ГОСТ 31360-2024 рекомендуются для кладки на кладочном растворе общего назначения."
+      conditions: {product_accuracy_category: II}
+
+    - id: aac.category.no_brick_joint_transfer
+      automation: auto
+      statement: "К блокам из автоклавного ячеистого бетона запрещено автоматически применять прежние кирпичные 12/10 мм из п.9.2.4 СП 70; тип и толщина шва определяются специализированной технологией кладки."
+
+product_identification:
+  source: GOST_31360_2024
+  clause: "4.2.5"
+  rule:
+    id: aac.product.full_identity_required
+    automation: conditional
+    statement: "Для полной идентификации библиотечного типа хранить категорию, номинальные длину/ширину/высоту, марку/фактическую среднюю плотность, класс прочности на сжатие, морозостойкость и ссылку на стандарт/производителя."
+    requires_manufacturer_data: true
+
+material_minima:
+  source: GOST_31360_2024
+  rules:
+    - id: aac.material.min_compressive_class
+      clause: "4.3.4.1"
+      automation: validation_only
+      statement: "Класс изделий по прочности на сжатие должен быть не ниже B1,5; конкретный класс назначается проектированием по условиям эксплуатации и расчету."
+      values: {absolute_product_min_class: "B1.5"}
+      conflict_policy: "B1.5 — минимальный предел стандарта изделия, а не автоматически достаточный класс для несущей стены."
+
+    - id: aac.material.frost_exterior_min
+      clause: "4.3.6.2"
+      automation: conditional
+      statement: "Для изделий, предназначенных для наружных стен и подвергающихся переменному замораживанию/оттаиванию, марку морозостойкости назначают по условиям эксплуатации и расчетным зимним температурам, но не ниже F25."
+      conditions: {use: exterior_wall, freeze_thaw_exposure: true}
+      values: {absolute_min_frost_grade: F25}
+
+    - id: aac.material.frost_other_min
+      clause: "4.3.6.2"
+      automation: conditional
+      statement: "Для остальных изделий, для которых нормируется морозостойкость, стандарт задает не ниже F15, при этом конкретную марку назначают по условиям эксплуатации."
+      conditions: {use: other, frost_resistance_required: true}
+      values: {absolute_min_frost_grade: F15}
+
+structural_design_boundary:
+  - id: aac.wall.thickness_requires_structural_and_thermal_design
+    automation: forbidden_to_infer
+    statement: "Толщину стены из AAC нельзя выбрать по распространенному рыночному размеру блока. Для несущей/самонесущей стены требуется расчет конструкции по применимым СП, а для наружной стены — теплотехнический расчет по СП 50.13330.2024."
+    requires_calculation: true
+
+  - id: aac.strength_density_not_inferred_from_width
+    automation: forbidden_to_infer
+    statement: "Класс прочности, среднюю плотность, теплопроводность и морозостойкость нельзя выводить из ширины блока или торгового наименования. Использовать декларацию/паспорт конкретного изделия."
+    requires_manufacturer_data: true
+
+SP339_reference_gate:
+  - id: aac.SP339.current_but_reference_reconciliation_required
+    source: {document: SP_339_1325800_2017, clause: "status; Change 1"}
+    automation: validation_only
+    statement: "СП 339.1325800.2017 с Изм. №1 является действующим специализированным СП для конструкций из ячеистых бетонов. Однако Изм. №1 было принято до ГОСТ 31360-2024 и содержит ссылки на прежний ГОСТ 31360-2007; при автоматизации таблиц, зависящих от категории/раствора, требуется отдельная проверка соответствия ссылочного основания актуальному ГОСТ 31360-2024."
+    conflict_policy: "Не активировать автоматически числовую толщину клеевого/обычного шва только на основании старой ссылки без отдельного нормативного аудита."
+
+BIM_required_parameters:
+  - AAC_standard
+  - manufacturer_product_id
+  - product_accuracy_category
+  - nominal_length_mm
+  - nominal_width_mm
+  - nominal_height_mm
+  - product_orientation
+  - tongue_and_groove_status
+  - groove_status
+  - hand_grip_status
+  - U_block_status
+  - void_geometry_if_any
+  - density_grade_or_actual_density
+  - compressive_strength_class
+  - frost_resistance_grade
+  - declared_thermal_conductivity
+  - masonry_joint_system
+  - joint_system_reference
+  - structural_calculation_reference
+  - thermal_calculation_reference
+
+library_generation_policy:
+  - "Не создавать закрытый 'ГОСТовский каталог' рыночных размеров, которого в ГОСТ 31360-2024 нет."
+  - "Типы библиотеки создавать из реальных карточек производителей, проверяя их размеры на область ГОСТ и сохраняя точную категорию I/II."
+  - "Паз-гребень, захватные карманы и U-форма являются геометрическими свойствами конкретного изделия и должны моделироваться/храниться отдельно."
+  - "Для тонкошовной кладки использовать категорию I как продуктовый prerequisite, но фактический клеевой шов — из подтвержденной технологии, а не из памяти."
+
+agent_logic:
+  - "Не использовать ГОСТ 31360-2007 как текущий стандарт изделия."
+  - "Не считать 600 мм универсальной длиной газоблока и 200/300/400 мм нормативными толщинами стены."
+  - "Не переносить шов обычной кирпичной кладки на AAC."
+  - "Категория I означает более строгую геометрию и рекомендацию для тонкого шва; она не доказывает несущую способность конкретной стены."
+  - "Если производитель не выбран, геометрия AAC-стены может быть концептуальной, но конкретный библиотечный тип/раскладку маркировать needs_manufacturer_product."
+
+sources:
+  - "https://protect.gost.ru/gost/details/e51e4bd7-2c0b-407b-9013-b5e9fca43e3f"
+  - "https://base.garant.ru/409030046/"
+  - "https://protect.gost.ru/sp/details/6a4d6962-737c-4c4e-bc73-1d65b652057f"

@@ -1,4 +1,4 @@
-manifest_version: 17
+manifest_version: 18
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -13,18 +13,21 @@ load_order:
     file: revision_watch_adjacent_2027.yaml
     role: official revision levels of adjacent structural, construction and engineering documents
   - priority: 4
+    file: functional_revision_audit_2027.yaml
+    role: verified revision levels and ambiguity gates for special functional codes
+  - priority: 5
     file: registry.yaml
     role: base document identity and audit-date status
-  - priority: 5
+  - priority: 6
     file: registry_additions_2027.yaml
     role: verified additions and revision-metadata overrides discovered after the first registry pass
-  - priority: 6
+  - priority: 7
     file: schema/dimension_selection_policy.yaml
     role: dimension semantics and conflict policy
-  - priority: 7
+  - priority: 8
     files: rules/*.yaml
     role: verified architectural and BIM rules
-  - priority: 8
+  - priority: 9
     file: AUDIT.md
     role: human-readable audit trail
 
@@ -32,6 +35,7 @@ precedence_rules:
   - target_2027.yaml overrides current-date status when an officially confirmed transition applies to 2027.
   - revision_watch_2027.yaml invalidates an architectural/core rule whose claimed revision is below official_latest_change.
   - revision_watch_adjacent_2027.yaml blocks coordination with stale KR/POS/engineering inputs but does not authorize the architectural agent to perform those discipline calculations.
+  - functional_revision_audit_2027.yaml overrides stale special-code revision metadata and can block amendment-specific rules when effective status is ambiguous.
   - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change document identity without explicit replacement metadata.
   - Special functional, fire or accessibility requirements apply within their explicit scope before general rules.
   - Direct numeric requirements cannot be replaced by modular rounding.
@@ -83,6 +87,7 @@ hard_fail_states:
   - source_status_unknown
   - rule_revision_below_official_latest
   - adjacent_discipline_revision_below_official_latest
+  - functional_amendment_effective_status_ambiguous
   - rule_expired_for_target
   - future_replacement_is_only_draft
   - future_document_not_active
@@ -100,6 +105,7 @@ release_gate:
     - future transitions have official effective dates
     - core rule files match revision_watch_2027.yaml
     - adjacent discipline coordination inputs match revision_watch_adjacent_2027.yaml when used
+    - special functional rules match functional_revision_audit_2027.yaml when used
     - draft and accepted-but-not-active normative documents are never marked active
     - clear dimensions are validated as clear dimensions
     - pending topics remain fail-closed

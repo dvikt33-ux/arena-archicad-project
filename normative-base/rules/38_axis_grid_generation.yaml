@@ -1,0 +1,163 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Процедура построения координационной сетки здания: модульная координация ГОСТ 28984 + реальная конструктивная система + каталоги изделий, без ложного округления всех размеров."
+
+revision_dependencies:
+  - {document: GOST_28984_2011, correction: "ИУС 6-2022", role: modular_coordination}
+  - {document: GOST_R_21_101_2026, status: active, effective_from: 2026-04-01, role: coordination_axes_and_model_coordinates}
+  - {document: GOST_26434_2025, status: active, role: residential_precast_floor_slab_coordination}
+  - {document: SP_15_13330_2020, verified_changes: [1], role: masonry_structural_gate}
+  - {document: SP_63_13330_2018, verified_changes: [1,2], role: reinforced_concrete_structural_gate}
+  - {document: SP_16_13330_2017, verified_changes: [1,2,3,4,5,6], role: steel_structural_gate}
+
+normative_modules:
+  source: GOST_28984_2011
+  rules:
+    - id: grid.module.base
+      clause: "5.1"
+      automation: auto
+      dimension_semantics: coordination
+      statement: "Основной модуль M равен 100 мм."
+      values: {M_mm: 100}
+
+    - id: grid.module.multimodules
+      clause: "5.2.1"
+      automation: auto
+      dimension_semantics: coordination
+      statement: "Укрупненные модули: 60M, 30M, 15M, 12M, 6M и 3M."
+      values_mm: [6000,3000,1500,1200,600,300]
+
+    - id: grid.module.compatible_groups
+      clause: "5.9.1-5.9.2"
+      automation: validation_only
+      statement: "При построении совместимых модульных сеток учитывать группы M-3M-6M-12M-60M и M-3M-15M-30M-60M; выбор группы зависит от характера планировки и конструктивной системы."
+      compatible_groups:
+        - [100,300,600,1200,6000]
+        - [100,300,1500,3000,6000]
+
+    - id: grid.module.frame_preferred_steps
+      clause: "5.11"
+      automation: validation_only
+      statement: "Шаги каркасных зданий и соответствующие длины плит, балок и ферм рекомендуется преимущественно принимать кратными 60M и 30M; для отдельных видов зданий применяются также 12M и 15M. Это координационное предпочтение, а не разрешение назначить несущий пролет без расчета."
+      preferred_modules_mm: [6000,3000,1200,1500]
+
+    - id: grid.module.openings_piers_preference
+      clause: "5.12"
+      automation: validation_only
+      statement: "3M и 6M предназначены преимущественно в том числе для размеров проемов и простенков наружных стен, размещения перегородок и ряда других координационных размеров; они не являются обязательным шагом каждого проема."
+      preferred_modules_mm: [300,600]
+
+hard_boundaries:
+  - id: grid.no_rounding_all_dimensions
+    automation: auto
+    statement: "Запрещено автоматически округлять все размеры здания к M, 3M, 6M или 30M. Модульная координация применяется после определения обязательных функциональных, конструктивных, пожарных, МГН и изделиевых ограничений."
+
+  - id: grid.structural_span_needs_KR
+    automation: forbidden_to_infer
+    statement: "Расчетный пролет, сечение колонн/стен/балок и несущую способность нельзя выбирать только из модульного ряда. Любая сетка несущих осей является кандидатом до проверки КР."
+    requires_calculation: true
+
+  - id: grid.clear_dimension_not_axis_dimension
+    automation: auto
+    statement: "Размер в свету двери, коридора, лестницы, тамбура или МГН-маршрута не заменяется расстоянием между осями. Если модульная сетка приводит к недостаточному размеру в свету, корректируют сетку/конструкцию, а не норму."
+
+  - id: grid.product_coordination_not_face_to_face
+    automation: auto
+    statement: "Координационный размер сборного изделия не равен автоматически расстоянию между фактическими гранями опор или фактическому габариту изделия. Для сборных плит учитывать правила перехода coordination→constructive из rules/23_precast_slab_layout.yaml."
+
+structural_system_routes:
+  frame:
+    candidate_logic:
+      - "Сначала получить диапазон допустимых расчетных пролетов/сетки от КР или предварительной конструктивной схемы."
+      - "Внутри допустимого диапазона сформировать кандидаты, предпочтительно согласованные с 60M/30M; при обоснованной типологии также 12M/15M."
+      - "Проверить повторяемость колонн, фасадных модулей, инженерных шахт, лестничных/лифтовых ядер и планировочных требований."
+      - "Перед фиксацией осей вернуть кандидаты на расчет КР."
+
+  masonry_bearing_walls:
+    candidate_logic:
+      - "Сначала определить направление несущих стен и конструктивную схему перекрытия."
+      - "Если применяются сборные плиты, формировать кандидаты межосевых/координационных размеров только из сочетаний, для которых существует подтвержденное решение плиты и опор."
+      - "Не определять расстояние между несущими стенами только кратностью кирпича или блока."
+      - "После выбора осей раскладывать проемы/простенки по rules/24_masonry_opening_layout.yaml и передавать несущие простенки на rules/22_masonry_piers_precheck.yaml."
+
+  large_panel_or_precast_system:
+    candidate_logic:
+      - "Использовать координационные размеры конкретной системы/изделий и рабочие каталоги; общая модульная сетка не заменяет каталог серии или производителя."
+      - "Не синтезировать новый панельный элемент только для закрытия остаточного размера."
+
+  monolithic_free_plan:
+    candidate_logic:
+      - "Модульная координация применяется как инструмент унификации и фасадно-планировочной дисциплины, но шаг несущей сетки подтверждается расчетной схемой КР."
+      - "Не вводить 6,0 м или 7,2 м как нормативный универсальный пролет только из практики."
+
+axis_binding_policy:
+  - id: grid.axis_binding.element_specific
+    source: {document: GOST_R_21_101_2026, clause: "5.3"}
+    automation: validation_only
+    statement: "Координационная ось является базисом взаимного расположения элементов, но не означает геометрический центр каждого элемента. Тип привязки стены/колонны/ригеля к оси должен храниться явно."
+
+  - id: grid.axis_binding.no_hidden_offset
+    automation: auto
+    statement: "Любое смещение несущего элемента от координационной оси должно быть явным параметром привязки, а не скрытым результатом ручного перемещения BIM-элемента."
+
+  - id: grid.axis_system_before_geometry
+    automation: validation_only
+    statement: "Для нового здания сначала формируется локальная система координат и координационные оси, затем несущие элементы; связь с общеплощадочной системой хранится как трансформация согласно rules/26_spds_model_coordinates.yaml."
+
+generation_algorithm:
+  type: design_procedure
+  steps:
+    - "1. Классифицировать объект: функциональное назначение, этажность/пожарная высота, конструктивная система, материал несущих элементов, тип перекрытия."
+    - "2. Загрузить обязательные планировочные размеры: эвакуация, МГН, санитарные/технологические помещения, лестнично-лифтовые ядра, парковка/ТРК/специальный функциональный СП."
+    - "3. Получить от КР допустимую предварительную схему несущих направлений и диапазоны пролетов; при отсутствии вернуть needs_structural_scheme, а не генерировать окончательную сетку."
+    - "4. Выбрать совместимую модульную группу ГОСТ 28984 и сформировать дискретный набор кандидатов осей внутри допустимых конструктивных диапазонов."
+    - "5. Если перекрытие сборное, отфильтровать кандидаты по существующим типоразмерам/производственным данным rules/23_precast_slab_layout.yaml; если монолитное — оставить конструктивный расчет gate."
+    - "6. Проверить чистые размеры помещений, коридоров, дверей, лестниц, шахт и технологических проходов после назначения фактических толщин стен/колонн/отделок."
+    - "7. Оптимизировать повторяемость: минимизировать число разных пролетов и нестандартных изделий, сохраняя функциональность и расчетные ограничения."
+    - "8. Выполнить фасадную и кладочную координацию проемов; 3M/6M использовать как предпочтение только для кандидатов, уже удовлетворяющих обязательным требованиям."
+    - "9. Передать выбранную сетку на КР/инженерную проверку; после изменения сечений или шахт повторить проверку чистых размеров."
+    - "10. Зафиксировать версию grid_solution_id и запретить несогласованное ручное смещение отдельных осей без повторного dependency-check."
+
+optimization_objectives_in_order:
+  - "mandatory safety and accessibility dimensions satisfied"
+  - "structural scheme calculable and confirmed"
+  - "real products/manufacturer systems fit without invented geometry"
+  - "special functional-code dimensions satisfied"
+  - "minimum number of distinct structural spans and product marks"
+  - "compatible modular grid used where applicable"
+  - "masonry/facade cuts and residuals minimized"
+  - "architectural composition optimized only after above constraints"
+
+BIM_required_parameters:
+  - grid_solution_id
+  - structural_system
+  - preliminary_KR_scheme_reference
+  - selected_modular_group
+  - axis_id
+  - axis_coordinate
+  - axis_spacing_to_previous
+  - axis_spacing_module_relation
+  - axis_binding_type_per_element
+  - slab_system_reference
+  - clear_dimension_validation_status
+  - functional_code_validation_status
+  - KR_grid_approval_status
+  - grid_dependency_version
+
+hard_fail_conditions:
+  - "final bearing grid generated without structural scheme/calculation gate"
+  - "clear safety dimension replaced by axis dimension"
+  - "slab/product invented to fit a residual bay"
+  - "all dimensions rounded to a common module without applicability filtering"
+  - "manual axis movement without dependency revalidation"
+
+agent_logic:
+  - "Модуль — инструмент координации, а не источник несущей способности."
+  - "Сетка должна быть дискретно оптимизирована по реальным изделиям и обязательным размерам, а не нарисована первой и затем насильно заполнена конструкциями."
+  - "Если два кандидата одинаково нормативны и конструктивно допустимы, выбирать вариант с меньшим количеством разных пролетов/марок и лучшей модульной согласованностью."
+  - "Не исправлять остаток 100-200 мм растягиванием сборного изделия или уменьшением нормативного прохода; искать другой кандидат сетки или отдельное рассчитанное решение."
+
+sources:
+  - "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+  - "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"
+  - "https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc"

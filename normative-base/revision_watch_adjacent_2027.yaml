@@ -1,0 +1,104 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Контроль официальных ревизий смежных КР/ПОС/инженерных СП, которые архитектурный агент не рассчитывает самостоятельно, но обязан учитывать при координации модели 2027+."
+
+policy:
+  - "Этот файл не дает архитектурному агенту права рассчитывать конструкции или инженерные системы."
+  - "Если смежный раздел проекта использует revision_level ниже указанного, соответствующая координация BIM блокируется до актуализации профильным специалистом."
+  - "Отложенные части изменений, официально вводимые 01.03.2027, считаются применимыми для целевого профиля 2027+."
+
+structural_and_execution:
+  - document: SP_14_13330_2018
+    topic: seismic_design
+    official_latest_change: 4
+    change_4_effective_from: 2024-10-20
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/625a9ee3-c446-4886-af7a-08691970a308"
+
+  - document: SP_16_13330_2017
+    topic: steel_structures
+    official_latest_change: 6
+    change_6_effective_from: 2025-01-10
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/1da35018-6e02-4f71-8c05-86324f163164"
+
+  - document: SP_22_13330_2016
+    topic: foundations_and_soils
+    official_latest_change: 5
+    change_5_effective_from: 2024-01-08
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/194e6d28-d3f1-4702-af90-ba4378e5f815"
+
+  - document: SP_24_13330_2021
+    topic: pile_foundations
+    official_latest_change: 2
+    change_2_effective_from: 2026-08-29
+    status: active
+    note: "Изменение №2 опубликовано 07.09.2026; профиль 2027 обязан использовать редакцию с Изм. №1-2."
+    source_url: "https://protect.gost.ru/sp/changesdetails/192cb623-dac7-46a0-b920-b822a5c4fc05"
+
+  - document: SP_28_13330_2017
+    topic: corrosion_protection
+    official_latest_change: 4
+    change_4_effective_from: 2024-06-09
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/cc050ce0-5534-4788-8156-f617adc28fc1"
+
+  - document: SP_45_13330_2017
+    topic: earthworks_foundations_execution
+    official_latest_change: 4
+    change_4_general_effective_from: 2026-07-04
+    change_4_deferred_parts_effective_from: 2027-03-01
+    status: active
+    target_2027_action: apply_deferred_parts_when_scope_matches
+    source_url: "https://protect.gost.ru/sp/changesdetails/af748f79-c5de-443b-a10f-7542d35b9bce"
+
+  - document: SP_48_13330_2019
+    topic: construction_organization
+    official_latest_change: 2
+    change_2_effective_from: 2025-05-22
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/a7603f31-681d-4100-9494-b6fce1fb661b"
+
+engineering_and_fire_execution:
+  - document: SP_73_13330_2016
+    topic: internal_sanitary_systems_execution
+    official_latest_change: 3
+    change_3_general_effective_from: 2026-07-10
+    change_3_deferred_parts_effective_from: 2027-03-01
+    status: active
+    target_2027_action: apply_deferred_parts_when_scope_matches
+    source_url: "https://protect.gost.ru/sp/changesdetails/b595a91d-d798-4c82-9345-8419ea696528"
+
+  - document: SP_129_13330_2019
+    topic: external_water_supply_and_sewerage_execution
+    official_latest_change: 2
+    change_2_general_effective_from: 2026-07-04
+    change_2_deferred_parts_effective_from: 2027-03-01
+    status: active
+    target_2027_action: apply_deferred_parts_when_scope_matches
+    source_url: "https://protect.gost.ru/sp/changesdetails/ad63a3b9-7f8a-494f-a9b2-14c1bc11833c"
+
+  - document: SP_433_1325800_2019
+    topic: steel_fireproofing_execution
+    official_latest_change: 1
+    change_1_general_effective_from: 2026-07-04
+    change_1_deferred_parts_effective_from: 2027-03-01
+    status: active
+    target_2027_action: apply_deferred_parts_when_scope_matches
+    source_url: "https://protect.gost.ru/sp/changesdetails/d68f59b9-f4bc-4adf-8f8a-8ca695de41ff"
+
+cross_check_2027_reference_levels:
+  note: "Уровни ниже дополнительно подтверждаются свежими изменениями 2026 года, которые уже ссылаются на эти редакции."
+  values:
+    SP_14_13330_2018: 4
+    SP_16_13330_2017: 6
+    SP_22_13330_2016: 5
+    SP_24_13330_2021: 2
+    SP_28_13330_2017: 4
+    SP_48_13330_2019: 2
+
+agent_gate:
+  - "Перед согласованием отверстий, фундаментов, свай, стальных элементов, огнезащиты и инженерных проходок проверить revision_level профильного задания."
+  - "При несовпадении revision_level вернуть needs_discipline_reaudit, а не подгонять архитектуру под устаревшее решение."
+  - "Не переносить числовые требования этих СП в архитектурный auto-rule без отдельной постатейной проверки их области применения."

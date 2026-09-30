@@ -1,4 +1,4 @@
-manifest_version: 7
+manifest_version: 8
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -54,6 +54,9 @@ rule_files:
   - 18_facade_fire_openings.yaml
   - 19_reinforced_concrete_lintels.yaml
   - 20_glazing_safety.yaml
+  - 21_doors_egress_openings.yaml
+  - 22_masonry_piers_precheck.yaml
+  - 23_precast_slab_layout.yaml
 
 hard_fail_states:
   - yaml_parse_error

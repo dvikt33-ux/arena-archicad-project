@@ -1,5 +1,12 @@
 checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
 primary_documents: [GOST_25772_2025, SP_54_13330_2022, SP_118_13330_2022, SP_17_13330_2017]
+
+product_standard:
+  document: GOST_25772_2025
+  effective_from: 2026-01-01
+  replaces: GOST_25772_2021
+  correction: "ИУС 6-2026, действует с 2026-06-17"
 
 metal_guardrail_types:
   source: GOST_25772_2025
@@ -20,10 +27,10 @@ metal_guardrail_types:
     - {code: "КЭО", purpose: "operated roof without parapet"}
     - {code: "КЭП", purpose: "operated roof with parapet"}
 
-standard_parameters:
+standard_product_parameters:
   source: GOST_25772_2025
   clause: "5.1.1, table 3"
-  auto_rule: conditional
+  automation: conditional
   rows:
     - {type: "МВ", H_mm: 900, h_mm: 800, a_max_mm: 150, b_mm: 300}
     - {type: "МН", H_mm: 1200, h_mm: 1100, a_max_mm: 150, b_mm: 300}
@@ -38,40 +45,85 @@ standard_parameters:
     - {type: "КП", H_mm: "600/1200 minus parapet height where applicable", a_max_mm: 300}
     - {type: "КО", H_mm: "600/1200", a_max_mm: 300}
   critical_note: >-
-    Таблица ГОСТ описывает стандартизованные металлические изделия. Проектная требуемая высота
-    ограждения определяется также СП конкретного здания; применять большее/более строгое требование.
+    Таблица ГОСТ описывает стандартизованную геометрию металлического изделия. Проектная требуемая
+    высота ограждения определяется СП конкретного здания. Нельзя считать выбранный тип изделия
+    достаточным только потому, что он соответствует ГОСТ.
 
 residential_project_requirements:
   source: SP_54_13330_2022
-  clauses: ["6.4.4","6.4.5","6.4.11"]
+  verified_changes: [1,2]
   rules:
-    - {case: "external stairs/landings, balconies, French balconies, loggias, terraces, dangerous floor level difference >=0.45 m", min_height_mm: 1200}
-    - {case: "balcony/French balcony/terrace less than 0.45 m above ground planning level", min_height_mm: 900}
-    - {case: "internal stair flights/landings", min_height_mm: 900}
-    - {case: "internal stair gap >0.12 m clear", min_height_mm: 1200}
-  roof_policy: "Высота/необходимость ограждения кровли зависит от уклона и высоты до карнизного свеса; применять п. 6.4.11 СП 54 совместно с СП 17.13330.2017 и профильными пожарными требованиями."
+    - id: guard.res.external
+      clause: "6.4.4"
+      case: "external stairs/landings, balconies, French balconies, loggias, terraces, dangerous floor level difference >=0.45 m"
+      min_height_mm: 1200
+      automation: conditional
+    - id: guard.res.low_balcony
+      clause: "6.4.4"
+      case: "balcony/French balcony/terrace less than 0.45 m above ground planning level"
+      min_height_mm: 900
+      automation: conditional
+    - id: guard.res.internal_stair
+      clause: "6.4.5"
+      case: "internal stair flights/landings"
+      min_height_mm: 900
+      automation: conditional
+    - id: guard.res.internal_gap
+      clause: "6.4.5"
+      case: "gap between flights or stair guards >0.12 m clear"
+      required_height_mm: 1200
+      automation: conditional
+    - id: guard.res.roof
+      clause: "6.4.11"
+      automation: conditional
+      cases:
+        - {condition: "roof slope <=12% and height to eaves >10 m", min_total_guard_height_mm: 1200}
+        - {condition: "roof slope >12% and height to eaves >7 m", min_total_guard_height_mm: 1200}
+        - {condition: "flat non-operated roof", min_total_guard_height_mm: 1200}
+        - {condition: "other sloped roof cases covered by clause", min_guard_height_mm: 600}
+      note: "Совместно проверять СП 17.13330.2017 и применимые пожарные требования."
 
 public_project_requirements:
   source: SP_118_13330_2022
-  clause: "6.12"
+  verified_changes: [1,2,3,4,5]
   rules:
-    - {case: "external balconies/loggias/galleries/type-3 stairs/terraces/operated roofs", min_height_mm: 1200}
-    - {case: "internal guardrails incl. stairs and ramps", min_height_mm: 900}
-    - {case: "stair/ramp flight gap >0.3 m OR floor level difference >1.0 m OR rooms where children may be present", min_height_mm: 1200}
+    - id: guard.public.external
+      clause: "6.12"
+      case: "external balconies/loggias/galleries/type-3 stairs/terraces/operated roofs"
+      min_height_mm: 1200
+      automation: conditional
+    - id: guard.public.internal
+      clause: "6.12"
+      case: "internal guardrails incl. stairs and ramps"
+      min_height_mm: 900
+      automation: conditional
+    - id: guard.public.high_risk
+      clause: "6.12"
+      case: "stair/ramp flight gap >0.3 m OR floor level difference >1.0 m OR rooms where children may be present"
+      min_height_mm: 1200
+      automation: conditional
+    - id: guard.public.nonoperated_roof
+      clause: "6.14"
+      case: "non-operated roof of public building higher than 10 m"
+      min_total_guard_height_mm: 600
+      parapet_included_in_total: true
+      automation: conditional
 
-roof_standard:
-  document: SP_17_13330_2017
-  status: active
-  latest_verified_change: 5
-  role: "roof design; do not infer roof buildup, slopes or safety elements from BIM library defaults"
+conflict_policy:
+  - "Сначала определить проектно требуемую высоту по СП здания/пожарным/МГН требованиям."
+  - "Затем выбрать или параметризовать изделие ГОСТ 25772-2025, обеспечивающее требуемую высоту и допустимые просветы."
+  - "Если стандартный код изделия имеет меньшую H, чем требует СП объекта, стандартный код не является достаточным проектным решением."
+  - "Парапет и металлическое ограждение кровли хранить раздельно, а проверку выполнять по общей требуемой высоте там, где СП разрешает учитывать парапет."
 
 agent_logic:
-  - "Сначала классифицировать место ограждения и функциональное назначение здания, затем выбрать тип изделия."
-  - "Высоту из ГОСТ на изделие не считать автоматически достаточной: проверить СП здания и требования безопасности/МГН."
+  - "Сначала классифицировать место ограждения и функциональное назначение здания, затем выбирать тип изделия."
   - "Не путать высоту изделия H, высоту поручня h и проектную высоту ограждения."
-  - "Для детских/образовательных объектов не применять обычный тип МВ/ПВ/БП без проверки специальных требований."
-  - "Парапет и металлическое ограждение кровли моделировать раздельно, если нормативная высота получается суммарно/с вычетом парапета."
+  - "Для детских/образовательных объектов не применять обычный тип МВ/ПВ/БП без специальных требований."
+  - "Проектная высота всегда проверяется после выбора изделия; соответствие изделия ГОСТ не доказывает соответствие здания СП."
 
 sources:
   - https://protect.gost.ru/gost/details/0201c996-021b-408c-b36e-778f77f18f70
+  - https://protect.gost.ru/gost/changesdetails/9067e093-a6e7-41d7-a189-0662ab7e1254
+  - https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263
+  - https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e
   - https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8

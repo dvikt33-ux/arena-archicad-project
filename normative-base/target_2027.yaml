@@ -99,6 +99,17 @@ confirmed_transitions:
     note: "Архитектурный агент не выбирает систему огнезащиты по этому переходу; проверяет актуальность задания КР/пожарного раздела."
     source_url: "https://protect.gost.ru/sp/changesdetails/d68f59b9-f4bc-4adf-8f8a-8ca695de41ff"
 
+  - id: SP445_CHANGE1_DEFERRED
+    document: SP_445_1325800_2023
+    amendment: 1
+    effective_from: 2027-03-01
+    target_profile_action: apply_when_scope_matches
+    scope: "водопропускные трубы и системы водоотвода в районах вечной мерзлоты; условный генплановый/инженерный слой"
+    affected_parts: ["13.3"]
+    applicability_condition: "site_in_permafrost_region"
+    note: "Применять только при подтвержденном расположении объекта в области действия СП 445. Архитектурный агент не рассчитывает водопропускные сооружения; переход используется как revision gate для генплана и инженерной координации."
+    source_url: "https://protect.gost.ru/sp/changesdetails/de4e053a-ffd5-4d82-8ba3-0d7583f0460c"
+
 confirmed_current_levels_for_2027:
   note: "Это не будущие переходы, а уже действующие уровни редакций, выявленные future-sweep и обязательные для любых смежных решений целевого профиля."
   documents:

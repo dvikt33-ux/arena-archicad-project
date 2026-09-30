@@ -88,6 +88,16 @@ engineering_and_fire_execution:
     target_2027_action: apply_deferred_parts_when_scope_matches
     source_url: "https://protect.gost.ru/sp/changesdetails/d68f59b9-f4bc-4adf-8f8a-8ca695de41ff"
 
+  - document: SP_445_1325800_2023
+    topic: culverts_and_drainage_in_permafrost
+    official_latest_change: 1
+    change_1_general_effective_from: 2026-07-04
+    change_1_deferred_parts_effective_from: 2027-03-01
+    status: active
+    applicability_condition: site_in_permafrost_region
+    target_2027_action: apply_deferred_parts_when_scope_matches
+    source_url: "https://protect.gost.ru/sp/changesdetails/de4e053a-ffd5-4d82-8ba3-0d7583f0460c"
+
 cross_check_2027_reference_levels:
   note: "Уровни ниже дополнительно подтверждаются свежими изменениями 2026 года, которые уже ссылаются на эти редакции."
   values:
@@ -100,5 +110,6 @@ cross_check_2027_reference_levels:
 
 agent_gate:
   - "Перед согласованием отверстий, фундаментов, свай, стальных элементов, огнезащиты и инженерных проходок проверить revision_level профильного задания."
+  - "Для участков в районах вечной мерзлоты дополнительно проверять актуальность СП 445 и отложенного на 01.03.2027 пункта 13.3."
   - "При несовпадении revision_level вернуть needs_discipline_reaudit, а не подгонять архитектуру под устаревшее решение."
   - "Не переносить числовые требования этих СП в архитектурный auto-rule без отдельной постатейной проверки их области применения."

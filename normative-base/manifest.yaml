@@ -1,4 +1,4 @@
-manifest_version: 30
+manifest_version: 31
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -95,6 +95,7 @@ rule_files:
   - 43_public_sanitary_facilities.yaml
   - 44_area_measurement_semantics.yaml
   - 45_parking_ramps.yaml
+  - 46_garant_vertical_transport_verification.yaml
 
 hard_fail_states:
   - yaml_parse_error

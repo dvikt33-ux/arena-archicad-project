@@ -1,13 +1,13 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Архитектурные правила вертикального транспорта: когда нужен лифт, какие параметры нельзя брать из старых методичек и какие габариты являются обязательными/рекомендуемыми."
+purpose: "Архитектурные правила вертикального транспорта для профиля 2027+: лифты, доступность, лифтовые холлы и границы автоматизации."
 
 revision_dependencies:
   - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
   - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
   - {document: SP_54_13330_2022, verified_changes: [1,2]}
   - {document: GOST_33984_1_2023, status: active, effective_from: 2024-11-01, replaces: GOST_33984_1_2016}
-  - {document: GOST_33652_2019, status: active, corrections: ["IUS 8-2020", "IUS 5-2026"]}
+  - {document: GOST_33652_2019, status: active, corrections: ["ИУС 8-2020", "ИУС 5-2026"]}
 
 public_buildings:
   source: SP_118_13330_2022
@@ -15,19 +15,15 @@ public_buildings:
     - id: vertical.public.passenger_lift_threshold
       clause: "5.13"
       automation: conditional
+      dimension_semantics: level
       statement: "Во всех проектируемых общественных зданиях пассажирские лифты предусматривают при отметке пола верхнего этажа 9,9 м и более от уровня пола первого этажа."
-      values:
-        upper_floor_level_threshold_mm: 9900
-      dimension_semantics: level_finished
+      values: {upper_floor_level_threshold_mm: 9900}
       exception: "Допускается не предусматривать лифт при надстройке существующего общественного здания мансардным этажом."
 
     - id: vertical.public.mgn_transport_selection
       clause: "5.13"
       automation: manual_calculation
-      statement: >-
-        Если помещения для МГН расположены выше или ниже этажа основного входа, выбор средств
-        вертикального транспорта и необходимость их сочетания устанавливаются заданием на
-        проектирование на основании СП 59.13330.
+      statement: "Если помещения для МГН расположены выше или ниже этажа основного входа, выбор средств вертикального транспорта и необходимость их сочетания устанавливаются заданием на проектирование на основании СП 59.13330."
       requires_object_classification: true
 
     - id: vertical.public.lift_count
@@ -36,70 +32,74 @@ public_buildings:
       statement: "Число пассажирских лифтов определяют расчетом с учетом СП 1.13130 и СП 59.13330."
       requires_calculation: true
 
+    - id: vertical.public.lift_distance
+      clause: "5.16"
+      automation: validation_only
+      dimension_semantics: clear
+      statement: "Расстояние от дверей наиболее удаленного помещения с постоянным пребыванием людей до двери ближайшего пассажирского лифта должно быть не более 60 м."
+      values: {max_distance_m: 60}
+
+    - id: vertical.public.lift_lobby_width
+      clause: "5.16"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Ширина лифтового холла зависит от схемы размещения лифтов и глубины кабины; ее нельзя назначать одной универсальной величиной."
+      cases:
+        - {layout: "single_row", cabin_depth_condition: "<=1.5 m", min_lobby_width_mm: 2000}
+        - {layout: "single_row", cabin_depth_condition: ">1.5 and <=2.0 m", min_lobby_width_mm: 2500}
+        - {layout: "single_row", cabin_depth_condition: ">2.0 m", formula: "min_lobby_width >= 1.3 * cabin_depth"}
+        - {layout: "double_row", formula: "min_lobby_width >= 2 * smaller_cabin_depth"}
+
 accessibility:
   source: SP_59_13330_2020
   rules:
-    - id: vertical.accessible.cabin_current_rule
-      clause: "6.2.14"
-      amendment: 3
+    - id: vertical.accessible.new_public_industrial_door
+      clause: "6.2.13"
       automation: conditional
-      statement: >-
-        Применять пассажирские лифты с размерами кабины, обеспечивающими размещение пользователя
-        кресла-коляски с сопровождающим лицом, в соответствии с ГОСТ 33652.
-      note: >-
-        Это актуальная редакция после Изменения №3. Не подставлять устаревший универсальный размер
-        кабины 1100x1400 мм из старых редакций/методичек как действующее требование СП 59.
-      requires_manufacturer_data: true
+      dimension_semantics: clear
+      statement: "Для нового строительства общественных и производственных зданий лифт, доступный для МГН, должен иметь ширину дверного проема не менее 0,9 м."
+      values: {min_clear_door_opening_mm: 900}
+
+    - id: vertical.accessible.cabin_minimum
+      clause: "6.2.14"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Пассажирский лифт для МГН должен обеспечивать размещение пользователя кресла-коляски с сопровождающим лицом; размер кабины должен быть не менее 1100×1400 мм (ширина×глубина)."
+      values: {min_cabin_width_mm: 1100, min_cabin_depth_mm: 1400}
+      correction_note: "Повторный аудит 2026-09-30: Изменение №3 к СП 59.13330.2020 не отменяло и не заменяло числовое требование п. 6.2.14; прежняя запись об отсутствии минимума была ошибочной и удалена."
 
     - id: vertical.residential.recommended_cabins
       clause: "6.2.15"
       automation: validation_only
-      statement: >-
-        Для многоквартирных жилых зданий грузоподъемность и скорость выбирают по СП 54.13330.
-        Для лифтов 630 и 1000 кг размеры кабин 1100x2100 или 2100x1100 мм являются рекомендуемыми,
-        а не универсальным обязательным минимумом для каждого лифта.
+      statement: "Для МКД грузоподъемность и скорость выбирают по СП 54.13330. Для лифтов 630 и 1000 кг размеры кабин 1100×2100 или 2100×1100 мм являются рекомендуемыми, а не универсальным обязательным минимумом."
       values:
         recommended_for_capacity_kg: [630,1000]
-        recommended_cabin_sizes_mm:
-          - [1100,2100]
-          - [2100,1100]
-      conflict_policy: "Не повышать рекомендацию до обязательного норматива. Требования доступности по 6.2.14 и ГОСТ 33652 проверять отдельно."
+        recommended_cabin_sizes_mm: [[1100,2100],[2100,1100]]
+      conflict_policy: "Минимум доступности 1100×1400 по п. 6.2.14 проверяется независимо."
 
     - id: vertical.sport_wheelchair.cabin
       clause: "6.2.15"
       automation: conditional
-      statement: >-
-        На маршрутах спортсменов, использующих спортивные кресла-коляски, применять лифты с
-        кабиной не менее 2000x1400 мм и шириной дверного проема 1,2 м.
-      values:
-        min_cabin_width_mm: 2000
-        min_cabin_depth_mm: 1400
-        min_door_opening_mm: 1200
       dimension_semantics: clear
+      statement: "На маршрутах спортсменов, использующих спортивные кресла-коляски, применять лифты с кабиной не менее 2000×1400 мм и шириной дверного проема 1,2 м."
+      values: {min_cabin_width_mm: 2000, min_cabin_depth_mm: 1400, min_door_opening_mm: 1200}
 
     - id: vertical.spectator_lifts.calculation
       clause: "6.2.15"
       automation: manual_calculation
-      statement: "На путях движения зрителей габариты и число лифтов рассчитывают согласно приложению А СП 59 и указанному в пункте профильному ГОСТ."
+      statement: "На путях движения зрителей габариты и число лифтов рассчитывают согласно приложению А СП 59 и профильному стандарту."
       requires_calculation: true
-      note: "Не заменять расчет типовой кабиной."
 
 lift_product_standards:
   - id: vertical.standard.general_lift_2023
     automation: validation_only
-    statement: "Для новых пассажирских/грузопассажирских лифтов использовать действующий ГОСТ 33984.1-2023; ГОСТ 33984.1-2016 заменен с 01.11.2024."
-    source:
-      document: GOST_33984_1_2023
-      clause: "scope/status"
-      url: https://protect.gost.ru/gost/details/cc63967a-4b16-4f7d-bcc3-db74dd0decff
+    statement: "Для новых пассажирских и грузопассажирских лифтов использовать действующий ГОСТ 33984.1-2023; ГОСТ 33984.1-2016 заменен с 01.11.2024."
+    source: {document: GOST_33984_1_2023, clause: "status/scope", url: "https://protect.gost.ru/gost/details/cc63967a-4b16-4f7d-bcc3-db74dd0decff"}
 
   - id: vertical.standard.accessibility_2019
     automation: validation_only
-    statement: "Специальные требования доступности новых лифтов для инвалидов и других МГН проверять по действующему ГОСТ 33652-2019 с актуальными поправками, включая ИУС 5-2026."
-    source:
-      document: GOST_33652_2019
-      clause: "scope/status"
-      url: https://protect.gost.ru/gost/details/c476d6a7-a6bb-4dc5-8c2c-e2183e9df95f
+    statement: "Специальные требования доступности новых лифтов для инвалидов и других МГН проверять по ГОСТ 33652-2019 с актуальными поправками, включая ИУС 5-2026."
+    source: {document: GOST_33652_2019, clause: "status/scope", url: "https://protect.gost.ru/gost/details/c476d6a7-a6bb-4dc5-8c2c-e2183e9df95f"}
 
 BIM_parameters_required:
   - building_function
@@ -117,21 +117,26 @@ BIM_parameters_required:
   - fire_service_requirement
 
 architectural_coordination:
-  - "Шахту, приямок, верхний этаж шахты и машинное помещение не назначать по усредненным библиотечным размерам: после определения требований выбирать реальное лифтовое оборудование/семейство и координировать с КР."
-  - "Размер кабины не равен размеру шахты. Хранить их раздельно."
-  - "Размер дверного строительного проема не равен чистому дверному проему лифта."
-  - "Если требуется лифт для пожарных подразделений, применять отдельные пожарные требования и профильный стандарт; обычный пассажирский лифт не считать автоматически пожарным."
-  - "При размещении лифтового холла совместно проверять эвакуацию, МГН, пожарные зоны/тамбур-шлюзы и ограждающие конструкции."
+  - "Шахту, приямок, верхний этаж шахты и машинное помещение не назначать по усредненным библиотечным размерам: после определения требований выбирать реальное оборудование и координировать с КР."
+  - "Размер кабины не равен размеру шахты; хранить их раздельно."
+  - "Строительный проем лифтовой двери не равен чистому дверному проему."
+  - "Если требуется лифт для пожарных подразделений, применять отдельные пожарные требования и профильный стандарт."
+  - "Лифтовый холл проверять совместно по эвакуации, МГН, пожарным зонам/тамбур-шлюзам и ограждающим конструкциям."
 
 agent_logic:
-  - "Не применять старый размер 1100x1400 мм как универсальную норму СП 59."
-  - "Не считать рекомендуемые 1100x2100/2100x1100 обязательными для всех жилых лифтов."
+  - "Минимум 1100×1400 мм по СП 59 п.6.2.14 является действующим для доступного пассажирского лифта; не удалять его без официального изменения самого пункта."
+  - "Не считать рекомендуемые 1100×2100/2100×1100 обязательными для всех жилых лифтов."
   - "Не определять число лифтов только по этажности; выполнять расчет пассажиропотока и специальные проверки."
-  - "Для общественного здания порог 9,9 м проверять по чистовым отметкам пола верхнего и первого этажей, а не по общей строительной высоте здания."
+  - "Для общественного здания порог 9,9 м проверять по чистовым отметкам пола верхнего и первого этажей."
   - "Геометрию шахты и технические зоны фиксировать после выбора оборудования и данных производителя."
 
+source_quality:
+  - "Статус СП и уровни изменений проверены по Росстандарту."
+  - "Числовые положения пп. 6.2.13-6.2.15 СП 59 и пп. 5.13-5.16 СП 118 повторно сверены по консолидированным текстам с учетом опубликованных изменений."
+
 sources:
-  - https://base.garant.ru/404976079/
-  - https://e-ecolog.ru/docs/4jVmXiIOENfUb-K-FBdMh/full
-  - https://protect.gost.ru/gost/details/cc63967a-4b16-4f7d-bcc3-db74dd0decff
-  - https://protect.gost.ru/gost/details/c476d6a7-a6bb-4dc5-8c2c-e2183e9df95f
+  - "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
+  - "https://protect.gost.ru/sp/changesdetails/7c9a7038-5d31-4756-8634-0f28d758b873"
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://protect.gost.ru/gost/details/cc63967a-4b16-4f7d-bcc3-db74dd0decff"
+  - "https://protect.gost.ru/gost/details/c476d6a7-a6bb-4dc5-8c2c-e2183e9df95f"

@@ -1,0 +1,87 @@
+checked_at: 2026-09-30
+primary_documents: [SP_1_13130_2020, SP_59_13330_2020, SP_54_13330_2022, SP_118_13330_2022]
+
+common_egress:
+  - id: egress.clear_height
+    source: SP_1_13130_2020
+    clause: "4.3.2"
+    auto_rule: true
+    default_min_clear_height_mm: 2000
+    note: "В СП предусмотрены отдельные исключения; агент обязан проверить применимость исключения, а не применять его по умолчанию."
+  - id: egress.horizontal_width
+    source: SP_1_13130_2020
+    clause: "4.3.3"
+    auto_rule: true
+    cases:
+      - {condition: "evacuees > 50", min_clear_width_mm: 1200}
+      - {condition: "passage to single workplace", min_clear_width_mm: 700}
+      - {condition: "otherwise", min_clear_width_mm: 1000}
+    note: "Дополнительные требования для отдельных классов зданий и МГН проверять отдельно."
+  - id: stair.evacuation_width_general
+    source: SP_1_13130_2020
+    clause: "4.4.1"
+    auto_rule: false
+    statement: >-
+      Ширина пути эвакуации по лестнице должна быть не менее требуемой ширины любого
+      эвакуационного выхода на нее и не менее значений, установленных п. 4.4.1 для
+      конкретного класса функциональной пожарной опасности и численности людей.
+  - id: stair.risers_count
+    source: SP_1_13130_2020
+    clause: "4.4.4"
+    auto_rule: true
+    normal_flight: {min_risers: 3, max_risers: 16}
+    first_floor_exception: {max_risers: 18, applies_to: "single-flight stair or one flight of two-/three-flight stair within first floor"}
+    exclusions: "проходы со ступенями между рядами мест в зрительных залах, спортивных сооружениях и аудиториях"
+  - id: stair.guardrails_2025
+    source: SP_1_13130_2020_change_3
+    clause: "4.3.5 as amended"
+    auto_rule: true
+    cases:
+      - {condition: "stair height > 450 mm", requirement: "guardrail with handrail"}
+      - {condition: "flight width > 1500 mm", requirement: "handrails on both sides"}
+      - {condition: "flight width >= 2400 mm", requirement: "intermediate handrails required"}
+
+residential_F1_3:
+  source: SP_1_13130_2020
+  clause: "6.1.16, table 4"
+  stair_flights:
+    - {case: "sectional, 2-storey", min_width_mm: 1050, max_slope: "1:1.5"}
+    - {case: "sectional, 3+ storeys", min_width_mm: 1050, max_slope: "1:1.75"}
+    - {case: "corridor type and buildings >75 m", min_width_mm: 1200, max_slope: "1:1.75"}
+    - {case: "to basement/cellar deeper than 0.5 m and intra-apartment", min_width_mm: 900, max_slope: "1:1.25"}
+  important_revision_note: >-
+    Не использовать исключенную таблицу 6.1 старой редакции СП 54.13330.2022 как самостоятельный
+    источник. Изменение №2 перевело п. 6.4.2 на требования СП 1.13130.
+
+public_buildings:
+  - id: public.stair_landing_width
+    source: SP_118_13330_2022
+    clause: "5.10"
+    auto_rule: true
+    statement: "Ширина лестничной площадки должна быть не менее ширины марша."
+  - id: public.straight_intermediate_landing
+    source: SP_118_13330_2022
+    clause: "5.10"
+    auto_rule: true
+    min_length_mm: 1000
+    applies_to: "intermediate landing in a straight stair flight"
+
+accessibility:
+  source: SP_59_13330_2020
+  amendments_required: [1,2,3,4]
+  policy:
+    - "Параметры доступного маршрута, пандуса, площадок, дверей, санузлов и мест МГН не задавать из памяти или старых редакций."
+    - "Перед генерацией конкретного объекта извлекать требования для его функционального назначения и групп МГН из актуальной редакции СП 59.13330.2020."
+    - "Если маршрут одновременно является путем эвакуации, проверять СП 1.13130.2020 и СП 59.13330.2020 совместно."
+
+agent_logic:
+  - "Ширину лестницы определять по наиболее строгому применимому требованию: пожарное, функциональное, МГН, технологическое."
+  - "Размеры в модели проверять в свету там, где норма требует размер в свету; не подменять его расстоянием между осями/номинальным проемом."
+  - "Не использовать старые таблицы СП 54.13330.2022 после Изменения №2."
+  - "Не считать 1.2 м универсальной шириной всех коридоров и лестниц. Условие зависит от количества людей и назначения."
+
+sources:
+  - https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3
+  - https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51
+  - https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263
+  - https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e

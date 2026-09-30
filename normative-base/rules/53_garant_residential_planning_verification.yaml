@@ -1,0 +1,110 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимая сверка по ГАРАНТ ключевых планировочных правил СП 54.13330.2022 для квартир и жилых многоквартирных зданий."
+
+verified_documents:
+  - document: SP_54_13330_2022
+    garant_url: "https://base.garant.ru/404976077/"
+    verified_changes: [1,2]
+    change_2_effective_from: 2025-08-22
+
+residential_room_minima:
+  source: SP_54_13330_2022
+  clause: "5.11"
+  scope_note: "Применять в точной области пункта и с учетом типа жилищного фонда/задания на проектирование."
+  rules:
+    - id: garant.residential.living_room_one_room_apartment_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 14}
+      statement: "Минимальная площадь общей жилой комнаты в однокомнатной квартире — 14 м² в области применения пункта."
+    - id: garant.residential.living_room_multiroom_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 16}
+      statement: "Минимальная площадь общей жилой комнаты в квартире с двумя и более жилыми комнатами — 16 м² в области применения пункта."
+    - id: garant.residential.bedroom_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 8, two_person_min_area_m2: 10}
+      statement: "Минимальная площадь спальни — 8 м²; спальни на двух человек — 10 м²."
+    - id: garant.residential.kitchen_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 8}
+      statement: "Минимальная площадь кухни — 8 м²."
+    - id: garant.residential.kitchen_dining_kitchen_zone_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 6}
+      statement: "Минимальная площадь кухонной зоны в кухне-столовой — 6 м²; для вертикальной проверки зона приготовления пищи должна моделироваться отдельно от столовой части."
+    - id: garant.residential.one_room_kitchen_niche_area
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_area_m2: 5}
+      statement: "В однокомнатной квартире допускается кухня или кухня-ниша площадью не менее 5 м² в области применения пункта."
+
+residential_height:
+  source: SP_54_13330_2022
+  clause: "5.12"
+  rules:
+    - id: garant.residential.room_clear_height
+      automation: conditional
+      dimension_semantics: clear
+      cases:
+        - {climatic_subdistricts: ["IA","IБ","IГ","IД","IVА"], min_clear_height_mm: 2700}
+        - {climatic_subdistricts: "other", min_clear_height_mm: 2500}
+      statement: "Высота от пола до потолка жилых комнат и кухни/кухни-столовой зависит от климатического подрайона."
+    - id: garant.residential.internal_corridor_height
+      automation: conditional
+      dimension_semantics: clear
+      values: {min_clear_height_mm: 2100}
+      statement: "Высота внутриквартирных коридоров, холлов, передних, на антресоли и под ней должна быть не менее 2,1 м с учетом безопасности передвижения."
+
+wet_zone_vertical_coordination:
+  source: SP_54_13330_2022
+  rules:
+    - id: garant.residential.wet_room_over_living_or_kitchen_forbidden
+      automation: validation_only
+      statement: "Уборную, ванную комнату, душевую и совмещенный санузел не размещать над жилыми комнатами и кухнями нижерасположенной квартиры, кроме прямо предусмотренных СП исключений."
+      requires_vertical_zone_intersection_check: true
+
+    - id: garant.residential.kitchen_zone_over_living_forbidden
+      automation: validation_only
+      statement: "Кухню, кухню-нишу и кухонную зону кухни-столовой не размещать над жилой комнатой нижерасположенной квартиры в области запрета СП. Столовую часть кухни-столовой не считать автоматически кухонной зоной."
+      requires_vertical_zone_intersection_check: true
+      BIM_requirement: "Model kitchen_zone polygon separately from dining_zone polygon."
+
+residential_entry_vestibules:
+  source: SP_54_13330_2022
+  clause: "9.21"
+  automation: conditional
+  statement: "Необходимость двойного тамбура при входе в МКД определяется этажностью и районом строительства по таблице СП; по заданию допускается одинарный тамбур с воздушно-тепловой завесой при обеспечении требуемого микроклимата."
+  agent_action: "Не назначать одинарный или двойной тамбур только по типовой библиотеке; сначала определить климатический район и этажность."
+
+area_semantics:
+  source: SP_54_13330_2022
+  appendix: "A"
+  rules:
+    - id: garant.residential.room_area_measurement
+      automation: validation_only
+      statement: "Площадь жилых и вспомогательных помещений определять по размерам на высоте от 0 до 1,10 м от уровня пола согласно приложению А; не подменять эту площадь условной BIM-площадью по центру стены."
+    - id: garant.residential.kitchen_niche_area_separate
+      automation: validation_only
+      statement: "Площадь кухни-ниши рассчитывается отдельно от помещения, к которому она примыкает."
+    - id: garant.residential.balcony_loggia_area_inner_contour
+      automation: validation_only
+      statement: "Площадь балконов, лоджий, террас и антресолей определять по внутреннему контуру между стеной здания и ограждением/защитным ограждением."
+
+agent_logic:
+  - "Кухню-столовую моделировать как помещение с отдельными функциональными подзонами cooking/kitchen_zone и dining_zone, если вертикальные ограничения зависят от кухонной зоны."
+  - "Вертикальную проверку мокрых зон выполнять по геометрическому пересечению проекций помещений/подзон соседних этажей, а не только по совпадению имен помещений."
+  - "Минимальная площадь не заменяет проверку эргономики, мебели, оборудования, проходов и доступности."
+  - "Не применять нормы СП 54 к встроенным общественным помещениям; их планировочные параметры проверять по СП 118 и специальным нормам."
+  - "Перед выпуском модели 2027+ повторно проверить наличие новых изменений СП 54 после Изменения №2."
+
+sources:
+  - "https://base.garant.ru/404976077/"
+  - "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+  - "https://base.garant.ru/411480975/"
+  - "https://base.garant.ru/410553073/53f89421bbdaf741eb2d1ecc4ddb4c33/"

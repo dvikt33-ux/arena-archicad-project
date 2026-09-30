@@ -1,0 +1,180 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  source_document: "СП 1.13130.2020"
+  source_revision: "с изменениями №1, №2, №3"
+  revision_effective_from: 2025-07-03
+  source_status_url: "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  source_current_text_url: "https://www.consultant.ru/document/cons_doc_LAW_351940/"
+  policy: "Fire dimensions are clear dimensions unless a clause states otherwise. Function/occupancy/height conditions must be resolved before rule execution."
+
+rules:
+  - id: FIRE-SEM-001
+    topic: clear_dimensions
+    rule_type: hard_rule
+    statement: "Evacuation way/exit dimensions and geometric parameters of their structural elements stated by the SP are clear dimensions unless specifically stated otherwise."
+    source_clause: "4.1.4"
+    model_field: clear_dimension
+    confidence: high
+
+  - id: FIRE-EXIT-HEIGHT-001
+    topic: evacuation_exit_height
+    rule_type: conditional_rule
+    statement: "Evacuation exit clear height is generally at least 1.9 m."
+    minimum_clear_height_mm: 1900
+    source_clause: "4.2.18"
+    exceptions:
+      - condition: "reconstruction where work does not affect these exits, or architectural monument; justification required"
+        minimum_clear_height_mm: 1500
+      - condition: "room without permanent occupancy or room with a single workplace"
+        minimum_clear_height_mm: 1800
+    additional_condition: "If exit height is below 1.9 m, top edge marking and injury protection are required."
+    confidence: high
+
+  - id: FIRE-EXIT-WIDTH-001
+    topic: evacuation_exit_width
+    rule_type: conditional_rule
+    statement: "General minimum clear width of an evacuation exit is 0.8 m."
+    minimum_clear_width_mm: 800
+    source_clause: "4.2.19"
+    exceptions:
+      - condition: "technical room or storage <=20 m2 without permanent workplaces, toilet/shower cubicle, sanitary room, or room with a single workplace"
+        minimum_clear_width_mm: 600
+      - condition: "50 or more people evacuate through the exit from a room"
+        minimum_clear_width_mm: 1200
+    confidence: high
+
+  - id: FIRE-STAIR-EXIT-001
+    topic: stair_enclosure_exit_width
+    rule_type: conditional_rule
+    statement: "Exit from a stair enclosure to outside or to a vestibule must be at least the required evacuation-path width along the stair flight; for F2.1, F2.2 and F4.1 it must be at least the stair-flight width."
+    source_clause: "4.2.20"
+    condition_when_required_width_ge_1200:
+      multiple_exits_allowed: true
+      total_width_must_be_at_least_required: true
+      each_exit_minimum_clear_width_mm: 900
+    confidence: high
+
+  - id: FIRE-PATH-WIDTH-001
+    topic: horizontal_evacuaction_path_width
+    rule_type: conditional_rule
+    statement: "Minimum clear width of horizontal evacuation path sections and ramps depends on people count/use."
+    source_clause: "4.3.3"
+    conditions:
+      - condition: "corridor or other evacuation path used by more than 50 people"
+        minimum_clear_width_mm: 1200
+      - condition: "passage to a single workplace"
+        minimum_clear_width_mm: 700
+      - condition: "all other cases under this general clause"
+        minimum_clear_width_mm: 1000
+    guardrail: "Function-specific sections of СП 1.13130 may impose larger or different requirements; apply the stricter applicable rule after classification."
+    confidence: high
+
+  - id: FIRE-CORRIDOR-DOOR-001
+    topic: effective_corridor_width
+    rule_type: conditional_rule
+    statement: "When room doors open into a corridor, effective evacuation width is reduced by door-leaf intrusion under clause 4.3.4."
+    source_clause: "4.3.4"
+    cases:
+      - condition: "doors on one side"
+        width_reduction: "0.5 * door_leaf_width"
+      - condition: "doors on both sides and minimum distance between any opposite doors >=10 m"
+        width_reduction: "0.5 * door_leaf_width"
+      - condition: "doors on both sides otherwise"
+        width_reduction: "1.0 * door_leaf_width"
+    exception: "Does not apply to storey corridors/halls in F1.3 sections between apartment exit and stair-enclosure exit."
+    confidence: high
+
+  - id: FIRE-TAMBUR-001
+    topic: evacuation_tambur_geometry
+    rule_type: hard_rule
+    statement: "Tambur/tambur-lock on evacuation routes must be wider than the door opening by at least 0.5 m; depth must exceed the door-leaf width by at least 0.5 m and be at least 1.5 m."
+    source_clause: "4.3.11"
+    minimum_extra_width_over_door_opening_mm: 500
+    minimum_extra_depth_over_door_leaf_mm: 500
+    absolute_minimum_depth_mm: 1500
+    multi_door_condition: "Swing trajectories of two or more doors entering the tambur/tambur-lock must not intersect."
+    confidence: high
+
+  - id: FIRE-STAIR-WIDTH-001
+    topic: evacuation_stair_width
+    rule_type: conditional_rule
+    statement: "Clear width of an evacuation stair must be at least the required width of any evacuation exit onto it and at least the applicable clause-4.4.1 minimum."
+    source_clause: "4.4.1"
+    cases:
+      - condition: "F1.1, F2.1, F2.2, F3.4, F4.1; OR >200 people on any floor except first; OR public building height >50 m"
+        minimum_clear_width_mm: 1350
+      - condition: ">600 people on any floor except first"
+        minimum_clear_width_mm: 1600
+      - condition: "other buildings under clause 4.4.1 except F1.4, F5, and F1.3 >75 m"
+        minimum_clear_width_mm: 1200
+      - condition: "F1.3 building height <75 m"
+        minimum_clear_width_mm: 1050
+      - condition: "stair leads to a single workplace or evacuates no more than 5 people"
+        minimum_clear_width_mm: 700
+      - condition: "all other cases under clause 4.4.1"
+        minimum_clear_width_mm: 900
+    minimum_clear_height_mm: 2200
+    precedence_note: "Where several conditions apply, select the governing applicable requirement; do not blindly use list order."
+    confidence: high
+
+  - id: FIRE-STAIR-LANDING-001
+    topic: evacuation_stair_landings
+    rule_type: conditional_rule
+    statement: "Stair landing width is at least the stair-flight width; in front of lifts with hinged doors it is at least stair width + half lift-door width, and at least 1.6 m. Intermediate landing in a straight flight is at least 1.0 m long."
+    source_clause: "4.4.2"
+    landing_min_width_relation: ">= stair_flight_clear_width"
+    hinged_lift_landing_min_relation: ">= stair_flight_clear_width + 0.5 * lift_door_width"
+    hinged_lift_landing_absolute_minimum_mm: 1600
+    straight_flight_intermediate_landing_min_length_mm: 1000
+    door_swing_guardrail: "Doors opening to the stair enclosure in fully open position must not reduce required landing/flight width."
+    confidence: high
+
+  - id: FIRE-EXIT-SEPARATION-001
+    topic: evacuation_exit_separation
+    rule_type: conditional_rule
+    statement: "Where two or more evacuation exits are required, they must be dispersed according to clause 4.2.16."
+    source_clause: "4.2.16"
+    room_rule: "minimum distance between nearest edges of the most remote exits >= 0.5 * maximum room diagonal"
+    corridor_rule: "L >= 0.4 * D, where D is corridor length"
+    confidence: high
+
+  - id: FIRE-COUNT-001
+    topic: evacuation_exit_count
+    rule_type: hard_rule
+    statement: "Number of evacuation exits from a building must be not less than the number of evacuation exits from any floor."
+    source_clause: "4.2.15"
+    confidence: high
+
+  - id: FIRE-SUM-WIDTH-001
+    topic: evacuation_exit_total_width
+    rule_type: hard_rule
+    statement: "Where two or more evacuation exits are required, the required total width must remain satisfied when any one exit is excluded."
+    source_clause: "4.2.17"
+    confidence: high
+
+  - id: FIRE-MGN-001
+    topic: fire_accessibility_interaction
+    rule_type: conditional_rule
+    statement: "For MGN evacuation, apply section 9.3 conditions in addition to general rules."
+    source_clause: "9.3.2-9.3.4"
+    conditions:
+      - condition: ">10 people of mobility groups M2-M4, NM, NT simultaneously in a room"
+        minimum_evacuation_exits: 2
+      - condition: ">15 evacuees of groups M2-M4"
+        minimum_exit_clear_width_mm: 1200
+      - condition: ">5 people of groups NM and NT"
+        minimum_exit_clear_width_mm: 1200
+      - condition: "people of group M4 are present (except F1.3)"
+        minimum_exit_clear_width_mm: 900
+      - condition: "horizontal evacuation path/ramps used by >15 people of M2/M3 or intended for M4"
+        minimum_clear_width_mm: 1200
+    confidence: high
+
+  - id: FIRE-GUARD-001
+    topic: function_specific_fire_rules
+    rule_type: do_not_infer
+    statement: "General section-4 dimensions are only a baseline. Functional sections (F1.x/F2/F3/F4/F5 etc.), population, height, fire resistance, construction fire hazard, underground conditions and MGN can impose different/larger requirements. Resolve all applicable clauses before acceptance."
+    confidence: high

@@ -1,0 +1,388 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  policy: "Only verified clauses/product tables are executable. Typical practice is never promoted to a hard rule."
+
+rule_types:
+  - hard_rule
+  - conditional_rule
+  - preferred_coordination
+  - catalog_value
+  - requires_calculation
+  - do_not_infer
+  - draft_not_effective
+
+rules:
+  - id: MOD-001
+    topic: modular_coordination
+    rule_type: hard_rule
+    statement: "Basic coordination module M equals 100 mm."
+    values:
+      M_mm: 100
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "5.1"
+    effective_from: 2013-01-01
+    status: active
+    source_status_url: "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-002
+    topic: modular_coordination
+    rule_type: preferred_coordination
+    statement: "Defined multimodules for coordination are 60M, 30M, 15M, 12M, 6M and 3M."
+    values:
+      multimodules_mm: [6000, 3000, 1500, 1200, 600, 300]
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "5.2.1"
+    effective_from: 2013-01-01
+    status: active
+    source_status_url: "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-003
+    topic: grid_and_structural_spans
+    rule_type: preferred_coordination
+    statement: "In frame buildings, modular steps and corresponding slab/beam/truss lengths are preferably multiples of 60M and 30M; for some building types also 12M and 15M."
+    preferred_modules_mm: [6000, 3000, 1200, 1500]
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "5.11"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-004
+    topic: openings_and_piers
+    rule_type: preferred_coordination
+    statement: "3M and 6M are preferred for subdivision of structural elements, dimensions of openings and piers in external walls, and partition placement."
+    preferred_modules_mm: [300, 600]
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "5.12"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+    guardrail: "This is a coordination preference, not proof that a masonry pier of that width is structurally sufficient."
+
+  - id: MOD-005
+    topic: additive_dimensions
+    rule_type: preferred_coordination
+    statement: "Additive element dimensions, spans, steps and floor heights not requiring large planning elements are preferably multiples of 3M, 6M and 12M."
+    preferred_modules_mm: [300, 600, 1200]
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "6.5"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-006
+    topic: vertical_coordination
+    rule_type: preferred_coordination
+    statement: "Coordination floor heights and corresponding vertical dimensions for columns, wall panels, large openings and gates use 3M/6M; small openings, windows and doors are multiples of M."
+    floor_height_modules_mm: [300, 600]
+    small_opening_module_mm: 100
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "6.6"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+    guardrail: "This does not replace function-specific minimum clear-height requirements."
+
+  - id: MOD-007
+    topic: ceiling_service_zone
+    rule_type: conditional_rule
+    statement: "If engineering services/equipment are placed between suspended ceiling and underside of slab, the minimum coordination height of that zone is 3M; larger dimensions use M increments."
+    applicability:
+      engineering_services_in_ceiling_void: true
+    minimum_mm: 300
+    increment_above_minimum_mm: 100
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "6.8"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-008
+    topic: independent_cross_sections
+    rule_type: preferred_coordination
+    statement: "Coordination dimensions independent of the main grid (e.g. column/beam sections, wall/slab thicknesses) are preferably multiples of M, 1/2M or 1/5M."
+    preferred_modules_mm: [100, 50, 20]
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "6.10"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-009
+    topic: coordination_vs_constructive
+    rule_type: hard_rule
+    statement: "Constructive element dimensions are derived from coordination dimensions with the relevant joint/gap parts accounted for; coordination and constructive dimensions must be stored separately."
+    formula_semantics: "constructive = coordination - relevant_gap_parts (or project-specific adjustment where the product standard explicitly permits it)"
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "6.11"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: MOD-010
+    topic: non_modular_products
+    rule_type: do_not_infer
+    statement: "Use of modular coordination does not itself prohibit products that do not conform to the modular system."
+    source_document: "ГОСТ 28984-2011"
+    source_clause: "4.8"
+    status: active
+    source_text_url: "https://base.garant.ru/70413624/"
+    confidence: high
+
+  - id: ACC-001
+    topic: geometric_accuracy
+    rule_type: hard_rule
+    statement: "For current Russian accuracy references, do not execute obsolete ГОСТ 21778-81, ГОСТ 21779-82 or ГОСТ 26607-85 as the active baseline."
+    replacements:
+      "ГОСТ 21778-81": "ГОСТ Р 58938-2020"
+      "ГОСТ 21779-82": "ГОСТ Р 58942-2020"
+      "ГОСТ 26607-85": "ГОСТ Р 58944-2020"
+    effective_from: 2021-01-01
+    source_urls:
+      - "https://protect.gost.ru/gost/details/e8387f75-b288-44e8-a032-0b0ea86e10ec"
+      - "https://protect.gost.ru/gost/details/0404600e-8ced-445e-a1ea-493e4bf6f795"
+      - "https://protect.gost.ru/gost/changesdetails/2820ebab-2f75-4be3-953e-a2734fc6e19c"
+    confidence: high
+
+  - id: SLAB-STATUS-001
+    topic: hollow_core_slabs
+    rule_type: hard_rule
+    statement: "Use ГОСТ 9561-2025 for the current hollow-core slab product baseline; ГОСТ 9561-2016 was replaced from 2026-01-01."
+    source_document: "ГОСТ 9561-2025"
+    source_clause: "status / introduction data"
+    effective_from: 2026-01-01
+    replaces: "ГОСТ 9561-2016"
+    source_status_url: "https://protect.gost.ru/gost/details/2cad8d31-5b41-45ad-9eb6-0e0125c69b15"
+    confidence: high
+
+  - id: SLAB-TYPES-001
+    topic: hollow_core_slabs
+    rule_type: catalog_value
+    statement: "Standard slab type geometry and support-side classification."
+    source_document: "ГОСТ 9561-2025"
+    source_clause: "4.1.2"
+    status: active
+    types:
+      - {type: "1ПК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 159, support_sides: 2}
+      - {type: "1ПКТ", thickness_mm: 220, void_shape: "round", void_diameter_mm: 159, support_sides: 3}
+      - {type: "1ПКК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 159, support_sides: 4}
+      - {type: "2ПК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 140, support_sides: 2}
+      - {type: "2ПКТ", thickness_mm: 220, void_shape: "round", void_diameter_mm: 140, support_sides: 3}
+      - {type: "2ПКК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 140, support_sides: 4}
+      - {type: "3ПК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 127, support_sides: 2}
+      - {type: "3ПКТ", thickness_mm: 220, void_shape: "round", void_diameter_mm: 127, support_sides: 3}
+      - {type: "3ПКК", thickness_mm: 220, void_shape: "round", void_diameter_mm: 127, support_sides: 4}
+      - {type: "4ПК", thickness_mm: 260, void_shape: "round", void_diameter_mm: 159, support_sides: 2, note: "upper-edge contour recesses"}
+      - {type: "5ПК", thickness_mm: 260, void_shape: "round", void_diameter_mm: 180, support_sides: 2}
+      - {type: "6ПК", thickness_mm: 300, void_shape: "round", void_diameter_mm: 203, support_sides: 2}
+      - {type: "7ПК", thickness_mm: 160, void_shape: "round", void_diameter_mm: 114, support_sides: 2}
+      - {type: "ПГ", thickness_mm: 260, void_shape: "pear-shaped", support_sides: 2}
+      - {type: "1.5ПБ", thickness_mm: 150, forming: "continuous", support_sides: 2}
+      - {type: "1.6ПБ", thickness_mm: 160, forming: "continuous", support_sides: 2}
+      - {type: "1.8ПБ", thickness_mm: 180, forming: "continuous", support_sides: 2}
+      - {type: "2.2ПБ", thickness_mm: 220, forming: "continuous", support_sides: 2}
+      - {type: "2.65ПБ", thickness_mm: 265, forming: "continuous", support_sides: 2}
+      - {type: "3ПБ", thickness_mm: 300, forming: "continuous", support_sides: 2}
+      - {type: "3.2ПБ", thickness_mm: 320, forming: "continuous", support_sides: 2}
+      - {type: "3.3ПБ", thickness_mm: 330, forming: "continuous", support_sides: 2}
+      - {type: "4ПБ", thickness_mm: 400, forming: "continuous", support_sides: 2}
+      - {type: "4.5ПБ", thickness_mm: 450, forming: "continuous", support_sides: 2}
+      - {type: "5ПБ", thickness_mm: 500, forming: "continuous", support_sides: 2}
+    source_text_url: "https://meganorm.ru/mega_doc/norm_update_01012026/gost_gosudarstvennyj-standart/0/gost_9561-2025_mezhgosudarstvennyy_standart_plity_perekrytiy.html"
+    confidence: high
+
+  - id: SLAB-COORD-001
+    topic: hollow_core_slabs
+    rule_type: catalog_value
+    statement: "Coordination length/width ranges for the most commonly used slab types."
+    source_document: "ГОСТ 9561-2025"
+    source_clause: "4.1.3, Table 1"
+    status: active
+    series:
+      - types: ["1ПК", "2ПК", "3ПК"]
+        length_mm: {range: [2400, 6600], step: 300, additional: [7200, 7500]}
+        width_mm: [1000, 1200, 1500, 1800, 2400, 3000, 3600]
+      - types: ["1ПК"]
+        length_mm: [9000]
+        width_mm: [1000, 1200, 1500]
+      - types: ["1ПКТ", "2ПКТ", "3ПКТ"]
+        length_mm: {range: [3600, 6600], step: 300, additional: [7200, 7500]}
+        width_mm: {range: [2400, 3600], step: 300}
+      - types: ["1ПКК", "2ПКК", "3ПКК"]
+        length_mm: {range: [2400, 6600], step: 300}
+        width_mm: {range: [4800, 6600], step: 300, additional: [7200]}
+      - types: ["4ПК"]
+        length_mm: {range: [2400, 6600], step: 300, additional: [7200, 9000]}
+        width_mm: [1000, 1200, 1500]
+      - types: ["5ПК"]
+        length_mm: [6000, 9000, 12000]
+        width_mm: [1000, 1200, 1500]
+      - types: ["6ПК"]
+        length_mm: [12000]
+        width_mm: [1000, 1200, 1500]
+      - types: ["7ПК"]
+        length_mm: {range: [3600, 6300], step: 300}
+        width_mm: [1000, 1200, 1500, 1800]
+      - types: ["ПГ"]
+        length_mm: [6000, 9000, 12000]
+        width_mm: [1000, 1200, 1500]
+      - types: ["1.5ПБ", "1.6ПБ", "1.8ПБ", "2.2ПБ", "2.65ПБ", "3ПБ", "3.2ПБ", "3.3ПБ", "4ПБ", "4.5ПБ", "5ПБ"]
+        length_mm: "manufacturer_forming_equipment"
+        width_mm: [1000, 1200, 1500]
+    source_text_url: "https://meganorm.ru/mega_doc/norm_update_01012026/gost_gosudarstvennyj-standart/0/gost_9561-2025_mezhgosudarstvennyy_standart_plity_perekrytiy.html"
+    confidence: high
+
+  - id: SLAB-DIM-001
+    topic: hollow_core_slabs
+    rule_type: conditional_rule
+    statement: "For non-PB types, constructive length/width are derived from coordination dimensions with a1/a2/a3 project adjustments specified by the standard; the listed additional dimensions must be refined for the specific building project."
+    source_document: "ГОСТ 9561-2025"
+    source_clause: "4.1.4, Table 2"
+    status: active
+    guardrail: "Do not equate coordination length to manufactured/constructive length without resolving the applicable case."
+    source_text_url: "https://meganorm.ru/mega_doc/norm_update_01012026/gost_gosudarstvennyj-standart/0/gost_9561-2025_mezhgosudarstvennyy_standart_plity_perekrytiy.html"
+    confidence: high
+
+  - id: SLAB-BEARING-001
+    topic: hollow_core_slabs
+    rule_type: requires_calculation
+    statement: "No universal slab bearing depth is encoded. Bearing/support detailing must come from the structural design, applicable product working drawings and verified calculation/detailing requirements."
+    prohibited_shortcuts:
+      - "bearing_depth_mm = 120"
+      - "bearing_depth_mm = any single remembered typical value"
+    rationale: "ГОСТ 9561-2025 standardizes slab products but does not justify a universal bearing depth for every wall/material/load/seismic condition."
+    confidence: high
+
+  - id: SLAB-CUSTOM-001
+    topic: hollow_core_slabs
+    rule_type: catalog_value
+    statement: "By manufacturer-consumer agreement, slabs with types/sizes differing from those listed by the standard may be manufactured if the other standard requirements are met."
+    source_document: "ГОСТ 9561-2025"
+    source_clause: "4.1.1"
+    status: active
+    source_text_url: "https://meganorm.ru/mega_doc/norm_update_01012026/gost_gosudarstvennyj-standart/0/gost_9561-2025_mezhgosudarstvennyy_standart_plity_perekrytiy.html"
+    confidence: high
+
+  - id: BRICK-001
+    topic: ceramic_masonry_units
+    rule_type: catalog_value
+    statement: "Nominal ceramic brick sizes from ГОСТ 530-2012 Table 2."
+    source_document: "ГОСТ 530-2012"
+    source_clause: "4.2.1, Table 2"
+    status: active
+    brick_formats:
+      - {format: "1NF", length_mm: 250, width_mm: 120, height_mm: 65}
+      - {format: "0.7NF", length_mm: 250, width_mm: 85, height_mm: 65}
+      - {format: "1.4NF", length_mm: 250, width_mm: 120, height_mm: 88}
+      - {format: "0.5NF", length_mm: 250, width_mm: 60, height_mm: 65}
+      - {format: "1.3NF", length_mm: 288, width_mm: 138, height_mm: 65}
+      - {format: "1.8NF", length_mm: 288, width_mm: 138, height_mm: 88}
+      - {format: "0.8NF", length_mm: 250, width_mm: 120, height_mm: 55}
+    horizontal_void_brick_formats:
+      - {format: "1.4NF", length_mm: 250, width_mm: 120, height_mm: 88}
+      - {format: "1.8NF", length_mm: 250, width_mm: 200, height_mm: 70}
+    source_status_url: "https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc"
+    source_text_url: "https://meganorm.ru/mega_doc/norm/gost_gosudarstvennyj-standart/3/gost_530-2012_mezhgosudarstvennyy_standart_kirpich_i_kamen.html"
+    confidence: high
+
+  - id: MASONRY-PIER-001
+    topic: masonry_piers
+    rule_type: requires_calculation
+    statement: "A masonry pier dimension cannot be accepted solely because it is a multiple of a brick or 3M/6M. Structural adequacy must be checked under the current masonry design standard and project loads/geometry/material data."
+    source_document: "СП 15.13330.2020"
+    status: active
+    source_status_url: "https://protect.gost.ru/sp/changesdetails/f73de534-f2be-416e-9ae9-2ac67ceee5e8"
+    required_inputs_minimum:
+      - wall structural role
+      - masonry unit and mortar/material properties
+      - loads and eccentricities
+      - wall/pier geometry and slenderness
+      - opening arrangement
+      - seismic conditions if applicable
+      - fire and durability conditions where applicable
+    confidence: high
+
+  - id: MASONRY-JOINT-001
+    topic: masonry_joints
+    rule_type: do_not_infer
+    statement: "No universal mortar-joint thickness is encoded in this baseline until the current execution clause and its tolerances are extracted and verified."
+    blocked_values: ["10 mm universal", "12 mm universal"]
+    confidence: high
+
+  - id: LINTEL-001
+    topic: lintels
+    rule_type: catalog_value
+    statement: "ГОСТ 948-2016 is the current product standard for reinforced-concrete lintels for brick-wall buildings; its standardized products are catalogue candidates, not automatic selections."
+    source_document: "ГОСТ 948-2016"
+    status: active
+    source_status_url: "https://protect.gost.ru/gost/details/33107f24-da2a-4700-8d8e-a3fdcba7ffb4"
+    confidence: high
+
+  - id: LINTEL-002
+    topic: lintels
+    rule_type: requires_calculation
+    statement: "Do not select a lintel from opening width alone. Resolve loads, wall configuration, bearing/support and the exact current product table/working drawing first."
+    prohibited_shortcut: "lintel_type = f(opening_width_only)"
+    confidence: high
+
+  - id: WINDOW-001
+    topic: windows
+    rule_type: catalog_value
+    statement: "ГОСТ 23166-2024 is the current general product baseline for window and balcony blocks."
+    source_document: "ГОСТ 23166-2024"
+    effective_from: 2024-04-01
+    status: active
+    source_status_url: "https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d"
+    confidence: high
+
+  - id: WINDOW-002
+    topic: rough_openings
+    rule_type: hard_rule
+    statement: "The model must distinguish window-block dimensions from wall rough-opening dimensions and installation-joint geometry."
+    source_documents: ["ГОСТ 23166-2024", "ГОСТ 30971-2012"]
+    status: active
+    source_urls:
+      - "https://protect.gost.ru/gost/details/a64d7437-05ff-4621-8339-53cd7418810d"
+      - "https://protect.gost.ru/gost/details/09b731bf-531e-428b-8ef9-556ed2d1c110"
+    prohibited_shortcut: "rough_opening = product_nominal_dimension"
+    confidence: high
+
+  - id: HEIGHT-001
+    topic: floor_heights
+    rule_type: do_not_infer
+    statement: "There is no universal 3000 mm floor-to-floor or universal clear-room height in this base. Functional minimum heights depend on the building/room type and other current requirements."
+    permitted_use: "Use ГОСТ 28984 modular coordination for the coordination grid only; retrieve the applicable functional SP clause before accepting a clear height."
+    confidence: high
+
+  - id: FIRE-DIM-001
+    topic: evacuation_dimensions
+    rule_type: do_not_infer
+    statement: "Do not generate evacuation width, stair width, exit width or travel distance from remembered typical values. Apply current СП 1.13130.2020 clauses only after functional class, occupancy and other applicability conditions are known."
+    source_document: "СП 1.13130.2020"
+    source_status_url: "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+    confidence: high
+
+  - id: ACCESS-DIM-001
+    topic: accessibility_dimensions
+    rule_type: do_not_infer
+    statement: "Do not generate accessibility clearances from a generic template. Apply the current СП 59.13330.2020 clause only after route/object conditions are known."
+    source_document: "СП 59.13330.2020"
+    source_status_url: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
+    confidence: high
+
+  - id: THERMAL-001
+    topic: envelope_thickness
+    rule_type: requires_calculation
+    statement: "Do not select wall/roof insulation thickness from a fixed catalogue number. Determine it from the current thermal-protection calculation with current climate inputs and assembly/material data."
+    source_documents: ["СП 50.13330.2024", "СП 131.13330.2025"]
+    source_urls:
+      - "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+      - "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+    confidence: high

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dvikt33-ux/arena-archicad-project/normative-base/schema/rule-record.schema.json",
+  "title": "Normative rule record",
+  "description": "Minimum provenance and safety envelope for executable/guardrail rules in the architectural normative base.",
+  "type": "object",
+  "required": ["id", "topic", "rule_type", "statement", "confidence"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[A-Z0-9_-]+$"
+    },
+    "topic": {"type": "string", "minLength": 2},
+    "rule_type": {
+      "enum": [
+        "hard_rule",
+        "conditional_rule",
+        "preferred_coordination",
+        "catalog_value",
+        "requires_calculation",
+        "do_not_infer",
+        "draft_not_effective"
+      ]
+    },
+    "statement": {"type": "string", "minLength": 10},
+    "source_document": {"type": "string"},
+    "source_documents": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "source_clause": {"type": "string"},
+    "source_clauses": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "source_status_url": {"type": "string", "format": "uri"},
+    "source_text_url": {"type": "string", "format": "uri"},
+    "effective_from": {"type": "string", "format": "date"},
+    "status": {"type": "string"},
+    "confidence": {"enum": ["high"]},
+    "guardrail": {"type": "string"},
+    "blocked_reason": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "rule_type": {
+            "enum": ["hard_rule", "conditional_rule", "preferred_coordination", "catalog_value"]
+          }
+        },
+        "required": ["rule_type"]
+      },
+      "then": {
+        "anyOf": [
+          {"required": ["source_document"]},
+          {"required": ["source_documents"]},
+          {"required": ["references"]}
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {"rule_type": {"const": "draft_not_effective"}},
+        "required": ["rule_type"]
+      },
+      "then": {
+        "required": ["blocked_reason"]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

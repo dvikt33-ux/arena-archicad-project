@@ -1,0 +1,79 @@
+checked_at: 2026-09-30
+primary_documents: [GOST_530_2012, SP_70_13330_2012, SP_15_13330_2020]
+
+ceramic_products:
+  source: GOST_530_2012
+  nominal_sizes_mm:
+    brick_KR:
+      - {format: "1NF", length: 250, width: 120, height: 65}
+      - {format: "0.7NF", length: 250, width: 85, height: 65}
+      - {format: "1.4NF", length: 250, width: 120, height: 88}
+      - {format: "0.5NF", length: 250, width: 60, height: 65}
+      - {format: "1.3NF", length: 288, width: 138, height: 65}
+      - {format: "1.8NF", length: 288, width: 138, height: 88}
+      - {format: "0.8NF", length: 250, width: 120, height: 55}
+    horizontal_void_brick_KRG:
+      - {format: "1.4NF", length: 250, width: 120, height: 88}
+      - {format: "1.8NF", length: 250, width: 200, height: 70}
+  note: "Для керамических камней использовать точный ряд размеров таблицы 3 ГОСТ 530-2012; не подменять его условным 'двойным кирпичом'."
+
+mortar_joints:
+  source: SP_70_13330_2012
+  clause: "9.2.4"
+  auto_rule: true
+  horizontal_mm: 12
+  vertical_mm: 10
+  applies_to: "кладка из кирпича и камней правильной формы"
+
+construction_rules:
+  - id: masonry.small_piers_whole_brick
+    source: SP_70_13330_2012
+    clause: "9.2.2"
+    auto_rule: false
+    statement: >-
+      Кирпичные столбы, пилястры и простенки шириной в два с половиной кирпича и менее,
+      а также рядовые кирпичные перемычки и карнизы следует выполнять из отборного целого кирпича.
+  - id: masonry.half_brick_limit
+    source: SP_70_13330_2012
+    clause: "9.2.3"
+    auto_rule: false
+    statement: >-
+      Кирпич-половняк допускается только в забутовочных рядах и мало нагруженных каменных
+      конструкциях (например, участках стен под окнами) в количестве не более 10%.
+  - id: masonry.joints_fill
+    source: SP_70_13330_2012
+    clause: "9.2.5"
+    auto_rule: false
+    statement: >-
+      Горизонтальные и поперечные вертикальные швы стен, а также соответствующие швы в
+      перемычках, простенках и столбах должны заполняться раствором.
+
+geometry_helpers:
+  - id: masonry.1NF_running_pitch
+    type: derived_geometry_not_normative_dimension
+    inputs: {brick_length_mm: 250, vertical_joint_mm: 10}
+    result_mm: 260
+    use: >-
+      Удобный проверочный шаг для раскладки 1NF вдоль ложкового ряда. Это производное значение,
+      а не требование назначать каждый простенок или проем кратным 260 мм.
+  - id: masonry.1NF_course_pitch
+    type: derived_geometry_not_normative_dimension
+    inputs: {brick_height_mm: 65, horizontal_joint_mm: 12}
+    result_mm: 77
+    use: "Проверка высотной раскладки рядов 1NF."
+  - id: masonry.1_4NF_course_pitch
+    type: derived_geometry_not_normative_dimension
+    inputs: {brick_height_mm: 88, horizontal_joint_mm: 12}
+    result_mm: 100
+    use: "Проверка высотной раскладки рядов кирпича 1.4NF."
+
+agent_logic:
+  - "Перед расчетом простенка определить формат кирпича/камня, тип перевязки, толщину стены и положение проема относительно модульной/координационной сетки."
+  - "Не назначать ширину несущего простенка только по кратности кирпичу: несущая способность проверяется по СП 15.13330.2020."
+  - "Не считать 260/77/100 мм универсальными архитектурными модулями: это производные шаги конкретного изделия и нормативного шва."
+  - "Не применять правила обычного кирпичного шва к крупноформатным камням на клеевых/иных растворах без проверки соответствующего подраздела СП 70.13330.2012 и документации изготовителя."
+  - "Опирание плит, перемычек и балок не назначать по 'типовому' числу без проверки материала стены, проекта конструкций и действующей нормы."
+
+sources:
+  - https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc
+  - https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187

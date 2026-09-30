@@ -1,16 +1,22 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Классификация лестничных клеток и базовые архитектурные признаки Л1/Л2/Н1/Н2/Н3. Выбор типа выполняется по функциональному классу, высоте и специальным требованиям, а не по шаблону."
+purpose: "Классификация лестничных клеток и архитектурные признаки Л1/Л2/Н1/Н2/Н3. Выбор типа выполняется по функциональному классу, пожарной высоте, степени огнестойкости и специальным требованиям, а не по шаблону."
+
+revision_dependencies:
+  - {document: FEDERAL_LAW_123_FZ, article: 40, revision_checked: "2026-08-04"}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_7_13130_2013, verified_changes: [1,2,3]}
 
 legal_classification:
   source: FEDERAL_LAW_123_FZ
   source_article: "40"
-  revision_checked: "2026-08-04"
   types:
     L1:
+      ru_code: "Л1"
       category: ordinary
-      definition: "естественное освещение через остекленные или открытые проемы в наружных стенах на каждом этаже; также предусмотренный законом специальный случай подвального этажа"
+      definition: "естественное освещение через остекленные или открытые проемы в наружных стенах на каждом этаже"
     L2:
+      ru_code: "Л2"
       category: ordinary
       definition: "естественное освещение через остекленные или открытые проемы в покрытии"
     H1:
@@ -29,11 +35,11 @@ legal_classification:
 rules:
   - id: stairwell.type.must_be_explicit
     automation: auto
-    statement: "Каждая эвакуационная лестничная клетка в BIM должна иметь явный параметр stairwell_type (L1/L2/H1/H2/H3). Метка 'stair' или 'smoke-proof' без конкретного типа недостаточна для проверки."
+    statement: "Каждая эвакуационная лестничная клетка в BIM должна иметь явный параметр stairwell_type (L1/L2/H1/H2/H3) и русское нормативное обозначение Л1/Л2/Н1/Н2/Н3. Метка 'stair' или 'smoke-proof' без конкретного типа недостаточна."
 
   - id: stairwell.type.no_height_only_inference
     automation: forbidden_to_infer
-    statement: "Запрещено выбирать тип лестничной клетки только по высоте здания. Необходимо маршрутизировать требования конкретного функционального класса, высоты, этажности, пожарного отсека и специальных разделов СП 1."
+    statement: "Запрещено выбирать тип лестничной клетки только по высоте здания. Необходимо маршрутизировать требования конкретного функционального класса, пожарной высоты, степени огнестойкости, класса конструктивной пожарной опасности, пожарного отсека и специальных разделов СП 1."
     requires_object_classification: true
 
   - id: stairwell.H1.direct_external_exit
@@ -46,23 +52,117 @@ rules:
     source: {document: SP_1_13130_2020, clause: "4.4.12"}
     automation: conditional
     dimension_semantics: clear
-    statement: "Для лестничных клеток, на которые распространяется общее правило п. 4.4.12, в наружной стене на каждом этаже требуется световой проем с суммарной площадью остекления не менее 1,2 м² и хотя бы одним габаритным размером остекленной части не менее 0,6 м. Пункт содержит исключения, которые должны проверяться отдельно."
+    statement: "Для лестничных клеток, на которые распространяется общее правило п. 4.4.12, в наружной стене на каждом этаже требуется световой проем с суммарной площадью остекления не менее 1,2 м² и хотя бы одним габаритным размером остекленной части не менее 0,6 м. Исключения пункта проверяются отдельно."
     values: {min_total_glazing_area_m2: 1.2, min_one_glazed_dimension_mm: 600}
 
   - id: stairwell.no_daylight_height_route
     source: {document: SP_1_13130_2020, clause: "4.4.12"}
     automation: conditional
-    statement: "Если применяется предусмотренное п.4.4.12 решение лестничной клетки без естественного освещения: при высоте здания до 28 м используются Н2 или Н3; свыше 28 м — Н2 с входом на каждом этаже через тамбур-шлюз 1-го типа с подпором воздуха при пожаре. Дополнительно выполнять требования пункта к искусственному/аварийному обеспечению."
+    statement: "Если применяется предусмотренное п.4.4.12 решение лестничной клетки без естественного освещения: при высоте здания до 28 м используются Н2 или Н3; свыше 28 м — Н2 с входом на каждом этаже через тамбур-шлюз 1-го типа с подпором воздуха при пожаре. Дополнительно выполнять требования пункта к постоянному искусственному освещению, электроснабжению 1-й категории и фотолюминесцентным элементам."
     conditions: {natural_lighting: absent, special_clause_applicable: true}
     values: {height_boundary_mm: 28000}
     conflict_policy: "Не использовать как универсальное разрешение отменить окна: сначала проверить область применения и специальные нормы функционального класса."
 
-  - id: stairwell.L2.roof_light_opening
-    source: {document: SP_1_13130_2020, clause: "4.4.12"}
-    automation: validation_only
-    statement: "Лестничная клетка Л2 имеет отдельные требования к световому проему в покрытии; геометрию не выводить из правила для окон Л1/Н1/Н3. Проверять полный действующий пункт перед генерацией Л2."
+H1_external_air_zone:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.H1.air_zone_transition_width
+      clause: "4.4.14"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Переход через наружную воздушную зону лестничной клетки Н1 должен иметь ширину не менее 1,2 м."
+      conditions: {stairwell_type: H1}
+      values: {min_clear_width_mm: 1200}
+
+    - id: stairwell.H1.air_zone_guard_height
+      clause: "4.4.14"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота ограждения перехода через наружную воздушную зону Н1 должна быть не менее 1,2 м."
+      conditions: {stairwell_type: H1}
+      values: {min_guard_height_mm: 1200}
+
+    - id: stairwell.H1.air_zone_solid_pier
+      clause: "4.4.14"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Ширина глухого простенка в наружной воздушной зоне Н1 между проемами лестничной клетки и проемами коридора этажа должна быть не менее 1,2 м."
+      conditions: {stairwell_type: H1}
+      values: {min_solid_pier_width_mm: 1200}
+      conflict_policy: "Не подменять этим числом иные пожарные расстояния/простенки; проверять конкретную геометрию Н1."
+
+L1_application:
+  - id: stairwell.L1.general_height_scope
+    source: {document: SP_1_13130_2020, clause: "4.4.15"}
+    automation: conditional
+    statement: "Лестничные клетки Л1 могут предусматриваться в зданиях всех классов функциональной пожарной опасности высотой до 28 м, с учетом специальных требований соответствующих разделов СП 1; отдельный случай надстройки одного этажа проверяется по полному тексту нормы."
+    values: {general_max_fire_height_mm: 28000}
+    requires_object_classification: true
+    conflict_policy: "Разрешение п.4.4.15 не отменяет более строгие специальные требования функционального раздела."
+
+L2_geometry_and_application:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.L2.roof_light_geometry
+      clause: "4.4.12"
+      automation: conditional
+      statement: "Л2 должна иметь в покрытии световые проемы площадью не менее 4 м² при просвете между маршами не менее 0,7 м либо световую шахту на всю высоту лестничной клетки площадью горизонтального сечения не менее 2 м²."
+      conditions: {stairwell_type: L2}
+      values:
+        roof_light_opening_min_area_m2: 4
+        between_flights_clear_gap_min_mm: 700
+        alternative_light_shaft_min_section_area_m2: 2
+
+    - id: stairwell.L2.general_scope
+      clause: "4.4.16"
+      automation: conditional
+      statement: "В общем случае Л2 допускается в зданиях I-III степеней огнестойкости, классов конструктивной пожарной опасности C0/C1, функциональных классов Ф1-Ф4, как правило высотой не более 9 м. До 12 м допускается при выполнении условия автоматического открывания верхнего светового проема; лечебные учреждения со стационаром из этого повышения исключены."
+      conditions:
+        fire_resistance_degree: [I, II, III]
+        structural_fire_hazard_class: [C0, C1]
+        functional_fire_class_family: [F1, F2, F3, F4]
+      values: {general_max_fire_height_mm: 9000, conditional_max_fire_height_mm: 12000}
+      requires_object_classification: true
+      conflict_policy: "Не применять к специальному случаю Ф1.3 до 28 м без выполнения полного набора специальных мероприятий."
+
+    - id: stairwell.L2.general_share_limit
+      clause: "4.4.16"
+      automation: conditional
+      statement: "Для общего случая количество лестничных клеток Л2 (кроме зданий Ф1.3 и Ф1.4) — не более 50% общего количества соответствующих лестничных клеток; остальные должны иметь световые проемы в наружных стенах на каждом этаже."
+      conditions: {stairwell_type: L2, functional_fire_class_not_in: [F1.3, F1.4]}
+      values: {max_share_percent: 50}
+
+    - id: stairwell.L2.F1_3_up_to_28m_special_package
+      clause: "4.4.16"
+      automation: conditional
+      statement: "В жилых зданиях Ф1.3 I-II степени огнестойкости, C0/C1 высотой до 28 м Л2 допускается только как специальный пакет: противопожарные двери 2-го типа на каждом этаже, пожарная сигнализация и СОУЭ не ниже 2-го типа, аварийный выход из каждой квартиры выше 4 м, световой колодец между маршами шириной не менее 0,7 м и площадью не менее 4 м², светопрозрачный участок покрытия не менее 11,5 м², автоматически открываемый при пожаре фонарь площадью не менее 4 м² и эвакуационное освещение с электроснабжением 1-й категории."
+      conditions:
+        functional_fire_class: F1.3
+        fire_resistance_degree: [I, II]
+        structural_fire_hazard_class: [C0, C1]
+      values:
+        max_fire_height_mm: 28000
+        door_fire_resistance_type: 2
+        emergency_exit_required_for_apartments_above_height_mm: 4000
+        light_well_min_width_mm: 700
+        light_well_min_area_m2: 4
+        transparent_roof_area_min_m2: 11.5
+        auto_opening_smoke_hatch_min_area_m2: 4
+        SOUE_min_type: 2
+        emergency_lighting_power_reliability_category: 1
+      requires_object_classification: true
+      conflict_policy: "Если хотя бы одно условие специального пакета отсутствует или не подтверждено, Л2 до 28 м для Ф1.3 считать неприменимой."
+
+  agent_logic:
+    - "Не выбирать Л2 для экономии фасадных окон без проверки геометрии верхнего света, функционального класса, огнестойкости и специальных пожарных мероприятий."
+    - "Для Ф1.3 высотой более 9/12 м специальный пакет п.4.4.16 является единым набором; нельзя взять только фонарь 4 м² и игнорировать остальные условия."
 
 smoke_protection_boundary:
+  - id: stairwell.H2_opening_restrictions
+    source: {document: SP_1_13130_2020, clause: "4.4.13"}
+    automation: validation_only
+    statement: "В стенах Н2 не предусматривают иные проемы, кроме перечисленных п.4.4.13 неоткрываемых окон наружных стен, дверей в защищаемые помещения/коридоры/холлы/вестибюли или наружу и отверстий подачи воздуха для создания избыточного давления."
+
   - id: stairwell.H2_H3.smoke_pressure_is_engineering
     automation: forbidden_to_infer
     statement: "Подпор воздуха для Н2/Н3 является расчетным решением противодымной вентиляции. Архитектурный агент резервирует подтвержденную геометрию, но не рассчитывает расход/давление и не объявляет клетку Н2/Н3 только по наличию шахты."
@@ -70,24 +170,33 @@ smoke_protection_boundary:
 
 BIM_required_parameters:
   - stairwell_type
+  - stairwell_ru_type
   - functional_fire_class
   - building_fire_height
+  - fire_resistance_degree
+  - structural_fire_hazard_class
   - fire_compartment_id
   - natural_lighting_status
   - glazing_area_each_floor
   - min_glazed_dimension
   - direct_external_exit_status
-  - external_air_zone_geometry_if_H1
+  - external_air_zone_clear_width_if_H1
+  - external_air_zone_guard_height_if_H1
+  - external_air_zone_solid_pier_width_if_H1
+  - roof_light_opening_area_if_L2
+  - between_flights_clear_gap_if_L2
+  - light_shaft_area_if_L2
   - pressurization_system_reference_if_H2
   - vestibule_lock_geometry_if_H3
   - pressurization_system_reference_if_H3
 
 agent_logic:
   - "Код Н1/Н2/Н3 означает конкретную физическую схему защиты от дыма, а не уровень 'повышенной безопасности'."
-  - "Если выбран Н1 — проверить реальную наружную воздушную зону и непосредственный выход наружу."
+  - "Если выбран Н1 — проверить реальную наружную воздушную зону, ее размеры и непосредственный выход наружу."
   - "Если выбран Н3 — тамбур-шлюз должен присутствовать на каждом требуемом этаже и быть связан с проектом подпора."
   - "Не заменять функциональный выбор лестничной клетки наличием окна, вентилятора или тамбура по отдельности."
+  - "При высоте здания более 28 м маршрутизировать дополнительно п.4.4.18 и специальные функциональные разделы; не продолжать Л1 по инерции."
 
 sources:
-  - "https://meganorm.ru/mega_doc/fire_update_01092026/zakon/0/federalnyy_zakon_ot_22_07_2008_N_123-fz_red_ot_04_08_2026.html"
   - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://meganorm.ru/mega_doc/fire/prikaz/0/prikaz_mchs_rossii_ot_19_03_2020_N_194_red_ot_21_08_2024_ob.html"

@@ -1,0 +1,89 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимая текстовая сверка эвакуационных дверей, наружных площадок и входных тамбуров по консолидированным текстам системы ГАРАНТ."
+
+verified_documents:
+  - document: SP_1_13130_2020
+    garant_url: "https://base.garant.ru/74019594/"
+    verified_changes: [1,2,3]
+  - document: SP_118_13330_2022
+    garant_url: "https://base.garant.ru/404976079/"
+    verified_changes: [1,2,3,4,5]
+  - document: SP_59_13330_2020
+    garant_url: "https://base.garant.ru/400382837/"
+    verified_changes: [1,2,3,4]
+
+sp1_egress_doors:
+  source: SP_1_13130_2020
+  garant_url: "https://base.garant.ru/74019594/"
+  rules:
+    - id: garant.egress.external_landing_width
+      clause: "4.2.21"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Перед наружной дверью, являющейся эвакуационным выходом, предусматривается горизонтальная входная площадка шириной не менее 1,5 ширины полотна наружной двери."
+      formula: "landing_clear_width >= 1.5 * exterior_door_leaf_width"
+
+    - id: garant.egress.door_opening_direction
+      clause: "4.2.22"
+      automation: validation_only
+      statement: "Двери эвакуационных выходов и двери на путях эвакуации в общем случае открываются по направлению выхода из здания; исключения применять только в точной области пункта."
+      exceptions_verified:
+        - "premises F1.3 and F1.4"
+        - "rooms/routes for no more than 15 persons, except categories A and B"
+        - "storerooms <=200 m2 without permanent workplaces"
+        - "exit to type-3 stair landing"
+        - "external doors in northern climatic zone subdistricts listed by clause"
+        - "doors in partitions dividing corridors"
+
+    - id: garant.egress.smoke_protected_self_closing
+      clause: "4.2.24 as amended by change 1"
+      automation: conditional
+      statement: "Двери эвакуационных выходов из помещений и коридоров, защищаемых системой противодымной вентиляции, а также двери в перегородках, разделяющих коридоры, оборудуются приспособлениями для самозакрывания и уплотнением в притворах в области применения пункта."
+
+    - id: garant.egress.direct_to_stairwell_gate
+      clause: "4.2.25"
+      automation: validation_only
+      statement: "Эвакуационный выход из помещения непосредственно на лестничную клетку допускается только при выполнении условий пункта 4.2.25 и специальных исключений; обычная дверь помещения не должна автоматически подключаться к лестничной клетке."
+      requires_object_classification: true
+
+public_entrances:
+  source: SP_118_13330_2022
+  garant_url: "https://base.garant.ru/404976079/"
+  rules:
+    - id: garant.public.entrance_platform_level
+      clause: "5.1"
+      automation: conditional
+      dimension_semantics: level
+      statement: "Отметка площадки перед входом в общественное здание в общем случае принимается выше отметки тротуара не менее чем на 0,15 м; допускается уровень пола при защите помещений от осадков."
+      values: {general_level_difference_mm: 150}
+
+    - id: garant.public.visitor_entrance_vestibule_or_air_curtain
+      clause: "5.2"
+      automation: conditional
+      statement: "При всех наружных входах для посетителей на уровне входа предусматривают тамбуры или воздушно-тепловые завесы по СП 60.13330."
+
+    - id: garant.public.double_vestibule_cold_subdistricts
+      clause: "5.3"
+      automation: conditional
+      statement: "В климатических подрайонах IА, IБ и IГ входы в общественные здания должны иметь двойные тамбуры; планировка может быть прямой или с поворотом."
+      conditions: {climatic_subdistricts: ["IA","IБ","IГ"]}
+      exception: "Тамбур при лестничной клетке допускается не предусматривать, если выход из нее предназначен только для эвакуации согласно СП 1.13130."
+
+    - id: garant.public.at_least_one_accessible_entrance
+      clause: "5.4"
+      automation: conditional
+      statement: "В общественном здании или изолированном общественном блоке предусматривают минимум один вход, доступный для МГН."
+
+cross_check:
+  - "Основные числовые и логические требования данного файла дублируют rules/21_doors_egress_openings.yaml и rules/25_entrance_vestibules_lobbies.yaml только как независимая проверка источника ГАРАНТ."
+  - "При расхождении текста ГАРАНТ с официально опубликованным изменением применять точный текст изменения и блокировать спорное машинное правило до разрешения коллизии."
+  - "Для профиля 2027+ перед выпуском проекта повторно проверить наличие новых изменений СП 1, СП 118 и СП 59."
+
+sources:
+  - "https://base.garant.ru/74019594/"
+  - "https://base.garant.ru/408052163/"
+  - "https://base.garant.ru/410508814/"
+  - "https://base.garant.ru/404976079/"
+  - "https://base.garant.ru/405277335/"
+  - "https://base.garant.ru/400382837/"

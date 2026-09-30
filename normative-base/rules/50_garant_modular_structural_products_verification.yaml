@@ -1,0 +1,73 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимая сверка по системе ГАРАНТ модульной координации, сборных плит перекрытия и железобетонных перемычек для архитектурной BIM-базы 2027+."
+
+modular_coordination:
+  document: GOST_28984_2011
+  garant_url: "https://base.garant.ru/70413624/"
+  status: active
+  effective_from: 2013-01-01
+  verified_rules:
+    - id: garant.modular.base_module
+      clause: "5.1"
+      automation: auto
+      dimension_semantics: coordination
+      statement: "Основной модуль М для координации размеров равен 100 мм."
+      values: {M_mm: 100}
+    - id: garant.modular.multimodules
+      clause: "5.2.1"
+      automation: auto
+      dimension_semantics: coordination
+      statement: "Допускаемые мультимодули: 60М, 30М, 15М, 12М, 6М и 3М, то есть 6000, 3000, 1500, 1200, 600 и 300 мм."
+      values: {multimodules_mm: [6000,3000,1500,1200,600,300]}
+    - id: garant.modular.nonmodular_insert_allowed
+      clause: "3.22, 5.7"
+      automation: validation_only
+      statement: "Немодульные вставки/нейтральные зоны допускаются в предусмотренных стандартом местах, включая деформационные и осадочные швы и примыкание различных модульных сеток."
+    - id: garant.modular.not_absolute_product_ban
+      clause: "4.8"
+      automation: validation_only
+      statement: "Применение модульной координации не означает запрета продукции, не соответствующей модульным размерам; модульность не должна превращаться в универсальное округление каждого элемента."
+
+precast_floor_slabs:
+  document: GOST_26434_2025
+  garant_url: "https://base.garant.ru/412589920/"
+  status_for_2027: active
+  effective_from: 2026-01-01
+  replaces: GOST_26434_2015
+  activation_order_url: "https://base.garant.ru/412483688/"
+  policy:
+    - "Для проектов 2027+ использовать ГОСТ 26434-2025; ГОСТ 26434-2015 не использовать как текущую типоразмерную базу."
+    - "Координационные размеры плиты выбирать по актуальной таблице типа изделия; не генерировать произвольную плиту только из шага модульной сетки."
+    - "Размеры по ГОСТ 26434 не заменяют расчет несущей способности и проект КР."
+
+reinforced_concrete_lintels:
+  document: GOST_948_2016
+  garant_url: "https://base.garant.ru/71650404/"
+  status: active_with_amendment_1
+  amendment_1:
+    garant_url: "https://base.garant.ru/411629199/"
+    effective_from: 2025-06-01
+  verified_scope:
+    - "железобетонные перемычки из тяжелого бетона для проемов кирпичных стен зданий различного назначения"
+    - "допускается применение для стен из искусственных и природных камней"
+  rules:
+    - id: garant.lintel.current_amendment_required
+      automation: validation_only
+      statement: "Для модели 2027+ ГОСТ 948-2016 применять с Изменением №1; табличные типы и марки проверять по актуальной редакции."
+    - id: garant.lintel.project_specific_special_conditions
+      automation: forbidden_to_infer
+      statement: "Для агрессивной среды и зданий с расчетной сейсмичностью 7 баллов и более стандарт требует дополнительных требований проектной документации; обычная библиотечная марка не является достаточным решением."
+      requires_calculation: true
+
+cross_check_policy:
+  - "Этот файл является независимым аудитом существующих rules/00_modular_coordination.yaml, rules/02_precast_floor_slabs.yaml и rules/19_reinforced_concrete_lintels.yaml."
+  - "Если ГАРАНТ отображает базовый текст стандарта и отдельное изменение, приоритет для измененного пункта имеет официальный текст изменения."
+  - "Если для 2027 появляется новое утвержденное изменение, затронутые машинные правила блокируются до повторного постатейного аудита."
+
+sources:
+  - "https://base.garant.ru/70413624/"
+  - "https://base.garant.ru/412589920/"
+  - "https://base.garant.ru/412483688/"
+  - "https://base.garant.ru/71650404/"
+  - "https://base.garant.ru/411629199/"

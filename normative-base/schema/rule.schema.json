@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Normative BIM rule",
+  "type": "object",
+  "required": ["id", "source", "checked_at", "automation", "statement"],
+  "properties": {
+    "id": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["document", "clause"],
+      "properties": {
+        "document": {"type": "string"},
+        "clause": {"type": "string"},
+        "amendment": {"type": ["string", "integer", "null"]},
+        "url": {"type": ["string", "null"]}
+      }
+    },
+    "checked_at": {"type": "string", "format": "date"},
+    "effective_from": {"type": ["string", "null"], "format": "date"},
+    "effective_until": {"type": ["string", "null"], "format": "date"},
+    "registry_requirement_status": {
+      "enum": ["not_checked", "registered_requirement", "not_registered_as_requirement", "conditional", "not_applicable"]
+    },
+    "automation": {
+      "enum": ["auto", "conditional", "validation_only", "manual_calculation", "forbidden_to_infer"]
+    },
+    "dimension_semantics": {
+      "enum": ["clear", "coordination", "nominal_product", "constructive_product", "actual", "axis", "level", "not_applicable"]
+    },
+    "statement": {"type": "string"},
+    "conditions": {"type": ["object", "array", "null"]},
+    "values": {"type": ["object", "array", "number", "string", "null"]},
+    "derived": {"type": "boolean", "default": false},
+    "derived_from": {"type": ["array", "null"], "items": {"type": "string"}},
+    "requires_calculation": {"type": "boolean", "default": false},
+    "requires_manufacturer_data": {"type": "boolean", "default": false},
+    "conflict_policy": {"type": ["string", "null"]},
+    "notes": {"type": ["array", "string", "null"]},
+    "confidence": {"enum": ["verified_primary", "verified_secondary_against_primary_status", "pending"]}
+  },
+  "additionalProperties": true
+}

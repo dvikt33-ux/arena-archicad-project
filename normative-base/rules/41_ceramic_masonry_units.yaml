@@ -1,0 +1,130 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Точный каталог номинальных размеров керамического кирпича, камней и доборных камней по ГОСТ 530-2012 для BIM-библиотеки и кладочной раскладки, без подмены конструктивного расчета и технологии шва."
+
+revision_dependencies:
+  - {document: GOST_530_2012, status: active, role: ceramic_product_geometry}
+  - {document: SP_15_13330_2020, verified_changes: [1], role: masonry_structural_calculation}
+  - {document: SP_70_13330_2012, target_2027_change: 8, role: masonry_execution}
+
+brick_catalog:
+  source: GOST_530_2012
+  source_clause: "4.2.1, table 2"
+  catalog_semantics: nominal_product
+  products:
+    - {family: KR, format: "1NF", length_mm: 250, width_mm: 120, thickness_mm: 65}
+    - {family: KR, format: "0.7NF", length_mm: 250, width_mm: 85, thickness_mm: 65}
+    - {family: KR, format: "1.4NF", length_mm: 250, width_mm: 120, thickness_mm: 88}
+    - {family: KR, format: "0.5NF", length_mm: 250, width_mm: 60, thickness_mm: 65}
+    - {family: KR, format: "1.3NF", length_mm: 288, width_mm: 138, thickness_mm: 65}
+    - {family: KR, format: "1.8NF", length_mm: 288, width_mm: 138, thickness_mm: 88}
+    - {family: KR, format: "0.8NF", length_mm: 250, width_mm: 120, thickness_mm: 55}
+    - {family: KRG, format: "1.4NF", length_mm: 250, width_mm: 120, thickness_mm: 88, feature: horizontal_voids}
+    - {family: KRG, format: "1.8NF", length_mm: 250, width_mm: 200, thickness_mm: 70, feature: horizontal_voids}
+
+stone_catalog:
+  source: GOST_530_2012
+  source_clause: "4.2.1, table 3"
+  catalog_semantics: nominal_product
+  dimension_note: "Для КМ/КМД первая величина таблицы — длина или нерабочий размер, вторая — ширина или рабочий размер. Для строк 219/229: 219 мм относится к нешлифованному камню, 229 мм — к шлифованному; формат шлифованного указан в скобках."
+  products:
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 120, unground_thickness_mm: 140, ground_thickness_mm: null, format_unground: "2.1NF", format_ground: null}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 250, unground_thickness_mm: 140, ground_thickness_mm: null, format_unground: "4.5NF", format_ground: null}
+    - {family: KM, nonworking_or_length_mm: 380, working_or_width_mm: 250, unground_thickness_mm: 140, ground_thickness_mm: null, format_unground: "6.8NF", format_ground: null}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 380, unground_thickness_mm: 140, ground_thickness_mm: null, format_unground: "6.8NF", format_ground: null}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 250, unground_thickness_mm: 188, ground_thickness_mm: null, format_unground: "6.0NF", format_ground: null}
+    - {family: KM, nonworking_or_length_mm: 510, working_or_width_mm: 120, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "6.9NF", format_ground: "7.2NF"}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "7.0NF", format_ground: "7.3NF"}
+    - {family: KM, nonworking_or_length_mm: 260, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "7.3NF", format_ground: "7.6NF"}
+    - {family: KM, nonworking_or_length_mm: 380, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "10.7NF", format_ground: "11.2NF"}
+    - {family: KM, nonworking_or_length_mm: 510, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "14.3NF", format_ground: "15.0NF"}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 380, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "10.7NF", format_ground: "11.2NF"}
+    - {family: KM, nonworking_or_length_mm: 260, working_or_width_mm: 380, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "11.1NF", format_ground: "11.6NF"}
+    - {family: KM, nonworking_or_length_mm: 250, working_or_width_mm: 510, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "14.3NF", format_ground: "15.0NF"}
+    - {family: KM, nonworking_or_length_mm: 260, working_or_width_mm: 510, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "14.9NF", format_ground: "15.6NF"}
+
+additional_stone_catalog:
+  source: GOST_530_2012
+  source_clause: "4.2.1, table 3"
+  catalog_semantics: nominal_product
+  products:
+    - {family: KMD, nonworking_or_length_mm: 129, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "3.6NF", format_ground: "3.8NF"}
+    - {family: KMD, nonworking_or_length_mm: 188, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "5.2NF", format_ground: "5.6NF"}
+    - {family: KMD, nonworking_or_length_mm: 248, working_or_width_mm: 250, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "7.1NF", format_ground: "7.5NF"}
+    - {family: KMD, nonworking_or_length_mm: 129, working_or_width_mm: 380, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "5.5NF", format_ground: "5.8NF"}
+    - {family: KMD, nonworking_or_length_mm: 129, working_or_width_mm: 510, unground_thickness_mm: 219, ground_thickness_mm: 229, format_unground: "7.4NF", format_ground: "7.8NF"}
+
+catalog_scope_rules:
+  - id: ceramic.catalog.standard_rows_are_reference_not_closed_whitelist
+    source: {document: GOST_530_2012, clause: "4.2.1, table 3 note 1"}
+    automation: validation_only
+    statement: "ГОСТ допускает по согласованию изготовителя с потребителем доборные изделия и изделия иных номинальных размеров при соблюдении установленных предельных отклонений. Поэтому отсутствие размера в таблице 2/3 не доказывает автоматически его недопустимость; нестандартный размер требует реального изготовителя/документации и не может быть выдуман агентом."
+    requires_manufacturer_data: true
+
+  - id: ceramic.catalog.no_invented_product
+    automation: forbidden_to_infer
+    statement: "Агент не создает новый керамический типоразмер только для закрытия остатка стены. Вне табличного каталога требуется подтвержденный продукт/ТУ/документация изготовителя."
+    requires_manufacturer_data: true
+
+  - id: ceramic.catalog.ground_state_explicit
+    automation: auto
+    statement: "Для камней с различной толщиной 219/229 мм параметр ground_state должен быть явным; нельзя автоматически подменять нешлифованный камень шлифованным или наоборот, поскольку меняются номинальная толщина и формат NF."
+
+joint_semantics_2027:
+  - id: ceramic.catalog.table_note_12mm_not_global_joint_rule
+    source: {document: GOST_530_2012, clause: "4.2.1, table 3 note 1"}
+    automation: forbidden_to_infer
+    statement: "Упоминание 12 мм постельного шва в примечании таблицы 3 ГОСТ 530 используется в контексте формирования номинального размерного ряда изделий. Для профиля 2027 оно не восстанавливает исключенный с 01.03.2027 п.9.2.4 СП 70 и не дает права автоматически назначать 12 мм как универсальную фактическую толщину горизонтального шва кладки."
+    conflict_policy: "Фактическую/проектную толщину шва получать из актуальной технологии кладки, проекта, применимого СП и документации конкретной системы/изготовителя."
+
+  - id: ceramic.catalog.format_not_course_pitch
+    automation: auto
+    statement: "Формат NF и номинальная толщина изделия не являются готовым шагом ряда кладки. Высотный шаг для BIM-раскладки вычисляют только после подтверждения технологии шва."
+
+structural_and_thermal_gates:
+  - id: ceramic.catalog.wall_thickness_not_product_width_only
+    automation: forbidden_to_infer
+    statement: "Толщину несущей/наружной стены нельзя назначить только выбором ширины керамического камня. Требуются расчет каменной конструкции по СП 15, теплотехнический расчет по СП 50 и проектный состав стены."
+    requires_calculation: true
+
+  - id: ceramic.catalog.strength_not_geometry
+    automation: forbidden_to_infer
+    statement: "Марку по прочности, морозостойкость, класс средней плотности и расчетную несущую способность нельзя выводить из одного типоразмера/NF. Использовать полное обозначение конкретного изделия и расчет КР."
+    requires_manufacturer_data: true
+    requires_calculation: true
+
+BIM_required_parameters:
+  - ceramic_product_family
+  - ceramic_product_standard
+  - manufacturer_product_id
+  - nominal_length_or_nonworking_mm
+  - nominal_width_or_working_mm
+  - nominal_thickness_mm
+  - NF_format
+  - ground_state
+  - tongue_and_groove_state_if_applicable
+  - facing_or_common_or_clinker_class
+  - solid_or_hollow_class
+  - strength_grade
+  - density_class
+  - frost_resistance_grade
+  - confirmed_joint_system_reference
+  - confirmed_horizontal_joint_mm
+  - confirmed_vertical_joint_mm
+
+library_generation_policy:
+  - "Сначала создавать параметрические типы для точных строк таблиц 2/3, сохраняя family/format/ground_state как свойства, а не только геометрические размеры."
+  - "Нестандартный размер добавлять в библиотеку только из подтвержденной карточки производителя/ТУ, с source_reference и manufacturer_product_id."
+  - "Доборный КМД хранить как отдельное семейство и не имитировать произвольной обрезкой обычного КМ, если требуется стандартный/подтвержденный доборный элемент."
+  - "После выбора библиотечного элемента раскладку проемов/простенков выполнять через rules/24_masonry_opening_layout.yaml; несущие простенки — через rules/22_masonry_piers_precheck.yaml."
+
+agent_logic:
+  - "Не использовать устаревшие таблицы ГОСТ 530-95 или ГОСТ 530-2007."
+  - "Не называть любой крупный керамический блок 'двойным кирпичом': использовать нормативное семейство КМ/КМД и точные размеры."
+  - "Не путать рабочий и нерабочий размер пазогребневого камня."
+  - "Не использовать 12 мм из примечания ГОСТ 530 как универсальный проектный шов после перехода SP70 Change 8 в 2027."
+  - "Геометрическая совместимость с модулем не доказывает несущую, теплотехническую или пожарную пригодность стены."
+
+sources:
+  - "https://base.garant.ru/70437962/"
+  - "https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc"

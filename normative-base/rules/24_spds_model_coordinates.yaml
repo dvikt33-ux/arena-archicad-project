@@ -1,0 +1,114 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "СПДС-правила координационных осей, планово-высотной системы BIM-модели, отметок и размерной семантики для выпуска АР/РД."
+
+revision_dependencies:
+  - {document: GOST_R_21_101_2026, status: active, effective_from: 2026-04-01, replaces: GOST_R_21_101_2020}
+  - {document: GOST_21_501_2018, status: active, effective_from: 2019-06-01}
+
+coordination_axes:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.axes.required_for_bearing_structure
+      clause: "5.3.1"
+      automation: validation_only
+      statement: "На изображениях здания указывают координационные оси несущих конструкций для определения взаимного расположения элементов и привязки к геодезической сетке/разбивочному базису."
+
+    - id: spds.axes.independent_system_per_building
+      clause: "5.3.2"
+      automation: auto
+      statement: "Каждому отдельному зданию или сооружению присваивают самостоятельную систему обозначений координационных осей."
+
+    - id: spds.axes.naming
+      clause: "5.3.2-5.3.3"
+      automation: auto
+      statement: "Цифровые оси обозначают арабскими цифрами, буквенные — допустимыми прописными буквами; пропуски допустимых последовательных обозначений не допускаются. Для стороны с большим количеством осей применяют цифровые обозначения."
+      forbidden_russian_letters: ["Е","З","Й","О","Х","Ц","Ч","Щ","Ъ","Ы","Ь"]
+      forbidden_latin_letters: ["I","O"]
+      order:
+        numeric: "left_to_right"
+        alphabetic: "bottom_to_top"
+
+    - id: spds.axes.additional_between_main
+      clause: "5.3.5"
+      automation: conditional
+      statement: "Дополнительную ось между основными обозначают дробью: в числителе предшествующая координационная ось, в знаменателе — дополнительный порядковый номер в пределах участка."
+
+three_dimensional_model:
+  source: GOST_R_21_101_2026
+  clause: "5.3.8"
+  rules:
+    - id: spds.model.single_plan_height_system
+      automation: auto
+      statement: "Трехмерную электронную модель здания/сооружения выполнять в единой планово-высотной системе координат."
+
+    - id: spds.model.local_origin
+      automation: conditional
+      statement: "Локальное начало координат модели здания располагают в точке пересечения координационных осей 1 и А на нулевой отметке здания, если применяется схема стандарта."
+      values: {origin_grid_intersection: "1/A", z: "zero_level"}
+      conflict_policy: "Геодезическая/общеплощадочная система и локальная система здания должны быть связаны контролируемой трансформацией; не переносить здание на большие случайные координаты без этой связи."
+
+    - id: spds.model.axis_directions_rectangular
+      automation: conditional
+      statement: "Для прямоугольного в плане здания положительное X направляют в сторону увеличения цифровых осей, Y — буквенных, Z — вертикально вверх от условной нулевой отметки."
+      values: {X: "increasing_numeric_axes", Y: "increasing_letter_axes", Z: "up"}
+
+levels:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.levels.relative_format
+      clause: "5.4.3"
+      automation: validation_only
+      statement: "Относительные отметки уровней указывают в метрах с тремя десятичными знаками; нулевая отметка — без знака, выше нуля со знаком '+', ниже — со знаком '-'."
+      dimension_semantics: level
+
+    - id: spds.levels.building_zero_preference
+      clause: "5.4.3"
+      automation: conditional
+      statement: "В качестве нулевой отметки здания, как правило, принимают уровень чистого пола первого этажа."
+      dimension_semantics: level
+      conflict_policy: "Хранить отдельно абсолютную геодезическую отметку и локальную относительную отметку 0.000."
+
+model_vs_document_dimensions:
+  rules:
+    - id: spds.dimension.source_model_real_geometry
+      automation: validation_only
+      statement: "Размерная цепь на чертеже должна ссылаться на однозначные геометрические опорные элементы модели: координационную ось, грань, проем, чистовую поверхность или отметку. Агент не должен автоматически смешивать эти семантики."
+
+    - id: spds.axis_binding_not_geometry_center
+      automation: validation_only
+      statement: "Координационная ось не означает геометрический центр каждого элемента. Привязка элемента к оси определяется конструктивно-модульными правилами ГОСТ 28984 и проектной схемой."
+
+working_documentation:
+  - id: spds.AR_KR_document_standard
+    automation: validation_only
+    source:
+      document: GOST_21_501_2018
+      clause: "scope"
+    statement: "Состав и оформление рабочей документации архитектурных и конструктивных решений выполнять по действующему ГОСТ 21.501-2018 совместно с ГОСТ Р 21.101-2026."
+
+BIM_required_parameters:
+  - building_local_coordinate_system_id
+  - site_coordinate_system_id
+  - site_to_building_transform
+  - local_origin_grid_intersection
+  - project_zero_local
+  - project_zero_absolute
+  - grid_axis_id
+  - grid_axis_type
+  - grid_axis_sequence
+  - element_axis_binding_type
+  - dimension_reference_semantics
+  - finished_floor_levels
+  - structural_levels
+
+agent_logic:
+  - "Не использовать Archicad Project Origin/Survey Point/далекие координаты как взаимозаменяемые понятия без явной трансформации."
+  - "Не сдвигать геометрию здания к мировому нулю ради удобства, если это разрушает подтвержденную геодезическую привязку; вместо этого поддерживать локальную систему здания и трансформацию к площадке."
+  - "При создании нового здания сначала создать оси и локальную систему координат, затем несущие элементы, а не наоборот."
+  - "Размеры на чертеже генерировать из BIM-параметров с известной семантикой; если непонятно, размер по оси это или в свету, выпуск блокировать."
+  - "ГОСТ Р 21.101-2020 запрещен для нового выпуска 2027+: использовать ГОСТ Р 21.101-2026."
+
+sources:
+  - "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"
+  - "https://protect.gost.ru/gost/details/a241e289-aac3-4ee2-ad44-3259f9774799"

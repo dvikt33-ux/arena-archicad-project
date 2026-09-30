@@ -149,10 +149,10 @@ cases:
       tambur_clear_depth_mm: 1500
     expected:
       width_check: PASS
-      depth_check: FAIL
+      depth_check: PASS
       minimum_depth_mm: 1500
       relational_minimum_depth_mm: 1400
-      audit_note: "Depth is actually PASS because max(1500, 900+500)=1500; this test deliberately catches engines that apply only relational or only absolute requirement."
+      audit_note: "Required depth is max(1500, 900+500)=1500; this catches engines that apply only the relational or only the absolute requirement."
       result: PASS
       basis: "СП 1.13130.2020 4.3.11"
 

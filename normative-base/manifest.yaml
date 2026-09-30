@@ -1,4 +1,4 @@
-manifest_version: 18
+manifest_version: 19
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -79,6 +79,7 @@ rule_files:
   - 31_stairwell_types.yaml
   - 32_fire_safe_zones_mgn.yaml
   - 33_fire_height_semantics.yaml
+  - 34_multifunctional_atriums.yaml
 
 hard_fail_states:
   - yaml_parse_error

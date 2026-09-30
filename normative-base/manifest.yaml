@@ -1,4 +1,4 @@
-manifest_version: 10
+manifest_version: 11
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -59,6 +59,9 @@ rule_files:
   - 23_precast_slab_layout.yaml
   - 24_masonry_opening_layout.yaml
   - 25_entrance_vestibules_lobbies.yaml
+  - 26_spds_model_coordinates.yaml
+  - 27_thermal_acoustic_envelope.yaml
+  - 28_functional_code_router.yaml
 
 hard_fail_states:
   - yaml_parse_error

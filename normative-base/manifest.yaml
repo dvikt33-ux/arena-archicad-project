@@ -1,4 +1,4 @@
-manifest_version: 1
+manifest_version: 2
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -7,20 +7,24 @@ load_order:
     file: target_2027.yaml
     role: "future confirmed transitions, expiries and 2027 overrides"
   - priority: 2
+    file: revision_watch_2027.yaml
+    role: "official latest revision levels and draft watch; invalidates stale rule files"
+  - priority: 3
     file: registry.yaml
     role: "document identity/status registry checked on audit date"
-  - priority: 3
+  - priority: 4
     file: schema/dimension_selection_policy.yaml
     role: "dimension semantics and conflict/rounding policy"
-  - priority: 4
+  - priority: 5
     files: "rules/*.yaml"
     role: "verified architectural/BIM rules"
-  - priority: 5
+  - priority: 6
     file: AUDIT.md
     role: "human-readable audit trail, pending topics and known hazards"
 
 precedence_rules:
   - "target_2027.yaml overrides a current-date status in registry.yaml when an officially confirmed transition occurs before/during the target period."
+  - "revision_watch_2027.yaml invalidates a rule file whose claimed revision is below the current official_latest_change."
   - "A special functional/fire/accessibility rule overrides a general rule only within its explicit scope."
   - "A direct numeric requirement cannot be replaced by modular rounding."
   - "A calculation requirement cannot be replaced by a typical value."
@@ -49,6 +53,7 @@ rule_files:
 hard_fail_states:
   - missing_target_profile
   - source_status_unknown
+  - rule_revision_below_official_latest
   - rule_expired_for_target
   - future_replacement_is_only_draft
   - required_calculation_missing
@@ -61,6 +66,7 @@ release_gate:
     - "no auto_rule references a superseded clause for target 2027"
     - "all numeric auto rules have source document + clause/table + checked_at"
     - "all future transitions have official effective date"
+    - "all core rule files match revision_watch_2027.yaml"
     - "no draft normative document is marked active"
     - "all clear dimensions are validated as clear, not axis/opening dimensions"
     - "all pending topics remain fail-closed"

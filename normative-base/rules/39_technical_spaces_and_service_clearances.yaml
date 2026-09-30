@@ -1,0 +1,121 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Технические этажи, технические пространства, чердаки и проходные проемы: актуальные определения и минимумы без переноса устаревшего универсального правила 2,1 м."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+
+residential_MKD:
+  source: SP_54_13330_2022
+  rules:
+    - id: technical.residential.technical_space_definition
+      clause: "3.1.32"
+      automation: validation_only
+      statement: "Техническое пространство МКД имеет высоту менее 1,8 м, используется для трубопроводов и инженерных коммуникаций без размещения оборудования и помещений и не является этажом."
+      values: {height_less_than_mm: 1800}
+      conflict_policy: "Если требуется размещение оборудования/помещения или пространство фактически становится этажом по определениям СП, не классифицировать его как technical_space ради уменьшения высоты."
+
+    - id: technical.residential.floor_height_classification
+      clause: "3.1.41, 3.1.47"
+      automation: validation_only
+      statement: "Этаж МКД включает пространство высотой в чистоте 1,8 м и более; технический этаж предназначен для размещения и обслуживания внутридомовых инженерных систем и может быть нижним, верхним или между надземными этажами."
+      values: {floor_clear_height_classification_threshold_mm: 1800}
+      note: "1,8 м здесь используется в том числе как классификационный порог этажа; это не универсальная эксплуатационная высота каждого технического помещения."
+
+    - id: technical.residential.basement_technical_floor_passage_opening
+      clause: "5.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "В стенах подвальных и технических этажей МКД высота проемов, необходимых для обеспечения прохода, должна быть не менее 1,8 м."
+      values: {min_clear_opening_height_mm: 1800}
+
+    - id: technical.residential.attic_passage_opening
+      clause: "5.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "На чердаках МКД высота проемов, необходимых для обеспечения прохода, должна быть не менее 1,6 м."
+      values: {min_clear_opening_height_mm: 1600}
+
+    - id: technical.residential.passage_threshold
+      clause: "5.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота порога в указанных проходных проемах подвала/технического этажа/чердака, если порог предусмотрен, не должна превышать 0,3 м."
+      values: {max_threshold_height_mm: 300}
+      conflict_policy: "Если проход относится к МГН или иному маршруту с более строгим ограничением порога, применять специальное требование."
+
+public_buildings:
+  source: SP_118_13330_2022
+  rules:
+    - id: technical.public.technical_space_definition
+      clause: "3.1.33"
+      automation: validation_only
+      statement: "Техническое пространство общественного здания предназначено для трубопроводов/коммуникаций без размещения оборудования и имеет высоту менее 1,8 м; оно может располагаться в подполье или техническом чердаке."
+      values: {height_less_than_mm: 1800}
+
+    - id: technical.public.technical_floor_definition
+      clause: "3.1.44"
+      automation: validation_only
+      statement: "Технический этаж общественного здания предназначен для инженерного оборудования и коммуникаций и имеет высоту не менее 1,8 м до низа несущих конструкций."
+      values: {min_height_to_bottom_of_bearing_structures_mm: 1800}
+      conflict_policy: "Это классификационный/минимальный признак технического этажа, а не универсальная достаточная высота для обслуживания любого оборудования."
+
+    - id: technical.public.room_height_technology_driven
+      clause: "4.26"
+      automation: forbidden_to_infer
+      statement: "Высоту технических помещений, определяемую функциональными процессами, устанавливают по соответствующим технологическим требованиям, санитарно-эпидемиологическим нормам и правилам. Универсальное значение 2,1 м из старого СП 118.13330.2012 не переносить в профиль 2027."
+      requires_manufacturer_data: true
+      conflict_policy: "Если решение требует санитарного значения после 01.03.2027, учитывать блокировку устаревающего СанПиН из target_2027.yaml до появления официальной замены."
+
+    - id: technical.public.ITP_height
+      clause: "5.73"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота помещения ИТП должна быть не менее 2,2 м от пола до низа выступающих конструкций."
+      values: {min_floor_to_bottom_of_projection_mm: 2200}
+      conflict_policy: "Технологические/эксплуатационные требования оборудования могут требовать больше; 2,2 м не подтверждает достаточность монтажных зон."
+
+mezzanine_clearance_public:
+  - id: technical.public.mezzanine_above_below_clearance
+    source: {document: SP_118_13330_2022, clause: "4.26"}
+    automation: conditional
+    dimension_semantics: clear
+    statement: "В общественном помещении высотой в чистоте 4,7 м и более при устройстве промежуточного уровня/антресоли проходы под уровнем и над ним должны иметь высоту не менее 2,2 м."
+    conditions: {room_clear_height_mm: {min: 4700}, intermediate_level_present: true}
+    values: {min_clear_height_below_mm: 2200, min_clear_height_above_mm: 2200}
+
+semantic_guards:
+  - id: technical.opening_height_not_space_height
+    automation: auto
+    statement: "Высота проходного проема 1,8/1,6 м по СП 54 не является высотой всего технического помещения, этажа или маршрута обслуживания. Хранить эти параметры раздельно."
+
+  - id: technical.floor_classification_not_service_clearance
+    automation: auto
+    statement: "Порог 1,8 м, используемый в определении технического этажа/пространства, не заменяет технологический расчет зон обслуживания оборудования."
+
+BIM_required_parameters:
+  - space_classification
+  - technical_floor_or_space
+  - finished_floor_level
+  - bottom_of_bearing_structures_level
+  - bottom_of_lowest_projecting_element_level
+  - service_route_geometry
+  - service_opening_clear_width
+  - service_opening_clear_height
+  - service_opening_threshold_height
+  - equipment_present
+  - equipment_service_zone_reference
+  - technology_height_requirement
+  - sanitary_requirement_status
+
+agent_logic:
+  - "Не создавать технический этаж высотой 2,1 м только потому, что такое число встречается в старом СП 118.13330.2012."
+  - "Если оборудование требует обслуживания, определять высоту по технологическим зонам и профильному инженерному заданию; 1,8 м — не автоматический ответ."
+  - "Не путать техническое пространство <1,8 м без оборудования с полноценным техническим этажом."
+  - "В МКД автоматически проверять каждый проходной проем в стенах подвала/технического этажа и чердака отдельно от общей высоты пространства."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://xn--e1ahdbdflckekkc.xn--p1ai/rntd/paragraph/270150"

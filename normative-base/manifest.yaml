@@ -1,4 +1,4 @@
-manifest_version: 14
+manifest_version: 15
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -68,6 +68,8 @@ rule_files:
   - 28_functional_code_router.yaml
   - 29_corridor_clearances.yaml
   - 30_firefighter_lifts.yaml
+  - 31_stairwell_types.yaml
+  - 32_fire_safe_zones_mgn.yaml
 
 hard_fail_states:
   - yaml_parse_error

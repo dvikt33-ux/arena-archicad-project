@@ -1,0 +1,100 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Вертикальная координация мокрых зон, кухонь и электрощитовых в многоквартирных жилых зданиях по СП 54.13330.2022 с Изм. №1-2."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+
+vertical_stacking:
+  source: SP_54_13330_2022
+  rules:
+    - id: residential.stack.sanitary_over_living_or_kitchen_forbidden
+      clause: "7.20"
+      automation: auto
+      statement: "Размещение уборной (туалета), ванной комнаты (душевой) и совмещенного санузла над жилыми комнатами и над кухнями, кухнями-нишами и кухнями-столовыми не допускается."
+      conditions:
+        upper_room_types: [toilet, bathroom, shower, combined_bathroom]
+        lower_room_types: [living_room, kitchen, kitchen_niche, kitchen_dining]
+      conflict_policy: "Проверять исключение для верхнего уровня двухуровневой квартиры отдельно; не отключать запрет глобально."
+
+    - id: residential.stack.sanitary_duplex_exception
+      clause: "7.20"
+      automation: conditional
+      statement: "В квартире, расположенной в двух уровнях, допускается размещать уборную, ванную, душевую или совмещенный санузел верхнего уровня над кухней, кухней-нишей или кухней-столовой той же квартиры."
+      conditions:
+        same_duplex_apartment: true
+        upper_level_of_duplex: true
+        lower_room_types: [kitchen, kitchen_niche, kitchen_dining]
+      note: "Исключение не разрешает размещать санузел над жилой комнатой."
+
+    - id: residential.stack.sanitary_over_auxiliary_allowed_except_kitchen
+      clause: "7.20"
+      automation: validation_only
+      statement: "Санузлы допускается размещать над вспомогательными помещениями квартиры, кроме кухни, кухни-ниши и кухонной зоны кухни-столовой."
+
+    - id: residential.stack.washing_equipment_over_living_forbidden
+      clause: "7.20 note"
+      automation: auto
+      statement: "Над жилыми комнатами не допускается размещать стиральную машину и другое оборудование, требующее подключения к водопроводным сетям либо являющееся источником шума и вибраций."
+      conditions:
+        lower_room_type: living_room
+
+    - id: residential.stack.kitchen_over_living_forbidden
+      clause: "7.21"
+      automation: auto
+      statement: "Размещение кухни, кухни-ниши и кухонной зоны кухни-столовой над жилыми комнатами не допускается."
+      conditions:
+        upper_room_types: [kitchen, kitchen_niche, kitchen_dining_kitchen_zone]
+        lower_room_type: living_room
+
+wet_over_electrical_rooms:
+  source: SP_54_13330_2022
+  rules:
+    - id: residential.stack.electrical_rooms_under_wet_processes
+      clause: "6.4.26 as amended by Change 2"
+      automation: conditional
+      statement: "Электрощитовую, помещения ГС/ТЦ кабельного телевидения, ЗТП и места ШРТ не следует располагать под помещениями с мокрыми процессами. Если такое размещение принято, между ними требуется техническое пространство и мероприятия по надежной гидроизоляции."
+      conditions:
+        upper_room_has_wet_process: true
+        lower_room_types: [electrical_room, head_station_room, cable_tv_technical_center, sound_transformer_substation, telephone_distribution_cabinet_zone]
+      conflict_policy: "Предпочтительный результат — изменить планировку. Исключительное решение не считать допустимым без явного технического пространства и проектного узла гидроизоляции."
+
+    - id: residential.stack.electrical_rooms_wet_exception_waterproofing_upstand
+      clause: "6.4.26 as amended by Change 2"
+      automation: validation_only
+      statement: "При допускаемом проектом размещении перечисленных электротехнических помещений под мокрыми процессами гидроизоляция должна быть непрерывной на высоту не менее 200 мм от уровня покрытия пола мокрого помещения."
+      values: {min_waterproofing_upstand_mm: 200}
+      requires_project_exception: true
+
+BIM_required_parameters:
+  - building_function
+  - apartment_id
+  - duplex_apartment_id_if_applicable
+  - floor_level
+  - room_type
+  - room_polygon
+  - kitchen_zone_polygon_if_combined
+  - wet_process_flag
+  - water_connected_equipment_locations
+  - noise_vibration_equipment_flag
+  - lower_floor_room_overlap
+  - upper_floor_room_overlap
+  - technical_space_between_rooms_if_exception
+  - waterproofing_upstand_height_if_exception
+
+validation_algorithm:
+  - "Для каждого помещения/зоны построить вертикальную проекцию на непосредственно нижележащий этаж по фактическим полигонам зон, а не только по их названиям или центроидам."
+  - "Для кухни-столовой хранить отдельный polygon кухонной зоны; запрет 7.21 относится к кухонной зоне, поэтому проверять геометрическое пересечение именно этой зоны с жилой комнатой ниже."
+  - "Для санузла верхнего уровня двухуровневой квартиры разрешение над кухней действует только при подтвержденном same_duplex_apartment; над жилой комнатой запрет остается."
+  - "Оборудование с водой/шумом проверять по собственной footprint/зоне влияния над жилой комнатой, даже если оно находится в помещении другого типа."
+  - "Если нижнее помещение электротехническое и верхнее мокрое, по умолчанию возвращать planning_conflict; альтернативное решение допускается только с подтвержденным техническим пространством и узлом гидроизоляции."
+
+agent_logic:
+  - "Не считать совпадение стояков достаточным основанием для нарушения вертикальной планировки."
+  - "Не проверять мокрые зоны только по Room Name: BIM-классификация должна быть явной и независимой от пользовательского имени помещения."
+  - "Не использовать исключение двухуровневой квартиры между разными квартирами или для санузла над жилой комнатой."
+  - "При перестановке перегородок повторно запускать вертикальный overlap-check по всем затронутым этажам."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://meganorm.ru/mega_doc/norm_update_29032025/nomenklatura/0/sp_54_13330_2022_svod_pravil_zdaniya_zhilye_mnogokvartirnye.html"

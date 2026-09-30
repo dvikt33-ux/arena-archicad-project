@@ -1,0 +1,106 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимая сверка по системе ГАРАНТ чистых размеров эвакуационных выходов, тамбуров и лестничных площадок для машинной проверки BIM-модели."
+
+verified_documents:
+  - document: SP_1_13130_2020
+    garant_url: "https://base.garant.ru/74019594/"
+    verified_changes: [1,2,3]
+
+rules:
+  - id: garant.egress.exit_clear_height_general
+    source: SP_1_13130_2020
+    clause: "4.2.18"
+    automation: conditional
+    dimension_semantics: clear
+    values:
+      general_min_height_mm: 1900
+      no_permanent_occupancy_or_single_workplace_min_mm: 1800
+    statement: "Высота эвакуационного выхода в свету в общем случае не менее 1,9 м; для помещений без постоянного пребывания людей и с одиночными рабочими местами допускается 1,8 м. Реконструкционные и наследственные исключения не применять к новому проектированию автоматически."
+
+  - id: garant.egress.exit_clear_width_general
+    source: SP_1_13130_2020
+    clause: "4.2.19"
+    automation: conditional
+    dimension_semantics: clear
+    values:
+      general_min_width_mm: 800
+      over_50_persons_min_width_mm: 1200
+      limited_special_rooms_min_width_mm: 600
+    statement: "Ширина эвакуационного выхода в общем случае не менее 0,8 м; при числе эвакуирующихся через выход более 50 человек — не менее 1,2 м. Ширина 0,6 м относится только к прямо перечисленным специальным помещениям и не является общим исключением."
+
+  - id: garant.egress.stairwell_exit_width
+    source: SP_1_13130_2020
+    clause: "4.2.20"
+    automation: conditional
+    dimension_semantics: clear
+    statement: "Выход из лестничной клетки наружу или в вестибюль должен быть не уже требуемой ширины пути эвакуации по маршу. При требуемой суммарной ширине 1,2 м и более и нескольких выходах каждый отдельный выход должен быть не уже 0,9 м."
+    values:
+      each_exit_min_when_multiple_and_required_total_ge_1200_mm: 900
+
+  - id: garant.egress.corridor_door_swing_reduction
+    source: SP_1_13130_2020
+    clause: "4.3.4"
+    automation: validation_only
+    dimension_semantics: clear
+    statement: "При дверях, открывающихся в коридор, расчетную ширину пути эвакуации уменьшают на половину ширины полотна при одностороннем расположении; при двустороннем — на ширину полотна, если не выполняется предусмотренное пунктом условие расстояния между противоположными дверями."
+    exception: "Не применять к поэтажным коридорам/холлам секций Ф1.3 между квартирой и лестничной клеткой в области исключения пункта."
+
+  - id: garant.egress.vestibule_clear_geometry
+    source: SP_1_13130_2020
+    clause: "4.3.11"
+    automation: conditional
+    dimension_semantics: clear
+    values:
+      additional_width_over_door_opening_mm: 500
+      additional_depth_over_door_leaf_mm: 500
+      absolute_min_depth_mm: 1500
+    statement: "Ширина тамбура/тамбур-шлюза на пути эвакуации должна превышать ширину дверного проема минимум на 0,5 м; глубина должна превышать ширину полотна минимум на 0,5 м, но быть не менее 1,5 м. При двух и более дверях их траектории открывания не должны пересекаться."
+
+  - id: garant.egress.stair_landing_width
+    source: SP_1_13130_2020
+    clause: "4.4.2"
+    automation: conditional
+    dimension_semantics: clear
+    statement: "Ширина лестничной площадки должна быть не менее ширины марша."
+
+  - id: garant.egress.straight_intermediate_landing_length
+    source: SP_1_13130_2020
+    clause: "4.4.2"
+    automation: conditional
+    dimension_semantics: clear
+    values: {min_length_mm: 1000}
+    statement: "Промежуточная площадка в прямом марше лестницы должна иметь длину не менее 1,0 м."
+
+  - id: garant.egress.lift_swing_door_landing
+    source: SP_1_13130_2020
+    clause: "4.4.2"
+    automation: conditional
+    dimension_semantics: clear
+    values: {absolute_min_mm: 1600}
+    formula: "landing_clear_width >= max(stair_flight_clear_width + 0.5 * lift_swing_door_width, 1600 mm)"
+    statement: "Перед входом в лифт с распашной дверью ширина площадки должна быть не менее суммы ширины марша и половины ширины двери лифта, но не менее 1,6 м."
+
+  - id: garant.egress.stair_door_swing_no_encroachment
+    source: SP_1_13130_2020
+    clause: "4.4.2"
+    automation: validation_only
+    statement: "Двери, выходящие на лестничную клетку, в максимально открытом положении не должны уменьшать требуемую ширину лестничных площадок и маршей."
+
+  - id: garant.egress.external_exit_landing
+    source: SP_1_13130_2020
+    clause: "4.2.21"
+    automation: conditional
+    dimension_semantics: clear
+    formula: "landing_clear_width >= 1.5 * exterior_door_leaf_width"
+    statement: "Перед наружной дверью, являющейся эвакуационным выходом, предусматривается горизонтальная площадка шириной не менее 1,5 ширины полотна наружной двери."
+
+agent_logic:
+  - "Все значения этого файла проверять именно как размеры в свету/фактические свободные размеры, а не как номинальный строительный проем."
+  - "Не создавать дверной блок по номиналу 800/1200 мм без проверки фактического свободного просвета после коробки и полотна."
+  - "Для конкретного функционального класса дополнительно применять специальные разделы СП 1 и профильные СП здания; общее правило не отменяет более строгого специального."
+  - "Если открывание двери уменьшает расчетный коридор или площадку, модель должна считаться не прошедшей проверку даже при достаточной геометрии стен."
+
+sources:
+  - "https://base.garant.ru/74019594/"
+  - "https://base.garant.ru/77225816/"

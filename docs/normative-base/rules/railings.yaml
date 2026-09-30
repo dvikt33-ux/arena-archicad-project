@@ -1,0 +1,83 @@
+verified_as_of: 2026-09-30
+source: GOST-25772-2025
+source_title: "Ограждения металлические лестниц, балконов, крыш, лестничных маршей и площадок. Общие технические условия"
+status_source: "https://protect.gost.ru/gost/details/0201c996-021b-408c-b36e-778f77f18f70"
+status: active_with_correction
+correction_effective: 2026-06-17
+rules:
+  - id: RAILING.VERSION.GUARD
+    state: active
+    source: GOST-25772-2025
+    clause: "status record"
+    scope: "Metal railings within the standard scope."
+    rule_kind: version_guard
+    automation: auto_check
+    rule: "Use GOST 25772-2025 from 2026-01-01, including the correction effective 2026-06-17; reject GOST 25772-2021 as the current edition."
+    must_not_assume:
+      - "Старая библиотека ограждений не подтверждает соответствие текущему ГОСТ."
+
+  - id: RAILING.TYPE.MAPPING
+    state: active
+    source: GOST-25772-2025
+    clause: "4.2, table 1"
+    scope: "Functional type designation for metal railings."
+    rule_kind: product
+    automation: auto_check
+    rule:
+      types:
+        MV: "internal stair flights/stairs"
+        MN: "external stair flights/stairs"
+        MD: "stairs in general-education and preschool organizations"
+        PV: "internal stair landings"
+        PN: "external stair landings"
+        PD: "stair landings in general-education and preschool organizations"
+        BP: "balconies/loggias of buildings not higher than 30 m"
+        BV: "balconies/loggias of buildings higher than 30 m"
+        BD: "balconies/loggias in general-education and preschool organizations"
+        BL: "balconies/loggias of smoke-free stair enclosures"
+        KO: "roofs without parapet"
+        KP: "roofs with parapet"
+        KEO: "occupied roofs without parapet"
+        KEP: "occupied roofs with parapet"
+    must_not_assume:
+      - "Тип ограждения выбирается по фактическому функциональному назначению; похожая геометрия не делает тип взаимозаменяемым."
+
+  - id: RAILING.TABLE3.DIMENSIONS
+    state: active
+    source: GOST-25772-2025
+    clause: "5.1.1, table 3"
+    scope: "Main dimensions of metal railings for the types explicitly listed below."
+    rule_kind: product
+    automation: auto_check
+    rule:
+      dimensions_mm:
+        MV: {H: 900, h: 800, a_max: 150, b: 300}
+        MN: {H: 1200, h: 1100, a_max: 150, b: 300}
+        MD: {H: 1200, h: 1180, a_max: 100, b: null}
+        PV: {H: 900, h: 800, a_max: 150, b: 300}
+        PN: {H: 1200, h: 1100, a_max: 150, b: 300}
+        PD: {H: 1200, h: 1180, a_max: 100, b: null}
+        BP: {H: 1000, h: 900, a_max: 110, b: 300}
+        BV: {H: 1100, h: 1000, a_max: 110, b: 300}
+        BD: {H: 1200, h: 1180, a_max: 100, b: null}
+        BL: {H: 1200, h: 1100, a_max: 110, b: 300}
+        KP: {H: "600/1200 minus parapet height as applicable", h: null, a_max: 300, b: null}
+        KO: {H: "600/1200", h: null, a_max: 300, b: null}
+    must_not_assume:
+      - "Буквы H, h, a, b должны интерпретироваться по схеме/обозначениям стандарта; не считать все поля просто 'высотой поручня'."
+      - "Для эксплуатируемых кровель КЭО/КЭП не подставлять размер из другой строки без проверки актуальной таблицы и специальных требований."
+      - "Другие СП могут устанавливать дополнительные/более специальные требования к ограждениям конкретного здания."
+
+  - id: RAILING.FILL.TYPE
+    state: active
+    source: GOST-25772-2025
+    clause: "4.3"
+    scope: "Frame infill classification."
+    rule_kind: product
+    automation: auto_check
+    rule:
+      R: "lattice"
+      E: "screen"
+      K: "combined lattice/screen"
+    must_not_assume:
+      - "Тип заполнения не заменяет проверку допустимых просветов и требований безопасности для конкретного назначения."

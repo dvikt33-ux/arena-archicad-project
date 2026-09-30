@@ -1,6 +1,6 @@
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
-purpose: "Геометрия лестниц как пересечение функциональных требований общественного здания, пожарной эвакуации, МГН и ограждений."
+purpose: "Геометрия лестниц как пересечение функциональных требований общественного здания, пожарной эвакуации, МГН, лифтов и ограждений."
 
 revision_dependencies:
   - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
@@ -15,12 +15,8 @@ public_visitor_stairs:
       clause: "5.7"
       automation: conditional
       applies_to: "stairs permanently used by visitors"
-      tread:
-        preferred_mm: 300
-        allowed_range_mm: [280,350]
-      riser:
-        preferred_mm: 150
-        allowed_range_mm: [130,170]
+      tread: {preferred_mm: 300, allowed_range_mm: [280,350]}
+      riser: {preferred_mm: 150, allowed_range_mm: [130,170]}
       same_flight_uniformity: true
       edge_radius_max_mm: 50
       note: "Проходы зрительных залов и трибун имеют специальное исключение и не должны генерироваться этим правилом."
@@ -47,6 +43,33 @@ public_visitor_stairs:
 egress_stairs_general:
   source: SP_1_13130_2020
   rules:
+    - id: stair.egress.landing_width
+      clause: "4.4.2"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Ширина лестничной площадки должна быть не менее ширины марша."
+
+    - id: stair.egress.lift_swing_door_landing
+      clause: "4.4.2"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Перед входом в лифт с распашной дверью ширина лестничной площадки должна быть не менее суммы ширины марша и половины ширины двери лифта, но во всех случаях не менее 1,6 м."
+      formula: "landing_clear_width >= max(stair_clear_width + 0.5 * lift_door_width, 1600 mm)"
+      values: {absolute_min_mm: 1600}
+
+    - id: stair.egress.straight_intermediate_landing
+      clause: "4.4.2"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Промежуточная площадка в прямом марше лестницы должна иметь длину не менее 1,0 м."
+      values: {min_length_mm: 1000}
+
+    - id: stair.egress.door_swing_preserves_width
+      clause: "4.4.2"
+      automation: validation_only
+      dimension_semantics: clear
+      statement: "Двери, выходящие на лестничную клетку, в максимально открытом положении не должны уменьшать требуемую ширину лестничных площадок и маршей."
+
     - id: stair.egress_tread_riser
       clause: "4.4.3"
       automation: conditional
@@ -70,6 +93,7 @@ conflict_resolution:
     - "Собрать требования СП 118/специального СП здания, СП 1, СП 59 и требования ограждений."
     - "Не выбирать наиболее строгое число механически, если нормы задают разные области применения; сначала отфильтровать применимые правила."
     - "После выбора rise/run проверить фактический уклон, число подъемов, длину марша, размеры площадок и чистую ширину."
+    - "Если на площадку выходят двери лестничной клетки или распашная дверь лифта, построить фактические траектории полотен и проверить минимальные габариты в открытом положении."
     - "Размер марша в свету не заменять расстоянием между координационными осями стен."
 
 BIM_parameters_required:
@@ -84,6 +108,8 @@ BIM_parameters_required:
   - riser_count_per_flight
   - landing_clear_width
   - landing_clear_length
+  - stairwell_door_swing_envelopes
+  - lift_swing_door_width_if_present
   - finished_floor_levels
   - guardrail_type_and_height
 
@@ -91,9 +117,13 @@ agent_logic:
   - "Не применять 150x300 мм как универсальную ступень: это правило общественной лестницы для посетителей в области СП 118."
   - "Не проектировать лестницу только по этажной высоте: учитывать чистовые отметки полов, одинаковость подступенков и допустимое число подъемов."
   - "Если высота между чистыми полами не делится на допустимое число равных подъемов, оптимизировать количество подъемов внутри допустимого диапазона; не вводить одну отличающуюся ступень."
-  - "Площадку проверять после определения чистой ширины марша."
+  - "Площадку проверять после определения чистой ширины марша и с учетом фактических дверных полотен."
   - "Ограждение и поручни проверять отдельно по rules/07_guardrails_roofs.yaml, СП 1 и СП 59."
 
 source_quality:
   SP_118_clause_5_7_5_10: "cross-checked against current consolidated text and official Rosstandart revision level"
-  SP_1_clause_4_4_3: "cross-checked against FGBU VNIIPO MChS clarification and official Rosstandart revision level"
+  SP_1_clause_4_4_2_4_4_3: "cross-checked against current consolidated text and official Rosstandart revision level"
+
+sources:
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://base.safework.ru/law?doc=&nd=33300819&nh=0&ssect=6"

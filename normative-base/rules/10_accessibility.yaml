@@ -1,0 +1,177 @@
+checked_at: 2026-09-30
+primary_document: SP_59_13330_2020
+latest_verified_change: 4
+change_4_effective_from: 2025-02-25
+scope: "Доступность зданий и сооружений для маломобильных групп населения. Применять совместно с пожарными и профильными нормами объекта."
+
+external_routes:
+  - id: accessibility.external_path_width
+    source_clause: "5.1.7"
+    automation: conditional
+    dimension_semantics: clear
+    general_min_width_mm: 2000
+    min_clear_height_mm: 2100
+    constrained_conditions:
+      min_width_mm: 1200
+      passing_pockets:
+        max_spacing_mm: 25000
+        min_length_along_path_mm: 2500
+        min_total_width_with_path_mm: 2000
+        condition: "в зоне прямой видимости"
+    statement: "Прохожая часть пешеходного пути для МГН — не менее 2,0 м; в стесненных условиях допускается 1,2 м при устройстве карманов для разъезда."
+
+entrance:
+  - id: accessibility.entrance_platform
+    source_clause: "6.1.4"
+    automation: conditional
+    dimension_semantics: clear
+    cases:
+      - {condition: "entrance with ramp", min_width_mm: 2200, min_depth_mm: 2200}
+      - {condition: "new construction, without ramp", min_width_mm: 1600, min_depth_mm: 2200}
+      - {condition: "reconstruction or reasonable accommodation, without ramp", min_width_mm: 1400, min_depth_mm: 1800, note: "при размещении дверных ручек по 6.4.2"}
+      - {condition: "automatic sliding doors", min_width_mm: 1900, min_depth_mm: 1200}
+  - id: accessibility.entrance_door_clear_width
+    source_clause: "6.1.5"
+    automation: conditional
+    dimension_semantics: clear
+    new_and_reconstructed_min_mm: 900
+    reconstruction_loadbearing_opening_exception_min_mm: 800
+    double_leaf_rule: "Одна створка двупольной входной двери должна обеспечивать требуемую доступную ширину; для общего правила входа — 0,9 м в свету."
+    note: "Если вход одновременно является эвакуационным, дополнительно проверять СП 1.13130.2020 и специальные условия СП 59."
+
+internal_routes:
+  - id: accessibility.corridor_width
+    source_clause: "6.2.1"
+    automation: conditional
+    dimension_semantics: clear
+    general_min_width_mm: 1800
+    reduced_with_passing_pockets:
+      permitted_corridor_width_range_mm: [1200,1500]
+      pocket_min_length_mm: 2000
+      total_width_with_pocket_min_mm: 1800
+      visibility_condition: "следующий карман должен быть в пределах прямой видимости"
+    one_wheelchair_user_per_floor_calculated_exception:
+      min_width_mm: 1400
+      condition: "по расчету при нахождении не более одного инвалида на кресле-коляске на этаже"
+    interbuilding_passage_min_width_mm: 2000
+    wheelchair_manoeuvre:
+      turn_90_min_space_mm: [1200,1200]
+      turn_180_min_diameter_mm: 1400
+      dead_end_corridor: "обеспечить разворот на 180°"
+    min_clear_height_mm: 2100
+  - id: accessibility.approach_to_equipment
+    source_clause: "6.2.2"
+    automation: conditional
+    dimension_semantics: clear
+    approach_min_width_mm: 900
+    approach_with_90_turn_min_width_mm: 1200
+    independent_180_turn_min_diameter_mm: 1400
+    manoeuvring_before_door:
+      opening_away_min_depth_mm: 1200
+      opening_toward_min_depth_mm: 1500
+      opening_toward_min_width_mm: 1500
+    passage_in_equipped_room_min_width_mm: 1200
+  - id: accessibility.internal_door_opening
+    source_clause: "6.2.4"
+    automation: conditional
+    dimension_semantics: clear
+    min_width_mm: 900
+    deep_reveal:
+      condition: "reveal depth > 1000 mm"
+      rule: "ширина по коммуникационному проходу"
+      absolute_min_width_mm: 1200
+    threshold:
+      preferred: "no threshold / no floor level difference"
+      max_if_required_mm: 14
+
+external_ramps:
+  - id: accessibility.external_ramp_required_range
+    source_clause: "5.1.14"
+    automation: conditional
+    elevation_difference_mm: {min: 140, max: 6000}
+    alternatives:
+      vertical_lifting_platform_max_difference_mm: 3000
+      elevator_from_difference_mm: 3000
+    climatic_note: "В северной строительно-климатической зоне не допускается вертикальная подъемная платформа в неотапливаемой шахте."
+  - id: accessibility.ramp_slope_flight_table
+    source_clause: "5.1.14, table 5.1"
+    automation: validation_only
+    dimension_semantics: not_applicable
+    rows:
+      - {slope_permille_text: "30–40 inclusive", ratio_text: "1:33–1:25", max_single_flight_length_mm: 15000, max_total_inclined_length_mm: 110000}
+      - {slope_permille_text: "40–50 inclusive", ratio_text: "1:25–1:20", max_single_flight_length_mm: 12000, max_total_inclined_length_mm: 110000}
+      - {slope_permille_text: "50–60 inclusive", ratio_text: "1:20–1:16.7", max_single_flight_length_mm: 9000, max_total_inclined_length_mm: 110000}
+      - {slope_permille_text: "61–80 inclusive", ratio_text: "1:16–1:12.5", max_single_flight_length_mm: 6000, max_total_inclined_length_mm: 36000}
+    absolute_rule: "Марши с продольным уклоном более 80‰ (1:12.5) не допускаются."
+    constrained_exception: "В стесненных условиях допускается до 100‰ (1:10) при длине наклонных плоскостей до 5,0 м и перемещении пользователя кресла-коляски с сопровождающим."
+    boundary_note: "Таблица текстово содержит смежные диапазоны с общей границей 40/50/60‰; не выводить из этого дополнительное машинное правило на границе — проверять строку таблицы непосредственно."
+  - id: accessibility.external_ramp_width
+    source_clause: "5.1.15-5.1.16"
+    automation: conditional
+    dimension_semantics: clear
+    one_way_between_handrails_mm: {min: 900, max: 1000}
+    common_path_two_way_intensity:
+      up_to_2400_persons_per_hour: "по расчету, но не менее 900 мм"
+      over_2400_persons_per_hour_min_mm: 1800
+  - id: accessibility.external_ramp_landings
+    source_clause: "5.1.16"
+    automation: conditional
+    dimension_semantics: clear
+    two_way_common_path:
+      start_end_min_mm: [1800,1500]
+      direction_change_min_mm: [1800,1800]
+    one_way:
+      start_end_min_mm: [1500,1500]
+      direction_change_min_mm: [1500,1500]
+    edge_curb_min_height_mm: 50
+    handrails_height_mm: [900,700]
+    handrails_both_sides: true
+
+internal_ramps:
+  - id: accessibility.internal_ramp_landings
+    source_clause: "6.2.9"
+    automation: conditional
+    dimension_semantics: clear
+    horizontal_section_min_length_along_travel_mm: 1500
+    straight_path_landing_each_rise_mm: 500
+    landing_after_each_rise_min_length_mm: 1500
+    turn_over_45_deg_inscribed_circle_min_diameter_mm: 1500
+    top_bottom_landing_min_mm: [1500,1500]
+  - id: accessibility.internal_ramp_edges_handrails
+    source_clause: "6.2.10-6.2.11"
+    automation: auto
+    curb_min_height_mm: 50
+    railings_both_sides: true
+    handrail_height_mm: [900,700]
+    note: "Поручни 0,9 м; на пандусах дополнительно 0,7 м. Верхний/нижний края поручней должны согласовываться с границами прохожей части по действующему тексту СП."
+
+sanitary_rooms:
+  source_clause: "6.3.7, table 6.1"
+  dimension_semantics: clear
+  automation: conditional
+  minimum_plan_dimensions_mm:
+    accessible_toilet_cubicle_in_toilet_block: [1650,2200]
+    universal_toilet_central_WC: [2200,2250]
+    universal_toilet_left_or_right_WC: [1700,2200]
+    enclosed_shower: [1800,1800]
+    open_or_walkthrough_shower: [1200,900]
+    combined_shower_WC_basin: [2300,2400]
+    shower_zone_plus_changing_zone: [2700,2700]
+    women_personal_hygiene_room: [1800,2600]
+    disabled_child_cubicle: [1500,1650]
+    mother_and_child_room: [2500,3000]
+  note: "Таблица допускает уточнение габаритов в процессе проектирования в зависимости от оборудования и его размещения; минимальные размеры не заменяют проверку фактических зон пользования."
+
+agent_logic:
+  - "Все размеры ширины дверей, коридоров, проходов и площадок проверять в свету, если пункт СП задает размер в свету/проходную часть."
+  - "Не вычитать толщину отделки/коробки после проверки: объект BIM должен хранить отдельно строительный проем и фактический свободный просвет."
+  - "Ширина 1,4 м для коридора — не универсальное разрешение; применяется только по расчету при условии не более одного пользователя кресла-коляски на этаже."
+  - "Минимальный размер санузла не гарантирует нормативность расстановки: дополнительно валидировать зоны пересадки, подходы, открывание дверей и оборудование."
+  - "Если доступный маршрут является путем эвакуации, применять одновременно СП 59.13330.2020 и СП 1.13130.2020; принимать наиболее строгое применимое условие."
+  - "Не применять 0,8 м как обычную доступную дверь: это исключение при реконструкции, когда проем находится в несущей конструкции."
+  - "При обновлении СП 59 или его изменений инвалидировать правила до проверки затронутых пунктов."
+
+sources:
+  - https://protect.gost.ru/sp/changesdetails/070b0f9b-69ba-40a0-837d-eb0d504dbb06
+  - https://docs.cntd.ru/document/573659328
+  - https://base.garant.ru/400382837/

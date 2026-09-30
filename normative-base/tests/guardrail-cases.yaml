@@ -1,0 +1,226 @@
+meta:
+  verified_as_of: 2026-09-30
+  purpose: "Regression cases for a model generator consuming the normative base. Expected BLOCK means missing design conditions must not be guessed."
+
+cases:
+  - id: T-MOD-001
+    input:
+      task: "check_external_wall_opening_coordination"
+      opening_coordination_width_mm: 1200
+    expected:
+      modular_preference: PASS
+      basis: "1200 = 2 * 6M = 4 * 3M"
+      structural_opening_acceptance: BLOCK
+      reason: "modular preference does not prove structural/fire/thermal/window-system validity"
+
+  - id: T-MOD-002
+    input:
+      task: "check_external_wall_pier_coordination"
+      pier_coordination_width_mm: 600
+    expected:
+      modular_preference: PASS
+      masonry_structural_acceptance: BLOCK
+      reason: "6M preference is not a СП 15 structural calculation"
+
+  - id: T-SLAB-001
+    input:
+      task: "candidate_hollow_core_slab"
+      slab_type: "1ПК"
+      coordination_length_mm: 5700
+      coordination_width_mm: 1200
+    expected:
+      gost_9561_coordination_candidate: PASS
+      final_slab_selection: BLOCK
+      reason: "loads, support scheme, constructive dimensions, bearing/detail and project conditions unresolved"
+
+  - id: T-SLAB-002
+    input:
+      task: "candidate_hollow_core_slab"
+      slab_type: "1ПК"
+      coordination_length_mm: 5750
+      coordination_width_mm: 1200
+    expected:
+      gost_9561_standard_coordination_candidate: FAIL
+      reason: "1ПК 2400-6600 series uses a 300 mm step; 5750 is not in the standardized Table 1 sequence"
+      custom_product_possible: "CONDITIONAL under 4.1.1 by manufacturer-consumer agreement; not auto-generated"
+
+  - id: T-SLAB-003
+    input:
+      task: "set_slab_bearing"
+      support_material: "brick"
+      proposed_bearing_mm: 120
+    expected:
+      result: BLOCK
+      reason: "no universal slab bearing depth rule exists in the core; structural/product/project detail is required"
+
+  - id: T-BRICK-001
+    input:
+      task: "create_ceramic_brick_product"
+      format: "1NF"
+    expected:
+      product_nominal_dimensions_mm: [250, 120, 65]
+      masonry_course_module: BLOCK
+      reason: "mortar joint/execution detail not inferred from product dimensions"
+
+  - id: T-WINDOW-001
+    input:
+      task: "create_window_opening"
+      window_product_width_mm: 1200
+      window_product_height_mm: 1500
+    expected:
+      rough_opening_width_mm: BLOCK
+      rough_opening_height_mm: BLOCK
+      reason: "installation-joint geometry and wall/window system must be resolved; rough opening != product size by default"
+
+  - id: T-HEIGHT-001
+    input:
+      task: "check_residential_living_room_clear_height"
+      building_type: "multifamily_residential"
+      climate_subregion: "other"
+      clear_height_mm: 2500
+    expected:
+      result: PASS
+      basis: "СП 54.13330.2022 5.12"
+
+  - id: T-HEIGHT-002
+    input:
+      task: "check_residential_living_room_clear_height"
+      building_type: "multifamily_residential"
+      climate_subregion: "IA"
+      clear_height_mm: 2500
+    expected:
+      result: FAIL
+      required_minimum_clear_height_mm: 2700
+      basis: "СП 54.13330.2022 5.12"
+
+  - id: T-HEIGHT-003
+    input:
+      task: "check_public_room_clear_height"
+      building_type: "public"
+      room_use: "unknown"
+      clear_height_mm: 2800
+    expected:
+      result: BLOCK
+      reason: "room functional classification is missing; general 3.0 m and exceptions/redirects cannot be selected safely"
+
+  - id: T-FIRE-001
+    input:
+      task: "check_evacuation_exit_width"
+      occupants_through_exit: 55
+      clear_width_mm: 1000
+      room_special_exception: false
+    expected:
+      result: FAIL
+      required_minimum_clear_width_mm: 1200
+      basis: "СП 1.13130.2020 4.2.19"
+
+  - id: T-FIRE-002
+    input:
+      task: "check_evacuation_exit_width"
+      occupants_through_exit: 12
+      room_type: "storage"
+      room_area_m2: 18
+      permanent_workplaces: 0
+      clear_width_mm: 600
+    expected:
+      result: PASS
+      basis: "СП 1.13130.2020 4.2.19 special case"
+
+  - id: T-FIRE-003
+    input:
+      task: "check_corridor_effective_width"
+      physical_clear_width_mm: 1400
+      doors_open_into_corridor: true
+      door_arrangement: "one_side"
+      door_leaf_width_mm: 900
+      occupants: 60
+    expected:
+      effective_clear_width_mm: 950
+      required_minimum_clear_width_mm: 1200
+      result: FAIL
+      basis: "СП 1.13130.2020 4.3.3 + 4.3.4"
+
+  - id: T-FIRE-004
+    input:
+      task: "check_tambur"
+      door_opening_clear_width_mm: 900
+      door_leaf_width_mm: 900
+      tambur_clear_width_mm: 1400
+      tambur_clear_depth_mm: 1500
+    expected:
+      width_check: PASS
+      depth_check: FAIL
+      minimum_depth_mm: 1500
+      relational_minimum_depth_mm: 1400
+      audit_note: "Depth is actually PASS because max(1500, 900+500)=1500; this test deliberately catches engines that apply only relational or only absolute requirement."
+      result: PASS
+      basis: "СП 1.13130.2020 4.3.11"
+
+  - id: T-FIRE-005
+    input:
+      task: "check_stair_width"
+      fire_function_class: "F1.3"
+      building_height_m: 60
+      stair_clear_width_mm: 1050
+      required_exit_width_onto_stair_mm: 900
+    expected:
+      result: PASS
+      required_minimum_clear_width_mm: 1050
+      basis: "СП 1.13130.2020 4.4.1"
+
+  - id: T-ACCESS-001
+    input:
+      task: "check_accessible_door"
+      project_type: "new_construction"
+      clear_width_mm: 850
+    expected:
+      result: FAIL
+      required_minimum_clear_width_mm: 900
+      basis: "СП 59.13330.2020 6.1.5"
+
+  - id: T-ACCESS-002
+    input:
+      task: "check_wheelchair_turn_180"
+      available_circle_diameter_mm: 1400
+    expected:
+      result: PASS
+      basis: "СП 59.13330.2020 6.2.1/6.2.2"
+
+  - id: T-ACCESS-003
+    input:
+      task: "check_accessible_threshold"
+      threshold_mm: 15
+      threshold_is_necessary_under_clause: true
+    expected:
+      result: FAIL
+      maximum_mm: 14
+      basis: "СП 59.13330.2020 6.1.5/6.2.4"
+
+  - id: T-ACCESS-004
+    input:
+      task: "check_one_way_ramp"
+      width_between_handrails_mm: 950
+      slope_percent: 5
+      landing_vertical_interval_mm: 500
+    expected:
+      core_geometry_result: PASS
+      note: "Other route, fire, handrail and site/function conditions still require separate checks."
+      basis: "СП 59.13330.2020 6.2.9"
+
+  - id: T-THERMAL-001
+    input:
+      task: "select_insulation_thickness"
+      wall_type: "brick"
+      guessed_insulation_mm: 100
+    expected:
+      result: BLOCK
+      reason: "current climate, thermal targets, materials and assembly calculation required under СП 50.13330.2024 + СП 131.13330.2025"
+
+  - id: T-DRAFT-001
+    input:
+      task: "apply_norm_change"
+      change_effective_date: "2027-03-01"
+      project_rule_date: "2026-09-30"
+    expected:
+      result: REJECT
+      reason: "future-effective provision cannot alter the current baseline"

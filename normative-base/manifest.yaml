@@ -1,4 +1,4 @@
-manifest_version: 37
+manifest_version: 38
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -102,6 +102,7 @@ rule_files:
   - 49_garant_egress_entrance_verification.yaml
   - 50_garant_modular_structural_products_verification.yaml
   - 51_garant_egress_clear_dimensions.yaml
+  - 52_garant_stairwell_type_verification.yaml
 
 hard_fail_states:
   - yaml_parse_error

@@ -1,4 +1,4 @@
-manifest_version: 25
+manifest_version: 26
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -86,6 +86,7 @@ rule_files:
   - 38_axis_grid_generation.yaml
   - 39_technical_spaces_and_service_clearances.yaml
   - 40_residential_vertical_transport.yaml
+  - 41_ceramic_masonry_units.yaml
 
 hard_fail_states:
   - yaml_parse_error

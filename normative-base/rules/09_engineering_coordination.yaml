@@ -1,11 +1,20 @@
 checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
 purpose: "Нормативные границы, из-за которых архитектурная модель должна резервировать шахты, помещения, проходы и проемы, но не генерировать инженерные размеры без профильного расчета."
 
 current_documents:
-  - {id: SP_60_13330_2020, topic: "heating ventilation air conditioning", status: active, latest_verified_change: 6}
+  - {id: SP_60_13330_2020, topic: "heating ventilation air conditioning", status: active, target_2027: verify_latest_changes_before_use}
   - {id: SP_7_13130_2013, topic: "HVAC fire safety", status: active, verified_changes: [1,2,3]}
   - {id: SP_30_13330_2020, topic: "internal water supply and sewerage", status: active, latest_verified_change: 5}
-  - {id: SP_256_1325800_2016, topic: "electrical installations of residential and public buildings", status: active, latest_verified_change: 9}
+  - {id: SP_256_1325800_2016, topic: "electrical installations of residential and public buildings", status: active, target_2027: verify_latest_changes_before_use}
+  - {id: SP_73_13330_2016, topic: "internal sanitary-technical systems installation", status: active, target_2027_change: 3}
+
+confirmed_2027_transition:
+  document: SP_73_13330_2016
+  amendment: 3
+  deferred_effective_from: 2027-03-01
+  affected_clauses: ["6.1.12","7.1.1","7.6.2","Appendix B","Appendix C","Appendix D"]
+  architecture_action: "При координации инженерных помещений/проемов учитывать будущую редакцию, но не извлекать из нее инженерные размеры без профильного раздела."
 
 architecture_coordination_rules:
   - id: mep.shafts_not_arbitrary
@@ -13,28 +22,30 @@ architecture_coordination_rules:
     statement: "Габариты инженерных шахт и ниш нельзя назначать по универсальному шаблону; они зависят от состава систем, огнестойкости ограждений, монтажных зазоров и обслуживания."
   - id: mep.penetration_structural_gate
     automation: forbidden_to_infer
-    statement: "Проемы/отверстия в несущих стенах, плитах, балках и ригелях под инженерные сети должны быть согласованы с КР; агент не должен вырезать их автоматически после построения несущей схемы."
+    statement: "Проемы/отверстия в несущих стенах, плитах, балках и ригелях под инженерные сети должны быть согласованы с КР; агент не вырезает их автоматически после построения несущей схемы."
   - id: mep.fire_compartment_penetration
     automation: validation_only
-    statement: "Пересечение противопожарных преград инженерными коммуникациями требует отдельной проверки пожарных требований и узла заделки; обычный BIM-проем не является достаточным решением."
+    statement: "Пересечение противопожарных преград коммуникациями требует отдельной проверки пожарных требований и узла заделки; обычный BIM-проем не является достаточным решением."
   - id: mep.ventilation_architecture
     automation: validation_only
-    statement: "Архитектура должна резервировать места для венткамер, шахт, воздухозабора/выброса и обслуживания по профильному проекту; не выводить размеры из площади здания простым коэффициентом."
+    statement: "Архитектура резервирует места для венткамер, шахт, воздухозабора/выброса и обслуживания по профильному проекту; размеры не выводятся из площади здания простым коэффициентом."
   - id: mep.wet_zones
     automation: conditional
-    statement: "Положение санитарных приборов и стояков координировать с конструкциями, гидроизоляцией, шумоизоляцией и трассировкой; геометрия стояка не должна появляться постфактум путем произвольного отверстия в плите."
+    statement: "Положение санитарных приборов и стояков координировать с конструкциями, гидроизоляцией, шумоизоляцией и трассировкой; стояк не должен появляться постфактум через произвольное отверстие в плите."
   - id: mep.electrical_rooms
     automation: validation_only
-    statement: "Электрощитовые/электротехнические зоны и трассы определять по профильному разделу и СП 256; архитектурный агент резервирует подтвержденные габариты, но не рассчитывает их сам."
+    statement: "Электротехнические помещения и трассы определять по профильному разделу; архитектурный агент резервирует подтвержденные габариты, но не рассчитывает их сам."
 
 agent_logic:
   - "Перед выпуском АР выполнять междисциплинарную проверку проемов и шахт с КР/ОВ/ВК/ЭОМ."
   - "Не создавать отверстие в несущей конструкции только потому, что инженерная трасса пересекает ее в модели."
   - "Каждый инженерный проем должен иметь владельца/основание: система, отметка, габарит, огнезаделка при необходимости и согласование КР."
-  - "Если инженерные исходные данные отсутствуют, резервировать только явно согласованную зону либо возвращать unresolved, не выдумывать сечение шахты."
+  - "Если инженерные исходные данные отсутствуют, возвращать unresolved или резервировать только явно согласованную зону."
+  - "Для реализации 2027+ проверять target_2027.yaml до применения инженерно-координационных правил."
 
 sources:
   - https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262
   - https://protect.gost.ru/sp/details/78247e24-7498-426f-991f-83d320a7c0bc
   - https://protect.gost.ru/sp/details/8cd57a35-8503-4bb8-802a-324b64f3e0e7
   - https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956
+  - https://protect.gost.ru/sp/changesdetails/b595a91d-d798-4c82-9345-8419ea696528

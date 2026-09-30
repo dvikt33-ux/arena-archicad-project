@@ -1,0 +1,73 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+primary_document: SP_4_13130_2013
+verified_changes: [1,2,3,4]
+purpose: "Пожарные проезды, подъезды и базовые противопожарные расстояния, влияющие на генплан и геометрию здания."
+
+fire_access:
+  - id: fire.access.road_width
+    source_clause: "8.1.4"
+    automation: conditional
+    dimension_type: clear_usable_width
+    cases:
+      - {building_height_m: "<=13", min_width_m: 3.5}
+      - {building_height_m: ">13 and <=46", min_width_m: 4.2}
+      - {building_height_m: ">46", min_width_m: 6.0}
+    note: "Высоту здания определять по применимому пожарному определению, а не произвольной отметке модели."
+
+  - id: fire.access.distance_to_residential_public_wall
+    source_clause: "8.1.6"
+    automation: conditional
+    applies_to: "residential_and_public_buildings"
+    cases:
+      - {building_height_m: "<=28", min_distance_m: 5.0, max_distance_m: 8.0}
+      - {building_height_m: ">28", min_distance_m: 8.0, max_distance_m: 10.0}
+    dimension_reference: "from_inner_edge_of_fire_access_to_outer_wall_or_other_enclosing_structure"
+
+  - id: fire.access.dead_end_turnaround
+    source_clause: "8.1.11"
+    automation: true
+    min_plan_size_m: [15,15]
+    applies_when: "dead_end_fire_access"
+
+  - id: fire.access.number_of_sides
+    source_clause: "8.1.1"
+    automation: validation_only
+    statement: >-
+      Количество сторон и протяженность подъезда пожарных автомобилей определяются функциональным
+      классом пожарной опасности, высотой и конфигурацией здания по полному п. 8.1.1. Нельзя
+      назначать универсальное правило «подъезд с одной/двух сторон» без классификации объекта.
+
+fire_separation_residential_public:
+  source: SP_4_13130_2013
+  general_table_note: >-
+    Минимальные противопожарные расстояния между жилыми и общественными зданиями зависят от
+    сочетания степени огнестойкости и класса конструктивной пожарной опасности. Применять таблицы
+    и исключения СП 4 только после назначения этих характеристик обоим объектам.
+  automation: conditional
+  prohibited_shortcut: "Не задавать фиксированный разрыв 6/8/10 м только по назначению здания без огнестойкости и класса конструктивной пожарной опасности."
+
+special_code_gate:
+  - id: fire.special_codes_override
+    automation: mandatory_validation
+    statement: >-
+      До применения общих правил проверить специальные пожарные СП по типу объекта (высотные,
+      деревянные многоквартирные здания, учреждения Ф1.1, школы Ф4.1 и т.п.). Специальное
+      требование может ужесточать подъезды, расстояния и доступ пожарной техники.
+
+model_requirements:
+  - "Хранить высоту здания, функциональный класс пожарной опасности, степень огнестойкости и класс конструктивной пожарной опасности как отдельные свойства, а не текстовые примечания."
+  - "Пожарный проезд моделировать как проверяемую зону с шириной и внутренней кромкой; не только как линию дороги."
+  - "Между фасадом и пожарным подъездом учитывать препятствия для установки/работы пожарной техники; наличие проезда само по себе не доказывает доступность фасада."
+  - "Тупиковые ветви автоматически проверять на разворотную площадку."
+  - "Парковочные места, деревья, МАФ и иные элементы благоустройства проверять на конфликт с пожарным доступом."
+
+agent_logic:
+  - "Сначала классифицировать объект по пожарным параметрам, затем вычислять требования к генплану."
+  - "Если функциональный класс/высота/огнестойкость не определены, возвращать fire_classification_required."
+  - "Не уменьшать противопожарный разрыв на основании исключения без проверки всех условий соответствующего пункта СП 4 и расчетного/документального обоснования, если оно требуется."
+  - "Не считать обычный проезд автоматически пожарным: проверять геометрию, доступность и условия СП 4."
+
+sources:
+  - https://protect.gost.ru/sp/details/fe915813-95ec-43a6-ab1c-91027e06bf1c
+  - https://56.mchs.gov.ru/deyatelnost/rabota-s-obrashcheniyami-grazhdan/chasto-zadavaemye-voprosy/kakie-trebovaniya-pozharnoy-bezopasnosti-predyavlyayutsya-k-podezdam-k-zhilym-zdaniyam

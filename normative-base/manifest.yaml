@@ -1,4 +1,4 @@
-manifest_version: 12
+manifest_version: 13
 checked_at: 2026-09-30
 target_profile: RU_2027_PLUS
 
@@ -11,20 +11,24 @@ load_order:
     role: official latest revision levels
   - priority: 3
     file: registry.yaml
-    role: document identity and audit-date status
+    role: base document identity and audit-date status
   - priority: 4
+    file: registry_additions_2027.yaml
+    role: verified additions and revision-metadata overrides discovered after the first registry pass
+  - priority: 5
     file: schema/dimension_selection_policy.yaml
     role: dimension semantics and conflict policy
-  - priority: 5
+  - priority: 6
     files: rules/*.yaml
     role: verified architectural and BIM rules
-  - priority: 6
+  - priority: 7
     file: AUDIT.md
     role: human-readable audit trail
 
 precedence_rules:
   - target_2027.yaml overrides current-date status when an officially confirmed transition applies to 2027.
   - revision_watch_2027.yaml invalidates a rule file whose claimed revision is below official_latest_change.
+  - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change the document identity.
   - Special functional, fire or accessibility requirements apply within their explicit scope before general rules.
   - Direct numeric requirements cannot be replaced by modular rounding.
   - Calculation requirements cannot be replaced by typical values.

@@ -1,0 +1,136 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  note: "These are clear-height rules. Do not confuse them with coordination floor-to-floor heights from ГОСТ 28984-2011."
+
+rules:
+  - id: HEIGHT-RES-001
+    topic: residential_clear_height
+    rule_type: conditional_rule
+    statement: "Minimum clear height from floor to ceiling for living rooms and kitchens/kitchen-dining rooms in multifamily residential buildings depends on climatic subregion."
+    applicability:
+      building_type: multifamily_residential
+      spaces: [living_room, kitchen, kitchen_dining]
+    conditions:
+      - climate_subregions: ["IA", "IB", "IG", "ID", "IVA"]
+        minimum_clear_height_mm: 2700
+      - climate_subregions: ["other"]
+        minimum_clear_height_mm: 2500
+    source_document: "СП 54.13330.2022"
+    source_clause: "5.12"
+    source_status_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+    source_text_url: "https://base.garant.ru/77152017/"
+    confidence: high
+    guardrail: "Resolve climatic subregion from current СП 131.13330.2025; do not assume it from city name without climate lookup."
+
+  - id: HEIGHT-RES-002
+    topic: residential_clear_height
+    rule_type: conditional_rule
+    statement: "Inside-apartment corridors, halls, entrance spaces, and spaces on/under a mezzanine are at least 2.1 m high, subject to safe movement."
+    applicability:
+      building_type: multifamily_residential
+      spaces: [inside_apartment_corridor, inside_apartment_hall, entrance_space, mezzanine_space]
+    minimum_clear_height_mm: 2100
+    source_document: "СП 54.13330.2022"
+    source_clause: "5.12"
+    source_status_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+    source_text_url: "https://base.garant.ru/77152017/"
+    confidence: high
+
+  - id: HEIGHT-RES-003
+    topic: residential_attic_height
+    rule_type: conditional_rule
+    statement: "In living rooms and kitchens in floors with inclined enclosing structures or in attic floors, reduction of the ceiling height relative to the required height is allowed on no more than 50% of the room area."
+    applicability:
+      building_type: multifamily_residential
+      condition: inclined_enclosure_or_attic_floor
+    maximum_reduced_height_area_fraction: 0.50
+    source_document: "СП 54.13330.2022"
+    source_clause: "5.12"
+    source_status_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+    source_text_url: "https://base.garant.ru/77152017/"
+    confidence: high
+    guardrail: "This rule alone does not define the permissible reduced-zone height; do not invent one."
+
+  - id: HEIGHT-PUB-001
+    topic: public_building_clear_height
+    rule_type: conditional_rule
+    statement: "For newly designed public buildings, rooms with permanent and/or mass occupancy generally require at least 3.0 m clear height unless clause 4.26 provides another requirement for the relevant function."
+    applicability:
+      building_type: public
+      new_design: true
+      occupancy: permanent_or_mass
+    minimum_clear_height_mm: 3000
+    source_document: "СП 118.13330.2022"
+    source_clause: "4.26"
+    source_status_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+    source_text_url: "https://base.garant.ru/404976079/"
+    confidence: high
+    guardrail: "Do not apply this value to a special-use building/room for which clause 4.26 redirects to a dedicated SP or technological/sanitary requirement."
+
+  - id: HEIGHT-PUB-002
+    topic: public_building_clear_height
+    rule_type: conditional_rule
+    statement: "Administrative and service rooms may have a minimum clear height of 2.7 m under СП 118.13330.2022 clause 4.27."
+    applicability:
+      building_type: public
+      spaces: [administrative_room, service_room]
+    minimum_clear_height_mm: 2700
+    source_document: "СП 118.13330.2022"
+    source_clause: "4.27"
+    source_status_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+    source_text_url: "https://base.garant.ru/404976079/"
+    confidence: high
+
+  - id: HEIGHT-PUB-003
+    topic: public_building_clear_height
+    rule_type: conditional_rule
+    statement: "Rooms with permanent occupancy may use a reduced 2.6 m clear height only under the area-share condition stated in clause 4.27."
+    applicability:
+      building_type: public
+      occupancy: permanent
+    minimum_clear_height_mm: 2600
+    maximum_total_area_fraction_of_reduced_height_rooms: 0.20
+    source_document: "СП 118.13330.2022"
+    source_clause: "4.27"
+    source_status_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+    source_text_url: "https://base.garant.ru/404976079/"
+    confidence: high
+    guardrail: "The 20% condition is essential; never apply 2.6 m as a general public-room minimum."
+
+  - id: HEIGHT-PUB-004
+    topic: public_mezzanines
+    rule_type: conditional_rule
+    statement: "Where an intermediate level/mezzanine is allowed in a public room with clear height at least 4.7 m, passages below and above the level/mezzanine are at least 2.2 m high."
+    applicability:
+      building_type: public
+      room_clear_height_mm_min: 4700
+      intermediate_level_or_mezzanine: true
+    minimum_passage_clear_height_mm: 2200
+    source_document: "СП 118.13330.2022"
+    source_clause: "4.26"
+    source_status_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+    source_text_url: "https://base.garant.ru/404976079/"
+    confidence: high
+
+  - id: HEIGHT-PUB-005
+    topic: public_special_functions
+    rule_type: do_not_infer
+    statement: "Hotel/dormitory living rooms, medical buildings, preschool and general-education buildings, technical rooms and other special functions can be governed by dedicated SP/technology/sanitary requirements; do not force the general 3.0 m rule when СП 118.13330.2022 redirects to another standard."
+    source_document: "СП 118.13330.2022"
+    source_clause: "4.26"
+    source_status_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+    source_text_url: "https://base.garant.ru/404976079/"
+    confidence: high
+
+  - id: HEIGHT-COORD-001
+    topic: clear_vs_coordination_height
+    rule_type: hard_rule
+    statement: "Clear room height and modular/coordination floor height are different model parameters and must not overwrite one another."
+    references:
+      - {document: "ГОСТ 28984-2011", clauses: ["3.16", "3.17", "6.6"]}
+      - {document: "СП 54.13330.2022", clause: "5.12"}
+      - {document: "СП 118.13330.2022", clauses: ["4.26", "4.27"]}
+    confidence: high

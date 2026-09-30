@@ -1,0 +1,107 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Балконы и лоджии МКД: необходимость предусматривать их по климату/категории квартир и условия обязательного остекления по СП 54.13330.2022 с маршрутизацией климатических данных через СП 131.13330.2025."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_131_13330_2025, status: active, replaces: SP_131_13330_2020}
+  - {document: SP_51_13330_2011, verified_changes: [1,2,3,4], role: acoustic_coordination}
+
+balcony_loggia_presence:
+  source: SP_54_13330_2022
+  rules:
+    - id: residential.balcony_loggia.climate_III_IV_presence
+      clause: "5.8"
+      automation: conditional
+      statement: "В квартирах зданий, строящихся в климатических районах III и IV по СП 131.13330, следует предусматривать лоджии и балконы."
+      conditions: {climatic_region: [III, IV]}
+      requires_site_climate_data: true
+
+    - id: residential.balcony_loggia.disabled_family_presence
+      clause: "5.8"
+      automation: conditional
+      statement: "Лоджии и балконы следует предусматривать в квартирах для семей с инвалидами."
+      conditions: {apartment_for_family_with_disabled_person: true}
+      conflict_policy: "Доступность самого балкона/лоджии и порогов проверять отдельно по СП 59 и заданию на проектирование."
+
+    - id: residential.balcony_loggia.other_cases_project_check
+      clause: "5.8"
+      automation: validation_only
+      statement: "В остальных случаях необходимость лоджии/балкона определяется с учетом неблагоприятных природно-климатических условий, безопасной эксплуатации и противопожарных требований; отсутствие климатического триггера не означает автоматический запрет балкона."
+
+mandatory_glazing_conditions:
+  source: SP_54_13330_2022
+  clause: "5.8"
+  rules:
+    - id: residential.balcony_loggia.glazing_climate_I_II
+      automation: conditional
+      statement: "В климатических районах I и II остекленные балконы и лоджии необходимо проектировать при указанных в п.5.8 сочетаниях среднемесячной температуры воздуха и среднемесячной скорости ветра в июле."
+      conditions: {climatic_region: [I, II]}
+      trigger_rows:
+        - {july_mean_temperature_C: {min: 12, max: 16}, july_mean_wind_speed_m_s: {greater_than: 5}}
+        - {july_mean_temperature_C: {min: 8, max: 12}, july_mean_wind_speed_m_s: {min: 4, max: 5}}
+        - {july_mean_temperature_C: {min: 4, max: 8}, july_mean_wind_speed_m_s: {equal: 4}}
+        - {july_mean_temperature_C: {less_than: 4}, july_mean_wind_speed_m_s: any}
+      requires_site_climate_data: true
+      conflict_policy: "Граничные значения температуры в текстовом представлении диапазонов проверять по первичному тексту пункта; не интерполировать между строками."
+
+    - id: residential.balcony_loggia.glazing_noise
+      automation: conditional
+      statement: "Остекленные балконы и лоджии необходимо проектировать при шуме от транспортных магистралей или промышленных территорий 75 дБ и более на расстоянии 2 м от фасада, кроме шумозащищенных МКД."
+      values: {noise_trigger_dB_or_more: 75, measurement_distance_from_facade_m: 2}
+      conditions: {noise_protected_residential_building: false}
+      requires_site_noise_data: true
+      conflict_policy: "Показатель не заменяет акустический расчет ограждающих конструкций по СП 51."
+
+    - id: residential.balcony_loggia.glazing_dust
+      automation: conditional
+      statement: "Остекление учитывается при концентрации пыли в воздухе 1,5 мг/м³ и более в течение 15 дней и более за период трех летних месяцев."
+      values: {dust_concentration_trigger_mg_m3: 1.5, min_days_in_three_summer_months: 15}
+      requires_site_environmental_data: true
+      note: "Формулировка п.5.8 указывает, что при этом лоджии могут быть остекленными; применение к конкретному проекту фиксировать по исходным экологическим данным и проектному решению."
+
+climate_source_policy:
+  - id: residential.balcony_loggia.current_climate_code
+    automation: auto
+    statement: "Климатический район/подрайон и климатические параметры для профиля 2027 получать по СП 131.13330.2025, а не по замененному СП 131.13330.2020."
+
+cross_checks:
+  - id: residential.balcony_loggia.guardrail_crosscheck
+    automation: validation_only
+    statement: "Высоту и геометрию ограждений балконов/лоджий проверять по rules/07_guardrails_roofs.yaml и специальным требованиям здания; наличие остекления не отменяет требуемое ограждение автоматически."
+
+  - id: residential.balcony_loggia.glazing_safety_crosscheck
+    automation: validation_only
+    statement: "Тип безопасного стекла, нижнюю часть остекления и защиту от выпадения проверять по rules/20_glazing_safety.yaml; обязательность остекления по климату/шуму/пыли не определяет автоматически класс стекла."
+
+  - id: residential.balcony_loggia.fire_crosscheck
+    automation: validation_only
+    statement: "Если балкон/лоджия участвует в аварийном выходе или пожарной схеме, дополнительно применять СП 1.13130 и правила пожарных проемов; обычное остекление не должно уничтожать требуемую функцию воздушной/аварийной зоны."
+
+BIM_required_parameters:
+  - apartment_id
+  - apartment_for_family_with_disabled_person
+  - climatic_region
+  - climatic_subdistrict
+  - july_mean_temperature_C
+  - july_mean_wind_speed_m_s
+  - facade_noise_dB_at_2m
+  - noise_protected_building_status
+  - summer_dust_concentration_mg_m3
+  - summer_days_over_dust_threshold
+  - balcony_or_loggia_type
+  - glazing_status
+  - glazing_safety_reference
+  - guardrail_reference
+  - emergency_exit_function
+
+agent_logic:
+  - "Не принимать решение об остеклении по одному климатическому району: для I/II нужны конкретные июльские температура и ветер либо отдельные шумовые/пылевые триггеры."
+  - "Не считать 75 дБ или 1,5 мг/м³ характеристикой здания по умолчанию; требуются исходные данные участка/акустический или экологический расчет."
+  - "Не переносить климатическую классификацию из старого СП 131.13330.2020 в новую модель 2027."
+  - "После добавления остекления повторно проверять пожарную схему, естественное проветривание аварийных зон, безопасность стекла, ограждения и теплотехнические узлы."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+  - "https://meganorm.ru/mega_doc/norm_update_29032025/nomenklatura/0/sp_54_13330_2022_svod_pravil_zdaniya_zhilye_mnogokvartirnye.html"

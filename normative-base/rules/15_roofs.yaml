@@ -1,0 +1,73 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+primary_document: SP_17_13330_2017
+verified_changes: [1,2,3,4,5]
+purpose: "Базовые правила геометрии кровли без универсального уклона и без подмены расчета библиотечным типом."
+
+revision_state:
+  status: active
+  latest_verified_change: 5
+  change_5_effective_from: 2025-01-10
+
+slope_logic:
+  - id: roof.slope_by_material
+    source_clause: "4.3 and Table 4.1"
+    automation: conditional
+    statement: "Уклон кровли назначается по виду водоизоляционного слоя/кровельного материала, а не единым значением для здания."
+    agent_input_required: roof_covering_system
+  - id: roof.valley_min_slope
+    source_clause: "4.3"
+    automation: true
+    min_percent: 0.5
+    note: "В ендовах уклон принимается также в зависимости от расстояния между воронками; 0,5% — нижний предел, а не автоматически оптимальное значение."
+  - id: roof.reduced_slope_waterproofing
+    source_clause: "4.3"
+    automation: validation_only
+    statement: "При уменьшении уклона относительно обычного решения предусматривать дополнительные мероприятия по водонепроницаемости согласно применимой системе кровли."
+  - id: roof.deflection_compensation
+    source: SP_17_13330_2017_change_4
+    source_clause: "4.3"
+    automation: requires_structural_input
+    statement: "Для обеспечения проектного уклона учитывать строительный подъем несущих конструкций, компенсирующий расчетные прогибы по второй группе предельных состояний."
+
+verified_system_examples:
+  - system: bituminous_shingles
+    supporting_standard: GOST_R_70340_2022
+    usual_min_slope_deg: 12
+    automation: conditional
+    note: "При меньшем уклоне стандарт допускает решение только при выполнении специальных требований к сплошному подкровельному водоизоляционному слою."
+  - system: metal_tiles
+    supporting_standard: GOST_R_58739_2019
+    min_slope_deg: 12
+    min_slope_percent: 20
+    automation: conditional
+  - system: ceramic_or_cement_sand_tiles
+    supporting_standard: GOST_R_70342_2022
+    general_min_slope_deg: 22
+    general_min_slope_percent: 40
+    automation: conditional
+    note: "Конкретная модель черепицы и документация изготовителя могут требовать дополнительной проверки; при снижении уклона нужен предусмотренный стандартом водоизоляционный слой."
+
+roof_guarding:
+  source_clause: "SP 17 clause 4.8 + special building code"
+  automation: validation_only
+  rule: >-
+    Необходимость и высоту ограждения кровли определять по специальному СП здания (например,
+    жилому или общественному) совместно с СП 17 и ГОСТ на ограждения. Не использовать одну
+    высоту для всех кровель.
+  safety_note: "Для кровель без постоянного нормативного ограждения/с недостаточной высотой либо при уклоне свыше установленного СП 17 предела проверять страховочные системы безопасности."
+
+agent_logic:
+  - "Сначала выбрать тип кровельной системы и материал, затем допустимый уклон, затем конструктивный пирог и водоотвод."
+  - "Не использовать 12° как универсальный уклон скатной кровли."
+  - "Не формировать разуклонку без размещения воронок/желобов и проверки ендов."
+  - "Не компенсировать прогиб несущей конструкции произвольным увеличением слоя утеплителя: требовать данные КР."
+  - "Толщины утеплителя и пароизоляционные решения получать из теплотехнического/влажностного расчета, а не из стандартного BIM-пирога."
+
+pending_catalog:
+  status: manual_until_full_table_audit
+  note: "Полный машинный каталог значений таблицы 4.1 по всем кровельным материалам должен быть внесен только после отдельной построчной проверки актуальной редакции с Изм. №1-5."
+
+sources:
+  - https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8
+  - https://protect.gost.ru/sp/changesdetails/c660c8fe-0ace-4b25-b976-8acad8a8154e

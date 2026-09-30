@@ -1,0 +1,66 @@
+manifest_version: 1
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+
+load_order:
+  - priority: 1
+    file: target_2027.yaml
+    role: "future confirmed transitions, expiries and 2027 overrides"
+  - priority: 2
+    file: registry.yaml
+    role: "document identity/status registry checked on audit date"
+  - priority: 3
+    file: schema/dimension_selection_policy.yaml
+    role: "dimension semantics and conflict/rounding policy"
+  - priority: 4
+    files: "rules/*.yaml"
+    role: "verified architectural/BIM rules"
+  - priority: 5
+    file: AUDIT.md
+    role: "human-readable audit trail, pending topics and known hazards"
+
+precedence_rules:
+  - "target_2027.yaml overrides a current-date status in registry.yaml when an officially confirmed transition occurs before/during the target period."
+  - "A special functional/fire/accessibility rule overrides a general rule only within its explicit scope."
+  - "A direct numeric requirement cannot be replaced by modular rounding."
+  - "A calculation requirement cannot be replaced by a typical value."
+  - "A manufacturer/product dimension cannot be invented from a common market size."
+  - "Draft or unapproved future documents never override an active/confirmed rule."
+  - "An expired rule with no official replacement produces blocked/unresolved, not a fallback to memory."
+
+rule_files:
+  - 00_modular_coordination.yaml
+  - 01_masonry.yaml
+  - 02_precast_floor_slabs.yaml
+  - 03_egress_and_accessibility.yaml
+  - 04_architectural_baseline.yaml
+  - 05_openings_windows_doors.yaml
+  - 06_masonry_units_current.yaml
+  - 07_guardrails_roofs.yaml
+  - 08_structural_design_boundaries.yaml
+  - 09_engineering_coordination.yaml
+  - 10_accessibility.yaml
+  - 11_lighting_insolation_2027.yaml
+  - 12_floors_wet_zones.yaml
+  - 13_fire_site_access.yaml
+  - 14_parking_geometry.yaml
+  - 15_roofs.yaml
+
+hard_fail_states:
+  - missing_target_profile
+  - source_status_unknown
+  - rule_expired_for_target
+  - future_replacement_is_only_draft
+  - required_calculation_missing
+  - required_manufacturer_data_missing
+  - dimension_semantics_unknown
+  - object_classification_missing
+
+release_gate:
+  require:
+    - "no auto_rule references a superseded clause for target 2027"
+    - "all numeric auto rules have source document + clause/table + checked_at"
+    - "all future transitions have official effective date"
+    - "no draft normative document is marked active"
+    - "all clear dimensions are validated as clear, not axis/opening dimensions"
+    - "all pending topics remain fail-closed"

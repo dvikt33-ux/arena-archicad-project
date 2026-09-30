@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verified normative BIM rule",
+  "type": "object",
+  "required": [
+    "id",
+    "state",
+    "source",
+    "clause",
+    "verified_as_of",
+    "scope",
+    "rule_kind",
+    "automation",
+    "rule",
+    "must_not_assume"
+  ],
+  "properties": {
+    "id": {"type": "string"},
+    "state": {
+      "enum": ["active", "conditional", "manual_check", "future_effective", "replaced", "quarantine"]
+    },
+    "source": {"type": "string"},
+    "source_title": {"type": "string"},
+    "source_status": {"type": "string"},
+    "clause": {"type": "string"},
+    "verified_as_of": {"type": "string", "format": "date"},
+    "effective_from": {"type": ["string", "null"], "format": "date"},
+    "scope": {"type": "string"},
+    "trigger": {"type": ["string", "null"]},
+    "rule_kind": {
+      "enum": ["coordination", "geometry", "product", "construction", "performance", "calculation", "documentation", "version_guard"]
+    },
+    "automation": {
+      "enum": ["auto_apply", "auto_check", "suggest_only", "manual_check"]
+    },
+    "rule": {"type": ["string", "object", "array"]},
+    "must_not_assume": {"type": "array", "items": {"type": "string"}},
+    "depends_on": {"type": "array", "items": {"type": "string"}},
+    "status_source": {"type": ["string", "null"]},
+    "text_source": {"type": ["string", "null"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

@@ -41,7 +41,7 @@ sources:
     status: active
     effective_from: 2026-01-01
     replaces: GOST-26434-2015
-    status_source: "https://protect.gost.ru/"
+    status_source: "https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc"
     note: "Status and replacement verified; detailed product rows are stored separately."
 
   - id: GOST-9561-2025
@@ -145,3 +145,23 @@ sources:
     effective_from: 2026-04-01
     replaces: GOST-R-21.101-2020
     status_source: "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"
+
+  - id: GOST-21.501-2018
+    title: "СПДС. Правила выполнения рабочей документации архитектурных и конструктивных решений"
+    status: active
+    effective_from: 2019-06-01
+    replaces: GOST-21.501-2011
+    status_source: "https://protect.gost.ru/gost/details/a241e289-aac3-4ee2-ad44-3259f9774799"
+
+  - id: GOST-21.201-2011
+    title: "СПДС. Условные графические изображения элементов зданий, сооружений и конструкций"
+    status: active
+    effective_from: 2013-05-01
+    status_source: "https://protect.gost.ru/gost/details/a7ca3664-3906-4158-9b28-0cb7acbe9be9"
+
+  - id: GOST-21.110-2013
+    title: "СПДС. Спецификация оборудования, изделий и материалов"
+    status: active_with_correction
+    effective_from: 2015-01-01
+    correction_registered: 2015-04-03
+    status_source: "https://protect.gost.ru/gost/details/e135d52a-eccd-4b7d-b96f-e758c3fce18c"

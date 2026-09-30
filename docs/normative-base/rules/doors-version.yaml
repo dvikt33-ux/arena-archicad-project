@@ -1,0 +1,30 @@
+verified_as_of: 2026-09-30
+sources:
+  - id: GOST-475-2016
+    title: "Блоки дверные деревянные и комбинированные. Общие технические условия"
+    status_on_verified_date: active
+    effective_from: 2017-07-01
+    replaced_by: GOST-475-2026
+    status_source: "https://protect.gost.ru/gost/details/15817887-7157-43ed-acfa-8364cb533610"
+  - id: GOST-475-2026
+    title: "Блоки дверные деревянные и комбинированные. Общие технические условия"
+    status_on_verified_date: adopted_not_yet_effective
+    effective_from: 2026-10-01
+    replaces: GOST-475-2016
+    status_source: "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
+rules:
+  - id: DOOR.GOST475.DATE_GUARD
+    state: conditional
+    source: "GOST-475-2016 / GOST-475-2026 status records"
+    clause: "Rosstandart registration/status records"
+    scope: "Наружные и внутренние деревянные и комбинированные дверные блоки в области применения ГОСТ 475. Не относится автоматически к специальным противопожарным, пуленепробиваемым, взрывостойким и иным исключенным дверям."
+    rule_kind: version_guard
+    automation: auto_check
+    rule:
+      through_2026_09_30: GOST-475-2016
+      from_2026_10_01: GOST-475-2026
+      switch_date: 2026-10-01
+    must_not_assume:
+      - "ГОСТ 475 не заменяет требования пожарной безопасности, доступности и специальных стандартов дверей."
+      - "На дату 2026-09-30 ГОСТ 475-2026 принят, но еще не введен в действие; агент не должен преждевременно маркировать его как действующий."
+      - "После 2026-10-01 агент должен автоматически блокировать ГОСТ 475-2016 как текущий источник для новых проверок."

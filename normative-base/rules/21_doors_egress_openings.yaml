@@ -1,0 +1,145 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Эвакуационные двери и выходы: размер в свету, высота, ширина, наружные площадки и конфликт с доступностью."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+  - {document: GOST_475_2026, effective_from: 2026-10-01, scope: "wood and combined non-special doors"}
+
+semantics:
+  - id: door.egress.dimensions_are_clear
+    source:
+      document: SP_1_13130_2020
+      clause: "4.1.4"
+    automation: auto
+    dimension_semantics: clear
+    statement: "Размеры эвакуационных путей и выходов по СП 1, если специально не оговорено иное, задаются в свету. Размер в свету — минимальное расстояние между выступающими конструкциями измеряемого элемента в нормальной проекции."
+
+exit_height:
+  source: SP_1_13130_2020
+  rules:
+    - id: door.egress.general_clear_height
+      clause: "4.2.18"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота эвакуационного выхода в свету, как правило, не менее 1,9 м."
+      values: {general_min_mm: 1900}
+
+    - id: door.egress.nonoccupied_clear_height_exception
+      clause: "4.2.18"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для помещений без постоянного пребывания людей и помещений с одиночными рабочими местами допускается высота эвакуационного выхода не менее 1,8 м."
+      values: {min_mm: 1800}
+      requires_object_classification: true
+
+    - id: door.egress.reconstruction_height_exception
+      clause: "4.2.18"
+      automation: manual_calculation
+      dimension_semantics: clear
+      statement: "Для реконструируемых объектов, когда работы не затрагивают выход, и для памятников допускается сохранение меньшей высоты, но не менее 1,5 м, только с предусмотренным нормой обоснованием."
+      values: {absolute_exception_min_mm: 1500}
+      requires_calculation: true
+      conflict_policy: "Не применять к новому строительству."
+
+exit_width:
+  source: SP_1_13130_2020
+  rules:
+    - id: door.egress.general_clear_width
+      clause: "4.2.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Ширина эвакуационного выхода в свету, как правило, не менее 0,8 м."
+      values: {general_min_mm: 800}
+
+    - id: door.egress.small_service_room_exception
+      clause: "4.2.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Из технических помещений и кладовых площадью не более 20 м² без постоянных рабочих мест, туалетных и душевых кабин, санузлов, а также помещений с одиночными рабочими местами допускается выход не менее 0,6 м."
+      values: {min_mm: 600, max_service_room_area_m2: 20}
+      requires_object_classification: true
+      conflict_policy: "Если действует более строгое требование МГН или специального функционального раздела, применять его."
+
+    - id: door.egress.fifty_or_more
+      clause: "4.2.19"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При числе эвакуирующихся через выход 50 человек и более минимальная ширина выхода из помещения — 1,2 м."
+      values: {trigger_people: 50, min_clear_width_mm: 1200}
+      requires_calculation: true
+
+stair_exit_width:
+  source: SP_1_13130_2020
+  rules:
+    - id: door.egress.stair_exit_width
+      clause: "4.2.20"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Ширина выхода из лестничной клетки наружу или в вестибюль должна быть не менее требуемой ширины пути по маршу лестницы; для отдельных функциональных классов действует специальное условие пункта."
+      requires_object_classification: true
+      requires_calculation: true
+
+    - id: door.egress.multiple_stair_exits_each_min
+      clause: "4.2.20"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Если требуемая ширина выхода из лестничной клетки 1,2 м и более и предусмотрено несколько выходов, их суммарная ширина должна быть не меньше требуемой, а каждый выход — не менее 0,9 м."
+      values: {trigger_required_width_mm: 1200, each_exit_min_mm: 900}
+
+external_landing:
+  - id: door.egress.external_landing
+    source:
+      document: SP_1_13130_2020
+      clause: "4.2.21"
+    automation: conditional
+    statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную площадку с длиной и шириной не менее 1,5 ширины полотна наружной двери."
+    formula: "landing_min_dimension >= 1.5 * exterior_door_leaf_width"
+    dimension_semantics: clear
+
+opening_direction:
+  - id: door.egress.opening_direction
+    source:
+      document: SP_1_13130_2020
+      clause: "4.2.22"
+    automation: validation_only
+    statement: "Двери эвакуационных выходов и двери на путях эвакуации в общем случае открываются по направлению выхода из здания; пункт содержит перечисленные исключения, которые необходимо проверять до назначения направления открывания."
+
+accessibility_intersection:
+  - id: door.accessible.route_clear_width
+    source:
+      document: SP_59_13330_2020
+      clause: "6.2.4"
+    automation: conditional
+    dimension_semantics: clear
+    statement: "На доступном маршруте внутренний дверной проем для МГН в общем случае должен обеспечивать не менее 0,9 м в свету."
+    values: {general_min_clear_width_mm: 900}
+    conflict_policy: "Если дверь одновременно эвакуационная и доступная, выполнять одновременно СП 1 и СП 59; использовать применимое более строгое ограничение после фильтрации области действия."
+
+BIM_required_parameters:
+  - door_type
+  - structural_opening_width
+  - structural_opening_height
+  - frame_outer_width
+  - frame_outer_height
+  - leaf_width
+  - clear_opening_width_at_90deg_or_normal_use
+  - clear_opening_height
+  - threshold_height
+  - swing_direction
+  - room_occupancy
+  - calculated_evacuating_people
+  - accessible_route_status
+  - stair_exit_status
+
+agent_logic:
+  - "Никогда не считать библиотечную дверь с названием D900 автоматически проходом 900 мм в свету."
+  - "После установки дверного объекта вычислять фактический свободный проход с учетом коробки, полотна, угла открывания и выступающей фурнитуры, если она влияет на минимальное расстояние."
+  - "Строительный проем, наружный габарит коробки, ширина полотна и размер в свету — четыре разных параметра."
+  - "Исключение 600 мм не применять к обычным помещениям и не использовать на доступном маршруте, если СП 59 требует 900 мм."
+  - "Для двупольных дверей проверять фактически доступную створку/комбинацию створок по условиям применимого пункта, а не суммарную ширину коробки."
+
+sources:
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/changesdetails/de574ad5-67fc-4e31-a0a5-a793c94b1cc7"

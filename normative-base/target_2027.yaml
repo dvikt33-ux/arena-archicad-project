@@ -1,0 +1,62 @@
+profile: RU_2027_PLUS
+target_year: 2027
+checked_at: 2026-09-30
+purpose: "Нормативный профиль для проектов, реализация которых начнется не ранее 2027 года."
+
+selection_policy:
+  - "Если будущая редакция или изменение официально утверждены и имеют точную дату вступления в силу в 2027 году, применять их при проектировании уже сейчас."
+  - "Не применять проекты изменений, планы стандартизации и неутвержденные документы."
+  - "Текущую редакцию, которая будет отменена или изменена до реализации проекта, хранить только как переходную/историческую."
+  - "Если будущее изменение удаляет числовое правило без универсальной замены, старое число запрещается использовать автоматически. Возвращать needs_project_or_manufacturer_data или needs_calculation."
+  - "Для каждого решения проверять не только статус СП/ГОСТ, но и применимость требования к конкретному объекту."
+
+legal_2027:
+  requirements_registry:
+    effective_logic_from: 2027-03-01
+    basis: "Федеральный закон от 28.12.2025 №507-ФЗ; новая редакция ч. 5.2 ст. 49 ГрК РФ"
+    rule: "Для экспертизы учитывать требования, включенные в Реестр требований на релевантную дату проекта/ГПЗУ/ППТ."
+    automation: mandatory_validation
+
+confirmed_transitions:
+  - id: SP70_CHANGE8_DEFERRED
+    document: SP_70_13330_2012
+    amendment: 8
+    effective_from: 2027-03-01
+    target_profile_action: apply_now_for_2027_design
+    affected_architectural_clause: "9.2.4"
+    effect: "Пункт 9.2.4 исключается. Числа горизонтального/вертикального шва 12/10 мм более не использовать как нормативное автоматическое правило целевого профиля 2027."
+    source_url: "https://protect.gost.ru/sp/changesdetails/c1b0a1c8-73c5-480b-a9dc-0ad44d636d09"
+
+  - id: GOST475_2026
+    document: GOST_475_2026
+    effective_from: 2026-10-01
+    replaces: GOST_475_2016
+    target_profile_action: apply
+    scope: "деревянные и комбинированные дверные блоки"
+    source_url: "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
+
+  - id: SP45_CHANGE4_DEFERRED
+    document: SP_45_13330_2017
+    amendment: 4
+    effective_from: 2027-03-01
+    target_profile_action: apply_when_scope_matches
+    scope: "земляные сооружения, основания и фундаменты; смежный КР/ПОС слой"
+    note: "Архитектурный агент не выводит из этого изменения размеры фундаментов; используется как сигнал обязательной проверки смежного раздела."
+    source_url: "https://protect.gost.ru/sp/changesdetails/af748f79-c5de-443b-a10f-7542d35b9bce"
+
+  - id: SP73_CHANGE3_DEFERRED
+    document: SP_73_13330_2016
+    amendment: 3
+    effective_from: 2027-03-01
+    target_profile_action: apply_when_scope_matches
+    scope: "внутренние санитарно-технические системы; смежный инженерный слой"
+    note: "Учитывать при резервировании инженерных зон и междисциплинарной координации; архитектурный агент не рассчитывает системы самостоятельно."
+    source_url: "https://protect.gost.ru/sp/changesdetails/b595a91d-d798-4c82-9345-8419ea696528"
+
+agent_gate:
+  before_model_generation:
+    - "load target_2027.yaml"
+    - "reject rules superseded by confirmed_transitions"
+    - "verify object_function and special_code applicability"
+    - "verify requirements_registry applicability"
+  fail_closed: true

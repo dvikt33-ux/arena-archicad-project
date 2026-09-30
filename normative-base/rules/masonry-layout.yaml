@@ -1,0 +1,215 @@
+meta:
+  schema_version: 1
+  jurisdiction: RU
+  verified_as_of: 2026-09-30
+  units_default: mm
+  sources:
+    - "СП 70.13330.2012 with Amendments 1,3,4,5,6,7 and effective portions of Amendment 8"
+    - "СП 15.13330.2020 with Amendment 1"
+    - "ГОСТ 530-2012"
+  policy: "Execution geometry and structural adequacy are separate. Joint dimensions may drive layout; pier adequacy remains structural calculation."
+  amendment_8_split_effectivity:
+    general_effective_from: 2026-07-04
+    listed_deferred_clauses_effective_from: 2027-03-01
+    deferred_masonry_clauses_include: ["9.2.4", "9.2.8", "9.2.12", "9.2.13", "9.2.14", "9.2.15", "9.6.3", "9.6.5", "9.6.6", "9.6.7", "9.7.2", "9.7.4", "9.7.5", "9.7.8"]
+  source_amendment_8_url: "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
+
+rules:
+  - id: MASONRY-JOINT-REGULAR-001
+    topic: regular_brick_and_regular_stone_joints
+    rule_type: hard_rule
+    statement: "For masonry of brick and regular-shaped stones, horizontal mortar joints are 12 mm and vertical mortar joints are 10 mm under the wording of СП 70.13330.2012 clause 9.2.4 effective on 2026-09-30."
+    horizontal_joint_nominal_mm: 12
+    vertical_joint_nominal_mm: 10
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.4"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    future_change_note: "Amendment 8 excludes/replaces clause 9.2.4 only from 2027-03-01; re-audit before using after that date."
+    source_text_url: "https://meganorm.ru/mega_doc/dop_fire/opredelenie_pervogo_kassatsionnogo_suda_obshchey_281/0/sp_70_13330_2012_svod_pravil_nesushchie_i_ograzhdayushchie.html"
+    confidence: high
+
+  - id: MASONRY-JOINT-TOL-001
+    topic: regular_masonry_joint_tolerances
+    rule_type: hard_rule
+    statement: "Execution tolerances for regular masonry joints are -2/+3 mm for horizontal joints and -2/+2 mm for vertical joints according to Table 9.8 of the current execution standard."
+    horizontal_joint_tolerance_mm: {minus: 2, plus: 3}
+    vertical_joint_tolerance_mm: {minus: 2, plus: 2}
+    source_document: "СП 70.13330.2012"
+    source_clause: "Table 9.8"
+    confidence: high
+
+  - id: MASONRY-BOND-001
+    topic: regular_brick_bonding
+    rule_type: conditional_rule
+    statement: "Current effective wording of СП 70.13330.2012 Amendment 8 requires bond ratios for regular masonry: single brick 1 header course per 6 stretcher courses; one-and-a-half brick 1 per 4; regular-shaped stones 1 per 3."
+    source_document: "СП 70.13330.2012, Amendment 8"
+    source_clause: "9.2.1"
+    effective_from: 2026-07-04
+    ratios:
+      single_brick: {header_courses: 1, stretcher_courses: 6}
+      one_and_half_brick: {header_courses: 1, stretcher_courses: 4}
+      regular_stone: {header_courses: 1, stretcher_courses: 3}
+    support_course_condition: "With multi-row bonding, header courses are mandatory below bearing parts of beams, girders, floor slabs, balconies, wall plates and other prefabricated structures. With single-row chain bonding, prefabricated structures may bear on stretcher courses."
+    source_text_url: "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
+    confidence: high
+
+  - id: MASONRY-SELECTED-BRICK-001
+    topic: piers_columns_lintels
+    rule_type: conditional_rule
+    statement: "Piers, pilasters and columns 2.5 bricks wide or less, ordinary brick lintels and cornices are to be built from selected whole brick."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.2"
+    width_condition_bricks_max: 2.5
+    confidence: high
+
+  - id: MASONRY-HALF-BRICK-001
+    topic: use_of_half_brick
+    rule_type: conditional_rule
+    statement: "Half-bricks may be used only for backing rows and lightly loaded masonry zones, such as below windows, and not more than 10% of the total amount of brick."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.3"
+    maximum_fraction: 0.10
+    confidence: high
+
+  - id: MASONRY-FILL-001
+    topic: mortar_joint_filling
+    rule_type: hard_rule
+    statement: "Horizontal and transverse vertical joints of brick walls, and horizontal/transverse/longitudinal vertical joints in lintels, piers and columns, must be filled with mortar."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.5"
+    confidence: high
+
+  - id: MASONRY-RAKED-001
+    topic: raked_joints
+    rule_type: hard_rule
+    statement: "For masonry executed with joints left unfilled at the face, maximum unfilled depth is 15 mm in walls and 10 mm for vertical joints in columns."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.6"
+    wall_max_unfilled_depth_mm: 15
+    column_vertical_joint_max_unfilled_depth_mm: 10
+    confidence: high
+
+  - id: MASONRY-BRICK-LINTEL-001
+    topic: ordinary_brick_lintel_adjacent_piers
+    rule_type: conditional_rule
+    statement: "Wall zones between ordinary brick lintels where pier width is less than 1 m must be laid with the same mortar as the lintels."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.7"
+    pier_width_condition_mm: 1000
+    confidence: high
+
+  - id: MASONRY-ORDINARY-LINTEL-REINF-001
+    topic: ordinary_brick_lintel_reinforcement
+    rule_type: conditional_rule
+    statement: "For ordinary brick lintels, steel reinforcement is placed in a 30 mm mortar layer under the bottom brick course; bar count is set by design but at least three; smooth bars are at least 6 mm diameter and anchored into piers at least 250 mm."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.2.8"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    mortar_layer_mm: 30
+    minimum_bar_count: 3
+    smooth_bar_min_diameter_mm: 6
+    minimum_embedment_into_pier_mm: 250
+    future_change_note: "Amendment 8 change to 9.2.8 becomes effective 2027-03-01; re-audit after that date."
+    confidence: high
+
+  - id: MASONRY-LFC-JOINT-001
+    topic: large_format_ceramic_masonry
+    rule_type: conditional_rule
+    statement: "For large-format ceramic stone masonry under the current clause 9.6.5, horizontal joints are 8-12 mm; for mesh-reinforced masonry 10-16 mm. Vertical joints are not filled where tongue-and-groove joints are used; otherwise they are filled with mortar."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.6.5"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    horizontal_joint_mm: {minimum: 8, maximum: 12}
+    mesh_reinforced_horizontal_joint_mm: {minimum: 10, maximum: 16}
+    vertical_joint_tongue_and_groove: "not filled"
+    vertical_joint_other: "filled"
+    future_change_note: "Amendment 8 change becomes effective 2027-03-01."
+    confidence: high
+
+  - id: MASONRY-LFC-SLAB-BEARING-001
+    topic: slab_bearing_on_large_format_ceramic_loadbearing_wall
+    rule_type: conditional_rule
+    statement: "For floor slabs bearing on load-bearing walls of large-format ceramic stones, current clause 9.6.6 requires 120 mm bearing on a 15 mm cement-lime-sand mortar layer directly on masonry."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.6.6"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    applicability:
+      wall_material: "large_format_ceramic_stones"
+      wall_role: "loadbearing"
+    bearing_mm: 120
+    mortar_layer_mm: 15
+    guardrail: "This is a narrow material/system-specific execution rule, not a universal slab-bearing rule. Structural adequacy and product/project details remain required."
+    future_change_note: "Amendment 8 change becomes effective 2027-03-01."
+    confidence: high
+
+  - id: MASONRY-SILICATE-JOINT-001
+    topic: silicate_block_masonry
+    rule_type: conditional_rule
+    statement: "For silicate-block masonry, current clause 9.7.4 gives 2 mm thin-bed adhesive joints; 12 mm cement-lime-sand joints; 16 mm reinforced joints. Tongue-and-groove vertical joints are not filled."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.7.4"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    thin_bed_adhesive_joint_mm: 2
+    cement_lime_sand_joint_mm: 12
+    reinforced_joint_mm: 16
+    tongue_and_groove_vertical_joint: "not filled"
+    future_change_note: "Amendment 8 change becomes effective 2027-03-01."
+    confidence: high
+
+  - id: MASONRY-SILICATE-SUPPORT-001
+    topic: bearing_on_silicate_blocks
+    rule_type: conditional_rule
+    statement: "Floor slabs, beams and lintels bearing directly on silicate blocks use cement mortar not thicker than 15 mm, grade at least M100, under current clause 9.7.5."
+    source_document: "СП 70.13330.2012"
+    source_clause: "9.7.5"
+    valid_on: 2026-09-30
+    valid_until_current_wording: 2027-02-28
+    mortar_max_thickness_mm: 15
+    mortar_min_grade: "M100"
+    future_change_note: "Amendment 8 change becomes effective 2027-03-01."
+    confidence: high
+
+  - id: PIER-CALC-001
+    topic: masonry_pier_structural_check
+    rule_type: requires_calculation
+    statement: "Piers in walls weakened by openings are structurally checked under СП 15.13330.2020; the stability/compression coefficient is determined from wall slenderness."
+    source_document: "СП 15.13330.2020"
+    source_clause: "7.5"
+    source_text_url: "https://meganorm.ru/mega_doc/norm/polozhenie_polozheniya/0/sp_15_13330_2020_svod_pravil_kamennye_i_armokamennye.html"
+    confidence: high
+
+  - id: PIER-CALC-002
+    topic: narrow_masonry_pier_structural_check
+    rule_type: requires_calculation
+    statement: "If pier width is less than wall thickness, the pier must additionally be checked in the plane of the wall; the design height for this check is the opening height."
+    source_document: "СП 15.13330.2020"
+    source_clause: "7.5"
+    trigger: "pier_width < wall_thickness"
+    design_height: "opening_height"
+    confidence: high
+
+  - id: PIER-ARCH-001
+    topic: opening_pier_design_workflow
+    rule_type: do_not_infer
+    statement: "Architectural modular fit, brick bond fit and structural pier adequacy are three different checks. Passing ГОСТ 28984 or СП 70 layout checks never substitutes for СП 15 structural calculation."
+    required_check_sequence:
+      - "coordination/opening layout"
+      - "masonry unit + joint/bond constructability"
+      - "structural pier calculation"
+      - "seismic overlay if applicable"
+      - "lintel/support/detail check"
+      - "fire/thermal/window-installation interfaces"
+    confidence: high
+
+  - id: MASONRY-CORE-PLACEHOLDER-OVERRIDE-001
+    topic: rule_precedence
+    rule_type: hard_rule
+    statement: "This topic-specific pack supersedes the conservative placeholder MASONRY-JOINT-001 in core-dimensional-rules.yaml for projects with rule date 2026-09-30."
+    supersedes_rule_ids: ["MASONRY-JOINT-001"]
+    precedence: "topic_specific_over_core_placeholder"
+    confidence: high

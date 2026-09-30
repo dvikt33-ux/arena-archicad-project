@@ -1,0 +1,98 @@
+verified_as_of: 2026-09-30
+purpose: "Geometry derivations for BIM layout. Derived values are not universal minimum dimensions."
+sources:
+  - id: GOST-530-2012
+    clauses: ["3.2", "4.2.1 table 2"]
+    fact: "1NF ceramic brick nominal dimensions 250 x 120 x 65 mm"
+  - id: SP-70.13330.2012
+    clauses: ["9.2.2", "9.2.3", "9.2.4"]
+    fact: "execution requirements for whole brick, half-brick use and mortar joints"
+rules:
+  - id: MASONRY.SMALL_PIERS.WHOLE_BRICK
+    state: active
+    source: SP-70.13330.2012
+    clause: "9.2.2"
+    scope: "Кирпичные столбы, пилястры и простенки шириной 2,5 кирпича и менее, а также рядовые кирпичные перемычки и карнизы."
+    rule_kind: construction
+    automation: auto_check
+    rule: "Выполнять из отборного целого кирпича."
+    must_not_assume:
+      - "'2,5 кирпича' здесь — условие области применения требования к качеству/целостности кирпича, а не универсальная минимальная ширина простенка."
+      - "Правило не заменяет расчет несущей способности простенка по СП 15.13330.2020."
+
+  - id: MASONRY.1NF.WALL_THICKNESS.DERIVED_CANDIDATES
+    state: conditional
+    source: "derived from GOST-530-2012 + SP-70.13330.2012"
+    clause: "GOST 530-2012 4.2.1 table 2; SP 70.13330.2012 9.2.4"
+    scope: "Геометрический подбор толщины обычной кладки из кирпича 1NF при расчетном вертикальном шве 10 mm."
+    rule_kind: geometry
+    automation: suggest_only
+    rule:
+      brick_1NF_mm: [250, 120, 65]
+      vertical_joint_mm: 10
+      derived_nominal_layout_candidates_mm:
+        half_brick: 120
+        one_brick: 250
+        one_and_half_brick: 380
+        two_brick: 510
+        two_and_half_brick: 640
+      derivation:
+        half_brick: "120"
+        one_brick: "250"
+        one_and_half_brick: "250 + 10 + 120"
+        two_brick: "250 + 10 + 250"
+        two_and_half_brick: "250 + 10 + 250 + 10 + 120"
+    must_not_assume:
+      - "120/250/380/510/640 mm — выведенные геометрические кандидаты раскладки, а не нормативный ряд минимально допустимых толщин стен."
+      - "Требуемая толщина стены определяется также расчетом, огнестойкостью, теплотехникой, звукоизоляцией, устойчивостью и конструктивной схемой."
+      - "Для другой перевязки, другого формата кирпича, облицовочного слоя, воздушного зазора, утеплителя или иной кладочной системы требуется отдельная раскладка."
+
+  - id: MASONRY.1NF.HORIZONTAL_SEQUENCE_SOLVER
+    state: conditional
+    source: "derived from GOST-530-2012 + SP-70.13330.2012"
+    clause: "GOST 530-2012 4.2.1 table 2; SP 70.13330.2012 9.2.4"
+    scope: "Предварительный BIM-подбор длины фрагмента кладки вдоль ряда из целых 1NF кирпичей без учета угловой перевязки, доборов и деформационных швов."
+    rule_kind: geometry
+    automation: suggest_only
+    rule:
+      formula_mm: "L(n) = n*250 + (n-1)*10, n >= 1"
+      examples_mm:
+        1: 250
+        2: 510
+        3: 770
+        4: 1030
+        5: 1290
+      preferred_solver_behavior:
+        - "Generate whole-brick candidates first."
+        - "Treat mismatch against architectural coordination dimension as a coordination problem, not permission to cut arbitrary bricks."
+        - "Resolve corners, jambs and bonding with a masonry bond model before finalizing openings/piers."
+    must_not_assume:
+      - "Формула не моделирует тычковые ряды, углы, пересечения стен и перевязку швов."
+      - "Формула не задает минимальную ширину простенка."
+      - "Разрезанный кирпич нельзя автоматически добавлять для подгонки размера."
+
+  - id: MASONRY.1NF.VERTICAL_COURSE_SOLVER
+    state: conditional
+    source: "derived from GOST-530-2012 + SP-70.13330.2012"
+    clause: "GOST 530-2012 4.2.1 table 2; SP 70.13330.2012 9.2.4"
+    scope: "Предварительный расчет высоты рядов кладки 1NF без учета специальных рядов, армирования, перемычек и деформационных решений."
+    rule_kind: geometry
+    automation: suggest_only
+    rule:
+      formula_mm: "H(n) = n*65 + (n-1)*12 for a stack measured from brick face to brick face; repeating course pitch = 77 mm where a horizontal joint follows each course"
+      course_pitch_mm: 77
+      note: "At a bounded fragment the number of included mortar joints depends on the measurement boundaries; do not blindly use n*77 for every dimension."
+    must_not_assume:
+      - "Высота оконного проема, подоконной зоны или этажа не обязана быть кратна 77 mm."
+      - "Армирование, гидроизоляция, перемычка, армопояс и иные слои меняют вертикальную раскладку."
+
+  - id: MASONRY.CUT_BRICK.FAIL_CLOSED
+    state: active
+    source: SP-70.13330.2012
+    clause: "9.2.2-9.2.3"
+    scope: "Автоматическая генерация кирпичной кладки."
+    rule_kind: construction
+    automation: auto_check
+    rule: "Automatic layout shall not solve a dimensional mismatch by introducing arbitrary half/cut bricks in structural piers, columns, pilasters, lintels or cornices. Where half-brick is permitted by 9.2.3, its use remains limited to the stated scope and quantity."
+    must_not_assume:
+      - "Отсутствие геометрического решения целыми кирпичами не является основанием нарушить требования перевязки или конструктивный расчет."

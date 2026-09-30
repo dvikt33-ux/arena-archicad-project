@@ -10,63 +10,65 @@ revision_dependencies:
 
 public_visitor_stairs:
   source: SP_118_13330_2022
-  - id: stair.public_tread_riser
-    clause: "5.7"
-    automation: conditional
-    applies_to: "stairs permanently used by visitors"
-    tread:
-      preferred_mm: 300
-      allowed_range_mm: [280,350]
-    riser:
-      preferred_mm: 150
-      allowed_range_mm: [130,170]
-    same_flight_uniformity: true
-    edge_radius_max_mm: 50
-    note: "Проходы зрительных залов и трибун имеют специальное исключение и не должны генерироваться этим правилом."
+  rules:
+    - id: stair.public_tread_riser
+      clause: "5.7"
+      automation: conditional
+      applies_to: "stairs permanently used by visitors"
+      tread:
+        preferred_mm: 300
+        allowed_range_mm: [280,350]
+      riser:
+        preferred_mm: 150
+        allowed_range_mm: [130,170]
+      same_flight_uniformity: true
+      edge_radius_max_mm: 50
+      note: "Проходы зрительных залов и трибун имеют специальное исключение и не должны генерироваться этим правилом."
 
-  - id: stair.public_slope
-    clause: "5.8"
-    automation: conditional
-    cases:
-      - {condition: "visitor stair in above-ground floors", slope: "1:2"}
-      - {condition: "to basement/cellar/attic or above-ground stair not for visitors", max_slope: "1:1.5"}
-      - {condition: "second stair not permanently used by visitors in public building with elevators", max_slope: "1:1"}
+    - id: stair.public_slope
+      clause: "5.8"
+      automation: conditional
+      cases:
+        - {condition: "visitor stair in above-ground floors", slope: "1:2"}
+        - {condition: "to basement/cellar/attic or above-ground stair not for visitors", max_slope: "1:1.5"}
+        - {condition: "second stair not permanently used by visitors in public building with elevators", max_slope: "1:1"}
 
-  - id: stair.public_landing
-    clause: "5.10"
-    automation: true
-    landing_width_rule: "not less than flight width"
-    straight_intermediate_landing_min_length_mm: 1000
+    - id: stair.public_landing
+      clause: "5.10"
+      automation: auto
+      landing_width_rule: "not less than flight width"
+      straight_intermediate_landing_min_length_mm: 1000
 
-  - id: stair.public_risers_count
-    clause: "5.11 -> SP 1.13130.2020 4.4.4"
-    automation: validation_only
-    statement: "Число подъемов между площадками проверять по СП 1; не дублировать старое значение без актуальной пожарной проверки."
+    - id: stair.public_risers_count
+      clause: "5.11 -> SP 1.13130.2020 4.4.4"
+      automation: validation_only
+      statement: "Число подъемов между площадками проверять по СП 1; не дублировать старое значение без актуальной пожарной проверки."
 
 egress_stairs_general:
   source: SP_1_13130_2020
-  - id: stair.egress_tread_riser
-    clause: "4.4.3"
-    automation: conditional
-    tread_general_min_mm: 250
-    tread_qualifier: "as a rule; exceptions are defined by the full clause/special sections"
-    riser_min_mm: 50
-    riser_max_mm: 220
-    max_slope_general: "1:1"
-    note: "Для конкретного функционального класса и типа лестницы проверять специальные требования разделов СП 1; значения не заменяют СП 118, если общественная посетительская лестница требует более строгую/специальную геометрию."
+  rules:
+    - id: stair.egress_tread_riser
+      clause: "4.4.3"
+      automation: conditional
+      tread_general_min_mm: 250
+      tread_qualifier: "as a rule; exceptions are defined by the full clause/special sections"
+      riser_min_mm: 50
+      riser_max_mm: 220
+      max_slope_general: "1:1"
+      note: "Для конкретного функционального класса и типа лестницы проверять специальные требования разделов СП 1; значения не заменяют СП 118, если общественная посетительская лестница требует более строгое/специальное решение."
 
-  - id: stair.egress_risers_count
-    clause: "4.4.4"
-    automation: auto
-    normal_flight: {min: 3, max: 16}
-    first_floor_specific_exception_max: 18
-    exception_note: "Исключение применять только в точной области п.4.4.4, а не ко всем маршам первого этажа."
+    - id: stair.egress_risers_count
+      clause: "4.4.4"
+      automation: auto
+      normal_flight: {min: 3, max: 16}
+      first_floor_specific_exception_max: 18
+      exception_note: "Исключение применять только в точной области п.4.4.4, а не ко всем маршам первого этажа."
 
 conflict_resolution:
   algorithm:
     - "Определить: является ли лестница эвакуационной, посетительской, служебной, внутренней/наружной, доступной МГН, специальной лестницей трибун/зала."
     - "Собрать требования СП 118/специального СП здания, СП 1, СП 59 и требования ограждений."
-    - "Не выбирать 'наиболее строгое число' механически, если нормы задают разные области применения; сначала отфильтровать применимые правила."
+    - "Не выбирать наиболее строгое число механически, если нормы задают разные области применения; сначала отфильтровать применимые правила."
     - "После выбора rise/run проверить фактический уклон, число подъемов, длину марша, размеры площадок и чистую ширину."
     - "Размер марша в свету не заменять расстоянием между координационными осями стен."
 

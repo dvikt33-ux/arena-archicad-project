@@ -1,0 +1,143 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Геометрия автомобильных рамп стоянок по СП 113.13330.2023 с Изм. №1-4: уклоны, ширина, радиусы, тротуары и переходы к горизонтальным участкам."
+
+revision_dependencies:
+  - {document: SP_113_13330_2023, verified_changes: [1,2,3,4], change_3_effective_from: 2026-01-16, change_4_effective_from: 2026-10-03}
+
+source:
+  document: SP_113_13330_2023
+  clause: "5.26"
+
+longitudinal_slopes:
+  - id: parking.ramp.straight_closed_unheated
+    automation: conditional
+    statement: "Продольный уклон прямолинейной рампы по оси полосы движения в закрытой неотапливаемой стоянке — не более 18%."
+    values: {max_percent: 18}
+    conditions: {ramp_geometry: straight, parking_type: closed, ramp_heating: false}
+
+  - id: parking.ramp.curved_closed_unheated
+    automation: conditional
+    statement: "Продольный уклон криволинейной рампы в закрытой неотапливаемой стоянке — не более 13%."
+    values: {max_percent: 13}
+    conditions: {ramp_geometry: curved, parking_type: closed, ramp_heating: false}
+
+  - id: parking.ramp.combined_closed_unheated
+    automation: conditional
+    statement: "На комбинированной рампе закрытой неотапливаемой стоянки прямолинейные участки допускаются с уклоном до 18%, криволинейные — до 13%."
+    values: {straight_max_percent: 18, curved_max_percent: 13}
+    conditions: {ramp_geometry: combined, parking_type: closed, ramp_heating: false}
+
+  - id: parking.ramp.heated_closed_exception
+    automation: conditional
+    statement: "В закрытой стоянке с отапливаемой рампой продольный уклон по заданию на проектирование допускается увеличить: прямолинейный участок до 20%, криволинейный до 14%, при установке предупреждающих знаков о крутом спуске/подъеме."
+    values: {straight_max_percent: 20, curved_max_percent: 14}
+    conditions: {parking_type: closed, ramp_heating: true, design_assignment_authorizes: true, warning_signs_required: true}
+    conflict_policy: "Не применять как обычный проектный уклон по умолчанию; это специальное допускаемое увеличение."
+
+  - id: parking.ramp.open_unprotected
+    automation: conditional
+    statement: "Продольный уклон открытой рампы, не защищенной от атмосферных осадков, — не более 10%."
+    values: {max_percent: 10}
+    conditions: {ramp_type: open, precipitation_protection: false}
+
+  - id: parking.ramp.open_deicing_solution
+    automation: conditional
+    statement: "При подогреве либо другом инженерном решении, исключающем обледенение проезжей части открытой рампы, ее уклон допускается принимать как для закрытой рампы в области п.5.26."
+    requires_engineering_confirmation: true
+    conflict_policy: "Наличие кабеля/труб в BIM само по себе не является подтверждением работоспособного противообледенительного решения."
+
+cross_slope:
+  - id: parking.ramp.cross_slope
+    automation: auto
+    statement: "Поперечный уклон автомобильной рампы — не более 6%."
+    values: {max_percent: 6}
+
+pedestrian_on_ramp:
+  - id: parking.ramp.pedestrian_sidewalk
+    automation: conditional
+    dimension_semantics: clear
+    statement: "При пешеходном движении по рампе предусматривать тротуар шириной не менее 0,8 м с бордюром высотой не менее 0,1 м."
+    values: {sidewalk_min_width_mm: 800, curb_min_height_mm: 100}
+    conditions: {pedestrian_movement_on_ramp: true}
+    conflict_policy: "Если маршрут является доступным для МГН, отдельно проверить СП 59; 0,8 м не считать достаточной доступной шириной автоматически."
+
+carriageway_width:
+  - id: parking.ramp.carriageway_general
+    automation: conditional
+    dimension_semantics: clear
+    statement: "Минимальная ширина проезжей части прямолинейной и криволинейной рампы — 3,5 м."
+    values: {min_clear_width_mm: 3500}
+
+  - id: parking.ramp.straight_constrained_exception
+    automation: validation_only
+    dimension_semantics: clear
+    statement: "В предусмотренных действующей редакцией стесненных условиях ширина прямолинейного участка может быть менее 3,5 м, но не менее 3,0 м, только при подтверждении габаритов расчетного автомобиля и предусмотренных технических мероприятий."
+    values: {absolute_min_clear_width_mm: 3000}
+    requires_vehicle_swept_path_check: true
+    conflict_policy: "Не использовать 3,0 м как нормальную ширину рампы."
+
+curved_radius:
+  - id: parking.ramp.curved_outer_radius
+    automation: conditional
+    dimension_semantics: clear
+    statement: "Минимальный внешний радиус криволинейного участка рампы — 7,4 м; он уточняется заданием на проектирование в зависимости от класса расчетного автомобиля."
+    values: {general_min_outer_radius_mm: 7400}
+    requires_vehicle_class: true
+
+entry_exit_transition:
+  - id: parking.ramp.adjacent_lane_width_graphical
+    automation: manual_calculation
+    statement: "Минимальную ширину въездной и выездной полосы участка, примыкающего к рампе, определять графическим способом по классу расчетного автомобиля либо заданию на проектирование; не подставлять один типовой размер."
+    requires_calculation: true
+
+  - id: parking.ramp.floor_transition_clearance
+    automation: manual_calculation
+    statement: "Сопряжение рампы с горизонтальным полом выполнять плавным, без уступов; геометрию перелома проверять графически по клиренсу, базе и свесам расчетного автомобиля в актуальной редакции."
+    requires_calculation: true
+    conflict_policy: "Не использовать старое фиксированное число клиренса как единственное доказательство проходимости после изменений СП; строить профиль расчетного автомобиля."
+
+ramp_count:
+  - id: parking.ramp.count_by_capacity
+    source_clause: "5.23"
+    automation: conditional
+    statement: "Число и тип рамп зависят от числа автомобилей на обслуживаемых этажах, режима работы, расчетной интенсивности и схемы движения."
+    cases:
+      - {cars: "up to 100", solutions: ["one one-way ramp with control/signalling", "one two-way ramp"]}
+      - {cars: "up to 1000", solutions: ["one to two two-way ramps", "two to three one-way ramps"]}
+      - {cars: "over 1000", solutions: ["two to three two-way ramps", "equivalent combination"]}
+    requires_calculation: true
+
+BIM_required_parameters:
+  - parking_type
+  - ramp_type
+  - ramp_geometry
+  - ramp_heating
+  - precipitation_protection
+  - longitudinal_slope_percent
+  - cross_slope_percent
+  - carriageway_clear_width_mm
+  - pedestrian_movement_on_ramp
+  - sidewalk_clear_width_mm
+  - curb_height_mm
+  - design_vehicle_class
+  - vehicle_wheelbase
+  - vehicle_overhangs
+  - vehicle_ground_clearance
+  - swept_path_geometry
+  - outer_curve_radius_mm
+  - transition_profile_geometry
+  - design_assignment_authorizations
+
+agent_logic:
+  - "Не проектировать все рампы как 18%: сначала классифицировать тип рампы, отопление и защиту от осадков."
+  - "Допуски 20%/14% не являются предпочтительными значениями — применять только при выполнении условий Изм. №3."
+  - "После задания плана и профиля рампы обязательно выполнить swept-path/клиренс-проверку расчетного автомобиля."
+  - "Ширина 3,5 м не отменяет расширения на кривых/в местах маневра, если расчетный автомобиль этого требует."
+  - "Пешеходный тротуар 0,8 м на рампе не превращать автоматически в доступный маршрут МГН."
+
+sources:
+  - "https://base.garant.ru/407887809/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_525501/34d083acc26d345254ef2e1ff42caf878b0f1a57/"
+  - "https://protect.gost.ru/sp/changesdetails/d9f1b091-6a91-4c03-923f-d4fe0639ef71"
+  - "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"

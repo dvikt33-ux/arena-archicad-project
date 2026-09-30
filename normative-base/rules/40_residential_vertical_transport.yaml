@@ -1,0 +1,129 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Лифты и лифтовые холлы многоквартирных жилых зданий: порог обязательности, площадки для транспортирования на носилках, минимальное число лифтов и расчетные границы по СП 54.13330.2022 с Изм. №1-2."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4], role: accessibility}
+  - {document: GOST_R_52941, role: residential_lift_traffic_calculation}
+  - {file: rules/17_vertical_transport.yaml, role: general_product_and_accessibility_layer}
+  - {file: rules/30_firefighter_lifts.yaml, role: firefighter_lift_layer_when_applicable}
+
+lift_requirement:
+  source: SP_54_13330_2022
+  rules:
+    - id: vertical.residential.lift_required_above_12m
+      clause: "9.16"
+      automation: conditional
+      dimension_semantics: level
+      statement: "Лифты предусматривают в МКД, если отметка пола верхнего жилого этажа превышает отметку пола вестибюля входной группы более чем на 12 м."
+      values: {level_difference_trigger_more_than_mm: 12000}
+      conflict_policy: "Проверять разность чистовых отметок пола, а не этажность и не высоту здания по пожарному определению."
+
+    - id: vertical.residential.stretcher_lift_cabin_dimension
+      clause: "9.17"
+      automation: conditional
+      statement: "Кабина одного из лифтов должна иметь глубину или ширину 2100 мм для возможности размещения человека на санитарных носилках; ширина дверей кабины одного из лифтов должна обеспечивать проезд кресла-коляски."
+      values: {one_cabin_one_dimension_mm: 2100}
+      conflict_policy: "Фактическую ширину двери для МГН дополнительно проверять по СП 59 и выбранному оборудованию; 2100 мм — размер кабины в одном направлении, а не размер шахты."
+
+landing_and_lobby_geometry:
+  source: SP_54_13330_2022
+  clause: "5.13"
+  rules:
+    - id: vertical.residential.stretcher_lift_landing_630_wide_cabin
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Перед лифтом грузоподъемностью 630 кг при ширине кабины 2100 мм ширина площадки должна быть не менее 1,5 м."
+      conditions: {lift_capacity_kg: 630, cabin_orientation: "width_2100"}
+      values: {min_clear_landing_width_mm: 1500}
+
+    - id: vertical.residential.stretcher_lift_landing_630_deep_cabin
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Перед лифтом грузоподъемностью 630 кг при глубине кабины 2100 мм ширина площадки должна быть не менее 2,1 м."
+      conditions: {lift_capacity_kg: 630, cabin_orientation: "depth_2100"}
+      values: {min_clear_landing_width_mm: 2100}
+
+    - id: vertical.residential.double_row_lobby_shallow_cabins
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При двухрядном расположении лифтов и глубине кабин менее 2100 мм ширина лифтового холла должна быть не менее 1,8 м."
+      conditions: {lift_layout: double_row, cabin_depth_mm: {less_than: 2100}}
+      values: {min_clear_lobby_width_mm: 1800}
+
+    - id: vertical.residential.double_row_lobby_deep_cabins
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При двухрядном расположении лифтов и глубине кабин 2100 мм и более ширина лифтового холла должна быть не менее 2,5 м."
+      conditions: {lift_layout: double_row, cabin_depth_mm: {min: 2100}}
+      values: {min_clear_lobby_width_mm: 2500}
+
+minimum_lift_schedule:
+  source: SP_54_13330_2022
+  source_location: "Appendix B, Table B.1"
+  automation: conditional
+  table_assumptions:
+    apartment_area_per_person_m2: 18
+    storey_height_m: 2.8
+    lift_interval_s: "81-100"
+  rows:
+    - {storeys: "up_to_9", min_lifts: 1, capacities_kg: [630,1000], speed_m_s: 1.0, max_floor_apartment_area_m2: 600}
+    - {storeys: "10-12", min_lifts: 2, capacities_kg: [400,"630_or_1000"], speed_m_s: 1.0, max_floor_apartment_area_m2: 600}
+    - {storeys: "13-17", min_lifts: 2, capacities_kg: [400,"630_or_1000"], speed_m_s: 1.0, max_floor_apartment_area_m2: 450}
+    - {storeys: "18-19", min_lifts: 2, capacities_kg: [400,"630_or_1000"], speed_m_s: 1.6, max_floor_apartment_area_m2: 450}
+    - {storeys: "20-25", min_lifts: 3, capacities_kg: [400,"630_or_1000","630_or_1000"], speed_m_s: 1.6, max_floor_apartment_area_m2: 350}
+    - {storeys: "20-25", min_lifts: 4, capacities_kg: [400,400,"630_or_1000","630_or_1000"], speed_m_s: 1.6, max_floor_apartment_area_m2: 450}
+  notes:
+    - "Для лифтов 630/1000 кг таблица приводит минимальные габариты кабины 2100×1100 мм."
+    - "Если поэтажная площадь квартир, высота этажа или площадь квартиры на человека отличаются от расчетных предпосылок таблицы, число/грузоподъемность/скорость определяют расчетом по ГОСТ Р 52941, но число лифтов принимают не менее табличного."
+    - "В многоуровневых квартирах на верхних этажах остановку пассажирских лифтов допускается предусматривать на одном из этажей квартиры."
+
+calculation_gate:
+  - id: vertical.residential.table_B1_not_universal_traffic_result
+    automation: manual_calculation
+    statement: "Таблица В.1 задает минимальную конфигурацию при указанных предпосылках. При отличающихся исходных данных требуется расчет по ГОСТ Р 52941; запрещено определять окончательный лифтовой парк только по этажности."
+    requires_calculation: true
+
+  - id: vertical.residential.lift_count_not_below_table
+    automation: conditional
+    statement: "Результат расчетного определения числа лифтов при применимости приложения В не должен приводить к числу ниже установленного таблицей В.1 для соответствующего случая."
+
+cross_checks:
+  - id: vertical.residential.MGN_crosscheck
+    automation: validation_only
+    statement: "Доступность кабины, дверного проема и площадки проверять совместно с rules/17_vertical_transport.yaml и СП 59; геометрия СП 54 не отменяет более строгие требования МГН."
+
+  - id: vertical.residential.firefighter_lift_crosscheck
+    automation: validation_only
+    statement: "При возникновении требования лифта для пожарных подразделений загружать rules/30_firefighter_lifts.yaml; обычный пассажирский лифт не становится пожарным по размеру кабины."
+
+BIM_required_parameters:
+  - entrance_lobby_finished_floor_level
+  - top_residential_floor_finished_level
+  - residential_storey_count
+  - floor_apartment_area_m2
+  - assumed_or_calculated_occupancy
+  - storey_height
+  - lift_group_id
+  - lift_layout
+  - lift_capacity_kg
+  - lift_speed_m_s
+  - cabin_clear_width_mm
+  - cabin_clear_depth_mm
+  - cabin_door_clear_width_mm
+  - lift_lobby_clear_width_mm
+  - traffic_calculation_reference
+  - MGN_validation_status
+  - firefighter_lift_status
+
+agent_logic:
+  - "Не определять обязательность лифта по числу этажей, если СП 54 задает порог через разность чистовых отметок 12 м."
+  - "Не путать площадку перед лифтом и ширину общего коридора; оба требования проверяются независимо."
+  - "Не считать кабину 2100×1100 мм размером шахты: шахту/приямок/верх шахты получать из выбранного оборудования."
+  - "Не оптимизировать лифтовый холл модульной сеткой ниже нормативной ширины в свету."
+  - "При изменении поэтажной площади квартир или высоты этажа автоматически инвалидировать ранее принятый лифтовой расчет."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://base.garant.ru/77152017/"

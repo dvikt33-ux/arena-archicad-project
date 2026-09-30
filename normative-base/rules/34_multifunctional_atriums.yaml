@@ -1,0 +1,136 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Многофункциональные здания, ТРК и атриумы: правила маршрутизации СП 456/СП 464 и геометрические ограничения, которые непосредственно меняют BIM-модель."
+
+revision_dependencies:
+  - {document: SP_456_1311500_2020, status: active, effective_from: 2020-07-01}
+  - {document: SP_464_1325800_2019, status: active, verified_changes: [1]}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+
+scope_router:
+  - id: multifunctional.SP456.scope
+    source: {document: SP_456_1311500_2020, clause: "1"}
+    automation: conditional
+    statement: "СП 456 применяется к многофункциональным зданиям высотой не более 50 м, содержащим в установленных стандартом сочетаниях кино/концерт/выставки, торговлю и общепит, бытовые услуги, физкультурно-оздоровительные функции без трибун, офисы/банки, автостоянки, гостиницы/апартаменты."
+    values: {max_height_m: 50}
+    requires_object_classification: true
+
+  - id: shopping_entertainment.SP464.scope
+    source: {document: SP_464_1325800_2019, clause: "1"}
+    automation: conditional
+    statement: "Для торгово-развлекательных комплексов дополнительно загружать СП 464.1325800.2019 с Изм. №1; область применения — ТРК высотой до 50 м и заглублением подземной части до 15 м."
+    values: {max_height_m: 50, max_underground_depth_m: 15}
+    requires_object_classification: true
+
+  - id: multifunctional.scope_exceeded
+    automation: forbidden_to_infer
+    statement: "Если параметры объекта превышают область применения СП 456/СП 464, не экстраполировать их числовые требования. Возвращать needs_special_fire_basis_or_STU."
+
+atrium_classification:
+  - id: atrium.definition_multistory
+    source: {document: SP_456_1311500_2020, clause: "3.2"}
+    automation: validation_only
+    statement: "Атриум — многосветное пространство, развитое по вертикали на три и более этажа и смежное с поэтажными частями здания; горизонтально развитый вариант при длине более высоты называется пассажем."
+
+atrium_fire_geometry:
+  source: SP_456_1311500_2020
+  rules:
+    - id: atrium.allowed_fire_resistance
+      clause: "6.2.1"
+      automation: conditional
+      statement: "Атриумы допускаются в зданиях и пожарных отсеках I и II степеней огнестойкости класса конструктивной пожарной опасности С0."
+      conditions: {fire_resistance_degree: [I,II], structural_fire_hazard_class: C0}
+
+    - id: atrium.height_compartment_gate
+      clause: "6.2.1"
+      automation: conditional
+      statement: "Высота атриума не должна превышать допустимую высоту пожарного отсека, в котором он расположен."
+      requires_object_classification: true
+
+    - id: atrium.max_height
+      clause: "6.2.4"
+      automation: conditional
+      dimension_semantics: level
+      statement: "Высота атриума должна быть не более 28 м."
+      values: {max_atrium_height_mm: 28000}
+
+    - id: atrium.lower_floor_depth
+      clause: "6.2.4"
+      automation: conditional
+      statement: "Пол атриума не может быть ниже уровня земли более чем на один этаж."
+      values: {max_floors_below_ground: 1}
+
+fire_compartment_area_accounting:
+  - id: atrium.compartment_area_sum_with_partitions
+    source: {document: SP_456_1311500_2020, clause: "6.2.2"}
+    automation: manual_calculation
+    statement: "При атриуме площадь этажа в пределах пожарного отсека определяют суммированием площади нижнего этажа атриума и площадей галерей, переходов и помещений всех вышележащих этажей в объеме атриума, ограниченном противопожарными перегородками 1-го типа, включая светопрозрачные."
+    requires_calculation: true
+
+  - id: atrium.compartment_area_sum_without_partitions
+    source: {document: SP_456_1311500_2020, clause: "6.2.2"}
+    automation: manual_calculation
+    statement: "Если противопожарные перегородки 1-го типа не отделяют атриум от примыкающих помещений, коридоров и галерей, в расчет площади этажа пожарного отсека включаются площади соответствующих этажей."
+    requires_calculation: true
+
+atrium_roof_glazing:
+  - id: atrium.roof_translucent_fill
+    source: {document: SP_456_1311500_2020, clause: "6.2.3"}
+    automation: validation_only
+    statement: "Светопрозрачное заполнение покрытия атриума проектировать по требованиям п.6.2.3: стандарт базово указывает НГ и травмобезопасное армированное стекло или триплекс, при этом допускает светопрозрачные материалы группы горючести не ниже Г1. Конкретное решение хранить как подтвержденную систему, а не как обычное окно/фонарь."
+    requires_manufacturer_data: true
+
+atrium_egress:
+  source: SP_456_1311500_2020
+  rules:
+    - id: multifunctional.shared_stair_same_compartment_only
+      clause: "7.1"
+      automation: validation_only
+      statement: "Общие лестничные клетки допускается использовать для эвакуации из различных частей здания только когда они входят в один пожарный отсек; общие лестничные клетки для нескольких пожарных отсеков не допускаются."
+
+    - id: multifunctional.egress_stairs_direct_outside
+      clause: "7.1"
+      automation: validation_only
+      statement: "Эвакуационные лестничные клетки в многофункциональном здании должны иметь выходы непосредственно наружу в области СП 456."
+
+    - id: atrium.open_stairs_not_egress
+      clause: "7.2"
+      automation: auto
+      statement: "Открытые лестницы в пространстве атриума могут использоваться для связи этажей, но при расчете эвакуации не учитываются."
+      conflict_policy: "Не засчитывать красивую парадную лестницу атриума как нормативную эвакуационную лестницу."
+
+    - id: atrium_vertical_transport_allowed_not_egress_proof
+      clause: "7.2"
+      automation: validation_only
+      statement: "В пространстве атриума допускаются открытые лестницы, эскалаторы, траволаторы и лифты; само наличие этих средств связи не доказывает обеспечение требуемой эвакуации."
+
+BIM_required_parameters:
+  - multifunctional_status
+  - applicable_SP456
+  - shopping_entertainment_status
+  - applicable_SP464
+  - fire_resistance_degree
+  - structural_fire_hazard_class
+  - fire_compartment_ids
+  - atrium_status
+  - atrium_bottom_floor_level
+  - atrium_top_cover_or_skylight_level
+  - atrium_height
+  - atrium_adjacent_galleries
+  - atrium_fire_partitions_type1
+  - atrium_open_stairs
+  - egress_stairwells
+  - egress_stairwell_fire_compartment_links
+  - direct_external_exit_status
+
+agent_logic:
+  - "Не создавать атриум как обычный void до проверки степени огнестойкости, С0, высоты и пожарного отсека."
+  - "Не считать площадь только одного плана этажа при открытом атриуме; применять правила суммирования СП 456."
+  - "Не использовать открытую лестницу/эскалатор в атриуме как замену требуемой эвакуационной лестничной клетке."
+  - "Для ТРК загружать одновременно СП 464, СП 456 при многофункциональности, СП 1/2/4 и специальные СП встроенных функций — кино, спорт, стоянка, гостиница и т.д."
+
+sources:
+  - "https://protect.gost.ru/sp/details/e2b220a4-086b-4aa3-9bf8-f64ab65ab3d0"
+  - "https://mchs.gov.ru/dokumenty/6692"
+  - "https://www.consultant.ru/document/cons_doc_LAW_347355/0a6ad69ce5d6ccc57db4d3d205260c5be4c484ae/"
+  - "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"

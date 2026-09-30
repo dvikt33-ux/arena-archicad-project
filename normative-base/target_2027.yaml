@@ -36,6 +36,15 @@ confirmed_transitions:
     scope: "деревянные и комбинированные дверные блоки"
     source_url: "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
 
+  - id: SP113_CHANGE4
+    document: SP_113_13330_2023
+    amendment: 4
+    effective_from: 2026-10-03
+    target_profile_action: apply
+    scope: "стоянки автомобилей"
+    effect: "Для профиля 2027 использовать СП 113.13330.2023 с изменениями №1-4. Изменение №4 актуализирует нормативные ссылки, включая СП 42.13330.2026, СП 70 с Изм. №8, СП 60 с Изм. №6 и СП 256 с Изм. №9."
+    source_url: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+
   - id: SANPIN_1_2_3685_21_EXPIRY
     document: SANPIN_1_2_3685_21
     valid_until: 2027-03-01

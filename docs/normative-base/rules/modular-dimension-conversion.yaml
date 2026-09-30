@@ -1,0 +1,61 @@
+verified_as_of: 2026-09-30
+source: GOST-28984-2011
+source_title: "Модульная координация размеров в строительстве. Основные положения"
+rules:
+  - id: MKRS.DIMENSION.LAYERS
+    state: active
+    source: GOST-28984-2011
+    clause: "section 3 terminology; section 6"
+    scope: "Передача размеров между координационной системой, элементом и фактически построенной геометрией."
+    rule_kind: coordination
+    automation: auto_check
+    rule:
+      layers:
+        coordination_dimension: "distance defined by the modular coordination system"
+        construction_dimension: "project/manufacturing dimension of an element, generally differing from its coordination dimension by the intended joint/gap or other coordination allowance"
+        actual_dimension: "measured real dimension, subject to manufacturing/construction tolerances"
+      engine_rule: "Store these dimensions in separate fields; never overwrite one with another."
+    must_not_assume:
+      - "Координационный размер нельзя напрямую выдавать как размер изделия без учета шва/зазора/узла."
+      - "Фактическое отклонение не превращает координационную сетку в фактическую геометрию."
+
+  - id: MKRS.AXIS.BINDING.NONMODULAR_WALL
+    state: conditional
+    source: GOST-28984-2011
+    clause: "7.5.3"
+    scope: "Привязка стен из немодульных материалов к координационным осям при сопряжении со стандартными индустриальными элементами."
+    rule_kind: coordination
+    automation: suggest_only
+    rule: "The axis binding may be adjusted so that standard floor/roof slabs, stairs, windows, doors and other coordinated products can be used; keep the coordination axis and the real wall faces as distinct geometry."
+    must_not_assume:
+      - "Стена из кирпича не обязана искусственно менять фактическую толщину до кратности M."
+      - "Смещение привязки не должно выполняться без проверки конструктивного узла и применяемых изделий."
+
+  - id: MKRS.OPENING.COORDINATION.VS.CONSTRUCTION
+    state: active
+    source: GOST-28984-2011
+    clause: "sections 5-7"
+    scope: "Проемы окон/дверей и другие размерно координируемые отверстия."
+    rule_kind: coordination
+    automation: auto_check
+    rule: "Store at least: coordination opening dimension, construction opening dimension, installed product dimension and installation joint/gap. The presence of a modular coordination size does not authorize setting all four values equal."
+    must_not_assume:
+      - "Номинальный размер окна/двери не равен автоматически строительному проему."
+      - "Монтажный шов должен определяться применимым стандартом/системой, а не остатком после округления к модулю."
+
+  - id: MKRS.SNAP.POLICY
+    state: active
+    source: GOST-28984-2011
+    clause: "5.1-5.16; 6; 7"
+    scope: "Алгоритм автоматического 'привязывания' размеров к модульной системе."
+    rule_kind: coordination
+    automation: auto_check
+    rule:
+      prohibited_behavior: "blindly round actual/model dimensions to the nearest 100 mm"
+      allowed_behavior:
+        - "Generate coordination candidates using the applicable preferred module."
+        - "Translate a selected coordination candidate into construction geometry through explicit joints, clearances and axis bindings."
+        - "Validate product and structural constraints after translation."
+        - "If translation cannot be justified, keep the dimension unsnapped and require review."
+    must_not_assume:
+      - "Округление до ближайших 100 mm само по себе не является соблюдением ГОСТ 28984-2011."

@@ -1,0 +1,86 @@
+verified_as_of: 2026-09-30
+source: SP-1.13130.2020
+source_title: "Системы противопожарной защиты. Эвакуационные пути и выходы"
+current_revision_checked: "MChS order text, revision through 2025-06-16 / amendments reflected in consolidated current text"
+rules:
+  - id: FIRE.STAIR.FLIGHT.WIDTH
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.4.1"
+    scope: "Путь эвакуации по лестнице, предназначенной для эвакуации людей."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      governing_principle: "not less than the required width of any evacuation exit opening onto the stair"
+      minima_mm:
+        classes_F1_1_F2_1_F2_2_F3_4_F4_1_or_over_200_persons_per_upper_floor_or_public_over_50m: 1350
+        over_600_persons_per_upper_floor: 1600
+        general_other_except_F1_4_F5_and_special_F1_3: 1200
+        F1_3_height_under_75m: 1050
+        single_workplace_or_not_more_than_5_evacuees: 700
+        other_cases_defined_by_clause: 900
+      min_egress_path_height_mm: 2200
+    must_not_assume:
+      - "Нельзя выбрать ширину марша по одной строке без определения класса функциональной пожарной опасности, высоты и расчетного числа людей."
+      - "Более специальные требования других разделов СП 1 и норм по назначению здания проверяются дополнительно."
+
+  - id: FIRE.STAIR.LANDING
+    state: active
+    source: SP-1.13130.2020
+    clause: "4.4.2"
+    scope: "Площадки эвакуационных лестниц."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      landing_width: "not less than flight width"
+      straight_intermediate_landing_min_length_mm: 1000
+      swing_lift_door_landing: "at least flight width + half lift-door width, and not less than 1600 mm"
+      door_swing_guard: "doors opening into stair enclosure shall not reduce required landing/flight width in maximally open position"
+    must_not_assume:
+      - "Правило 1600 мм относится к указанному случаю перед лифтом с распашными дверями, а не ко всем лестничным площадкам."
+
+  - id: FIRE.STAIR.GEOMETRY
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.4.3"
+    scope: "Лестницы на путях эвакуации."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      max_slope: "1:1, as a rule"
+      min_tread_mm: 250
+      tread_exception: "outdoor stairs excluded from the stated 250 mm rule; other explicit exceptions exist in the clause"
+      riser_min_mm: 50
+      riser_max_mm: 220
+      special_single_workplace_open_stair_max_slope: "2:1"
+    must_not_assume:
+      - "Фраза 'как правило' и предусмотренные исключения должны сохраняться: нельзя превращать 250/220 в универсальную геометрию всех лестниц."
+      - "Нормы доступности и нормы конкретного назначения здания могут быть строже."
+
+  - id: FIRE.STAIR.RISERS.PER.FLIGHT
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.4.4"
+    scope: "Число подъемов между площадками на эвакуационных лестницах, кроме оговоренных исключений."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_risers: 3
+      max_risers: 16
+      first_floor_single_or_one_flight_of_multi_flight_max_risers: 18
+    must_not_assume:
+      - "Требование не распространяется на проходы со ступенями между рядами мест в зрительных залах, спортивных сооружениях и аудиториях."
+
+  - id: FIRE.N1.AIRZONE.PASSAGE
+    state: conditional
+    source: SP-1.13130.2020
+    clause: "4.4.14"
+    scope: "Переход через наружную воздушную зону незадымляемой лестничной клетки Н1."
+    rule_kind: geometry
+    automation: auto_check
+    rule:
+      min_passage_width_mm: 1200
+      min_guard_height_mm: 1200
+      min_solid_pier_between_stair_and_corridor_openings_mm: 1200
+    must_not_assume:
+      - "Это специальное правило Н1, его нельзя переносить на обычный балкон/галерею без проверки области применения."

@@ -1,0 +1,64 @@
+verified_as_of: 2026-09-30
+purpose: "Status-verified map of core normative domains that can constrain an architectural/BIM model. Presence here does not mean every clause applies to every project."
+legal_applicability_guard:
+  rule: "Do not use the former PP RF No. 815 list as the current mandatory-requirements mechanism. From 2024-09-01, safety requirements from standards/codes are tied to inclusion of requirements in the statutory requirements registry; project-specific legal applicability must be checked separately from document technical status."
+  sources:
+    - "Government Resolution No. 589 of 2024-05-06"
+    - "Federal Law No. 384-FZ as amended"
+domains:
+  spatial_and_use:
+    - {document: "SP 54.13330.2022", subject: "multifamily residential buildings", status: "active_with_amendments"}
+    - {document: "SP 118.13330.2022", subject: "public buildings", status: "active_with_amendments"}
+    - {document: "SP 42.13330.2026", subject: "urban planning and development", status: "active", effective_from: "2026-07-12", replaces: "SP 42.13330.2016"}
+
+  modular_and_documentation:
+    - {document: "GOST 28984-2011", subject: "modular coordination", status: "active"}
+    - {document: "GOST R 21.101-2026", subject: "general SPDS documentation requirements", status: "active", replaces: "GOST R 21.101-2020"}
+    - {document: "GOST 21.501-2018", subject: "AR/KR working drawings", status: "active"}
+    - {document: "GOST 21.201-2011", subject: "building-element graphical conventions", status: "active"}
+    - {document: "GOST 21.110-2013", subject: "equipment/products/materials specifications", status: "active_with_correction"}
+
+  fire_and_egress:
+    - {document: "SP 1.13130.2020", subject: "egress routes and exits", status: "active_with_amendments", latest_amendment_seen: 3}
+    - {document: "SP 2.13130.2020", subject: "fire resistance", status: "active_with_amendments"}
+    - {document: "SP 4.13130.2013", subject: "fire spread / spatial-planning and structural fire constraints", status: "active_with_amendments", latest_amendment_seen: 4}
+    - {document: "SP 7.13130.2013", subject: "HVAC and smoke-control fire requirements", status: "active_with_amendments", latest_amendment_seen: 3}
+
+  accessibility:
+    - {document: "SP 59.13330.2020", subject: "accessibility for mobility-impaired users", status: "active_with_amendments", latest_amendment_seen: 4}
+
+  structures_and_loads:
+    - {document: "SP 20.13330.2016", subject: "loads and actions", status: "active_with_amendments", latest_amendment_seen: 6}
+    - {document: "SP 63.13330.2018", subject: "concrete and reinforced concrete", status: "active_with_amendments"}
+    - {document: "SP 15.13330.2020", subject: "masonry and reinforced masonry", status: "active_with_amendments"}
+    - {document: "SP 70.13330.2012", subject: "execution of loadbearing/enclosing structures", status: "active_with_amendments", latest_amendment_seen: 8}
+    - {document: "SP 22.13330.2016", subject: "soil bases / foundations", status: "active_with_amendments", latest_amendment_seen: 5}
+    - {document: "SP 14.13330.2018", subject: "seismic design", status: "active_with_amendments", latest_amendment_seen: 4}
+
+  envelope_and_environment:
+    - {document: "SP 50.13330.2024", subject: "thermal protection", status: "active", replaces: "SP 50.13330.2012"}
+    - {document: "SP 131.13330.2025", subject: "building climatology", status: "active", replaces: "SP 131.13330.2020"}
+    - {document: "SP 51.13330.2011", subject: "sound protection", status: "active_with_amendments", latest_amendment_seen: 4}
+    - {document: "SP 52.13330.2016", subject: "daylighting and artificial lighting", status: "active_with_amendments"}
+
+  roofs_floors_finishes:
+    - {document: "SP 17.13330.2017", subject: "roofs", status: "active_with_amendments", latest_amendment_seen: 4}
+    - {document: "SP 29.13330.2011", subject: "floors", status: "active_with_amendments", latest_amendment_seen: 4}
+    - {document: "SP 71.13330.2017", subject: "insulation and finishing work", status: "active_with_amendments", latest_amendment_seen: 4}
+
+  mep_coordination:
+    - {document: "SP 30.13330.2020", subject: "internal water supply and sewerage", status: "active_with_amendments", latest_amendment_seen: 5}
+    - {document: "SP 60.13330.2020", subject: "heating ventilation and air conditioning", status: "active_with_amendments", latest_amendment_seen: 6}
+
+  current_product_geometry:
+    - {document: "GOST 530-2012", subject: "ceramic brick/stone", status: "active"}
+    - {document: "GOST 26434-2025", subject: "precast RC floor slabs for residential buildings", status: "active", replaces: "GOST 26434-2015"}
+    - {document: "GOST 9561-2025", subject: "hollow-core RC slabs", status: "active_with_correction", replaces: "GOST 9561-2016"}
+    - {document: "GOST 948-2016", subject: "RC lintels for brick walls", status: "active_with_amendment"}
+    - {document: "GOST 23166-2024", subject: "window/balcony-door units", status: "active_with_correction", replaces: "GOST 23166-2021"}
+    - {document: "GOST 25772-2025", subject: "metal railings", status: "active_with_correction", replaces: "GOST 25772-2021"}
+
+promotion_policy:
+  - "A document can be present in this map while having zero auto-applicable numeric rules."
+  - "Numeric rules are promoted only after clause-level review and scope encoding."
+  - "Structural, fire, accessibility, thermal, acoustic and MEP decisions remain independent constraints; geometry generation must satisfy their intersection, not a single preferred module."

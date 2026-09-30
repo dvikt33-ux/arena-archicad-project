@@ -63,7 +63,7 @@ floors_finishes_roofs:
     topic: "полы"
     verified_effective_changes: [1,2,3]
     pending_change: 4
-    pending_change_note: "Изменение №4 опубликовано, но на карточке Росстандарта дата введения отсутствует; не считать его действующим автоматически."
+    pending_change_note: "Изменение №4 утверждено/опубликовано, но карточка Росстандарта не показывает дату введения; новые положения не автоматизировать без прямого подтверждения статуса."
   - document: SP_71_13330_2017
     topic: "изоляционные и отделочные покрытия"
   - document: SP_17_13330_2017
@@ -78,7 +78,8 @@ site_and_parking:
     replaces: SP_42_13330_2016
   - document: SP_113_13330_2023
     topic: "стоянки автомобилей"
-    verified_changes: [1,2,3]
+    verified_changes: [1,2,3,4]
+    change_4_effective_from: 2026-10-03
     target_2027_status: use
 
 mixed_use:
@@ -100,3 +101,4 @@ sources:
   - https://protect.gost.ru/gost/details/a5cfc429-8ea0-4f99-b3b8-2c895e9c858a
   - https://protect.gost.ru/sp/details/f6917ab4-63d8-4ecb-9794-0b4990ba3b99
   - https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131
+  - https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9

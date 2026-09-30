@@ -3,11 +3,29 @@ target_profile: RU_2027_PLUS
 purpose: "Нормативные границы, из-за которых архитектурная модель должна резервировать шахты, помещения, проходы и проемы, но не генерировать инженерные размеры без профильного расчета."
 
 current_documents:
-  - {id: SP_60_13330_2020, topic: "heating ventilation air conditioning", status: active, target_2027: verify_latest_changes_before_use}
-  - {id: SP_7_13130_2013, topic: "HVAC fire safety", status: active, verified_changes: [1,2,3]}
-  - {id: SP_30_13330_2020, topic: "internal water supply and sewerage", status: active, latest_verified_change: 5}
-  - {id: SP_256_1325800_2016, topic: "electrical installations of residential and public buildings", status: active, target_2027: verify_latest_changes_before_use}
-  - {id: SP_73_13330_2016, topic: "internal sanitary-technical systems installation", status: active, target_2027_change: 3}
+  - id: SP_60_13330_2020
+    topic: "heating ventilation air conditioning"
+    status: active
+    verified_changes: [1,2,3,4,5,6]
+    target_2027_action: use_subject_to_future_transition_watch
+  - id: SP_7_13130_2013
+    topic: "HVAC fire safety"
+    status: active
+    verified_changes: [1,2,3]
+    note: "Изменение №4 на дату аудита не подтверждено как действующее; проект не применять."
+  - id: SP_30_13330_2020
+    topic: "internal water supply and sewerage"
+    status: active
+    latest_verified_change: 5
+  - id: SP_256_1325800_2016
+    topic: "electrical installations of residential and public buildings"
+    status: active
+    verified_changes: [1,2,3,4,5,6,7,8,9]
+    note: "В официальной карточке также имеется изменение №0 к Изменению №4; хранить историю отдельно, не считать №0 новой последовательной редакцией после №9."
+  - id: SP_73_13330_2016
+    topic: "internal sanitary-technical systems installation"
+    status: active
+    target_2027_change: 3
 
 confirmed_2027_transition:
   document: SP_73_13330_2016

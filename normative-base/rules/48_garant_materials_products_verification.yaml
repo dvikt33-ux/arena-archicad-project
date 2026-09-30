@@ -1,0 +1,80 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Независимая сверка актуальности кладочных изделий, плит и перемычек по системе ГАРАНТ. Используется как второй источник; юридический/статусный приоритет остается за официальными актами Росстандарта и target_2027/revision_watch."
+
+verified_documents:
+  - document: GOST_379_2025
+    garant_url: "https://base.garant.ru/413480532/"
+    effective_from: 2026-05-01
+    replaces: GOST_379_2015
+    correction_2026: {issue: "ИУС 6-2026", effective_from: 2026-06-17}
+    verified_facts:
+      - "Силикатный одинарный кирпич: 250x120x65 мм."
+      - "Силикатный утолщенный кирпич: 250x120x88 мм."
+      - "Силикатный камень: 250x120x138 мм."
+      - "Приложение А содержит рекомендуемые номинальные размеры; допускаются другие номинальные размеры при соблюдении допусков."
+      - "Для обычного раствора отклонения длины/ширины/высоты до ±2 мм; для клея/тонкошовного раствора по высоте до ±1 мм."
+
+  - document: GOST_31360_2024
+    garant_url: "https://base.garant.ru/409030046/"
+    effective_from: 2025-01-01
+    replaces: GOST_31360_2007
+    verified_scope: "неармированные блоки из автоклавного ячеистого бетона для несущих/самонесущих наружных и внутренних стен и перегородок в области стандарта"
+
+  - document: GOST_530_2012
+    garant_url: "https://base.garant.ru/70437962/"
+    effective_from: 2013-07-01
+    verified_fact: "Кирпич нормального формата 1NF: 250x120x65 мм."
+
+  - document: GOST_948_2016
+    garant_url: "https://base.garant.ru/71650404/"
+    amendment_1_url: "https://base.garant.ru/411629199/"
+    amendment_1_effective_from: 2025-06-01
+    verified_current_marking:
+      old_to_new: {PB: PRB, PP: PRP, PG: PRG, PF: PRF}
+      ru_old_to_new: {"ПБ": "ПРБ", "ПП": "ПРП", "ПГ": "ПРГ", "ПФ": "ПРФ"}
+    agent_rule: "Для новой модели 2027+ старые обозначения ПБ/ПП/ПГ/ПФ не создавать как актуальные марки ГОСТ 948-2016; разрешать только при чтении исторической документации."
+
+  - document: GOST_26434_2025
+    garant_url: "https://base.garant.ru/412589920/"
+    rosstandart_order_garant_url: "https://base.garant.ru/412483688/"
+    effective_from: 2026-01-01
+    replaces: GOST_26434_2015
+    metadata_warning: >-
+      В заголовке карточки ГАРАНТ при проверке отображается пометка «документ не вступил в силу»,
+      однако сама карточка и приказ Росстандарта №843-ст указывают дату введения 01.01.2026.
+      Для машинного статуса не использовать UI-пометку карточки; приоритет — приказ о введении и официальный статус Росстандарта.
+
+  - document: GOST_9561_2025
+    rosstandart_order_garant_url: "https://base.garant.ru/412732449/"
+    correction_url: "https://base.garant.ru/414482727/"
+    effective_from: 2026-01-01
+    correction_effective_from: 2026-06-17
+    replaces: GOST_9561_2016
+
+machine_policies:
+  - id: garant.products.status_ui_not_authoritative
+    automation: auto
+    statement: "Если заголовочная/UI-метка ГАРАНТ противоречит явной дате введения в тексте нормативного акта или приказу Росстандарта, не выводить статус документа из UI-метки. Использовать официальный акт о введении и Росстандарт."
+
+  - id: garant.products.recommended_size_not_closed_whitelist
+    source: {document: GOST_379_2025, clause: "5.2.5.1"}
+    automation: auto
+    statement: "Рекомендуемый ряд номинальных размеров ГОСТ 379-2025 не является закрытым whitelist: допускаются иные номинальные размеры при соблюдении требований стандарта. Для BIM конкретный нестандартный размер требует данных изготовителя/поставщика."
+    requires_manufacturer_data: true
+
+  - id: garant.products.lintel_new_marking
+    source: {document: GOST_948_2016_change_1, clause: "4.2-4.4, tables 1-7"}
+    automation: auto
+    statement: "Для целевого профиля 2027 марки сборных железобетонных перемычек хранить в актуальной системе ПРБ/ПРП/ПРГ/ПРФ."
+
+sources:
+  - "https://base.garant.ru/413480532/"
+  - "https://base.garant.ru/409030046/"
+  - "https://base.garant.ru/70437962/"
+  - "https://base.garant.ru/71650404/"
+  - "https://base.garant.ru/411629199/"
+  - "https://base.garant.ru/412589920/"
+  - "https://base.garant.ru/412483688/"
+  - "https://base.garant.ru/412732449/"
+  - "https://base.garant.ru/414482727/"

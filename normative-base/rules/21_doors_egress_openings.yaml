@@ -87,12 +87,15 @@ stair_exit_width:
       values: {trigger_required_width_mm: 1200, each_exit_min_mm: 900}
 
 external_landing:
-  - id: door.egress.external_landing
+  - id: door.egress.external_landing_width
     source: {document: SP_1_13130_2020, clause: "4.2.21"}
     automation: conditional
-    statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную площадку с длиной и шириной не менее 1,5 ширины полотна наружной двери."
-    formula: "landing_min_dimension >= 1.5 * exterior_door_leaf_width"
+    statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную входную площадку шириной не менее 1,5 ширины полотна наружной двери."
+    formula: "landing_clear_width >= 1.5 * exterior_door_leaf_width"
     dimension_semantics: clear
+    notes:
+      - "Пункт 4.2.21 в консолидированном тексте ГАРАНТ прямо нормирует ширину площадки."
+      - "Не выводить автоматически вторую размерность площадки из коэффициента 1,5; глубину/длину проверять по иным применимым нормам входной группы, МГН и функционального назначения."
 
 opening_direction:
   - id: door.egress.opening_direction
@@ -188,3 +191,4 @@ agent_logic:
 sources:
   - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
   - "https://protect.gost.ru/sp/changesdetails/de574ad5-67fc-4e31-a0a5-a793c94b1cc7"
+  - "https://base.garant.ru/74019594/"

@@ -1,0 +1,55 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Лифты для пожарных подразделений: действующий стандарт и защита от преждевременного применения принятого, но еще не действующего ПНСТ."
+
+current_standard:
+  document: GOST_34305_2017
+  title: "Лифты пассажирские. Лифты для пожарных"
+  status: active
+  effective_from: 2019-03-01
+  corrections: ["ИУС 4-2020", "ИУС 7-2023"]
+  official_url: "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+
+future_watch:
+  - document: PNST_1072_2026
+    title: "Лифты. Международные существенные требования безопасности к устройству и применению лифтов для пожарных"
+    status_on_2026_09_30: accepted_not_active
+    automation: forbidden_to_infer
+    statement: "ПНСТ 1072-2026 на дату аудита имеет статус «Принят», а не «Действует». Не заменять им ГОСТ 34305-2017 и не использовать как основание для проектных размеров до официального введения в действие и проверки области применения."
+
+rules:
+  - id: vertical.firefighter.not_ordinary_passenger_lift
+    automation: validation_only
+    statement: "Обычный пассажирский лифт не считать автоматически лифтом для пожарных подразделений. Требование и исполнение пожарного лифта проверяются отдельно по пожарным нормам объекта и ГОСТ 34305-2017."
+
+  - id: vertical.firefighter.standard_2017
+    automation: validation_only
+    source: {document: GOST_34305_2017, clause: "scope/status"}
+    statement: "Для нового лифта, предназначенного для работы пожарных подразделений, применять действующий ГОСТ 34305-2017 совместно с общими требованиями к лифтам и пожарными требованиями здания."
+
+  - id: vertical.firefighter.geometry_equipment_gate
+    automation: forbidden_to_infer
+    statement: "Размеры шахты, кабины, дверей, приямка, верхней зоны, пожаробезопасного доступа и инженерного обеспечения не назначать по усредненному BIM-шаблону; использовать выбранное оборудование и подтвержденное пожарное/конструктивное решение."
+    requires_manufacturer_data: true
+    requires_calculation: true
+
+BIM_required_parameters:
+  - firefighter_lift_required
+  - firefighter_lift_standard
+  - selected_lift_product
+  - cabin_dimensions
+  - clear_door_opening
+  - shaft_dimensions
+  - fire_safe_access_solution
+  - fire_compartment_reference
+  - smoke_control_reference
+  - power_supply_category_reference
+
+agent_logic:
+  - "Если по пожарным требованиям требуется лифт для пожарных, не подменять его обычным доступным лифтом МГН."
+  - "Статус «Принят» у ПНСТ не равен статусу «Действует»."
+  - "При появлении даты введения ПНСТ 1072-2026 выполнить отдельный аудит: является ли он заменой, дополнительным документом или добровольным экспериментальным стандартом."
+
+sources:
+  - "https://protect.gost.ru/gost/details/093b4649-88bc-4f77-88f9-551074489a6c"
+  - "https://protect.gost.ru/gost?month=6&year=2026"

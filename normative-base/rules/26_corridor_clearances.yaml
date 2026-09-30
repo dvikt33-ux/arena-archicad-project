@@ -1,0 +1,139 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Коридоры и горизонтальные пути: ширина/высота в свету, влияние открывающихся дверей и пересечение пожарных требований с МГН."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+
+fire_egress_clear_height:
+  source: SP_1_13130_2020
+  rules:
+    - id: corridor.egress.clear_height_general
+      clause: "4.3.2"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Высота горизонтальных участков путей эвакуации в свету, как правило, должна быть не менее 2,0 м."
+      values: {general_min_clear_height_mm: 2000}
+
+    - id: corridor.egress.clear_height_five_people_exception
+      clause: "4.3.2"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Допускается уменьшение высоты до 1,8 м для горизонтального участка, по которому могут эвакуироваться не более 5 человек, кроме участков, по которым эвакуируются из помещений класса Ф1."
+      values: {max_people: 5, min_clear_height_mm: 1800}
+      requires_object_classification: true
+
+fire_egress_clear_width:
+  source: SP_1_13130_2020
+  rules:
+    - id: corridor.egress.width_over_50
+      clause: "4.3.3"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для коридоров и иных горизонтальных путей, по которым могут эвакуироваться более 50 человек, ширина должна быть не менее 1,2 м."
+      values: {trigger_people_over: 50, min_clear_width_mm: 1200}
+      requires_calculation: true
+
+    - id: corridor.egress.width_single_workplace
+      clause: "4.3.3"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для проходов к одиночным рабочим местам ширина пути эвакуации должна быть не менее 0,7 м."
+      values: {min_clear_width_mm: 700}
+      requires_object_classification: true
+
+    - id: corridor.egress.width_general
+      clause: "4.3.3"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "В остальных случаях общая минимальная ширина горизонтального участка пути эвакуации — 1,0 м, если специальный раздел не требует большего."
+      values: {min_clear_width_mm: 1000}
+
+swinging_doors_into_corridor:
+  source: SP_1_13130_2020
+  rules:
+    - id: corridor.egress.one_side_doors_reduction
+      clause: "4.3.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При дверях, открывающихся из помещений в коридор, при одностороннем расположении дверей эффективную ширину пути принимают как ширину коридора минус половина ширины дверного полотна."
+      formula: "effective_clear_width = corridor_clear_width - 0.5 * leaf_width"
+      conflict_policy: "Не применять к исключенной пунктом области секционных зданий Ф1.3."
+
+    - id: corridor.egress.two_side_doors_reduction_far_apart
+      clause: "4.3.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При двустороннем расположении дверей, если минимальное расстояние между любыми двумя дверями противоположных сторон составляет 10 м и более, эффективную ширину пути уменьшают на половину ширины полотна."
+      conditions: {opposite_doors_min_spacing_mm: 10000}
+      formula: "effective_clear_width = corridor_clear_width - 0.5 * leaf_width"
+
+    - id: corridor.egress.two_side_doors_reduction
+      clause: "4.3.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "При двустороннем расположении открывающихся в коридор дверей в остальных случаях эффективную ширину пути уменьшают на ширину дверного полотна."
+      formula: "effective_clear_width = corridor_clear_width - leaf_width"
+      conflict_policy: "Для нескольких разных полотен валидировать геометрически наиболее неблагоприятное применимое положение, а не подставлять условное среднее."
+
+    - id: corridor.egress.F1_3_section_exception
+      clause: "4.3.4"
+      automation: validation_only
+      statement: "Уменьшение ширины по п. 4.3.4 не распространяется на поэтажные коридоры/холлы в секциях зданий Ф1.3 между выходом из квартиры и выходом в лестничную клетку."
+      requires_object_classification: true
+
+accessibility_overlay:
+  source: SP_59_13330_2020
+  rules:
+    - id: corridor.accessible.general_width
+      clause: "6.2.1"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "На доступном маршруте общая ширина коридора для МГН — не менее 1,8 м, с предусмотренными СП 59 специальными вариантами уменьшения при карманах/расчетных условиях."
+      values: {general_min_clear_width_mm: 1800}
+
+    - id: corridor.accessible.turn_180
+      clause: "6.2.1"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для самостоятельного разворота кресла-коляски на 180 градусов требуется зона диаметром не менее 1,4 м в области применения пункта."
+      values: {min_turn_diameter_mm: 1400}
+
+conflict_resolution:
+  algorithm:
+    - "1. Определить функциональный пожарный класс и расчетное число эвакуирующихся по участку."
+    - "2. Определить, входит ли коридор в доступный маршрут МГН."
+    - "3. Получить базовую требуемую ширину по применимым СП."
+    - "4. Смоделировать фактические полотна дверей и вычислить уменьшение эффективной ширины по п. 4.3.4 СП 1."
+    - "5. Проверять минимальную ширину по самому узкому реальному сечению пути, включая дверные полотна, выступы и оборудование."
+    - "6. Проверить высоту пути в свету после подвесных потолков, балок, коробов, светильников и инженерного оборудования."
+    - "7. Если одновременно действуют пожарное и МГН-требование, выполнять оба; не считать соответствие одному достаточным."
+
+BIM_required_parameters:
+  - corridor_wall_to_wall_width_mm
+  - corridor_finished_clear_width_mm
+  - corridor_finished_clear_height_mm
+  - egress_people_count
+  - functional_fire_class
+  - accessible_route_status
+  - doors_side_configuration
+  - opposite_doors_min_spacing_mm
+  - each_door_leaf_width_mm
+  - each_door_swing_envelope
+  - protruding_equipment_geometry
+  - suspended_ceiling_level
+  - lowest_obstruction_level
+  - effective_egress_width_mm
+
+agent_logic:
+  - "Не маркировать коридор нормативным только по размеру между стенами."
+  - "Дверное полотно, открывающееся в коридор, должно участвовать в вычислении эффективной ширины там, где применяется п. 4.3.4."
+  - "Подвесной потолок не гарантирует высоту в свету: проверять самый низкий выступающий элемент."
+  - "Не применять 1,2 м как универсальную ширину всех коридоров; число людей и специальная норма определяют минимум."
+  - "Не уменьшать доступный маршрут до пожарного минимума, если СП 59 требует большего."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/ee2837190f29396a4308d874595e7631e5a2544a/"
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"

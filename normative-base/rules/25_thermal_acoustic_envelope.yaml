@@ -1,0 +1,127 @@
+checked_at: 2026-09-30
+target_profile: RU_2027_PLUS
+purpose: "Наружная ограждающая система: теплотехнический и акустический расчет как обязательный gate перед фиксацией толщин стены, утеплителя, окон и фасадных узлов."
+
+revision_dependencies:
+  - {document: SP_50_13330_2024, status: active, effective_from: 2024-06-16}
+  - {document: SP_131_13330_2025, status: active, effective_from: 2025-09-09}
+  - {document: SP_51_13330_2011, status: active, verified_changes: [1,2,3,4]}
+  - {document: SP_538_1325800_2024, status: active, effective_from: 2024-06-16}
+
+thermal_protection:
+  source: SP_50_13330_2024
+  rules:
+    - id: envelope.thermal.three_requirements
+      clause: "5.1"
+      automation: validation_only
+      statement: >-
+        Тепловая защита здания считается обеспеченной только при одновременном выполнении
+        поэлементного требования по приведенному сопротивлению теплопередаче, комплексного
+        требования по удельной теплозащитной характеристике здания и санитарно-гигиенического
+        требования по минимальной температуре внутренних поверхностей.
+
+    - id: envelope.thermal.required_R_not_constant
+      clause: "5.2"
+      automation: manual_calculation
+      statement: "Нормируемое приведенное сопротивление теплопередаче ограждения определяют расчетом с учетом ГСОП, региона и условий конкретного помещения; универсального R для любой стены/города нет."
+      requires_calculation: true
+
+    - id: envelope.thermal.facade_all_thermal_bridges
+      clause: "5.4, Appendix G"
+      automation: manual_calculation
+      statement: >-
+        Приведенное сопротивление теплопередаче наружной стены рассчитывают для фасада с учетом
+        теплотехнических неоднородностей и откосов проемов. Расчет только по одномерной сумме
+        сопротивлений слоев не является достаточным доказательством для неоднородного фасада.
+      requires_calculation: true
+
+    - id: envelope.thermal.transparent_structures
+      clause: "5.4"
+      automation: manual_calculation
+      statement: >-
+        Теплотехнические характеристики светопрозрачных ограждений подтверждают испытаниями или
+        расчетом по применимому профильному СП/ГОСТ. Геометрия стеклопакета в BIM сама по себе не
+        подтверждает требуемое приведенное сопротивление теплопередаче.
+      requires_calculation: true
+      requires_manufacturer_data: true
+
+climate:
+  source: SP_131_13330_2025
+  rules:
+    - id: envelope.climate.current_data_only
+      automation: auto
+      statement: "Климатические параметры для нового проекта 2027+ брать из СП 131.13330.2025; не переносить таблицы из СП 131.13330.2020 как текущий источник."
+    - id: envelope.climate.location_required
+      automation: forbidden_to_infer
+      statement: "До теплотехнического расчета требуется конкретный населенный пункт/климатическая привязка проекта. При отсутствии местоположения толщину утеплителя не назначать."
+
+window_design:
+  source: SP_538_1325800_2024
+  rules:
+    - id: envelope.window.thermal_design
+      clause: "5.2.1"
+      automation: manual_calculation
+      statement: "Оконная/балконная конструкция должна обеспечивать приведенное сопротивление теплопередаче не ниже нормируемого по СП 50; характеристику подтверждают расчетом/испытаниями по применимым стандартам."
+      requires_calculation: true
+      requires_manufacturer_data: true
+
+    - id: envelope.window.profile_hardware_limits
+      clause: "5.1-5.2"
+      automation: validation_only
+      statement: "Габариты и масса открывающихся створок ограничиваются технологическими возможностями выбранной профильной системы и фурнитуры; агент не должен масштабировать библиотечное окно без проверки системы производителя."
+      requires_manufacturer_data: true
+
+acoustics:
+  source: SP_51_13330_2011
+  rules:
+    - id: envelope.acoustic.no_typical_wall_proof
+      automation: manual_calculation
+      statement: >-
+        Соответствие наружной стены, окна и их сочетания требованиям защиты от шума определяется
+        акустическим расчетом для источников и условий участка/помещения. Типовая толщина кладки
+        или паспортное окно без проверки требуемой звукоизоляции не являются достаточным основанием.
+      requires_calculation: true
+
+    - id: envelope.acoustic.window_is_system_part
+      automation: validation_only
+      statement: "При оценке фасада учитывать светопрозрачные участки и режим проветривания; нельзя присваивать всей наружной стене акустические характеристики только по непрозрачной части."
+
+thickness_selection_algorithm:
+  type: design_procedure
+  steps:
+    - "1. Определить местоположение и климатические параметры по СП 131.13330.2025."
+    - "2. Определить назначение и температурно-влажностный режим каждого типа помещения у наружного ограждения."
+    - "3. Выбрать конструктивную систему стены и реальные материалы с подтвержденными теплотехническими характеристиками."
+    - "4. Выполнить поэлементный и комплексный теплотехнический расчет, включая неоднородности, примыкания перекрытий, проемы, откосы и другие мостики холода."
+    - "5. Проверить минимальную температуру внутренних поверхностей и требуемые влажностные/паропроницаемые условия."
+    - "6. Выбрать конкретную оконную/фасадную систему и подтвердить ее теплотехнические характеристики."
+    - "7. Выполнить акустическую проверку фасада по исходным уровням шума и назначению помещений."
+    - "8. Только после этого фиксировать толщины слоев и типы конструкций в BIM-библиотеке проекта."
+
+BIM_required_parameters:
+  - project_location
+  - climatic_data_source
+  - room_function
+  - indoor_temperature_humidity_design_case
+  - wall_layer_material_ids
+  - wall_layer_thicknesses
+  - material_thermal_conductivity_design_values
+  - facade_thermal_bridge_catalog
+  - window_product_id
+  - window_test_or_calculation_reference
+  - acoustic_source_case
+  - facade_acoustic_calculation_reference
+  - thermal_calculation_reference
+
+agent_logic:
+  - "Запрещено назначать 50/100/150/200 мм утеплителя только по региону, типу дома или опыту."
+  - "Запрещено считать R по центру стены достаточным, если фасад имеет мостики холода/неоднородности."
+  - "Толщина несущей кладки определяется также КР; теплотехнический расчет не заменяет расчет прочности."
+  - "Если расчет требует большую общую толщину стены, повторно проверить привязку к координационной оси, фасадные проемы, откосы и полезную площадь."
+  - "Не использовать библиотечный материал Archicad как источник расчетной теплопроводности без подтвержденной нормативной/производственной характеристики."
+
+sources:
+  - "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+  - "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+  - "https://protect.gost.ru/sp/details/04d467f1-c956-4238-8bc6-a066ecb17990"
+  - "https://protect.gost.ru/sp/details/fad4db83-c22c-4629-b7cf-456ef675ce85"

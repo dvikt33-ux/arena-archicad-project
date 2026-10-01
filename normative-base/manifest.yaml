@@ -1,4 +1,4 @@
-manifest_version: 79
+manifest_version: 80
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -151,6 +151,7 @@ rule_files:
   - 93_smoke_control_architectural_interfaces_2027.yaml
   - 94_fire_suppression_pump_room_interfaces_2027.yaml
   - 95_internal_fire_water_architectural_interfaces_2027.yaml
+  - 96_fire_electrical_routing_architectural_interfaces_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

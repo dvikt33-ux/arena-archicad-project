@@ -1,0 +1,153 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+material_pack: TIMBER_STRUCTURES
+purpose: "Материал-специфические правила узлов ИЖС для деревянных несущих систем и деревянного каркаса без подмены расчета типовыми сечениями/крепежом."
+
+scope:
+  structural_code: SP_64_13330_2017
+  verified_changes: [1, 2, 3, 4]
+  latest_change_effective_from: 2024-01-29
+  official_status_url: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+  applicability_note: "СП 64 распространяется на расчет конструкций из цельной и клееной древесины в зданиях и сооружениях в своей области применения; не распространяется на деревянные фундаменты и сваи."
+
+core_rules:
+  - id: izh.timber.section_from_calculation
+    automation: forbidden_to_infer
+    statement: "Сечения стоек, балок, стропил, прогонов и других несущих деревянных элементов не назначать по этажности/пролету из типовой таблицы без расчета по актуальному СП 64 и СП 20."
+    result: needs_structural_calculation
+  - id: izh.timber.fastener_from_calculation_and_system
+    automation: forbidden_to_infer
+    statement: "Тип, диаметр, количество, шаг и краевые расстояния нагелей, болтов, винтов, гвоздей, вклеенных стержней и иных соединителей определять по расчету и области применения конкретного соединения; не хранить один универсальный крепеж узла."
+    result: needs_structural_connection_design
+  - id: izh.timber.moisture_and_drying
+    automation: validation_only
+    statement: "Узел должен явно описывать защиту древесины от увлажнения и возможность предусмотренного конструкцией высыхания; нельзя замыкать древесину между непроницаемыми слоями без тепловлажностного обоснования."
+  - id: izh.timber.fire_not_geometry_only
+    automation: validation_only
+    statement: "Пожарная работоспособность деревянного узла не подтверждается только номинальным сечением в BIM; требуются применимые расчет/защита и документация системы."
+
+node_overrides:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    components:
+      - RC_or_other_calculated_foundation
+      - timber_bottom_plate_or_frame_support_from_KR
+      - capillary_and_bulk_water_separation
+      - anchor_or_hold_down_from_KR
+      - protected_plinth_zone
+      - thermal_air_vapor_continuity
+      - insect_rodent_control_at_accessible_voids
+    critical_checks:
+      - timber_above_and_isolated_from_water_exposure_as_designed
+      - anchor_load_path
+      - drainage
+      - drying_potential
+      - floor_wall_air_seal
+    forbidden:
+      - universal_anchor_spacing
+      - untreated_direct_timber_to_wet_mineral_surface_by_template
+      - foundation_dimensions_from_wall_frame_width
+
+  IZH_N02_GROUND_FLOOR_EXTERNAL_WALL:
+    variants: [concrete_ground_floor_with_timber_wall, suspended_timber_floor]
+    components:
+      - structural_support_from_KR
+      - perimeter_air_seal
+      - thermal_continuity
+      - vapor_control_according_to_hygrothermal_design
+      - water_and_capillary_protection
+      - floor_service_zone_if used
+    forbidden:
+      - universal_vapor_barrier_position
+      - universal_ventilation_strategy_for_crawlspace
+
+  IZH_N03_MASONRY_WALL_FLOOR:
+    replacement_family: timber_wall_floor
+    components:
+      - calculated_floor_member_support
+      - rim_or_edge_member_if structural_scheme_requires
+      - uplift_lateral_and_diaphragm_connection_from_KR
+      - fire_acoustic_blocking_if applicable
+      - thermal_air_vapor_continuity_at_external_wall
+    forbidden:
+      - beam_notches_or_bores_without_structural_rule
+      - universal_joist_spacing
+      - treating_sheathing_as_structural_diaphragm_without_calculation
+
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    components:
+      - calculated_frame_corner_or_tie_configuration
+      - sheathing_or_bracing_continuity_if structural
+      - insulation_continuity
+      - interior_air_vapor_layer_continuity
+      - exterior_weather_resistive_layer_continuity
+      - ventilated_facade_cavity_continuity_if applicable
+    forbidden:
+      - adding_extra_studs_from_visual_template_without checking thermal_and_structural effects
+
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    components:
+      - calculated_header_or_structural_opening_frame
+      - verified_window_fastening_base
+      - exterior_weather_layer_transition
+      - drainage_sill_pan_or_verified_water_shedding_strategy
+      - insulated_installation_joint
+      - interior_air_vapor_transition
+      - facade_cavity_termination_and_drainage_if applicable
+    critical_checks:
+      - header_load_path
+      - opening_racking_bracing_effect
+      - sill_drainage
+      - tapes_membranes_compatibility
+      - timber_moisture_risk
+    forbidden:
+      - universal_header_size
+      - universal_jack_stud_count
+      - fastener_spacing_from_window_width_only
+
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    components:
+      - calculated_rafter_or_truss
+      - bearing_connection
+      - uplift_connection
+      - wall_top_plate_or_beam_from_KR
+      - roof_wall_air_vapor_transition
+      - insulation_wind_wash_control
+      - underroof_membrane_and_eaves_drainage
+      - ventilation_path_if design uses ventilated roof
+    forbidden:
+      - universal_rafter_spacing
+      - universal_mauerlat_detail
+      - universal_ventilation_gap_or_inlet_area
+
+  IZH_N08_PITCHED_ROOF_RIDGE:
+    variants: [ridge_board_nonstructural, structural_ridge_beam, truss_ridge]
+    rule: "Сначала классифицировать расчетную схему; геометрически похожий конек может иметь принципиально разный путь передачи усилий."
+    forbidden:
+      - switching_between_ridge_variants_without_KR
+
+  IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT:
+    components:
+      - structural_trimmer_if needed
+      - code_and_system_specific_fire_clearance_if applicable
+      - membrane_and_cover_flashing
+      - insulation_air_vapor_transition
+    forbidden:
+      - cutting_rafter_or_truss_member_automatically
+      - assuming_clearance_from_generic_library_object
+
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    rules:
+      - "Penetrations through studs, beams, headers and engineered timber members require structural limits/approval; no automatic bore from clash detection."
+      - "Service cavity should be considered during wall-system selection to reduce damage to primary air/vapor/structural layers."
+
+archicad_recipe_defaults:
+  studs_and_joists: "Use native Beam/Column or verified library/system representation when individual member coordination is required; schematic wall composites may remain appropriate at earlier LOD."
+  wall_assembly: "Composite for planar layers; individual framing only when the project stage requires member-level coordination/quantification."
+  repeated_special_section: "Complex Profile only if it remains a truthful repeated section, not as a container for unrelated fasteners/membranes."
+  connections: "Discrete library objects/properties for metal connectors when actual product/geometry is verified; otherwise relation metadata + detailed 2D."
+  service_openings: "Native Opening where host/type supports it, gated by structural approval."
+
+sources:
+  - "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+  - "https://protect.gost.ru/sp/changesdetails/b5542d34-122f-4a6e-b8c6-1f82e70f7f92"

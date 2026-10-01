@@ -1,0 +1,136 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Подвесные потолки из гипсокартонных, гипсоволокнистых и гипсовых плит по СП 163.1325800.2014 с Изм. №1: каркас, шаг профилей/подвесов, краевые расстояния, влажностный режим и координация инженерных коммуникаций."
+
+revision_dependencies:
+  - {document: SP_163_1325800_2014, verified_changes: [1], status: active}
+  - {document: SP_71_13330_2017, verified_changes: [1,2,3,4], status: active}
+  - {document: GOST_6266_97, status: active}
+  - {document: GOST_32614_2012, status: active}
+
+system_definition:
+  - id: ceiling.system.table_lookup_required
+    source: {document: SP_163_1325800_2014, clause: "7.4, tables 13-14", amendment: 1}
+    automation: conditional
+    statement: "Конструкцию подвесного потолка, межосевое расстояние основных профилей, расстояние между подвесами и максимальный шаг несущих профилей выбирать по системе/нагрузке из таблиц 13-14 СП 163. Нельзя использовать один универсальный шаг для всех потолков."
+    conflict_policy: "Если нагрузка, тип обшивки или схема не совпадают с табличной системой, требуется расчет/подтвержденная системная документация, а не интерполяция."
+
+  - id: ceiling.system.self_weight_and_attached_loads
+    source: {document: SP_163_1325800_2014, clause: "7.4.1.1", amendment: 1}
+    automation: validation_only
+    statement: "Шаг подвесов и основных профилей зависит от конструкции потолка и расчетной нагрузки; оборудование, которое передает нагрузку на потолок, должно учитываться отдельно."
+    requires_calculation: true
+
+sheet_orientation:
+  - id: ceiling.bearing_profile_spacing_by_sheet_orientation
+    source: {document: SP_163_1325800_2014, clause: "7.4.1.2", amendment: 1}
+    automation: conditional
+    statement: "Рекомендуемый шаг несущих профилей/брусков: 500 мм при поперечном размещении листов/плит относительно несущих профилей и 400 мм при продольном размещении."
+    values:
+      transverse_sheet_orientation_max_spacing_mm: 500
+      longitudinal_sheet_orientation_max_spacing_mm: 400
+    conflict_policy: "Применять в области систем СП 163; таблица 14 и нагрузка могут потребовать более частый шаг."
+
+edge_geometry:
+  - id: ceiling.main_profile_edge_distance
+    source: {document: SP_163_1325800_2014, clause: "7.4.1.3", amendment: 1}
+    automation: conditional
+    statement: "Расстояние от крайнего основного профиля/бруска до стены: не более 150 мм для двухуровневого каркаса; для одноуровневого металлического каркаса — не более 1170 мм."
+    values:
+      two_level_frame_max_mm: 150
+      one_level_metal_frame_max_mm: 1170
+
+  - id: ceiling.bearing_profile_edge_distance
+    source: {document: SP_163_1325800_2014, clause: "7.4.1.3", amendment: 1}
+    automation: conditional
+    statement: "Расстояние между крайним несущим профилем/бруском и стеной должно быть не более 100 мм."
+    values: {max_mm: 100}
+
+  - id: ceiling.suspension_edge_distance
+    source: {document: SP_163_1325800_2014, clause: "7.4.1.3", amendment: 1}
+    automation: conditional
+    statement: "Расстояние от крайнего подвеса основного профиля/бруска до стены: не более 250 мм для двухуровневого каркаса и не более 900 мм для одноуровневого металлического каркаса."
+    values:
+      two_level_frame_max_mm: 250
+      one_level_metal_frame_max_mm: 900
+
+  - id: ceiling.main_profile_room_clearance
+    source: {document: SP_163_1325800_2014, clause: "7.4", amendment: 1}
+    automation: conditional
+    statement: "Для конструкций 1 и 3 таблицы 13 длину основного профиля/бруска принимать на 10 мм меньше соответствующего размера помещения."
+    values: {room_dimension_reduction_mm: 10}
+    conditions: {ceiling_table13_construction: [1,3]}
+
+moisture_regime:
+  - id: ceiling.wet_room_metal_frame
+    source: {document: SP_163_1325800_2014, clause: "7.4", amendment: 1}
+    automation: conditional
+    statement: "В помещениях с влажным режимом эксплуатации подвесные потолки предусматривать с каркасом из металлических профилей."
+    conditions: {room_moisture_regime: humid_or_wet}
+
+layering_and_joints:
+  - id: ceiling.double_layer_end_joint_offset
+    source: {document: SP_163_1325800_2014, clause: "7.4.4", amendment: 1}
+    automation: validation_only
+    statement: "При двухслойной обшивке торцевые стыки листов первого и второго слоев смещать не менее чем на 400 мм."
+    values: {min_end_joint_offset_mm: 400}
+
+  - id: ceiling.sheet_orientation_preference
+    source: {document: SP_163_1325800_2014, clause: "7.4.4.3", amendment: 1}
+    automation: validation_only
+    statement: "Листы/плиты рекомендуется располагать поперек несущих профилей; продольное размещение требует уменьшения шага несущих профилей."
+
+engineering_coordination:
+  - id: ceiling.no_unowned_equipment_load
+    automation: forbidden_to_infer
+    statement: "Запрещено автоматически подвешивать светильники, воздухораспределители, кабельные лотки или иное оборудование к каркасу потолка без подтверждения допустимой нагрузки и способа крепления выбранной системой."
+    requires_calculation: true
+
+  - id: ceiling.service_zone_required
+    automation: conditional
+    statement: "Межпотолочное пространство моделировать как координационную инженерную зону с явными отметками низа несущих конструкций, верха/низа потолка, инженерных трасс и зон доступа; декоративная отметка потолка не должна скрывать конфликт коммуникаций."
+
+BIM_required_parameters:
+  - ceiling_system_id
+  - table13_construction_type
+  - frame_level_count
+  - frame_material
+  - main_profile_type
+  - bearing_profile_type
+  - main_profile_spacing_mm
+  - bearing_profile_spacing_mm
+  - suspension_spacing_mm
+  - suspension_edge_distance_mm
+  - sheet_standard
+  - sheet_product_type
+  - sheet_thickness_mm
+  - sheet_layer_count
+  - sheet_orientation
+  - ceiling_self_weight_load
+  - attached_equipment_load
+  - room_moisture_regime
+  - structural_soffit_level
+  - finished_ceiling_level
+  - service_zone_height_mm
+  - access_panel_locations
+  - ceiling_structural_verification_reference
+
+hard_fail_conditions:
+  - "one universal suspension spacing applied regardless of ceiling type and load"
+  - "longitudinal sheet orientation uses transverse-profile spacing without revalidation"
+  - "wet-room ceiling uses unverified wooden frame"
+  - "MEP equipment load is assigned to the ceiling frame without verified capacity"
+  - "finished ceiling level conflicts with required MEP/service clearance"
+  - "table 14 values are interpolated to an unlisted system without calculation"
+
+agent_logic:
+  - "Подвесной потолок — отдельная несущая подсистема отделки; его сетка не должна автоматически копировать модуль светильников или плитки."
+  - "Сначала выбрать систему и нагрузку, затем шаги каркаса/подвесов, и только после этого координировать раскладку листов, светильники и инженерные устройства."
+  - "Если архитектурная композиция требует иной сетки, менять систему только после повторной проверки таблицы 14/расчета."
+  - "Не крепить инженерные элементы к потолку по умолчанию; источник несения каждого оборудования должен быть явным."
+
+sources:
+  - "https://protect.gost.ru/sp/details/92439dea-05ad-4cfe-9dc4-c1bddcdb8c55"
+  - "https://protect.gost.ru/sp/changesdetails/1acf76a9-1db8-4fef-9759-b7528bcfaee3"
+  - "https://base.garant.ru/71121328/"
+  - "https://base.garant.ru/403690576/"

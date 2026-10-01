@@ -1,0 +1,158 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Постатейный 2027-аудит СП 70.13330.2012 Изм. №8 для крупноформатной керамики (9.6) и крупных силикатных блоков (9.7). Блокирует устаревающие технологические числа и сохраняет только подтвержденные правила новой редакции."
+
+source_change:
+  document: SP_70_13330_2012
+  amendment: 8
+  approved_by: "Приказ Минстроя России от 03.06.2026 №353/пр"
+  general_effective_from: 2026-07-04
+  deferred_effective_from: 2027-03-01
+  official_order_url: "https://www.consultant.ru/document/cons_doc_LAW_540802/"
+  change_text_url: "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
+
+large_format_ceramic_9_6:
+  removed_clauses_for_target_2027:
+    - clause: "9.6.3"
+      effective_from: 2027-03-01
+      previous_subject: "размеры камней по ГОСТ 530"
+      target_action: "removed_from_SP70; product geometry remains governed by current GOST 530 and verified manufacturer data"
+    - clause: "9.6.4"
+      effective_from: 2026-07-04
+      previous_subject: "кладочный раствор M75+ и осадка конуса 7-9 см"
+      target_action: "removed_from_SP70; do not use as a universal 2027 execution default"
+    - clause: "9.6.5"
+      effective_from: 2027-03-01
+      previous_subject: "растворные швы крупноформатной керамики"
+      target_action: "removed_from_SP70"
+    - clause: "9.6.6"
+      effective_from: 2027-03-01
+      previous_subject: "готовое правило опирания плит на крупноформатную керамику"
+      target_action: "removed_from_SP70"
+    - clause: "9.6.7"
+      effective_from: 2027-03-01
+      previous_subject: "подушки/пояса при опирании балок и прогонов"
+      target_action: "removed_from_SP70"
+
+  deprecated_numeric_defaults:
+    - id: sp70.2027.ceramic.no_joint_8_12_default
+      source: {document: SP_70_13330_2012, clause: "former 9.6.5", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Для RU_2027_PLUS запрещено использовать прежний диапазон 8-12 мм как нормативную универсальную толщину растворного шва крупноформатной керамики: п.9.6.5 исключен с 01.03.2027."
+      historical_value_only: {mortar_joint_mm: [8,12]}
+
+    - id: sp70.2027.ceramic.no_mesh_joint_10_16_default
+      source: {document: SP_70_13330_2012, clause: "former 9.6.5", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Прежние 10-16 мм для шва, армированного сеткой и соединяющего облицовочный слой, не являются нормативным default профиля 2027, поскольку п.9.6.5 исключен."
+      historical_value_only: {mesh_joint_mm: [10,16]}
+
+    - id: sp70.2027.ceramic.no_120mm_slab_bearing_default
+      source: {document: SP_70_13330_2012, clause: "former 9.6.6", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Запрещено автоматически назначать прежнее опирание плиты 120 мм на слой раствора 15 мм и выдержку 7-8 дней как действующее правило 2027: п.9.6.6 исключен с 01.03.2027. Опирание задается КР/рабочей документацией и расчетом конкретной системы."
+      historical_values_only: {bearing_mm: 120, mortar_bed_mm: 15, waiting_days: [7,8]}
+      requires_calculation: true
+
+    - id: sp70.2027.ceramic.no_former_bearing_pad_default
+      source: {document: SP_70_13330_2012, clause: "former 9.6.7", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Исключение п.9.6.7 не дает права автоматически ни назначать, ни отменять опорные подушки/пояса. Необходимость и геометрия определяются проектом КР и расчетом."
+      requires_calculation: true
+
+large_silicate_blocks_9_7:
+  removed_clauses_for_target_2027:
+    - clause: "9.7.2"
+      effective_from: 2027-03-01
+      previous_subject: "размеры блоков по ГОСТ 379"
+      target_action: "removed_from_SP70; product geometry remains governed by current GOST 379-2025 and verified manufacturer data"
+    - clause: "9.7.3"
+      effective_from: 2026-07-04
+      target_action: "removed_from_SP70"
+    - clause: "9.7.4"
+      effective_from: 2027-03-01
+      previous_subject: "готовые толщины растворных/клеевых швов"
+      target_action: "removed_from_SP70"
+    - clause: "9.7.5"
+      effective_from: 2027-03-01
+      previous_subject: "готовое правило опирания плит, балок, перемычек"
+      target_action: "removed_from_SP70"
+
+  deprecated_numeric_defaults:
+    - id: sp70.2027.silicate.no_2_12_16_joint_defaults
+      source: {document: SP_70_13330_2012, clause: "former 9.7.4", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Для RU_2027_PLUS запрещено применять прежние 2 мм (клеевой раствор), 12 мм (цементно-известково-песчаный раствор) и 16 мм (армированный сеткой шов) как нормативные defaults: п.9.7.4 исключен с 01.03.2027."
+      historical_values_only:
+        adhesive_joint_mm: 2
+        cement_lime_sand_joint_mm: 12
+        mesh_reinforced_joint_mm: 16
+      requires_manufacturer_data: true
+
+    - id: sp70.2027.silicate.no_15mm_M100_bearing_default
+      source: {document: SP_70_13330_2012, clause: "former 9.7.5", amendment: 8}
+      automation: forbidden_to_infer
+      statement: "Прежнее правило непосредственного опирания плит/балок/перемычек на силикатные блоки через цементный раствор толщиной не более 15 мм марки M100 и выше не является действующим нормативным default 2027: п.9.7.5 исключен. Опирание подтверждается КР и рабочей документацией."
+      historical_values_only: {mortar_bed_max_mm: 15, historical_mortar_grade_min: M100}
+      requires_calculation: true
+
+revalidated_current_clauses:
+  - id: sp70.2027.silicate.control_course
+    source: {document: SP_70_13330_2012, clause: "9.7.6", amendment: 8}
+    effective_from: 2026-07-04
+    automation: validation_only
+    statement: "Кладка каждого этажа начинается с укладки контрольного ряда в соответствии с проектной и (или) рабочей документацией с проверкой размеров, горизонтальности, вертикальности граней и углов."
+    conflict_policy: "Новая редакция не содержит старого универсального диапазона толщины контрольного ряда 80-123 мм; не переносить его из прежнего текста."
+
+  - id: sp70.2027.silicate.panel_partition_stability
+    source: {document: SP_70_13330_2012, clause: "9.7.8", amendment: 8}
+    effective_from: 2027-03-01
+    automation: validation_only
+    statement: "Устойчивость панельных перегородок при монтаже необходимо обеспечивать в соответствии с ППР."
+    conflict_policy: "Не восстанавливать прежнюю деталь крепления анкерами из старой редакции как универсальную норму; применять ППР/рабочую документацию конкретной системы."
+
+product_geometry_survives_sp70_deletion:
+  - id: sp70.2027.product_standard_separation
+    automation: auto
+    statement: "Исключение ссылочного/технологического пункта из СП 70 не отменяет действующий продуктовый стандарт. Геометрию керамических изделий брать по ГОСТ 530-2012 и подтвержденной документации производителя; геометрию силикатных изделий — по ГОСТ 379-2025 и подтвержденной документации производителя."
+
+  - id: sp70.2027.joint_system_from_project_or_system
+    automation: conditional
+    statement: "Фактическую толщину и тип кладочного шва крупноформатной керамики/силикатных блоков для BIM-раскладки получать из утвержденной рабочей документации, технологического решения и документации подтвержденной системы/изготовителя; не брать из удаленных пунктов СП 70."
+    requires_manufacturer_data: true
+
+  - id: sp70.2027.bearing_from_KR
+    automation: forbidden_to_infer
+    statement: "Опирание плит, балок, прогонов и перемычек на крупноформатную керамику или силикатные блоки не выводить из удаленных типовых пунктов. Требуется решение КР, расчет и рабочая документация."
+    requires_calculation: true
+
+BIM_required_parameters:
+  - masonry_system_family
+  - product_standard
+  - manufacturer_product_id
+  - approved_working_documentation_reference
+  - joint_system_reference
+  - confirmed_horizontal_joint_mm
+  - confirmed_vertical_joint_mm
+  - bearing_detail_reference
+  - structural_calculation_status
+  - PPR_reference_when_required
+
+hard_fail_conditions:
+  - "target profile 2027 uses former SP70 9.6.5 joint values as active norm"
+  - "target profile 2027 uses former SP70 9.6.6 slab bearing as active norm"
+  - "target profile 2027 uses former SP70 9.7.4 joint values as active norm"
+  - "target profile 2027 uses former SP70 9.7.5 bearing rule as active norm"
+  - "old 80-123 mm silicate control-course thickness is treated as current rule after revised 9.7.6"
+  - "old panel-partition anchor detail is treated as universal current rule after revised 9.7.8"
+
+agent_logic:
+  - "Удаленный пункт не превращается в 'рекомендацию по умолчанию'. Его старые числа разрешены только как исторические данные и не участвуют в генерации модели 2027+."
+  - "Отсутствие готового числа в новой редакции означает проектное/технологическое решение, а не разрешение выбрать среднее значение."
+  - "Геометрия изделия, технология кладки и несущая схема — три разных слоя данных."
+  - "Перед расчетом кладочной раскладки rules/24_masonry_opening_layout.yaml должен получить подтвержденный joint_system_reference, а не значение из бывших 9.6.5/9.7.4."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_540802/"
+  - "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
+  - "https://meganorm.ru/mega_doc/norm/akt_forma/0/sp_70_13330_2012_svod_pravil_nesushchie_i_ograzhdayushchie.html"

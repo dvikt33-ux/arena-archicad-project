@@ -1,0 +1,163 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Единая схема тепловлажностной проверки строительного узла ИЖС. Узел валидируется по непрерывности функций и расчетам, а не по визуальному порядку слоев."
+
+normative_stack:
+  - document: SP_50_13330_2024
+    status: active
+    effective_from: 2024-06-16
+    replaces: SP_50_13330_2012
+    role: thermal_protection_air_permeability_vapor_moisture_and_temperature_humidity_performance
+    official_source: "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+  - {document: SP_131_13330_2025, role: climate_inputs}
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_scope}
+  - {document: SP_28_13330_2017, changes: [1,2,3,4], role: material_durability_and_corrosion, official_source: "https://protect.gost.ru/sp/details/bd3c594c-26c7-41a9-9c76-510d0fa1ca92"}
+  - {document: SP_71_13330_2017, changes: [1,2,3,4], role: insulation_and_finish_execution, official_source: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"}
+
+functional_contours:
+  thermal:
+    question: "Где проходит непрерывный расчетный теплозащитный контур и какие двумерные/трехмерные теплопроводные включения его пересекают?"
+    required_data:
+      - layer_geometry
+      - design_thermal_conductivity_source_for_each_material
+      - material_temperature_moisture_conditions_when_required
+      - repeating_and_local_thermal_bridges
+      - boundary_conditions_and_climate_ref
+    outputs:
+      - thermal_calc_ref
+      - local_node_calc_ref_when_required
+      - surface_temperature_or_condensation_check_ref_when_required
+  air_control:
+    question: "Какая конкретная плоскость/система обеспечивает воздухонепроницаемость и как она непрерывно проходит через стык?"
+    required_data:
+      - air_control_layer_or_material
+      - joints_tapes_gaskets_sealants_or_monolithic_connections
+      - transitions_to_windows_doors_roof_floor_and_penetrations
+    outputs:
+      - air_control_path
+      - unresolved_breaks
+  vapor_control:
+    question: "Как конструкция ограничивает диффузионный перенос водяного пара и допускает безопасный режим влаги для фактических материалов/условий?"
+    required_data:
+      - vapor_permeability_or_resistance_source
+      - layer_order
+      - indoor_and_outdoor_design_conditions
+      - moisture_sensitive_materials
+    outputs:
+      - vapor_moisture_calc_ref
+      - vapor_control_strategy
+  bulk_water:
+    question: "Как дождевая, талая, грунтовая и эксплуатационная вода не попадает в чувствительные слои и куда она отводится?"
+    required_data:
+      - exposure_type
+      - primary_water_control_plane
+      - flashings_or_waterproofing_transitions
+      - drainage_outlet_path
+      - capillary_breaks_where_required
+    outputs:
+      - water_path_diagram_or_record
+      - waterproofing_system_ref
+  drainage_and_drying:
+    question: "Если вода/влага попала в допустимую дренируемую полость или материал увлажнился в расчетных пределах, каким путем конструкция отводит влагу и высыхает?"
+    required_data:
+      - cavity_or_drainage_path_if_any
+      - ventilation_or_drying_path_if_any
+      - material_drying_sensitivity
+      - blocked_cavity_checks
+    outputs:
+      - drying_strategy
+      - drainage_strategy
+
+hard_rules:
+  - id: izh.hygro.no_universal_vapor_barrier_side
+    automation: forbidden_to_infer
+    statement: "Не применять универсальное правило 'пароизоляция всегда изнутри' как готовый узел. Положение и характеристики парорегулирующих слоев определяются расчетом и конкретной конструкцией/режимом."
+  - id: izh.hygro.no_insulation_thickness_from_climate_only
+    automation: forbidden_to_infer
+    statement: "Толщина теплоизоляции не назначается только по городу, климатической зоне или материалу стены: требуется расчет с фактической конструкцией и проектными условиями."
+  - id: izh.hygro.node_not_validated_by_1D_wall_R
+    automation: forbidden_to_infer
+    statement: "Приведенное/одномерное сопротивление плоской стены не подтверждает локальный узел с фундаментом, перекрытием, окном, металлом, крепежом, балконом, кровлей или иной неоднородностью."
+  - id: izh.hygro.air_tightness_separate_from_vapor
+    automation: validation_only
+    statement: "Воздухонепроницаемость и паропроницаемость являются разными функциями. Материал/лента может выполнять обе роли только если это подтверждено проектом и характеристиками системы."
+  - id: izh.hygro.waterproofing_not_equal_vapor_barrier
+    automation: validation_only
+    statement: "Гидроизоляционный/водозащитный слой не автоматически является корректным парорегулирующим или воздухонепроницаемым контуром для узла; функции записываются отдельно."
+  - id: izh.hygro.material_properties_are_sourced
+    automation: forbidden_to_infer
+    statement: "Теплопроводность, паропроницаемость, водопоглощение и другие расчетные свойства брать из применимого нормативного/продуктового источника для расчетного состояния, а не из усредненного интернет-справочника."
+
+interface_record_schema:
+  required_fields:
+    - node_id
+    - node_revision
+    - project_climate_ref
+    - indoor_design_conditions_ref
+    - material_layers_with_sources
+    - thermal_contour
+    - air_control_contour
+    - vapor_control_strategy
+    - bulk_water_control_plane
+    - drainage_drying_strategy
+    - local_thermal_bridge_features
+    - penetrations_and_fasteners_crossing_contours
+    - thermal_calc_ref
+    - vapor_moisture_calc_ref_when_required
+    - approval_status
+  optional_fields:
+    - psi_or_other_linear_thermal_bridge_result_ref
+    - surface_temperature_field_ref
+    - manufacturer_system_ref
+    - facade_cavity_ref
+    - temporary_construction_moisture_plan
+
+node_specific_focus:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    focus: [capillary_control, below_grade_bulk_water, floor_wall_thermal_bridge, air_control_transition, freeze_thaw_durability]
+  IZH_N03_MASONRY_WALL_FLOOR:
+    focus: [slab_or_beam_edge_thermal_bridge, bearing_zone, air_control_transition, material_movement]
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    focus: [2D_or_3D_thermal_bridge, weather_layer_corner_continuity, air_vapor_layer_turn, dissimilar_material_movement]
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    focus: [frame_reveal_temperature_field, installation_joint_air_vapor_weather_layers, sill_water_path, fastening_thermal_bridges]
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    focus: [roof_wall_air_vapor_continuity, insulation_wind_wash, ventilation_path_if_used, eaves_water_drainage]
+  IZH_N08_PITCHED_ROOF_RIDGE:
+    focus: [ridge_air_vapor_continuity, envelope_location, ventilation_outlet_if_used, wind_driven_rain]
+  IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT:
+    focus: [membrane_transition, hot_penetration_fire_material_compatibility, air_vapor_seal, water_diversion]
+  IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN:
+    focus: [liquid_waterproofing_continuity, drain_flange, wall_upturn, penetrations, adjacent_dry_zone_transition]
+  IZH_N13_TERRACE_PORCH_EXTERNAL_WALL:
+    focus: [threshold_water_path, exterior_level, thermal_bridge_if_connected, plinth_exposure, differential_movement]
+
+archicad_representation:
+  3d_layers: "Use Composite/Building Material/native elements for layers whose geometry matters at model scale."
+  thin_membranes_and_tapes: "Normally property + controlled Detail 2D + contour metadata, unless explicit 3D is required for fabrication/coordination."
+  thermal_bridge_objects: "Do not create fake insulation blocks solely to make a thermal bridge disappear visually. Store calculation reference and real geometry."
+  contour_metadata:
+    recommended_properties:
+      - NODE_THERMAL_CALC_REF
+      - NODE_AIR_CONTROL_STATUS
+      - NODE_VAPOR_CONTROL_STATUS
+      - NODE_BULK_WATER_STATUS
+      - NODE_DRYING_STATUS
+      - NODE_HYGRO_REVIEW_REVISION
+
+generation_gate:
+  before_approved_for_model:
+    require:
+      - material_layer_sources_known
+      - thermal_calc_current_for_node_revision
+      - air_control_path_no_unresolved_break
+      - bulk_water_path_defined_for_exposed_node
+      - vapor_moisture_check_completed_when_required
+      - moisture_sensitive_materials_have_protection_and_drying_strategy
+    fail_status: thermal_moisture_calculation_required
+
+sources:
+  - "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+  - "https://protect.gost.ru/sp/details/bd3c594c-26c7-41a9-9c76-510d0fa1ca92"
+  - "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"

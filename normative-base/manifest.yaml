@@ -1,4 +1,4 @@
-manifest_version: 60
+manifest_version: 61
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -132,6 +132,7 @@ rule_files:
   - 74_basement_concrete_blocks.yaml
   - 75_spds_architecture_working_drawings.yaml
   - 76_spds_general_plan_working_drawings.yaml
+  - 77_fire_finish_materials_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

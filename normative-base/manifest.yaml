@@ -1,4 +1,4 @@
-manifest_version: 59
+manifest_version: 60
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -129,6 +129,9 @@ rule_files:
   - 71_public_special_functions_2027.yaml
   - 72_precast_stair_products.yaml
   - 73_deformation_temperature_joints.yaml
+  - 74_basement_concrete_blocks.yaml
+  - 75_spds_architecture_working_drawings.yaml
+  - 76_spds_general_plan_working_drawings.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

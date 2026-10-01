@@ -1,0 +1,116 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT
+purpose: "Детальный алгоритм проходок через кровлю: дымоход, вентиляция, фановый/технологический стояк и иные инженерные элементы. Тип проходки сначала классифицируется; пожарные и конструктивные требования не заменяются одной типовой геометрией."
+
+normative_stack:
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_scope}
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], role: roof_and_waterproofing_interface}
+  - {document: SP_7_13130_2013, role: fire_requirements_for_HVAC_and_smoke_related_systems_when_applicable}
+  - {document: SP_60_13330_2020, role: HVAC_when_applicable}
+  - {document: SP_62_13330_2011, role: gas_system_when_applicable}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_roof_structure_if_used}
+  - {document: SP_260_1325800_2023, role: LSTK_roof_structure_if_used}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_interface}
+  - {document: GOST_R_59375_1_2021, role: metal_chimney_building_components_when_in_scope}
+  - {document: GOST_R_59375_2_2022, role: metal_flue_liners_and_connecting_elements_when_in_scope}
+  - {document: GOST_R_72602_2026, effective_from: 2027-01-01, role: flue_gas_construction_general_requirements_for_target_2027}
+
+future_2027_gate:
+  id: izh.N09.GOST_R_72602_2026
+  source_status: official_rosstandart_effective_date_confirmed
+  effective_from: 2027-01-01
+  target_profile_action: apply_for_RU_2027_PLUS
+  statement: "Для проектов целевого профиля 2027+ учитывать ГОСТ Р 72602-2026 в его области применения; не использовать типовой дымоходный узел, не связанный с классификацией конкретной системы отвода дымовых газов."
+
+penetration_classes:
+  - flue_or_chimney
+  - ventilation_duct_or_shaft
+  - sewer_vent_or_small_pipe
+  - cable_or_service_bundle
+  - roof_drain_or_other_system_specific_penetration
+
+mandatory_components_common:
+  - confirmed_penetrating_system_and_product
+  - KR_confirmed_structural_opening_or_trimmer_when_primary_member_is_affected
+  - roof_cover_or_membrane_flashing_transition
+  - underroof_water_control_transition
+  - thermal_layer_transition_where_envelope
+  - air_control_transition
+  - vapor_control_transition_according_to_hygrothermal_design
+  - movement_allowance_if_differential_movement_expected
+  - support_and_load_transfer_for_penetrating_system
+  - inspection_and_maintenance_access_where_required
+
+additional_for_flue_or_chimney:
+  - system_classification_and_temperature_pressure_condensate_characteristics_from_product_design
+  - fire_separation_or_clearance_solution_from_applicable_standard_and_system_documents
+  - noncombustible_or_protected_components_where required
+  - condensate_and_rainwater_management_as_applicable
+  - verified_terminal_or_head_solution
+
+algorithm:
+  - step: 1_classify_penetration
+    action: "Определить функцию, систему, материал, температурный/пожарный режим и владельца проходки."
+  - step: 2_product_and_code_scope
+    action: "Для дымохода/газохода определить применимость ГОСТ Р 72602-2026 и серии ГОСТ Р 59375, а также специальных СП оборудования/топлива. Для обычной вентиляции не переносить требования дымохода механически."
+  - step: 3_structural_gate
+    action: "Проверить положение относительно стропил, ферм, балок, панелей и профилей. Любая подрезка/разрыв расчетного элемента требует решения КР."
+    fail: needs_structural_opening_design
+  - step: 4_fire_gate
+    action: "Для горячей/пожароопасной проходки получить нормативный и продуктовый узел разделки/изоляции; расстояния до горючих конструкций не брать из памяти или от другой дымоходной системы."
+    fail: needs_fire_and_product_system_design
+  - step: 5_water_path
+    action: "Спроектировать верхний/боковые/нижний участки примыкания так, чтобы осадки обходили проходку и возвращались на наружную водоотводящую плоскость кровли."
+  - step: 6_underroof_membrane
+    action: "Согласовать разрез и герметизацию подкровельной мембраны с проходкой; вода по мембране не должна уходить в утеплитель/деревянные элементы."
+  - step: 7_thermal_air_vapor
+    action: "Восстановить непрерывность теплового, воздухонепроницаемого и парорегулирующего контуров совместимыми негорючими/системными решениями там, где это требуется."
+  - step: 8_movement_and_support
+    action: "Не передавать массу/температурные деформации дымохода или воздуховода на кровельное покрытие случайным образом; опоры и компенсация принадлежат системе."
+  - step: 9_BIM_readback
+    action: "Проверить host/opening GUID, габарит проходки, отметки, пересечения с расчетными элементами, системный reference и NODE_ID."
+
+archicad_recipe:
+  structural_opening: "Native Opening only after KR approval and exact host compatibility; otherwise reservation metadata remains blocked."
+  penetrating_system: "MEP route/object/library component if exact product/system is known; chimney product may require verified Library Object."
+  flashing: "Model as native/profile/object only when geometry matters for coordination; otherwise controlled Detail 2D."
+  fire_stop_or_separation: "Property + verified library/system detail; never a generic Morph with assumed performance."
+  tapir_primitives:
+    - CreateOpenings
+    - CreateMEPRoutingElements
+    - ModifyMEPRoutingElements
+    - ConnectMEPElements
+    - CreateRoofs
+    - CreateObjects
+    - CreateProfiles
+    - CreateDetails
+
+postconditions:
+  - penetration_classified
+  - product_or_system_reference_present
+  - structural_cut_is_KR_approved_or_no_primary_member_affected
+  - fire_gate_passed_when_applicable
+  - roof_water_path_documented
+  - underroof_membrane_transition_documented
+  - thermal_air_vapor_contours_reviewed
+  - no_generic_clearance_or_opening_size_inferred
+  - NODE_ID_and_revision_written
+
+never_auto_assign:
+  - chimney_or_flue_diameter
+  - combustion_appliance_flue_requirement
+  - fire_clearance_to_combustibles
+  - structural_trimmer_section
+  - opening_size_in_rafter_truss_beam_or_panel
+  - flashing_dimensions
+  - membrane_cut_geometry
+  - support_spacing
+  - roof_terminal_height
+
+sources:
+  - "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  - "https://protect.gost.ru/gost/details/30b79126-64c2-404b-9c57-889a3d211020"
+  - "https://protect.gost.ru/gost/details/c943a0e0-8da9-4477-b2fa-0727055680d5"
+  - "https://protect.gost.ru/gost/details/33e4244f-34e0-426d-8d1d-7ae8dd94d5a3"

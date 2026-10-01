@@ -1,0 +1,129 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_396_1325800_2018
+verified_changes: [1, 2, 3]
+purpose: >-
+  Архитектурно-генпланировочная координация внутриквартальных транспортных проездов и
+  пешеходных связей. Обычный транспортный проезд, пожарный подъезд и парковочный маневровый
+  проезд считаются разными функциями даже при геометрическом совмещении.
+
+revision_state:
+  status: active
+  change_3_effective_from: 2025-01-27
+  official_card: https://protect.gost.ru/sp/details/b06a81a0-0143-4299-aac1-764b05cf4242
+  note: >-
+    Изменение №3 было утверждено до ввода СП 42.13330.2026 и содержит отдельные ссылочные
+    актуализации на прежнюю редакцию СП 42. Для целевого профиля прямые действующие требования
+    СП 396 применяются совместно с текущим SP_42_13330_2026; устаревшая ссылочная редакция не
+    должна откатывать градостроительный слой к СП 42.13330.2016.
+
+quarter_transport_drives:
+  - id: site.drive.quarter_carriageway_min_width
+    source_clause: "5.4.6"
+    automation: conditional
+    dimension_semantics: clear_carriageway_width
+    min_width_m: 6.0
+    scope: transport_drive_on_quarter_territory
+    statement: "Ширину проезжей части проездов на территории кварталов принимать не менее 6 м."
+    conflict_policy: >-
+      Если геометрия одновременно является пожарным подъездом, парковочным маневровым проездом
+      или маршрутом спецтехники, дополнительно применяются соответствующие нормы; итоговая
+      геометрия должна удовлетворять всем применимым требованиям.
+
+  - id: site.drive.no_fire_width_substitution
+    automation: true
+    statement: >-
+      Минимум 6 м по СП 396 не заменяет проверку пожарного подъезда по СП 4.13130.2013.
+      И наоборот, допустимые пожарные ширины 3,5/4,2/6,0 м не являются основанием уменьшить
+      транспортный внутриквартальный проезд, если к нему применим п. 5.4.6 СП 396.
+    downstream_rule: rules/13_fire_site_access.yaml
+
+  - id: site.drive.no_parking_aisle_substitution
+    automation: true
+    statement: >-
+      Ширина транспортного внутриквартального проезда не подменяет ширину маневрового проезда
+      между парковочными рядами. Последняя зависит от схемы постановки, расчетного автомобиля
+      и требований СП 113; проверять отдельно.
+    downstream_rule: rules/14_parking_geometry.yaml
+
+pedestrian_routes:
+  - id: site.drive.sidewalk_along_transport_drive
+    source_clause: "5.4.7"
+    automation: conditional
+    statement: >-
+      На территории кварталов вдоль транспортных проездов предусматривать тротуары не менее чем
+      с одной стороны.
+    min_sides_with_sidewalk: 1
+
+  - id: site.drive.additional_shortest_pedestrian_paths
+    source_clause: "5.4.7"
+    automation: optional_design
+    applies_to: residential_zones
+    statement: >-
+      В жилых зонах дополнительно к тротуарам вдоль проездов допускается устраивать пешеходные
+      дорожки по кратчайшим трассам.
+
+  - id: site.drive.sidewalk_width_not_inferred_from_5_4_7
+    automation: forbidden_to_infer
+    statement: >-
+      Пункт 5.4.7 устанавливает наличие тротуара, но не дает универсальную ширину тротуара
+      внутриквартального проезда. Ширину определять по применимым требованиям СП 42, СП 59,
+      СП 476, местным нормативам и расчетному пешеходному потоку.
+
+traffic_calming:
+  - id: site.drive.traffic_calming_route
+    source_clause: "5.4.5, Change 3"
+    automation: design_option
+    applies_to: [local_street_in_residential_zone, quarter_drive_in_residential_or_public_zone]
+    measures:
+      - traffic_islands_and_local_narrowing
+      - non_straight_alignment
+      - speed_humps
+      - roundabout_intersections
+    statement: >-
+      Мероприятия снижения скорости являются проектными инструментами в области пункта 5.4.5;
+      их геометрию и применимость проверять по соответствующим дорожным ГОСТ/СП, не генерировать
+      произвольно.
+
+combined_geometry_router:
+  - id: site.drive.combined_function_max_constraint
+    automation: mandatory_validation
+    inputs:
+      - is_quarter_transport_drive
+      - is_fire_apparatus_access
+      - is_parking_maneuver_aisle
+      - is_accessible_route_crossing_or_shared_zone
+      - service_vehicle_classes
+    algorithm:
+      - "Определить каждую функцию участка проезда независимо."
+      - "Получить минимумы/траектории из каждого применимого нормативного блока."
+      - "Проверить ширину в свету с учетом бордюров, опор, МАФ, деревьев, парковочных габаритов и выступающих частей."
+      - "Проверить поворотные траектории расчетного автомобиля там, где требуются."
+      - "Принять геометрию, одновременно удовлетворяющую всем применимым ограничениям; не усреднять значения."
+
+BIM_required_parameters:
+  - drive_segment_id
+  - drive_function_tags
+  - clear_carriageway_width_m
+  - sidewalk_side_count
+  - sidewalk_clear_width_m
+  - fire_access_status
+  - parking_maneuver_status
+  - accessible_route_interaction_status
+  - service_vehicle_design_reference
+
+hard_fail_conditions:
+  - "quarter transport drive < 6 m where SP396 5.4.6 applies"
+  - "transport drive has no sidewalk on either side where SP396 5.4.7 applies"
+  - "fire access width is assumed equal to transport-drive width without SP4 validation"
+  - "parking aisle width is assumed equal to transport-drive width without SP113 validation"
+
+agent_logic:
+  - "Не рисовать один объект 'проезд' без функциональных тегов: транспорт, пожарный доступ, парковочный маневр и сервис должны быть различимы."
+  - "Если один коридор выполняет несколько функций, применять наиболее ограничивающую совокупность требований, а не одно максимальное число без проверки геометрии."
+  - "Тротуар проверять как чистый пешеходный габарит после размещения опор освещения, МАФ, озеленения и других препятствий."
+
+sources:
+  - https://protect.gost.ru/sp/details/b06a81a0-0143-4299-aac1-764b05cf4242
+  - https://protect.gost.ru/sp/changesdetails/6e67dd2f-ddf3-4093-8bd0-0b9d35f451cd
+  - https://base.garant.ru/72167138/

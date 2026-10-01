@@ -1,0 +1,274 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_510_1325800_2022
+verified_changes: [1]
+purpose: >-
+  Архитектурная координация индивидуальных и центральных тепловых пунктов: допустимые уровни и
+  положение у наружной стены, ввод тепловой сети, совмещение с другими инженерными помещениями,
+  сервисные/монтажные зоны и специальные выходы при подключении к тепловым сетям, относящимся к
+  опасным производственным объектам. Тепловые нагрузки, гидравлика и подбор оборудования не выполняются.
+
+revision_state:
+  status: active
+  change_1_effective_from: 2026-05-01
+  linked_external_heat_network_document:
+    document: SP_124_13330_2012
+    verified_changes: [1,2,3,4,5]
+
+legacy_gate:
+  - id: heat.itp.no_pre_change1_universal_door_exit_logic
+    automation: hard_gate
+    statement: >-
+      Не применять старую редакцию п.7.10 СП 510 как универсальное требование для всех ИТП/ЦТП
+      (в том числе старые формулировки об обязательном открывании дверей наружу). Изменение №1
+      полностью изложило п.7.10 в новой редакции; текущий пункт относится к встроенным тепловым
+      пунктам, подключаемым к тепловым сетям, являющимся опасными производственными объектами.
+
+embedded_ITP_location:
+  source_clause: "7.5, Change 1"
+  rules:
+    - id: heat.itp.separate_room_required
+      automation: conditional
+      condition: embedded_individual_heat_point
+      requirement: separate_room
+      statement: "Встроенный ИТП размещать в отдельном помещении."
+
+    - id: heat.itp.allowed_levels_and_exterior_wall
+      automation: conditional
+      condition: embedded_individual_heat_point
+      allowed_locations:
+        - any_underground_level
+        - first_floor
+        - highrise_technical_floor_for_zonal_ITP
+      exterior_wall_required_for:
+        - any_underground_level
+        - first_floor
+      statement: >-
+        Встроенный ИТП размещать на любом подземном уровне либо на первом этаже у наружной стены;
+        зонные ИТП высотных зданий допускаются на технических этажах.
+
+    - id: heat.itp.heat_network_entry_direct_to_room
+      automation: validation_only
+      default_requirement: heat_network_pipes_enter_ITP_room_directly
+      statement: >-
+        Ввод трубопроводов тепловой сети независимо от типа размещения ИТП выполнять непосредственно
+        в помещение ИТП.
+
+    - id: heat.itp.indirect_entry_exception
+      automation: conditional_exception
+      condition: direct_entry_to_ITP_room_impossible
+      route_standard: "SP_124_13330_2012 table D.1, current changes 1-5"
+      shutoff_valves_location: outside_technical_corridor_or_tunnel_limits
+      statement: >-
+        При невозможности непосредственного ввода трубопроводы вести только по допускаемому
+        СП 124 техническому коридору/тоннелю; запорную арматуру на вводе и выводе из него размещать
+        за границами коридора/тоннеля.
+      requires_engineering_input: true
+
+CTP_location:
+  source_clause: "7.6, Change 1"
+  rules:
+    - id: heat.ctp.separate_room
+      automation: conditional
+      condition: central_heat_point
+      requirement: separate_room
+
+    - id: heat.ctp.location_priority
+      automation: validation_only
+      preferred_location_types:
+        - attached_to_building
+        - embedded_in_residential_public_admin_or_industrial_building
+      separate_building_allowed_only_when:
+        - no_basement_available
+        - impossible_to_place_attached_or_embedded
+      statement: >-
+        Отдельно стоящий ЦТП на участке — не вариант по умолчанию; он применяется только при
+        отсутствии подвалов и невозможности встроенного/пристроенного размещения.
+
+shared_engineering_rooms:
+  source_clause: "7.8, Change 1"
+  rules:
+    - id: heat.itp.technical_basement_floor_zone_separation
+      automation: conditional
+      allowed_host_spaces:
+        - technical_basement
+        - technical_floor
+        - industrial_room_category_G
+        - industrial_room_category_D
+      requirement: heat_point_zone_separated_and_fenced_against_unauthorized_access
+      statement: >-
+        При размещении теплового пункта в допускаемом техническом/производственном пространстве
+        его зону выделять и ограждать от доступа посторонних.
+
+    - id: heat.itp.shared_vent_pump_meter_room
+      automation: conditional
+      allowed_shared_rooms:
+        - ventilation_equipment_room_except_categories_A_B_V1_V2_V3
+        - pump_room
+        - water_meter_room
+      requirements:
+        - prevent_unauthorized_access_to_ITP_equipment_pipes_valves
+        - evaluate_emergency_thermal_effect_on_other_engineering_systems
+      statement: >-
+        ИТП допускается размещать совместно с указанными инженерными помещениями только после
+        проверки категории помещения, доступа и аварийного температурного воздействия.
+
+    - id: heat.itp.shared_room_door_and_fence_equipment_passage
+      automation: hard_gate
+      statement: >-
+        Размеры дверей, ворот и ограждений зоны теплового пункта должны позволять перемещать через
+        них устанавливаемое оборудование. Нельзя назначать стандартную дверь до получения габарита
+        максимального транспортируемого блока.
+      requires_engineering_input: true
+
+hazardous_heat_network_case:
+  source_clause: "7.10, Change 1"
+  rules:
+    - id: heat.itp.hazardous_network_to_building_exit_distance
+      automation: conditional
+      condition: heat_network_is_hazardous_production_object
+      dimension_semantics: route_distance
+      max_distance_m: 12
+      measure_to: building_exit
+      statement: >-
+        Встроенный тепловой пункт, подключаемый к тепловой сети — опасному производственному объекту,
+        размещать у наружной стены на расстоянии не более 12 м от выхода из здания.
+
+    - id: heat.itp.hazardous_network_two_exits_when_room_long
+      automation: conditional
+      conditions:
+        - heat_network_is_hazardous_production_object
+        - heat_point_room_length_m > 12
+      min_exit_count: 2
+      exit_1_destination:
+        - directly_outside
+        - stairwell_with_direct_exit_outside
+      exit_2_destination:
+        - corridor
+        - adjacent_room
+        - car_parking_room_if_present
+      statement: >-
+        При длине такого помещения более 12 м предусматривать не менее двух выходов в комбинации,
+        установленной текущим п.7.10.
+
+    - id: heat.itp.hazardous_network_service_passage_height
+      automation: conditional
+      condition: heat_network_is_hazardous_production_object
+      dimension_semantics: clear_vertical
+      min_service_passage_height_mm: 2000
+      low_height_segment_max_length_m: 1.2
+      statement: >-
+        Высота прохода обслуживающего персонала — не менее 2 м; снижение допускается только на
+        участке длиной не более 1,2 м с учетом условий ссылки [13]. Не интерпретировать 1,2 м как
+        допустимую уменьшенную высоту.
+
+block_heat_points:
+  source_clause: "7.11, Change 1"
+  rules:
+    - id: heat.block_ITP_min_clearance
+      automation: conditional
+      condition: factory_complete_block_heat_point_embedded_in_building
+      dimension_semantics: clear_service_passage
+      min_clearance_mm: 800
+      applies_between:
+        - projecting_equipment_parts
+        - projecting_equipment_part_and_wall
+      statement: >-
+        Для блочного теплового пункта заводской готовности требования таблиц Е.1-Е.3 могут не
+        применяться, но расстояние между выступающими частями оборудования либо до стены должно
+        быть не менее 800 мм.
+
+service_and_installation_space:
+  source_clause: "7.12"
+  rules:
+    - id: heat.point.room_size_from_real_equipment
+      automation: forbidden_to_infer
+      statement: >-
+        Минимальные размеры помещения определять из габаритов фактического оборудования и пространства
+        обслуживания. Не использовать фиксированную площадь ИТП или коэффициент от площади здания.
+      requires_engineering_input: true
+
+    - id: heat.point.installation_platform_clearance
+      automation: conditional
+      dimension_semantics: clear_around_installation_item
+      min_clearance_m: 0.7
+      applies_to: largest_equipment_or_factory_block_except_tanks_over_3m3
+      statement: >-
+        Размер монтажной площадки назначать по габариту крупнейшей единицы/блока с проходом вокруг
+        не менее 0,7 м.
+
+    - id: heat.point.other_equipment_additional_service_area
+      automation: validation_only
+      statement: >-
+        Если в том же помещении есть электрощитовое оборудование, вентиляционная установка или
+        другое оборудование, добавлять его собственные service envelopes; зоны обслуживания не
+        считать взаимозаменяемыми по умолчанию.
+
+installation_opening:
+  source_clause: "7.14"
+  rules:
+    - id: heat.point.installation_opening_margin
+      automation: conditional
+      condition: largest_equipment_exceeds_door_size
+      dimension_semantics: clear_opening
+      formula: "opening_width_height = transported_equipment_or_block_envelope + 200 mm"
+      statement: >-
+        При необходимости монтажного проема/ворот их размеры должны быть на 0,2 м больше габарита
+        наибольшего оборудования или транспортируемого блока трубопроводов.
+      requires_engineering_input: true
+
+combined_fire_and_water_equipment:
+  source_clause: "7.21, Change 1"
+  rules:
+    - id: heat.point.fire_and_domestic_water_equipment_co_location
+      automation: conditional
+      allowed_equipment:
+        - fire_water_supply_equipment_except_highrise_buildings
+        - domestic_drinking_water_supply_equipment
+      attached_or_embedded_additional_allowed:
+        - supply_ventilation_equipment_serving_heat_point
+      statement: >-
+        Совмещение указанных систем допускается только в области п.7.21 и не отменяет их собственные
+        сервисные, пожарные и эксплуатационные требования.
+      conflict_policy: "Для высотных зданий противопожарное водоснабжение в этом совмещении не допускать."
+
+BIM_required_parameters:
+  - heat_point_id
+  - heat_point_type
+  - heat_point_floor_level
+  - exterior_wall_adjacency
+  - heat_network_direct_entry_status
+  - heat_network_hazardous_production_object_status
+  - heat_point_room_length_m
+  - heat_point_exit_ids
+  - route_distance_to_building_exit_m
+  - service_passage_clear_height_mm
+  - max_equipment_transport_envelope
+  - equipment_service_envelopes
+  - installation_opening_geometry
+  - host_engineering_room_type
+  - host_room_fire_category
+  - unauthorized_access_prevention_status
+  - emergency_thermal_effect_assessment_reference
+  - heat_design_reference
+
+hard_fail_conditions:
+  - "embedded ITP placed outside current clause 7.5 location logic without applicable exception"
+  - "pre-Change1 universal door/exit wording asserted as current rule"
+  - "equipment cannot physically pass through door/gate/installation opening"
+  - "factory block heat point has less than 800mm applicable service clearance"
+  - "room size generated from building-area coefficient instead of equipment and service envelopes"
+  - "hazardous-network heat point longer than 12m lacks the required two-exit arrangement"
+
+agent_logic:
+  - "Сначала получить фактическое оборудование и транспортные габариты, затем формировать комнату ИТП."
+  - "Не применять старый п.7.10 после Изменения №1."
+  - "ИТП у наружной стены проверять геометрически, а не только свойством помещения."
+  - "0,7 м и 0,8 м относятся к разным случаям и не являются одной универсальной шириной прохода."
+  - "Гидравлическая схема, тепловая нагрузка и подбор оборудования остаются разделом теплоснабжения."
+
+sources:
+  - "https://protect.gost.ru/sp/changesdetails/176969e5-86ee-405d-a62c-4a033d4dc1ef"
+  - "https://base.garant.ru/414169307/"
+  - "https://base.garant.ru/403755992/"
+  - "https://protect.gost.ru/sp/changesdetails/08e07ea5-6041-42d7-98ec-642cfbdd2975"

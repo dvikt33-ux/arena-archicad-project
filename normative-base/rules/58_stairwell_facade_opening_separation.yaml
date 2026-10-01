@@ -1,0 +1,104 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Пожарная геометрия стыка лестничной клетки с наружной стеной: расстояние между проемом лестничной клетки и соседним проемом фасада по СП 2.13130.2020 п.5.4.16 д. Не смешивать с обычным межоконным простенком или расчетной шириной несущего простенка."
+
+revision_dependencies:
+  - {document: SP_2_13130_2020, verified_changes: [1,2]}
+  - {file: rules/31_stairwell_types.yaml, role: stairwell_classification}
+  - {file: rules/18_facade_fire_openings.yaml, role: other_fire_facade_piers}
+  - {file: rules/22_masonry_piers_precheck.yaml, role: structural_pier_check}
+
+junction_geometry:
+  source: SP_2_13130_2020
+  clause: "5.4.16 d"
+  amendment_context: "формулировка подпункта д в редакции Изменения №1; действует в целевом профиле 2027"
+  rules:
+    - id: stairwell.facade.wall_junction_no_gap
+      automation: auto
+      statement: "Внутренние стены лестничных клеток в местах примыкания к наружным ограждающим конструкциям должны пересекать их либо примыкать к глухим участкам наружных стен без зазоров."
+
+    - id: stairwell.facade.opening_separation_1200
+      automation: conditional
+      dimension_semantics: actual
+      statement: "Расстояние по горизонтали между проемом лестничной клетки и соседним проемом наружной стены должно быть не менее 1,2 м при примыкании жилых помещений, общественных помещений, производственных помещений категорий Д, Г и В4, а также помещений категорий В3-В2, защищенных автоматическим пожаротушением."
+      conditions:
+        any:
+          - adjacent_space_group: residential
+          - adjacent_space_group: public
+          - adjacent_industrial_category: [D, G, V4]
+          - adjacent_industrial_category: [V3, V2]
+            automatic_fire_suppression: true
+      values: {min_horizontal_separation_mm: 1200}
+
+    - id: stairwell.facade.opening_separation_1500
+      automation: conditional
+      dimension_semantics: actual
+      statement: "Для примыкания производственных помещений категорий В3-В2 без указанной в предыдущем условии защиты автоматическим пожаротушением расстояние между проемами должно быть не менее 1,5 м."
+      conditions:
+        adjacent_industrial_category: [V3, V2]
+        automatic_fire_suppression: false
+      values: {min_horizontal_separation_mm: 1500}
+
+    - id: stairwell.facade.opening_separation_2500
+      automation: conditional
+      dimension_semantics: actual
+      statement: "Для примыкания производственных помещений категорий В1, Б и А расстояние по горизонтали между проемом лестничной клетки и соседним фасадным проемом должно быть не менее 2,5 м."
+      conditions: {adjacent_industrial_category: [V1, B, A]}
+      values: {min_horizontal_separation_mm: 2500}
+
+fire_rated_opening_reduction:
+  - id: stairwell.facade.reduction_to_800_with_fire_rated_fill
+    source: {document: SP_2_13130_2020, clause: "5.4.16 d"}
+    automation: conditional
+    dimension_semantics: actual
+    statement: "Расстояние допускается сократить до 0,8 м только если проем в наружной стене примыкающего к лестничной клетке помещения имеет противопожарное заполнение: окна/двери 2-го типа в зданиях I степени огнестойкости и 3-го типа в остальных зданиях."
+    cases:
+      - {building_fire_resistance_degree: I, required_adjacent_opening_fire_fill_type: 2}
+      - {building_fire_resistance_degree: [II, III, IV, V], required_adjacent_opening_fire_fill_type: 3}
+    values: {reduced_min_horizontal_separation_mm: 800}
+    requires_object_classification: true
+    conflict_policy: "Снижение до 800 мм не применять только потому, что окно неоткрывающееся или имеет огнестойкое стекло; требуется подтвержденный тип противопожарного заполнения в области пункта."
+
+measurement_semantics:
+  - id: stairwell.facade.protruding_internal_wall_counts
+    source: {document: SP_2_13130_2020, clause: "5.4.16 d"}
+    automation: validation_only
+    statement: "Если внутренняя стена лестничной клетки выступает за наружную ограждающую конструкцию здания, ширину простенка измеряют с учетом размера этого выступа."
+    dimension_semantics: actual
+
+inner_corner_condition:
+  - id: stairwell.facade.inner_corner_under_135
+    source: {document: SP_2_13130_2020, clause: "5.4.16 e"}
+    automation: conditional
+    statement: "Если в месте примыкания частей здания внутренний угол менее 135° и с противоположной относительно лестничной клетки стороны угла на расстоянии менее 4 м от вершины расположены оконные/дверные проемы, наружные стены лестничной клетки, образующие угол, должны иметь требуемые пунктом огнестойкость и класс пожарной опасности как внутренние стены лестничной клетки."
+    conditions:
+      internal_corner_deg: {less_than: 135}
+      opposite_opening_distance_from_corner_mm: {less_than: 4000}
+    values: {distance_trigger_mm: 4000, angle_trigger_deg: 135}
+    conflict_policy: "Это условие не заменяет проверку ширины простенка по подпункту д; оба применимых требования проверяются совместно."
+
+BIM_required_parameters:
+  - stairwell_type
+  - stairwell_opening_geometry
+  - adjacent_facade_opening_geometry
+  - horizontal_separation_actual_mm
+  - adjacent_space_group
+  - adjacent_industrial_fire_category
+  - automatic_fire_suppression_status
+  - building_fire_resistance_degree
+  - adjacent_opening_fire_fill_type
+  - stairwell_internal_wall_projection_mm
+  - facade_internal_corner_angle_deg
+  - opposite_opening_distance_from_corner_mm
+
+agent_logic:
+  - "1,2/1,5/2,5 м из п.5.4.16 д — специальный пожарный интерфейс лестничной клетки и фасада, а не универсальные размеры любого оконного простенка."
+  - "Сначала классифицировать соседнее помещение и наличие АУПТ; только потом выбирать минимальное расстояние."
+  - "Снижение до 0,8 м требует подтвержденного противопожарного заполнения проема; не подменять его обычным окном."
+  - "После пожарной проверки несущий простенок всё равно передавать в КР, если участок стены несущий."
+  - "Модульная привязка 3M/6M может только увеличить/согласовать полученную геометрию, но не уменьшать пожарное расстояние."
+
+sources:
+  - "https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1"
+  - "https://www.consultant.ru/document/cons_doc_LAW_468249/fe8c7fc290837e600a20280d88b3df17f4489fbd/"
+  - "https://sudact.ru/law/prikaz-mchs-rossii-ot-12032020-n-151/sp-2.13130.2020/5-trebovaniia-k-stroitelnym-konstruktsiiam/5.4-zdaniia-pozharnye-otseki-pomeshcheniia/"

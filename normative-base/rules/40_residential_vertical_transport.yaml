@@ -1,6 +1,6 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
-purpose: "Лифты и лифтовые холлы многоквартирных жилых зданий: порог обязательности, площадки для транспортирования на носилках, минимальное число лифтов и расчетные границы по СП 54.13330.2022 с Изм. №1-2."
+purpose: "Лифты и лифтовые холлы многоквартирных жилых зданий: порог обязательности, площадки для транспортирования на носилках, минимальное число лифтов и специальные случаи по СП 54.13330.2022 с Изм. №1-2."
 
 revision_dependencies:
   - {document: SP_54_13330_2022, verified_changes: [1,2]}
@@ -16,9 +16,40 @@ lift_requirement:
       clause: "9.16"
       automation: conditional
       dimension_semantics: level
-      statement: "Лифты предусматривают в МКД, если отметка пола верхнего жилого этажа превышает отметку пола вестибюля входной группы более чем на 12 м."
-      values: {level_difference_trigger_more_than_mm: 12000}
-      conflict_policy: "Проверять разность чистовых отметок пола, а не этажность и не высоту здания по пожарному определению."
+      statement: "Лифты предусматривают в МКД, когда отметка пола верхнего жилого этажа превышает уровень отметки пола вестибюля входной группы на 12 м. Для машинной проверки 12,000 м является пороговым значением, а не безопасной зоной без лифта."
+      values: {min_level_difference_mm: 12000}
+      condition: {top_residential_floor_minus_entrance_lobby_finished_floor_mm: {min: 12000}}
+      conflict_policy: "Проверять разность чистовых отметок пола, а не этажность и не пожарную высоту здания. Не трактовать формулировку 'на 12 м' как строго >12,000 м."
+      audit_note: "Повторно проверено 2026-10-01 по действующему тексту п.9.16. Изменения №1-2 не изменяют числовое содержание этого пункта."
+
+    - id: vertical.residential.lift_12m_boundary
+      clause: "9.16"
+      automation: validation_only
+      dimension_semantics: level
+      statement: "При разности чистовых отметок ровно 12,000 м требование п.9.16 не должно быть отключено машинным сравнением 'greater_than'."
+      regression_cases:
+        - {level_difference_mm: 11999, result: "9.16 threshold not reached; check other lift triggers"}
+        - {level_difference_mm: 12000, result: "9.16 lift requirement active"}
+        - {level_difference_mm: 12001, result: "9.16 lift requirement active"}
+
+    - id: vertical.residential.one_storey_addition_existing_five_storey
+      clause: "9.18"
+      automation: conditional
+      statement: "При надстройке одним этажом существующего пятиэтажного МКД допускается не предусматривать лифты. Если существующее здание уже оборудовано лифтом, допускается не предусматривать остановку лифта на надстраиваемом этаже."
+      conditions:
+        existing_building_storeys: 5
+        addition_storeys: 1
+        work_type: addition
+      conflict_policy: "Это специальное исключение реконструкции; не распространять на новое шестиэтажное здание и не использовать для иных схем надстройки. Требования доступности и задания на проектирование проверять отдельно."
+
+    - id: vertical.residential.wheelchair_family_apartments_above_first_floor
+      clause: "9.19"
+      automation: conditional
+      statement: "Если выше первого этажа размещаются квартиры для семей с инвалидами, использующими кресла-коляски, а также в специализированных МКД для престарелых и семей с инвалидами, должны быть предусмотрены лифты или подъемные платформы по СП 59.13330."
+      any_conditions:
+        - wheelchair_family_apartments_above_first_floor: true
+        - specialized_residential_for_elderly_or_families_with_disabilities: true
+      conflict_policy: "Это самостоятельный триггер вертикальной доступности и не зависит от достижения геометрического порога 12 м по п.9.16."
 
     - id: vertical.residential.stretcher_lift_cabin_dimension
       clause: "9.17"
@@ -77,7 +108,7 @@ minimum_lift_schedule:
   notes:
     - "Для лифтов 630/1000 кг таблица приводит минимальные габариты кабины 2100×1100 мм."
     - "Если поэтажная площадь квартир, высота этажа или площадь квартиры на человека отличаются от расчетных предпосылок таблицы, число/грузоподъемность/скорость определяют расчетом по ГОСТ Р 52941, но число лифтов принимают не менее табличного."
-    - "В многоуровневых квартирах на верхних этажах остановку пассажирских лифтов допускается предусматривать на одном из этажей квартиры."
+    - "В многоуровневых квартирах на верхних этажах остановку пассажирских лифтов допускается предусматривать на одном из этажей квартиры. В этом случае этажность для расчета числа лифтов определяется по этажу верхней остановки."
 
 calculation_gate:
   - id: vertical.residential.table_B1_not_universal_traffic_result
@@ -101,6 +132,12 @@ cross_checks:
 BIM_required_parameters:
   - entrance_lobby_finished_floor_level
   - top_residential_floor_finished_level
+  - top_residential_floor_minus_entrance_lobby_finished_floor_mm
+  - existing_building_storeys
+  - addition_storeys
+  - work_type
+  - wheelchair_family_apartments_above_first_floor
+  - specialized_residential_for_elderly_or_families_with_disabilities
   - residential_storey_count
   - floor_apartment_area_m2
   - assumed_or_calculated_occupancy
@@ -118,7 +155,9 @@ BIM_required_parameters:
   - firefighter_lift_status
 
 agent_logic:
-  - "Не определять обязательность лифта по числу этажей, если СП 54 задает порог через разность чистовых отметок 12 м."
+  - "Не определять обязательность лифта по числу этажей: п.9.16 использует разность чистовых отметок 12 м, а п.9.19 может потребовать вертикальный транспорт независимо от этой разности."
+  - "Ровно 12,000 м не освобождает от требования п.9.16; не использовать сравнение strictly greater than."
+  - "Исключение п.9.18 применять только к надстройке одним этажом существующего пятиэтажного МКД."
   - "Не путать площадку перед лифтом и ширину общего коридора; оба требования проверяются независимо."
   - "Не считать кабину 2100×1100 мм размером шахты: шахту/приямок/верх шахты получать из выбранного оборудования."
   - "Не оптимизировать лифтовый холл модульной сеткой ниже нормативной ширины в свету."
@@ -126,4 +165,5 @@ agent_logic:
 
 sources:
   - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
-  - "https://base.garant.ru/77152017/"
+  - "https://base.garant.ru/404976077/"
+  - "https://meganorm.ru/mega_doc/norm_update_29032025/nomenklatura/0/sp_54_13330_2022_svod_pravil_zdaniya_zhilye_mnogokvartirnye.html"

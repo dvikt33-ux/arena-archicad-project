@@ -1,0 +1,137 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Постатейная проверка правил СП 70.13330.2012 разделов 9.6/9.7, которые НЕ исключены Изменением №8 и продолжают действовать в 2027. Применять только в точной области и без экстраполяции на новые типоразмеры изделий."
+
+revision_dependencies:
+  - {document: SP_70_13330_2012, amendment: 8, role: execution_rules}
+  - {document: GOST_530_2012, status: active, role: ceramic_product_geometry}
+  - {document: GOST_379_2025, status: active, effective_from: 2026-05-01, role: silicate_product_geometry}
+  - {file: rules/56_sp70_large_format_silicate_2027.yaml, role: removed_clause_gate}
+
+large_format_ceramic_surviving_rules:
+  source: SP_70_13330_2012
+  rules:
+    - id: sp70.2027.ceramic.make_additional_units
+      clause: "9.6.2"
+      automation: validation_only
+      statement: "Доборные камни для крупноформатной керамической кладки изготавливаются в заводских условиях либо выпиливаются из цельных камней электроинструментом для резки блоков."
+      conflict_policy: "Это технологическое правило не разрешает архитектору создавать произвольный новый номинальный типоразмер изделия; библиотечный нестандартный продукт требует подтвержденной документации производителя."
+
+    - id: sp70.2027.ceramic.anchor_hole_nonimpact_drilling
+      clause: "9.6.8"
+      automation: validation_only
+      statement: "Отверстия для фиксации анкеров в стенах из крупноформатных керамических камней выполняют безударной дрелью."
+      note: "Это требование к способу выполнения отверстия; оно не определяет допустимость самого анкера, его диаметр, шаг или несущую способность."
+
+    - id: sp70.2027.ceramic.plinth_overhang
+      clause: "9.6.9"
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "Свес крупноформатного керамического камня над цоколем не должен превышать 1/6 длины камня."
+      formula: "max_overhang = unit_length / 6"
+      requires_manufacturer_data: true
+      conflict_policy: "Длина берется из подтвержденного фактически выбранного изделия; правило не заменяет проверку цокольного узла, теплотехники и КР."
+
+  intentionally_not_automated:
+    - clause: "9.6.1"
+      status: manual_pending_exact_text_semantics
+      reason: "В доступных консолидированных публикациях формулировка содержит очевидно проблемное '1/2 камня, но менее 1/3 камня'. До сверки официального графического/печатного первоисточника не кодировать величину перевязки автоматически."
+
+large_silicate_surviving_rules:
+  source: SP_70_13330_2012
+  rules:
+    - id: sp70.2027.silicate.bond_overlap_table
+      clause: "9.7.1, table 9.3"
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "Для крупных силикатных блоков и панелей перегородок высотой до 62,3 см СП 70 задает перевязку по высоте блока; машинно применять только к строкам таблицы 9.3, однозначно совпадающим с фактической высотой изделия."
+      exact_or_range_rows:
+        - {block_height_condition_mm: "<123", overlap_mm: 50}
+        - {block_height_condition_mm: "240..250 inclusive", overlap_mm: 100}
+        - {block_height_mm: 498, overlap_mm: 200}
+        - {block_height_mm: 623, overlap_mm: 250}
+      conflict_policy: "Не интерполировать и не экстраполировать таблицу на 123, 373, 748, 873, 998 мм и иные высоты, не охваченные строками. Для них требуется подтвержденное проектное/технологическое решение."
+      requires_manufacturer_data: true
+
+    - id: sp70.2027.silicate.bond_table_gap_123
+      clause: "9.7.1, table 9.3"
+      automation: forbidden_to_infer
+      statement: "Высота ровно 123 мм не подпадает под строку 'менее 12,3 см'. Хотя ГОСТ 379-2025 содержит изделия высотой 123 мм, агент не должен сам присваивать им перепуск 50 мм по округлению или аналогии."
+      requires_manufacturer_data: true
+
+    - id: sp70.2027.silicate.new_tall_blocks_not_in_9_7_1_table
+      clause: "9.7.1, table 9.3"
+      automation: forbidden_to_infer
+      statement: "Укрупненные силикатные блоки ГОСТ 379-2025 высотой 748, 873 и 998 мм находятся вне области таблицы 9.3 СП 70 (до 623 мм). Значение перевязки для них не вычислять по u=0.4h автоматически; использовать рабочую документацию/подтвержденную систему."
+      values: {explicitly_outside_table_heights_mm: [748,873,998]}
+      requires_manufacturer_data: true
+
+    - id: sp70.2027.silicate.wall_intersection_bonding
+      clause: "9.7.7"
+      automation: validation_only
+      statement: "В местах пересечения стен из крупных силикатных блоков перевязку выполняют за счет пропускных рядов через ряд."
+      conflict_policy: "Применять только к системе крупных силикатных блоков в области раздела 9.7; не переносить на кирпич, AAC или другую кладочную систему."
+
+silicate_panel_partitions_9_7_9:
+  source: SP_70_13330_2012
+  clause: "9.7.9"
+  rules:
+    - id: sp70.2027.silicate.partition_unbraced_height
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "Для силикатных панельных пазогребневых перегородок без временного раскрепления действуют ограничения высоты, но только для прямо указанных толщин."
+      cases:
+        - {thickness_mm: "70..80 inclusive", max_unbraced_height_mm: 1000}
+        - {thickness_mm: 100, max_unbraced_height_mm: 1500}
+      conflict_policy: "Не экстраполировать на 65/85/88/115/120/130 мм и другие современные толщины ГОСТ 379-2025."
+
+    - id: sp70.2027.silicate.partition_top_fixed_height
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "Для силикатных панельных перегородок, закрепленных сверху к перекрытию, СП 70 задает отдельные предельные размеры для толщин 70 и 80 мм."
+      cases:
+        - {thickness_mm: 70, max_height_mm: 2500}
+        - {thickness_mm: 80, max_height_mm: 2700, max_length_mm: 6000}
+      conflict_policy: "Не переносить ограничения одной толщины на соседние толщины изделия."
+
+    - id: sp70.2027.silicate.partition_large_requires_supports
+      automation: validation_only
+      statement: "В перегородках больших размеров, чем допускает п.9.7.9, предусматривают пилястры или стойки (колонны), закрепленные к несущим конструкциям здания."
+      requires_calculation: true
+      conflict_policy: "Сечение, шаг и крепление стоек/пилястр не выводить из этого пункта; требуется проектное/конструктивное решение."
+
+modern_product_catalog_intersection:
+  source: GOST_379_2025
+  rules:
+    - id: sp70.2027.silicate.product_height_router
+      automation: validation_only
+      statement: "Перед применением 9.7.1/9.7.9 получить точную высоту/толщину конкретного изделия по ГОСТ 379-2025 и данным производителя, затем проверить, существует ли точная строка СП 70. Наличие изделия в ГОСТ не означает наличие автоматического правила перевязки/устойчивости в СП 70."
+
+BIM_required_parameters:
+  - masonry_system_family
+  - manufacturer_product_id
+  - unit_nominal_length_mm
+  - unit_nominal_height_mm
+  - partition_nominal_thickness_mm
+  - working_documentation_reference
+  - temporary_bracing_status
+  - top_fixing_to_slab_status
+  - wall_intersection_status
+  - calculated_support_system_if_required
+
+hard_fail_conditions:
+  - "silicate block 123 mm receives 50 mm overlap by rounding '<123'"
+  - "silicate block 373/748/873/998 mm receives interpolated 0.4h overlap without verified working documentation"
+  - "partition thickness outside explicit 9.7.9 cases inherits nearest height limit"
+  - "architectural model invents structural pilaster/column dimensions without KR"
+  - "ceramic plinth overhang is checked using nominal length of a different product"
+
+agent_logic:
+  - "Отсутствие пункта в списке удаленных Изм. №8 не означает, что его можно расширять за пределы буквальной области применения."
+  - "Современный каталог изделий шире старой размерной таблицы СП 70; пробел закрывается рабочей документацией, а не математической интерполяцией."
+  - "Для новых нестандартных/укрупненных изделий сначала подтверждать системное решение производителя и КР."
+
+sources:
+  - "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
+  - "https://rags.ru/documents/prod/akt_forma/0/sp_70.html"
+  - "https://meganorm.ru/mega_doc/dop_norm_update_01042026/0/gost_379-2025_mezhgosudarstvennyy_standart_izdeliya_megainfo/0/gost_379-2025_mezhgosudarstvennyy_standart_izdeliya.html"

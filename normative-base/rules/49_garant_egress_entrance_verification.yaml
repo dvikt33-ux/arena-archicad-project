@@ -1,6 +1,6 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
-purpose: "Независимая текстовая сверка эвакуационных дверей, наружных площадок и входных тамбуров по консолидированным текстам системы ГАРАНТ."
+purpose: "Независимая текстовая сверка эвакуационных дверей, наружных площадок и входных тамбуров по консолидированным текстам системы ГАРАНТ и официально опубликованным изменениям."
 
 verified_documents:
   - document: SP_1_13130_2020
@@ -17,24 +17,30 @@ sp1_egress_doors:
   source: SP_1_13130_2020
   garant_url: "https://base.garant.ru/74019594/"
   rules:
-    - id: garant.egress.external_landing_width
+    - id: garant.egress.external_landing_plan_dimensions
       clause: "4.2.21"
+      amendment: 1
       automation: conditional
       dimension_semantics: clear
-      statement: "Перед наружной дверью, являющейся эвакуационным выходом, предусматривается горизонтальная входная площадка шириной не менее 1,5 ширины полотна наружной двери."
-      formula: "landing_clear_width >= 1.5 * exterior_door_leaf_width"
+      statement: "Перед наружной дверью, являющейся эвакуационным выходом, предусматривается горизонтальная входная площадка, у которой длина и ширина не менее 1,5 ширины полотна наружной двери."
+      formula:
+        min_landing_length: "1.5 * exterior_door_leaf_width"
+        min_landing_width: "1.5 * exterior_door_leaf_width"
+      audit_note: "Изменение №1 дополнило исходную формулировку словами 'длиной и'; старая проверка только ширины признана неполной."
 
     - id: garant.egress.door_opening_direction
       clause: "4.2.22"
       automation: validation_only
       statement: "Двери эвакуационных выходов и двери на путях эвакуации в общем случае открываются по направлению выхода из здания; исключения применять только в точной области пункта."
       exceptions_verified:
-        - "premises F1.3 and F1.4"
-        - "rooms/routes for no more than 15 persons, except categories A and B"
-        - "storerooms <=200 m2 without permanent workplaces"
-        - "exit to type-3 stair landing"
-        - "external doors in northern climatic zone subdistricts listed by clause"
-        - "doors in partitions dividing corridors"
+        - "помещения классов Ф1.3 и Ф1.4"
+        - "помещения с одновременным пребыванием не более 15 человек, кроме помещений категорий А и Б"
+        - "кладовые площадью не более 200 м² без постоянных рабочих мест"
+        - "выходы на площадки лестниц 3-го типа"
+        - "наружные двери в перечисленных пунктом северных климатических подрайонах"
+        - "двери в перегородках, разделяющих коридоры"
+        - "помещения категории Б по взрывопожарной и пожарной опасности с горючей пылью"
+      conflict_policy: "Наличие исключения не отменяет требования по ширине, высоте, огнестойкости, МГН и специальным функциональным нормам."
 
     - id: garant.egress.smoke_protected_self_closing
       clause: "4.2.24 as amended by change 1"
@@ -87,3 +93,4 @@ sources:
   - "https://base.garant.ru/404976079/"
   - "https://base.garant.ru/405277335/"
   - "https://base.garant.ru/400382837/"
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"

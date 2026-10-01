@@ -1,4 +1,4 @@
-manifest_version: 64
+manifest_version: 65
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -136,6 +136,7 @@ rule_files:
   - 78_eskd_graphics_2027_transition.yaml
   - 79_story_levels_vertical_coordination.yaml
   - 80_geometric_accuracy_tolerances.yaml
+  - 81_fire_separation_matrix.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

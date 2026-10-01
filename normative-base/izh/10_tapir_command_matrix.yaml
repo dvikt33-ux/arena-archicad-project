@@ -5,85 +5,118 @@ upstream_source_commit_checked: "654037ee8773a19a30eb4243257ca7537e40aa55"
 purpose: "Source-verified command matrix for IZH node recipes. Presence in upstream does not authorize direct use through safe-applier."
 
 status_semantics:
-  available_upstream: "Exact command name found in current Tapir source/docs/examples."
+  available_upstream: "Exact command name found in current Tapir source/schema."
+  absent_upstream_schema: "Exact desired command/setting is not exposed by the audited command schema at the pinned commit."
   wrapper_needed: "Upstream primitive exists; project safe layer needs typed schema/preconditions/postconditions."
-  unresolved: "Exact required command/semantic has not yet been proven present or absent."
-  extension_needed: "May only be assigned after source + command schema + live availability audit proves absence."
+  unresolved: "Exact required semantic has not yet been proven present or absent."
+  extension_needed: "Audited desired semantic is absent from upstream exposed schema and native Archicad API can provide it, or no safe equivalent preserves required semantics."
 
 commands:
   - {command: CreateWalls, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0"}
   - {command: ModifyWalls, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", note: "Only supplied optional fields are changed; writable geometry is schema-limited."}
   - {command: CreateSlabs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.0.3"}
-  - {command: CreateRoofs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", note: "Current command supports multi-plane roof creation; exact single-plane behavior/schema must be selected from command schema."}
+  - {command: CreateBeams, domain: element, upstream: available_upstream, project: wrapper_needed}
+  - {command: CreateColumns, domain: element, upstream: available_upstream, project: wrapper_needed}
+  - {command: CreateRoofs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", note: "Supports multi-plane roof and single-plane mode via pivotLine."}
   - {command: CreateStairs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.0"}
-  - {command: CreateWindows, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Floor-plan/database context affects successful creation in documented source issue/comment."}
-  - {command: CreateDoors, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Treat database/view context as preflight state."}
-  - {command: CreateOpenings, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", verified_component_hosts: [wall, slab, beam, mesh], note: "Do not assume every native Archicad Opening host is exposed by this Tapir command without schema/live verification."}
-  - {command: ModifyOpenings, domain: element, upstream: unresolved, project: unresolved}
-  - {command: DeleteElements, domain: element, upstream: available_upstream, project: wrapper_needed, safety: "GUID/type/revision preconditions + explicit authorization + post-delete readback."}
+  - {command: CreateWindows, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Floor-plan/database context is a preflight state."}
+  - {command: CreateDoors, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Floor-plan/database context is a preflight state."}
+  - {command: CreateOpenings, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", schema_fields: [ownerElementId, basePoint, width, height], note: "Create-only geometry schema audited. Host compatibility must be live-verified for installed add-on."}
+  - {command: ModifyOpenings, domain: element, upstream: absent_upstream_schema, project: extension_needed, note: "No exact command; SetDetailsOfElements TypeSpecificSettings does not include OpeningSettings. Extension needed only if existing Opening geometry must be changed while preserving GUID/relations."}
+  - {command: DeleteElements, domain: element, upstream: available_upstream, project: wrapper_needed, safety: "GUID/type/revision preconditions + explicit authorization + dependency/post-delete readback."}
+  - {command: SetDetailsOfElements, domain: element, upstream: available_upstream, project: wrapper_needed, note: "Audited type-specific SET schema covers Wall, Zone and selected 2D/Drawing types, not Opening geometry."}
 
   - {command: CreateSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
   - {command: RemoveSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
   - {command: GetSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", role: mandatory_SEO_postcondition}
-  - {command: TrimElements, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", semantics: "Trims construction elements with roof or shell; use for native associative roof/shell trim where applicable."}
+  - {command: TrimElements, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", semantics: "Trim construction elements with roof/shell where physically appropriate."}
   - {command: GetElementTrims, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", role: mandatory_Trim_postcondition}
-  - {command: RemoveElementTrims, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", semantics: "Removes a trim relation between an element and its roof/shell trimming element."}
+  - {command: RemoveElementTrims, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9"}
+  - {command: GetRelationsOfElements, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.7"}
 
-  - {command: CreateProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", semantics: "Create or overwrite Profile attributes using existing profile geometry plus supported overrides."}
+  - {command: CreateBuildingMaterials, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.0.1", safety: "global attribute namespace/collision audit required"}
+  - {command: CreateComposites, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.0.2", safety: "global attribute namespace/collision audit required"}
+  - {command: CreateProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", semantics: "Create or overwrite Profile attributes using supported profile geometry/overrides."}
   - {command: GetProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, role: profile_template_and_readback}
   - {command: ApplyFavoritesToElements, domain: favorite, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
 
+  - {command: GetLibraries, domain: library, upstream: available_upstream, project: wrapper_needed}
+  - {command: GetAvailableLibraryParts, domain: library, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.0"}
+  - {command: AddFilesToEmbeddedLibrary, domain: library, upstream: available_upstream, project: wrapper_needed, verified_version: "1.2.2", note: "Imports a prepared file; does not author a new GDL definition from scripts/parameters."}
+  - {command: ReloadLibraries, domain: library, upstream: available_upstream, project: wrapper_needed}
+  - {command: CreateManagedLibraryPart, domain: library, upstream: absent_upstream_schema, project: extension_needed, note: "Conceptual project extension. Archicad 29 C++ API exposes LibraryPart Create/AddSection/Save, while current Tapir schema exposes inventory/import but no new Library Part authoring command."}
+
   - {command: CreateDetails, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", semantics: independent_detail_database}
-  - {command: CreateWorksheets, domain: document, upstream: available_upstream, project: wrapper_needed}
-  - {command: CreateSourceBasedDetailMarker, domain: document, upstream: unresolved, project: unresolved, note: "Conceptual command name only; no exact command has been verified. Do not call this name."}
+  - {command: CreateWorksheets, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0"}
+  - {command: CreateSections, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.0"}
+  - {command: CreateAssociativeDimensions, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0"}
+  - {command: CreateAssociativeDimensionsOnSection, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0"}
+  - {command: CreateSourceBasedDetailMarker, domain: document, upstream: absent_upstream_schema, project: unresolved, note: "Conceptual name only; no DetailMarker command found in audited schema. Native/API implementation path still needs exact audit before classifying extension_needed."}
 
   - {command: CreateMEPRoutingElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28}
   - {command: ModifyMEPRoutingElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28}
-  - {command: ConnectMEPElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28, semantics: "Connect routes/elements; can merge/split/create branch elements as needed."}
+  - {command: ConnectMEPElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28, semantics: "Connect routes/elements; may merge/split/create branch elements as needed."}
 
 node_recipe_mapping:
   IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
     likely_primitives: [CreateWalls, CreateSlabs, CreateProfiles, CreateSolidElementLinks, GetSolidElementLinks]
-    warning: "Foundation semantics may require a Slab/Beam/Wall/Column composition chosen by actual structural system; command availability does not decide structural representation."
+    warning: "Foundation semantics may require Slab/Beam/Wall/Column composition chosen by actual structural system; command availability does not decide structural representation."
   IZH_N03_MASONRY_WALL_FLOOR:
     likely_primitives: [CreateWalls, CreateSlabs, CreateSolidElementLinks, GetSolidElementLinks]
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    likely_primitives: [CreateWalls, ModifyWalls, CreateBuildingMaterials, CreateComposites, CreateProfiles, GetRelationsOfElements]
   IZH_N05_WINDOW_HEAD_JAMB_SILL:
     likely_primitives: [CreateWalls, CreateWindows, CreateProfiles, ApplyFavoritesToElements, CreateDetails]
-    warning: "Window block/favorite and actual installation joint remain product/project data; independent Detail is documentation, not source of truth."
+    warning: "Window product/favorite and installation joint remain product/project data; independent Detail is documentation, not source of truth."
   IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
     likely_primitives: [CreateWalls, CreateRoofs, TrimElements, GetElementTrims, RemoveElementTrims, CreateProfiles]
-    warning: "Prefer native associative Trim when the architectural relationship is wall/element trimmed by roof or shell; use SEO only for a genuinely different boolean relation."
+  IZH_N08_PITCHED_ROOF_RIDGE:
+    likely_primitives: [CreateRoofs, CreateBeams, TrimElements, GetElementTrims, CreateProfiles, CreateDetails]
+  IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT:
+    likely_primitives: [CreateOpenings, CreateMEPRoutingElements, ConnectMEPElements, CreateObjects, CreateProfiles, CreateDetails]
+    hard_gate: "KR + fire/product gate before hot/structural penetration."
   IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN:
     likely_primitives: [CreateSlabs, CreateWalls, CreateMEPRoutingElements, ConnectMEPElements, CreateOpenings]
   IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
     likely_primitives: [CreateMEPRoutingElements, ConnectMEPElements, CreateOpenings]
     hard_gate: "KR approval before structural Opening create."
+  IZH_N13_TERRACE_PORCH_EXTERNAL_WALL:
+    likely_primitives: [CreateWalls, CreateSlabs, CreateBeams, CreateColumns, CreateDoors, CreateProfiles, CreateSolidElementLinks]
 
 project_implementation_order:
   P0:
     - runtime_command_schema_handshake
-    - typed_CreateWalls_CreateSlabs_CreateOpenings
+    - typed_CreateWalls_Slabs_Beams_Columns_Openings
     - typed_DeleteElements_with_preconditions
     - typed_SEO_create_remove_get
     - typed_Trim_create_remove_get
-    - typed_element_detail_readback
+    - typed_element_and_relation_readback
     - node_id_property_write_and_verify
+    - generic_postcondition_engine
   P1:
     - typed_CreateWindows_CreateDoors
     - typed_CreateRoofs_CreateStairs
-    - typed_GetProfiles_CreateProfiles
+    - typed_BuildingMaterials_Composites_Profiles
     - typed_ApplyFavoritesToElements
     - typed_MEP_routes_and_connections
+    - managed_library_file_import_and_inventory
   P2:
     - independent_Detail_Worksheet_output
-    - source_based_detail_marker_if_upstream_support_is_proven
+    - source_based_detail_marker_if_native_or_extension_support_is_proven
+  P3_optional_extensions:
+    - ModifyOpening_preserve_GUID
+    - CreateManagedLibraryPart
 
 extension_policy:
-  confirmed_Tapir_geometry_extension_needed: false
+  confirmed_geometry_or_authoring_extension_needed_if_feature_required:
+    - "Modify existing Opening geometry while preserving its GUID/relations: absent from audited Tapir schema."
+    - "Author a new GDL Library Part definition from controlled script/parameter sections: absent from audited Tapir schema; Archicad C++ API provides LibraryPart create/save primitives."
+  no_extension_needed_for_prebuilt_library_import: "Use AddFilesToEmbeddedLibrary with managed checksum/path/readback."
   confirmed_possible_safety_extension:
-    - "Idempotent client mutation token for strict exactly-once create semantics if unattended crash recovery is required. This is not a missing geometry primitive; it is a transaction/idempotency feature."
-  current_reason: "Critical IZH geometry/relation primitives audited so far are present upstream; remaining unresolved items are higher-level/document/edit semantics or strict crash-safety semantics."
-  fork_gate: "Do not extend Tapir until exact missing semantic is demonstrated absent from source registration, command definitions and live command availability for Archicad 29, except a deliberately scoped safety/idempotency extension justified by crash semantics."
+    - "Idempotent client mutation token for stricter crash-safe create semantics if the project chooses server-side support. This is a safety feature, not missing geometry."
+  unresolved_extension_candidate:
+    - source_based_detail_marker_creation
+  fork_gate: "Before implementing an extension, re-check pinned source/schema and live installed command availability in Archicad 29; do not fork for functionality already exposed upstream."
 
 source_paths:
   - archicad-addon/Sources/AddOnMain.cpp
@@ -96,3 +129,4 @@ source_paths:
   - archicad-addon/Sources/FavoritesCommands.cpp
   - docs/archicad-addon/command_definitions.js
   - docs/archicad-addon/common_schema_definitions.js
+  - "Archicad 29 C++ API: Library Part Management"

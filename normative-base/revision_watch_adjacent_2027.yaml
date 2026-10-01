@@ -79,6 +79,15 @@ engineering_design:
     required_revision_label: "changes_1_2_3_4_5"
     source_url: "https://protect.gost.ru/sp/changesdetails/5c93cef4-e7dd-472f-9cb4-99bca869186d"
 
+  - document: SP_31_13330_2021
+    topic: external_water_supply_networks_and_structures
+    official_latest_change: 2
+    change_1_effective_from: 2025-01-27
+    change_2_effective_from: 2026-01-01
+    status: active
+    required_revision_label: "changes_1_2"
+    source_url: "https://protect.gost.ru/sp/changesdetails/9ed7ccb7-f39d-4a5e-8bff-226a9f07a403"
+
   - document: SP_256_1325800_2016
     topic: electrical_installations_residential_public
     official_latest_change: 9
@@ -112,6 +121,13 @@ fire_system_design:
     status: active
     future_change_4_status: draft_do_not_apply
     source_url: "https://protect.gost.ru/sp/changesdetails/0072e4d1-29d1-4339-af53-48ba9e3103f8"
+
+  - document: SP_8_13130_2020
+    topic: external_fire_water_supply
+    official_latest_change: 1
+    change_1_effective_from: 2024-03-01
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/cd1042f9-4e68-4a57-9289-85c8ebae571c"
 
   - document: SP_10_13130_2020
     topic: internal_fire_water_supply
@@ -191,8 +207,10 @@ cross_check_2027_reference_levels:
     SP_48_13330_2019: 2
     SP_60_13330_2020: 6
     SP_30_13330_2020: 5
+    SP_31_13330_2021: 2
     SP_256_1325800_2016: 9
     SP_7_13130_2013: 3
+    SP_8_13130_2020: 1
     SP_10_13130_2020: 1
     SP_484_1311500_2020: 1
     SP_485_1311500_2020: 2
@@ -200,7 +218,7 @@ cross_check_2027_reference_levels:
 
 agent_gate:
   - "Перед согласованием отверстий, фундаментов, свай, стальных элементов, огнезащиты и инженерных проходок проверить revision_level профильного задания."
-  - "Перед координацией ОВ, ВК, ЭОМ, ПДВ, ВПВ, АУПТ и СПС проверить document identity и revision_level по engineering_design/fire_system_design."
+  - "Перед координацией ОВ, ВК, НВК, ЭОМ, ПДВ, ВПВ, АУПТ и СПС проверить document identity и revision_level по engineering_design/fire_system_design."
   - "Для СП 6.13130.2025 дополнительно требовать применение поправки 2026 к п.6.4, даже при revision_level=0."
   - "Для участков в районах вечной мерзлоты дополнительно проверять актуальность СП 445 и отложенного на 01.03.2027 пункта 13.3."
   - "При несовпадении revision_level вернуть needs_discipline_reaudit, а не подгонять архитектуру под устаревшее решение."

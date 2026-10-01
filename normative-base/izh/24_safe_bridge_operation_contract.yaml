@@ -1,0 +1,220 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Контракт безопасного применения узловых операций к Archicad через Tapir/официальный API. Наличие команды не означает разрешение на ее прямой вызов агентом."
+
+current_project_state:
+  safe_applier_observed_ref: "agent-handoff/src/accollab/applier.py"
+  currently_proven_primary_mutation: "modify via MoveElements with checksum base-check and read-back"
+  implication: "Create/delete/type-specific modify/relations/attributes/library operations требуют отдельного typed wrapper до автономного применения."
+
+operation_record_required:
+  identity:
+    - operation_id
+    - node_id
+    - node_revision
+    - project_id_or_fingerprint
+    - target_profile
+    - author_or_agent_identity
+  runtime_contract:
+    - archicad_version
+    - tapir_version
+    - command_name
+    - command_schema_hash_or_version
+    - active_database_or_window_context_when_relevant
+    - teamwork_state_and_reservation_state_when_relevant
+  authorization:
+    - operation_class
+    - policy_decision
+    - structural_approval_ref_if_structural_host_modified
+    - product_or_manufacturer_ref_if_product_geometry_written
+    - explicit_human_approval_if_policy_requires
+  preconditions:
+    - target_GUIDs_and_expected_types
+    - expected_checksums_or_revision_tokens
+    - expected_host_relations
+    - required_attributes_favorites_library_parts_exist
+    - required_layers_stories_databases_exist
+    - lock_or_teamwork_reservation_state
+    - no_unresolved_normative_gate
+  requested_state:
+    - typed_payload
+    - dimension_semantics
+    - source_rule_ids
+    - calculation_refs
+  postconditions:
+    - expected_created_or_modified_element_types
+    - expected_GUID_count
+    - expected_geometry_or_properties
+    - expected_relations
+    - no_unintended_deletions
+    - no_unapproved_structural_openings
+  recovery:
+    - rollback_or_compensation_plan
+    - orphan_detection_query
+    - retry_policy
+    - idempotency_strategy
+  receipt:
+    - command_response
+    - created_or_modified_GUIDs
+    - before_snapshot_ref
+    - after_snapshot_ref
+    - relation_readback
+    - validation_results
+    - completion_status
+
+mutation_sequence:
+  - step: 1_runtime_handshake
+    action: "Read Archicad/Tapir versions, exact command availability/schema and active database context. Reject unsupported or schema-mismatched command before touching the model."
+  - step: 2_normative_and_engineering_gate
+    action: "Resolve node/material pack and all calculation/product approvals. Geometry capability never bypasses engineering approval."
+  - step: 3_preflight_readback
+    action: "Read every target/host element, properties, relations, attributes/favorites and reservations needed by the operation."
+  - step: 4_snapshot
+    action: "Persist a minimal deterministic before-state sufficient to detect concurrent edits and recover or compensate."
+  - step: 5_apply
+    action: "Invoke exactly one typed operation or an explicitly designed transaction bundle. Generic raw Tapir access is not an approval mechanism."
+  - step: 6_acknowledgement
+    action: "Require explicit success for every expected item; partial success is not overall success."
+  - step: 7_readback
+    action: "Re-read created/modified elements and relevant relations from Archicad; do not trust the request echo."
+  - step: 8_postcondition_validation
+    action: "Compare actual geometry/type/properties/relations with requested state and node constraints."
+  - step: 9_receipt
+    action: "Only after validation write the application receipt and new baseline."
+  - step: 10_compensate_on_failure
+    action: "If mutation succeeded partially but postconditions fail, perform a separately authorized compensation plan or mark model dirty/blocked for human recovery. Never claim rollback unless it was verified."
+
+operation_classes:
+  element_create:
+    examples: [CreateWalls, CreateSlabs, CreateBeams, CreateColumns, CreateRoofs, CreateWindows, CreateDoors, CreateOpenings]
+    wrapper_requirements:
+      - typed_input_schema
+      - favorite_or_attribute_pinning_if_used
+      - create_context_preflight
+      - returned_GUID_capture
+      - type_and_geometry_readback
+      - orphan_compensation_plan
+    idempotency: "Use a project-side operation token/property or durable receipt to detect already-created elements; upstream create command response alone is insufficient for crash-safe exactly-once semantics."
+
+  element_modify:
+    examples: [ModifyWalls, ModifyBeams, ModifyColumns, SetDetailsOfElements, MoveElements, RotateElements]
+    wrapper_requirements:
+      - base_checksum_or_revision_match
+      - writable_field_whitelist
+      - before_after_readback
+      - preserve_unmentioned_fields
+
+  element_delete:
+    examples: [DeleteElements]
+    risk: high
+    wrapper_requirements:
+      - explicit_target_GUIDs
+      - expected_type_and_checksum
+      - dependency_relation_preflight
+      - separate_authorization
+      - post_delete_absence_check
+      - recovery_reference_or_recreation_recipe
+
+  associative_relation:
+    examples: [CreateSolidElementLinks, RemoveSolidElementLinks, TrimElements, RemoveElementTrims]
+    wrapper_requirements:
+      - both_sides_GUID_and_type_preconditions
+      - exact_relation_type
+      - relation_readback_via_GetSolidElementLinks_or_GetElementTrims
+      - no_visual_geometry_only_validation
+
+  structural_opening:
+    examples: [CreateOpenings]
+    additional_gate:
+      - KR_approval_ref
+      - host_GUID_and_type
+      - opening_owner_discipline
+      - exact_coordinate_and_dimensions
+      - clash_request_ref_if_generated_from_MEP
+      - postcondition_host_still_valid
+    policy: "Collision detection may create a request/reservation, never an automatic structural cut without KR approval."
+
+  attributes_and_composites:
+    examples: [CreateBuildingMaterials, CreateComposites, CreateProfiles]
+    risk: project_global
+    wrapper_requirements:
+      - stable_managed_namespace
+      - exact_name_and_attribute_identity
+      - collision_overwrite_policy
+      - existing_usage_impact_analysis_before_overwrite
+      - readback_of_created_attribute
+    policy: "Do not overwrite a shared attribute merely because a generated node has the same desired name."
+
+  library_inventory_and_files:
+    examples: [GetAvailableLibraryParts, AddFilesToEmbeddedLibrary, ReloadLibraries]
+    wrapper_requirements:
+      - file_checksum
+      - managed_output_path
+      - no_uncontrolled_name_collision
+      - library_reload_and_inventory_readback
+    note: "Adding a prepared file to the embedded library is different from authoring a new GDL Library Part definition from source parameters."
+
+  mep:
+    examples: [CreateMEPRoutingElements, ModifyMEPRoutingElements, ConnectMEPElements]
+    wrapper_requirements:
+      - system_type_and_connector_compatibility
+      - route_geometry_readback
+      - architecture_KR_penetration_gate
+      - branch_or_merge_relation_readback
+
+  documentation:
+    examples: [CreateDetails, CreateWorksheets, CreateAssociativeDimensions, CreateAssociativeDimensionsOnSection]
+    wrapper_requirements:
+      - database_context
+      - source_node_revision
+      - annotation_revision_link
+    policy: "Independent Detail/Worksheet output is documentation, not replacement for semantic node/model source of truth."
+
+non_undoable_or_global_data_policy:
+  rule: "For any Archicad C++ API function documented as a non-undoable data-structure modifier, do not advertise transaction rollback. Use versioned write-once naming, preflight collision checks, backups/receipts and explicit compensation."
+  applies_if_custom_extension_used_for:
+    - library_part_create_or_register
+    - other_nonundoable_library_or_global_data_operations
+
+node_apply_bundle:
+  phases:
+    - create_or_verify_attributes
+    - create_or_modify_primary_hosts
+    - create_or_verify_product_elements
+    - create_associative_relations
+    - create_only_approved_openings
+    - write_node_properties
+    - create_or_update_documentation
+    - global_readback_and_QA
+  atomicity_note: "This is a logical transaction. Unless the exact underlying API supports a single undoable command scope across all actions, partial failure must be handled as compensation, not fictional atomic rollback."
+
+hard_fail_states:
+  - runtime_schema_mismatch
+  - stale_base_checksum
+  - target_type_mismatch
+  - missing_host
+  - missing_KR_approval_for_structural_opening
+  - unknown_product_or_favorite_version
+  - attribute_collision_without_policy
+  - relation_readback_mismatch
+  - partial_success_unrecovered
+  - postcondition_geometry_mismatch
+  - normative_gate_unresolved
+
+implementation_priority:
+  P0:
+    - runtime_schema_handshake
+    - typed_create_Wall_Slab_Beam_Column_Opening
+    - typed_DeleteElements
+    - typed_SEO_and_Trim_relations
+    - node_property_write_and_verify
+    - generic_postcondition_engine
+  P1:
+    - typed_Windows_Doors_Roofs_Stairs
+    - typed_attributes_profiles_composites
+    - typed_MEP
+    - managed_library_file_inventory
+  P2:
+    - source_detail_automation_after_exact_API_support_audit
+    - managed_GDL_authoring_extension_if_approved

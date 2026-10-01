@@ -1,0 +1,120 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Актуальная матрица минимальной ширины пути эвакуации по лестнице по СП 1.13130.2020 п.4.4.1 после Изменения №2, с явной семантикой размера в свету и алгоритмом пересечения условий."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {file: rules/33_fire_height_semantics.yaml, role: "building fire height semantics"}
+  - {file: rules/28_functional_code_router.yaml, role: "functional fire classification"}
+
+base_requirement:
+  source: SP_1_13130_2020
+  rules:
+    - id: stair.egress.clear_width_not_less_exit
+      clause: "4.4.1"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Ширина пути эвакуации по лестнице, предназначенной для эвакуации людей, должна быть не менее требуемой ширины любого эвакуационного выхода на эту лестницу и одновременно не менее применимого минимального значения п.4.4.1."
+      conflict_policy: "Итоговая ширина = максимум из требуемой ширины входящих эвакуационных выходов и всех применимых минимальных значений 4.4.1."
+
+    - id: stair.egress.clear_height
+      clause: "4.4.1"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Высота пути эвакуации по лестнице должна быть не менее 2,2 м."
+      values: {min_clear_height_mm: 2200}
+
+width_candidates:
+  source: SP_1_13130_2020
+  clause: "4.4.1"
+  amendment_context: "подпункты а, в, г в редакции Изменения №2, введенного 01.11.2024"
+  rules:
+    - id: stair.egress.width_1350_function_height_population
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимум 1,35 м применяется к лестницам для эвакуации из зданий Ф1.1, Ф2.1, Ф2.2, Ф3.4, Ф4.1; к зданиям, где на любом этаже кроме первого находится более 200 человек; а также к общественным зданиям пожарной высотой более 50 м."
+      any_conditions:
+        - {functional_fire_class: [F1.1, F2.1, F2.2, F3.4, F4.1]}
+        - {people_on_any_floor_except_first: {greater_than: 200}}
+        - {building_category: public, building_fire_height_mm: {greater_than: 50000}}
+      values: {min_clear_width_mm: 1350}
+
+    - id: stair.egress.width_1600_high_population
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимум 1,6 м применяется в зданиях с числом людей на любом этаже, кроме первого, более 600 человек."
+      conditions: {people_on_any_floor_except_first: {greater_than: 600}}
+      values: {min_clear_width_mm: 1600}
+      conflict_policy: "При одновременной применимости условия 1,35 м использовать более строгое 1,6 м."
+
+    - id: stair.egress.width_1200_general
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимум 1,2 м применяется для остальных зданий, кроме Ф1.4, Ф5 и Ф1.3 пожарной высотой более 75 м, если иной подпункт 4.4.1 не требует большей ширины."
+      exclusions:
+        functional_fire_class: [F1.4, F5]
+        F1_3_fire_height_mm: {greater_than: 75000}
+      values: {min_clear_width_mm: 1200}
+      conflict_policy: "Это общий кандидат, а не fallback до классификации. Без functional_fire_class правило не активировать."
+
+    - id: stair.egress.width_1050_F1_3_below_75m
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для зданий Ф1.3 пожарной высотой менее 75 м минимальная ширина пути эвакуации по лестнице — 1,05 м, если более строгое условие п.4.4.1 не применимо."
+      conditions: {functional_fire_class: F1.3, building_fire_height_mm: {less_than: 75000}}
+      values: {min_clear_width_mm: 1050}
+
+    - id: stair.egress.width_700_single_or_up_to_5
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимум 0,7 м допускается для лестниц к одиночным рабочим местам либо лестниц, предназначенных для эвакуации не более 5 человек, в точной области подпункта д."
+      any_conditions:
+        - {destination: single_workplace}
+        - {calculated_evacuating_people: {max: 5}}
+      values: {min_clear_width_mm: 700}
+      conflict_policy: "Не применять, если специальный функциональный раздел или МГН требует большего."
+
+    - id: stair.egress.width_900_other_cases
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимум 0,9 м относится к всем остальным случаям п.4.4.1 после фильтрации подпунктов а-д и специальных требований."
+      values: {min_clear_width_mm: 900}
+      requires_object_classification: true
+      conflict_policy: "Запрещено использовать 900 мм как универсальный default до классификации объекта."
+
+boundary_semantics:
+  - id: stair.egress.F1_3_75m_boundary
+    automation: validation_only
+    statement: "Текст п.4.4.1 различает Ф1.3 высотой менее 75 м и исключает из общего подпункта Ф1.3 высотой более 75 м. Ровно 75 м не относится к условию 'менее 75 м' и не попадает в исключение 'более 75 м'; агент не должен округлять пожарную высоту вокруг этой границы."
+    conflict_policy: "Проверять точную расчетную пожарную высоту и актуальную специальную норму для Ф1.3; не преобразовывать 75,000 м в 74,999/75,001 ради выбора ширины."
+
+calculation_algorithm:
+  steps:
+    - "1. Определить functional_fire_class, building_fire_height по правилам пожарной высоты и максимальную расчетную численность на каждом этаже кроме первого."
+    - "2. Определить требуемую ширину каждого эвакуационного выхода, ведущего на лестницу."
+    - "3. Сформировать все применимые кандидаты п.4.4.1; условия не являются взаимоисключающими."
+    - "4. Принять максимум из применимых кандидатов и требуемой ширины любого выхода на лестницу."
+    - "5. Проверить специальные разделы СП 1, профильный СП здания и МГН; если они требуют больше, увеличить ширину."
+    - "6. Проверить ширину фактически в свету с учетом ограждений, поручней и максимально открытых дверей на площадках."
+
+BIM_required_parameters:
+  - functional_fire_class
+  - building_fire_height_mm
+  - building_public_status
+  - people_on_each_floor
+  - calculated_evacuating_people_via_stair
+  - single_workplace_destination_status
+  - incoming_egress_exit_required_widths_mm
+  - actual_clear_flight_width_mm
+  - actual_clear_height_mm
+
+agent_logic:
+  - "Не назначать лестницу 1200 мм 'по умолчанию': сначала вычислить все применимые подпункты 4.4.1."
+  - "Численность >600 дает более строгое значение 1600 мм даже если функциональный класс уже активирует 1350 мм."
+  - "Ширина в BIM измеряется в свету; координационное расстояние между стенами/осями не является доказательством требуемой ширины."
+  - "Не округлять пожарную высоту при выборе условия 50/75 м."
+
+sources:
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/changesdetails/ee7694ef-bc2a-4c21-8e1f-abf43e08187a"
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/8a1a4f1894115399acdbf73bfa34c70c66b39e54/"

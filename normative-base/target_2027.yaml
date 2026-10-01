@@ -30,6 +30,7 @@ source_authority_policy:
 
 selection_policy:
   - "Если новая редакция или изменение официально утверждены и имеют точную дату вступления до или в 2027 году, применять их при проектировании целевого профиля заранее в той части, которая будет действовать в период реализации."
+  - "Если официально утвержденный документ допускает досрочное применение, target 2027 может выбрать досрочное применение целиком, чтобы шаблон и проект не устарели к реализации."
   - "Если изменение имеет разные даты введения для разных пунктов, хранить эти части раздельно и применять каждую по ее официальной дате."
   - "Текущую редакцию, которая будет отменена или изменена до реализации проекта, хранить только как переходную/историческую."
   - "Если будущая редакция исключает числовое правило без универсальной замены, старое число запрещается использовать автоматически; возвращать needs_project_or_manufacturer_data или needs_calculation."
@@ -131,6 +132,69 @@ confirmed_transitions:
     scope: "LVL/ДКШ в области стандарта"
     garant_source: "https://base.garant.ru/414739335/"
 
+  - id: ESKD_2_301_2026
+    document: GOST_R_2_301_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_301_68
+    target_profile_action: apply_early_now
+    scope: "форматы листов"
+    official_source: "https://protect.gost.ru/gost/details/ca4c6e2d-fcde-4d46-b851-b0cbd10a7e53"
+
+  - id: ESKD_2_302_2026
+    document: GOST_R_2_302_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_302_68
+    target_profile_action: apply_early_now
+    scope: "масштабы"
+    official_source: "https://protect.gost.ru/gost/details/c8a1ab70-2670-4e27-b74e-59b7c3f7e060"
+
+  - id: ESKD_2_303_2026
+    document: GOST_R_2_303_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_303_68
+    target_profile_action: apply_early_now
+    scope: "линии"
+    official_source: "https://protect.gost.ru/gost/details/74a6410b-9422-4c9c-b9ee-2798a92f2d6a"
+
+  - id: ESKD_2_304_2026
+    document: GOST_R_2_304_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_304_81
+    target_profile_action: apply_early_now
+    scope: "шрифты"
+    official_source: "https://protect.gost.ru/gost/details/f744cc7d-56c7-4930-98c0-afeedd135827"
+
+  - id: ESKD_2_305_2026
+    document: GOST_R_2_305_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_305_2008
+    target_profile_action: apply_early_now
+    scope: "изображения, виды, разрезы, сечения"
+    official_source: "https://protect.gost.ru/gost/details/1922e193-7fd8-4e15-8e2b-93912a456452"
+
+  - id: ESKD_2_306_2026
+    document: GOST_R_2_306_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_306_68
+    target_profile_action: apply_early_now
+    scope: "графические обозначения материалов, включая электронные геометрические модели"
+    official_source: "https://protect.gost.ru/gost/details/298e1ad4-7fd2-4399-a2db-790bd52dd2eb"
+
+  - id: ESKD_2_307_2026
+    document: GOST_R_2_307_2026
+    effective_from: 2027-10-01
+    early_application_allowed: true
+    replaces: GOST_2_307_2011
+    target_profile_action: apply_early_now
+    scope: "нанесение размеров и предельных отклонений"
+    official_source: "https://protect.gost.ru/gost/details/eddb3107-58be-4811-b237-5ab1d0d4c4d5"
+
   - id: SANPIN_1_2_3685_21_EXPIRY
     document: SANPIN_1_2_3685_21
     valid_until: 2027-03-01
@@ -145,6 +209,7 @@ revision_sources:
   adjacent_structural_execution_engineering: revision_watch_adjacent_2027.yaml
   special_functional: functional_revision_audit_2027.yaml
   sanitary: sanitary_registry_2027.yaml
+  graphical_2027_transition: rules/78_eskd_graphics_2027_transition.yaml
   rule: "Эти файлы являются авторитетными для текущего проверенного уровня изменений; target_2027 не должен содержать противоречащий им более низкий уровень."
 
 agent_gate:
@@ -154,7 +219,9 @@ agent_gate:
     - "load revision_watch_adjacent_2027.yaml"
     - "load functional_revision_audit_2027.yaml when special function applies"
     - "load sanitary_registry_2027.yaml when sanitary requirement applies"
+    - "load rules/78_eskd_graphics_2027_transition.yaml before generating documentation graphics"
     - "reject rules superseded by confirmed_transitions"
+    - "reject legacy ESKD graphics constants when target GOST R 2026 is confirmed but exact new numeric rule has not been audited"
     - "reject expired documents without an officially adopted applicable replacement"
     - "verify object_function and special_code applicability"
     - "verify requirements_registry applicability separately from document status"

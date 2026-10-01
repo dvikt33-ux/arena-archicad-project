@@ -1,4 +1,4 @@
-manifest_version: 41
+manifest_version: 42
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -109,6 +109,7 @@ rule_files:
   - 52_garant_stairwell_type_verification.yaml
   - 53_garant_residential_planning_verification.yaml
   - 54_stairwell_door_interfaces.yaml
+  - 55_egress_stair_clear_width.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

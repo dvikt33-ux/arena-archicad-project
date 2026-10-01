@@ -1,0 +1,157 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+material_pack: LSTK_COLD_FORMED_STEEL
+purpose: "Материал-специфический пакет ИЖС для тонкостенных стальных конструкций из холодногнутых оцинкованных профилей. Не подменяет расчет СП 260 типовыми профилями, шагами и саморезами."
+
+normative_stack:
+  - document: SP_260_1325800_2023
+    status: active
+    effective_from: 2024-01-29
+    replaces: SP_260_1325800_2016
+    role: structural_design_of_cold_formed_thin_walled_galvanized_members_and_corrugated_sheets
+    official_source: "https://protect.gost.ru/sp/details/70cfce3e-7c81-4b3e-a747-24147317b070"
+  - document: GOST_R_58774_2019
+    status: active
+    role: external_selfbearing_and_nonbearing_frame_sheathing_walls_only_within_scope
+    scope_gate: "Не использовать как универсальный стандарт несущей стены ЛСТК: стандарт относится к наружным самонесущим, навесным и ненесущим каркасно-обшивным стенам."
+    official_source: "https://protect.gost.ru/gost/details/af5dba76-a2f8-46ec-94e2-0bf0d30e0ea9"
+  - {document: SP_20_13330_2016, role: actions}
+  - {document: SP_16_13330_2017, role: steel_general_coordination_where_applicable}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_envelope}
+  - {document: SP_28_13330_2017, role: corrosion_and_durability}
+  - {document: SP_17_13330_2017, role: roofing_if_used}
+
+scope:
+  applies_to: "Конструкции из стальных тонкостенных холодногнутых оцинкованных профилей и гофрированных листов в области СП 260."
+  temperature_scope_from_SP260: "Расчетная температура эксплуатации не выше +100 C и не ниже -65 C."
+  exclusions_note: "Проверять полную область применения СП 260; наличие тонкого стального профиля само по себе не делает систему ЛСТК допустимой для любого здания/нагрузки."
+
+core_rules:
+  - id: izh.lstk.member_from_calculation
+    automation: forbidden_to_infer
+    statement: "Сечение, толщина металла, марка стали, перфорация, шаг стоек/балок/стропил и схема раскрепления определяются расчетом по СП 260/СП 20 и подтвержденной системой, а не каталогом ближайшего профиля."
+    result: needs_structural_calculation
+  - id: izh.lstk.connection_from_calculation
+    automation: forbidden_to_infer
+    statement: "Тип соединения, количество и расположение самонарезающих винтов, болтов, заклепок, анкеров и иных крепежных элементов не назначать по графическому шаблону узла."
+    result: needs_structural_connection_design
+  - id: izh.lstk.local_buckling_and_restraint
+    automation: validation_only
+    statement: "Узел обязан учитывать местную/общую устойчивость тонкостенных элементов и фактическую работу раскрепляющих листов/связей; облицовку нельзя считать расчетным раскреплением без подтвержденной расчетной модели."
+  - id: izh.lstk.thermal_bridge_explicit
+    automation: validation_only
+    statement: "Металлический профиль является выраженной теплопроводной неоднородностью. Теплотехническая проверка ограждения и узлов должна учитывать профиль/крепеж/обвязки, а не только толщину утеплителя между стойками."
+  - id: izh.lstk.corrosion_product_gate
+    automation: validation_only
+    statement: "Защитное покрытие, условия эксплуатации, контакт с влажными/щелочными/агрессивными материалами и обрезанные кромки должны соответствовать проекту долговечности и документации изделия."
+  - id: izh.lstk.penetration_not_arbitrary
+    automation: forbidden_to_infer
+    statement: "Отверстия, вырезы и ослабления в расчетных профилях допускаются только в предусмотренной системой/расчетом форме; clash detection не является разрешением на вырез."
+
+node_overrides:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    components:
+      - calculated_RC_or_other_foundation
+      - confirmed_bottom_track_or_support_member
+      - anchor_or_hold_down_system_from_KR
+      - capillary_and_bulk_water_separation
+      - corrosion_isolation_at_contact
+      - plinth_thermal_air_weather_transition
+    forbidden: [universal_anchor_spacing, profile_width_equals_foundation_width, direct_unverified_contact_with_wet_or_aggressive_substrate]
+
+  IZH_N02_GROUND_FLOOR_EXTERNAL_WALL:
+    components:
+      - calculated_track_support
+      - slab_or_floor_edge_connection_from_KR
+      - continuous_air_weather_and_thermal_layers
+      - perimeter_thermal_bridge_solution
+    forbidden: [one_universal_track_detail, treating_finish_board_as_structural_without_system_proof]
+
+  IZH_N03_MASONRY_WALL_FLOOR:
+    replacement_family: LSTK_wall_floor
+    components:
+      - calculated_joist_or_floor_member_support
+      - rim_edge_track_or_beam_if_required
+      - diaphragm_and_lateral_load_connection_from_KR
+      - fire_acoustic_blocking_if_required
+      - thermal_air_vapor_transition_at_external_wall
+    forbidden: [universal_joist_spacing, unverified_screw_pattern, arbitrary_member_notch_or_hole]
+
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    components:
+      - calculated_corner_or_T_profile_configuration
+      - structural_sheathing_or_bracing_only_if_designated_by_KR
+      - connection_schedule_from_KR
+      - insulation_continuity_and_profile_thermal_bridge_treatment
+      - air_vapor_weather_layer_continuity
+    forbidden: [extra_studs_for_convenience_without_check, universal_corner_profile, copied_timber_corner_recipe]
+
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    components:
+      - calculated_header_and_jamb_members
+      - verified_fastening_base_for_window
+      - local_profile_reinforcement_if_required_by_KR
+      - installation_joint_and_water_shedding
+      - thermal_bridge_treatment_around_opening
+    forbidden: [universal_header_profile, fastener_pattern_from_window_width, fastening_only_to_sheathing_without_verified_system]
+
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    replacement_family: LSTK_roof_wall_eaves
+    components:
+      - calculated_rafter_or_truss_profiles
+      - bearing_and_uplift_connection_from_KR
+      - roof_wall_air_thermal_weather_transition
+      - corrosion_and_condensation_control
+    forbidden: [universal_rafter_profile, universal_spacing, timber_mauerlat_recipe]
+
+  IZH_N08_PITCHED_ROOF_RIDGE:
+    variant: LSTK_roof_apex
+    rule: "Коньковый узел профилей/ферм определяется расчетной системой и connection schedule; не копировать деревянный коньковый узел."
+
+  IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT:
+    rules:
+      - "Не вырезать пояс/стойку/раскос фермы или стропильный профиль автоматически; сначала KR-approved trimmer/route solution."
+      - "Горячая проходка должна дополнительно пройти пожарный/продуктовый gate."
+
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    rules:
+      - "Service holes through loadbearing profiles are allowed only by calculated/system limits."
+      - "Prefer a coordinated service cavity/route before cutting primary framing."
+
+archicad_representation:
+  early_LOD_wall: "Composite Wall may represent layered envelope while member-level geometry is not yet required; mark structural framing as unresolved/external calculation rather than inventing studs."
+  member_level: "Native Beam/Column where member-level coordination and quantity are required; exact profile/section must come from KR/product data."
+  cold_formed_section: "Complex Profile or verified Library Object only after exact profile geometry is pinned; do not approximate lips/stiffeners if they affect coordination/fabrication."
+  sheathing_and_finishes: "Composite skins or separate Slab/Wall elements according to model purpose."
+  connectors: "Verified Library Object/property/detail; small screws generally not explicit 3D unless fabrication/coordination requires."
+  openings: "Native Opening only after KR gate for structural hosts."
+  tapir_primitives:
+    - CreateWalls
+    - CreateBeams
+    - CreateColumns
+    - CreateBuildingMaterials
+    - CreateComposites
+    - GetProfiles
+    - CreateProfiles
+    - CreateOpenings
+    - CreateObjects
+    - CreateDetails
+
+BIM_parameters_required:
+  - structural_system_id
+  - SP260_calc_ref
+  - profile_product_id
+  - steel_grade
+  - profile_thickness_mm
+  - coating_system_ref
+  - member_role
+  - connection_schedule_ref
+  - thermal_node_calc_ref
+  - fire_solution_ref_if_applicable
+  - NODE_ID
+  - NODE_REVISION
+
+sources:
+  - "https://protect.gost.ru/sp/details/70cfce3e-7c81-4b3e-a747-24147317b070"
+  - "https://protect.gost.ru/gost/details/af5dba76-a2f8-46ec-94e2-0bf0d30e0ea9"

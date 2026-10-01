@@ -1,0 +1,189 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_7_13130_2013
+verified_changes: [1,2,3]
+purpose: >-
+  Архитектурные геометрические интерфейсы вытяжной противодымной вентиляции: дымоприемники,
+  дымовые зоны и варианты выброса продуктов горения. Файл не выполняет расчет расхода дыма,
+  аэродинамику, подбор вентиляторов или расчет подпора.
+
+revision_state:
+  status: active
+  latest_verified_change: 3
+  change_3_effective_from: 2025-07-01
+  change_4:
+    status: draft_do_not_apply
+    audit_date: 2026-10-01
+    statement: >-
+      Окончательная редакция проекта Изменения №4 опубликована, но утверждающий приказ и дата
+      введения в проектном тексте отсутствуют. Для RU_2027_PLUS проект №4 не является источником правил.
+
+corridor_smoke_inlets:
+  source_clause: "7.8, current revision with Change 3"
+  rules:
+    - id: smoke.corridor.inlet_vertical_position
+      automation: conditional
+      dimension_semantics: vertical_clearance
+      placement: under_corridor_ceiling
+      lower_edge_not_below: top_of_egress_door_openings
+      statement: >-
+        Дымоприемные устройства коридора размещать на шахтах под потолком либо на ответвлениях
+        к дымовым шахтам, но не ниже верхнего уровня дверных проемов эвакуационных выходов.
+
+    - id: smoke.corridor.length_per_inlet
+      automation: conditional
+      dimension_semantics: route_length
+      cases:
+        - {corridor_configuration: straight, max_length_per_inlet_m: 45}
+        - {corridor_configuration: angular, max_length_per_inlet_m: 30}
+        - {corridor_configuration: ring_closed, max_length_per_inlet_m: 20}
+      statement: >-
+        Предельная длина коридора, приходящаяся на одно дымоприемное устройство, зависит от
+        конфигурации коридора. Длину определять как сумму последовательно расположенных участков
+        прямоугольной или близкой к ней формы в плане.
+      conflict_policy: >-
+        Эти пределы не заменяют расчет количества и расстояний между дымоприемниками по приложению Е.
+
+    - id: smoke.corridor.inlet_count_spacing_calculated
+      automation: requires_calculation
+      source_reference: Appendix_E
+      statement: >-
+        Места установки, количество и расстояния между дымоприемными устройствами определять по
+        приложению Е; нельзя расставлять их только через каждые 45/30/20 м без расчета.
+
+room_smoke_zones:
+  source_clause: "7.9, current revision with Change 3"
+  rules:
+    - id: smoke.room.zone_area_limit_over_3000
+      automation: conditional
+      condition: "protected_room_area_m2 > 3000"
+      max_smoke_zone_area_m2: 3000
+      statement: >-
+        Помещение площадью более 3000 м² разделять на дымовые зоны, каждая площадью не более
+        3000 м², конструктивно либо условно только при допускаемом расчетном обосновании пункта 7.9.
+      conflict_policy: >-
+        Условное деление не является автоматическим правом; условия температурного расчета и режима
+        одновременного включения систем проверяются инженером ПДВ.
+
+    - id: smoke.room.max_area_per_inlet
+      automation: conditional
+      max_served_area_per_smoke_inlet_m2: 500
+      requires_calculation: true
+      statement: >-
+        Минимальное количество дымоприемных устройств определяется расчетом приложения Е, при этом
+        площадь помещения, приходящаяся на одно устройство, не должна превышать 500 м².
+
+    - id: smoke.room.inlet_not_below_egress_door_top
+      automation: conditional
+      lower_edge_not_below: top_of_egress_door_openings
+      statement: >-
+        Дымоприемные устройства защищаемого помещения располагать не ниже верхнего уровня дверных
+        проемов эвакуационных выходов.
+
+smoke_exhaust_discharge:
+  source_clause: "7.11 g"
+  rules:
+    - id: smoke.exhaust.roof_to_smoke_supply_intake
+      automation: conditional
+      condition: "smoke_products_discharge_above_roof"
+      dimension_semantics: clear
+      min_distance_m: 5
+      measure_to: smoke_control_supply_air_intake
+      statement: >-
+        Выброс продуктов горения над покрытиями зданий и сооружений размещать на расстоянии не менее
+        5 м от воздухозаборных устройств систем приточной противодымной вентиляции.
+
+    - id: smoke.exhaust.combustible_roof_height
+      automation: conditional
+      condition: "roof_material_is_combustible AND discharge_above_roof"
+      dimension_semantics: clear_vertical
+      general_min_height_above_roof_m: 2
+      exceptions:
+        - noncombustible_roof_protection_at_least_2m_from_discharge_edge
+        - roof_fan_with_vertical_discharge
+      statement: >-
+        Для кровли из горючих материалов общий вариант предусматривает выброс не ниже 2 м над
+        кровлей; уменьшение допускается только при прямо предусмотренной защите кровли либо
+        крышном вентиляторе с вертикальным выбросом.
+
+    - id: smoke.exhaust.facade_window_clearance
+      automation: conditional
+      condition: "discharge_through_external_wall_grille_or_shaft_at_wall"
+      preferred_facade: facade_without_window_openings
+      if_facade_has_windows:
+        min_horizontal_to_window_m: 5
+        min_vertical_to_window_m: 5
+      min_outlet_height_above_ground_m: 2
+      statement: >-
+        Фасадный выброс через решетку/шахту у наружной стены размещать на фасаде без окон либо на
+        фасаде с окнами не ближе 5 м по горизонтали и вертикали от окон и не ниже 2 м от земли.
+
+    - id: smoke.exhaust.facade_window_distance_velocity_exception
+      automation: conditional_exception
+      condition: "facade_discharge_distance_to_windows_below_5m"
+      min_exhaust_velocity_m_s: 20
+      requires_engineering_calculation: true
+      statement: >-
+        Меньшее расстояние до окон допускается только при обеспечении скорости выброса не менее
+        20 м/с в точной области исключения п.7.11; архитектурный агент не применяет это исключение
+        без подтвержденного расчета ПДВ.
+
+    - id: smoke.exhaust.separate_ground_shaft_clearance
+      automation: conditional
+      condition: "discharge_through_separate_shaft_at_ground_surface"
+      dimension_semantics: clear_horizontal
+      min_distance_m: 15
+      measure_to:
+        - exterior_walls_with_windows
+        - outdoor_air_intakes_of_general_ventilation_of_other_adjacent_buildings
+        - smoke_control_supply_air_intakes_of_same_building
+      statement: >-
+        Отдельную шахту выброса на поверхности земли размещать не ближе 15 м от перечисленных
+        стен с окнами и воздухозаборных устройств.
+
+calculation_boundaries:
+  - id: smoke.no_architectural_flow_calculation
+    automation: forbidden_to_infer
+    statement: >-
+      Расход продуктов горения, температура дымового слоя, количество дымоприемников по расчету,
+      сечения шахт, аэродинамическое сопротивление, производительность и огнестойкость вентиляторов
+      определяются профильным расчетом ПДВ; архитектурная база хранит только подтвержденные
+      геометрические ограничения и требуемые зоны.
+
+  - id: smoke.change4_draft_gate
+    automation: hard_gate
+    statement: >-
+      Не использовать проект Изменения №4 к СП 7.13130.2013 как действующий источник расчетных
+      формул, геометрических значений или требований до официального утверждения и даты введения.
+
+BIM_required_parameters:
+  - smoke_control_required_status
+  - smoke_zone_id
+  - smoke_zone_area_m2
+  - corridor_configuration
+  - corridor_protected_length_m
+  - smoke_inlet_id
+  - smoke_inlet_geometry
+  - top_of_egress_door_opening_level
+  - smoke_inlet_calculation_reference
+  - smoke_exhaust_outlet_id
+  - smoke_exhaust_outlet_geometry
+  - discharge_location_type
+  - roof_combustibility_class
+  - smoke_supply_air_intake_geometry
+  - facade_window_geometry
+  - outlet_height_above_ground_m
+  - calculated_exhaust_velocity_m_s
+  - PDV_calculation_reference
+
+agent_logic:
+  - "Сначала определить необходимость ПДВ и расчетные дымовые зоны профильным разделом, затем резервировать шахты/выбросы."
+  - "Не использовать 45 м как универсальный шаг дымоприемников: это предел длины прямого коридора на устройство, а количество/расстояния рассчитываются."
+  - "Не располагать дымовой выброс по остаточному месту на фасаде или кровле: сначала построить зоны 5/15 м и проверить воздухозаборы."
+  - "Исключение 20 м/с не применять без инженерного расчета."
+
+sources:
+  - "https://protect.gost.ru/sp/details/78247e24-7498-426f-991f-83d320a7c0bc"
+  - "https://www.consultant.ru/document/cons_doc_LAW_144507/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_502476/"
+  - "https://base.garant.ru/77696136/"

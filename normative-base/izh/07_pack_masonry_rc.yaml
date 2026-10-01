@@ -1,0 +1,127 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+material_pack: MASONRY_RC
+purpose: "Материал-специфические правила узлов ИЖС для кладочных несущих/самонесущих стен в сочетании с железобетонными фундаментами/перекрытиями."
+
+scope:
+  masonry_families:
+    - ceramic_brick_or_stone_under_GOST_530_2012
+    - silicate_products_under_GOST_379_2025
+  structural_code: SP_15_13330_2020
+  execution_code: SP_70_13330_2012
+  target_2027_gate: "Apply SP70 Change 8 parts effective 2027-03-01; do not use deleted clause 9.2.4 as automatic source of 12/10 mm joints."
+  RC_code: SP_63_13330_2018
+
+material_rules:
+  - id: izh.masonry_rc.unit_identity_required
+    automation: conditional
+    statement: "До раскладки узла определить точный вид кладочного изделия, его действующий стандарт/изготовителя, фактический размерный ряд и технологию шва."
+  - id: izh.masonry_rc.no_universal_joint_pitch_2027
+    automation: forbidden_to_infer
+    statement: "Для профиля 2027 запрещено выводить модуль узла из старого универсального правила швов 12/10 мм п. 9.2.4 СП 70, исключаемого Изменением №8 с 01.03.2027."
+    result: needs_verified_masonry_technology
+  - id: izh.masonry_rc.no_pier_by_unit_count
+    automation: forbidden_to_infer
+    statement: "Несущий простенок нельзя признавать допустимым только потому, что он кратен целому числу кирпичей/камней; требуется расчет СП 15 и проверка перемычки/опираний."
+    result: needs_structural_calculation
+
+node_overrides:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    additional_components:
+      - masonry_support_surface_and_leveling_solution
+      - moisture_break_compatible_with_masonry_and_foundation
+      - plinth_masonry_or_RC_edge_protection
+      - movement_compatibility_between_foundation_and_masonry
+    KR_required:
+      - foundation_geometry
+      - masonry_bearing_zone
+      - eccentricity
+      - reinforcement_and_ties
+    thermal_required:
+      - foundation_wall_edge_temperature_field
+      - insulation_continuity
+    forbidden_shortcuts:
+      - "Do not shift masonry to align facade finish if bearing becomes unverified."
+      - "Do not add a universal RC belt at plinth solely from a template."
+
+  IZH_N03_MASONRY_WALL_FLOOR:
+    precast_RC:
+      components:
+        - KR_confirmed_slab_type_and_mark
+        - KR_confirmed_bearing_zone
+        - masonry_local_bearing_solution
+        - ties_or_ring_element_only_if_KR_requires
+        - slab_end_and_joint_treatment
+        - exterior_edge_thermal_solution
+      forbidden:
+        - universal_slab_bearing_length
+        - cutting_hollow_core_slab_without_verified_product_and_KR
+        - selecting_slab_only_by_clear_span
+    monolithic_RC:
+      components:
+        - KR_slab_edge_geometry
+        - reinforcement_connection_defined_by_KR
+        - masonry_support_or_frame_relation
+        - exterior_edge_thermal_solution
+      forbidden:
+        - auto_generate_ring_beam_or_reinforcement_from_wall_thickness
+    Archicad:
+      - "Wall and Slab remain separate native elements."
+      - "Use Building Material priorities only for graphical/physical cleanup compatible with the actual connection; priority cleanup must not masquerade as structural bearing design."
+      - "SEO may represent calculated recess/cut geometry when relation is explicit and audited."
+
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    components:
+      - material_specific_bonding_or_tie_solution
+      - thermal_layer_corner_continuity
+      - facade_finish_continuity
+      - movement_joint_when_calculation_or_system_requires
+    rule: "Bonding pattern and cut units depend on the actual masonry product and technology; do not derive from generic brick graphics."
+
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    head:
+      - KR_confirmed_lintel_or_monolithic_solution
+      - current_GOST_948_mark_if_precast_lintel_used
+      - no_span_only_lintel_selection
+    jamb:
+      - actual_masonry_base_for_fasteners
+      - reveal_geometry_and_thermal_continuity
+    sill:
+      - loadbearing_masonry_support
+      - water_shedding_sill_or_flashing
+      - external_joint_weather_protection
+      - inner_air_vapor_control
+    rule: "ПРБ/ПРП/ПРГ/ПРФ are current GOST 948 families after Amendment 1; use a KR-confirmed mark, not a stretched generic object."
+
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    components:
+      - KR_confirmed_support_of_timber_roof_on_masonry
+      - hold_down_and_lateral_ties_from_KR
+      - ring_beam_or_local_RC_element_only_if_calculated
+      - moisture_separation_between_incompatible_materials_if_required
+      - thermal_air_vapor_continuity
+    forbidden:
+      - universal_mauerlat_section
+      - universal_anchor_spacing
+      - automatic_ring_beam
+
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    rules:
+      - "Prefer coordinated opening/sleeve planned before construction."
+      - "Penetration through structural masonry cannot be accepted from MEP route alone."
+      - "Lintel/local reinforcement/relocation is KR-owned where structural capacity is affected."
+
+archicad_recipe_defaults:
+  wall: native_Wall_with_verified_Building_Material_or_Composite
+  RC_floor: native_Slab
+  RC_local_element: native_Beam_or_Column_or_Slab_where_semantically_correct
+  lintel: verified_library_object_or_native_structural_element_with_exact_product_properties
+  opening: native_Opening_for_service_holes_where_supported
+  micro_layers: detail_2d_plus_node_metadata_unless_coordination_requires_3d
+
+sources:
+  - "https://protect.gost.ru/gost/details/e3f3ca57-13cb-493c-a047-21814635e7fc"
+  - "https://protect.gost.ru/gost/details/d5825d7c-1b15-4295-8548-4a8b31d18e82"
+  - "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  - "https://protect.gost.ru/sp/changesdetails/c1b0a1c8-73c5-480b-a9dc-0ad44d636d09"

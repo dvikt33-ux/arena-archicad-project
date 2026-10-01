@@ -1,0 +1,93 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Интерфейсы лестничной клетки с помещениями, этажом, вестибюлем и наружной территорией: двери, самозакрывание, уплотнение, противопожарный тип и ограничения Н1."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_7_13130_2013, verified_changes: [1,2,3], role: "smoke-control cross-check for H2/H3 where applicable"}
+
+room_and_floor_to_stairwell:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.interface.room_floor_door_self_closing
+      clause: "4.4.6"
+      automation: conditional
+      statement: "Выходы из помещений и этажей на лестничные клетки должны быть оборудованы дверями с приспособлением для самозакрывания и с уплотнением в притворах, за исключением дверей квартир."
+      conditions: {interface: "room_or_floor_to_stairwell"}
+      exception: "apartment doors"
+      conflict_policy: "Исключение для дверей квартир не отменяет специальные требования к противопожарным/дымогазонепроницаемым дверям, если они возникают по другим применимым пунктам."
+
+stairwell_exit:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.interface.general_exit_route
+      clause: "4.4.11"
+      automation: conditional
+      statement: "Лестничная клетка, если специальным требованием не установлено иное, должна иметь выход на прилегающую территорию непосредственно либо через вестибюль, отделенный от примыкающих коридоров и помещений перегородками с дверями, имеющими самозакрывание и уплотнение в притворах."
+      requires_object_classification: true
+
+    - id: stairwell.interface.vestibule_fire_door_type
+      clause: "4.4.11"
+      amendment: 1
+      automation: conditional
+      statement: "Дверь из лестничной клетки в вестибюль должна быть противопожарной 1-го типа в зданиях I и II степени огнестойкости и 2-го типа в зданиях III и IV степени огнестойкости."
+      cases:
+        - {fire_resistance_degree: [I, II], required_fire_door_type: 1}
+        - {fire_resistance_degree: [III, IV], required_fire_door_type: 2}
+      requires_object_classification: true
+      conflict_policy: "Не заменять требуемый тип двери обычной дверью с доводчиком; огнестойкость и самозакрывание являются разными параметрами."
+
+    - id: stairwell.interface.multiple_stairwells_common_vestibule
+      clause: "4.4.11"
+      automation: validation_only
+      statement: "Если эвакуационные выходы из двух и более лестничных клеток устраиваются через общий вестибюль, все такие лестничные клетки, кроме одной, дополнительно должны иметь выход непосредственно наружу."
+      requires_object_classification: true
+
+    - id: stairwell.interface.single_stairwell_with_vestibule_direct_exit
+      clause: "4.4.11"
+      automation: validation_only
+      statement: "Если в здании одна лестничная клетка и она сообщается с вестибюлем, из нее также предусматривается выход непосредственно наружу."
+      requires_object_classification: true
+
+H1_interface:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.interface.H1_only_direct_outside
+      clause: "4.4.11"
+      automation: conditional
+      statement: "Лестничная клетка Н1 должна иметь выход только непосредственно наружу; допускается выход через тепловой тамбур."
+      conditions: {stairwell_type: H1}
+      conflict_policy: "Не подключать Н1 к обычному внутреннему вестибюлю как единственный выход."
+
+H2_H3_coordination:
+  rules:
+    - id: stairwell.interface.H2_H3_smoke_control_crosscheck
+      automation: validation_only
+      statement: "Для Н2/Н3 дополнительно проверять противодымную вентиляцию, подпор и тамбур-шлюзы по СП 7.13130.2013 и специальным требованиям СП 1; геометрическое наличие двери/тамбура само по себе не доказывает соответствие."
+      requires_calculation: true
+
+BIM_required_parameters:
+  - stairwell_type
+  - functional_fire_class
+  - fire_resistance_degree
+  - interface_from_space_type
+  - interface_to_space_type
+  - door_fire_resistance_type
+  - self_closer_present
+  - perimeter_seal_present
+  - direct_external_exit_status
+  - common_vestibule_stairwell_count
+  - thermal_vestibule_status
+  - smoke_pressurization_status_if_applicable
+
+agent_logic:
+  - "Не переносить свойства двери из одного интерфейса лестничной клетки на другой без классификации."
+  - "Доводчик и уплотнение не заменяют требование к противопожарному типу двери."
+  - "Для квартирной двери исключение п.4.4.6 означает только отсутствие общего требования данного пункта к самозакрыванию/уплотнению; специальные пожарные требования проверяются отдельно."
+  - "Для Н1 маршрут выхода из самой лестничной клетки фиксировать как direct_outside или thermal_vestibule_to_outside; обычный lobby_exit считать конфликтом."
+  - "Если объект имеет две или более лестничные клетки, проверять общую схему их выходов, а не только локальную дверь каждой клетки."
+
+sources:
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/changesdetails/4b61ecb6-45d2-4938-8de2-d5bb5712e61d"
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/8a1a4f1894115399acdbf73bfa34c70c66b39e54/"

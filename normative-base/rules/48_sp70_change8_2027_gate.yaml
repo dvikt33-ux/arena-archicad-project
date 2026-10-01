@@ -1,4 +1,4 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 purpose: "Блокирующий реестр пунктов СП 70.13330.2012, для которых Изменение №8 имеет отложенную дату введения 2027-03-01. Защищает BIM-агента от применения текста редакции 2026 года к проектам 2027+."
 
@@ -8,7 +8,8 @@ source_change:
   approved_by: "Приказ Минстроя России от 03.06.2026 № 353/пр"
   base_effective_from: 2026-07-04
   deferred_parts_effective_from: 2027-03-01
-  garant_url: "https://base.garant.ru/414672974/"
+  official_order_url: "https://www.consultant.ru/document/cons_doc_LAW_540802/"
+  change_text_url: "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"
 
 policy:
   - id: sp70.change8.2027.deferred_clause_gate
@@ -57,7 +58,7 @@ masonry_and_architectural_deferred_clauses:
     - "9.17.4"
     - "9.18.2"
     - "9.18.5"
-  note: "Это перечень пунктов раздела 9, явно указанных в официальном тексте Изменения №8 ГАРАНТ как вводимые с 01.03.2027. Другие разделы СП 70 также имеют отложенные изменения, но архитектурный агент маршрутизирует их в смежные КР/ПОС/монтажные проверки."
+  note: "Перечень пунктов раздела 9, прямо перечисленных приказом №353/пр как вводимые с 01.03.2027."
 
 other_deferred_coordination_groups:
   effective_from: 2027-03-01
@@ -76,35 +77,82 @@ other_deferred_coordination_groups:
 
 already_revalidated:
   - clause: "9.2.4"
+    change8_2027_revalidated: true
     status: removed_from_2027_profile
     consequence: "Прежние универсальные 12 мм горизонтального и 10 мм вертикального шва не используются как нормативное правило."
-    files:
-      - "rules/01_masonry.yaml"
-      - "rules/24_masonry_opening_layout.yaml"
+    files: ["rules/01_masonry.yaml", "rules/24_masonry_opening_layout.yaml"]
 
-not_in_deferred_list_and_currently_used:
+  - clause: "9.6.3"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Пункт исключен с 01.03.2027; геометрию керамического изделия брать непосредственно из действующего ГОСТ 530/данных изделия, а не через удаленный пункт СП 70."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.6.5"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Старые 8-12 мм и 10-16 мм не являются нормативными defaults 2027."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.6.6"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Старое опирание плиты 120 мм/раствор 15 мм/7-8 дней не применять как норму 2027."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.6.7"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Необходимость подушек/поясов определяется КР, а не удаленным пунктом."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.2"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Пункт исключен; геометрию силикатных изделий брать непосредственно из ГОСТ 379-2025/подтвержденного изделия."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.4"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Старые швы 2/12/16 мм не являются нормативными defaults 2027."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.5"
+    change8_2027_revalidated: true
+    status: removed_from_2027_profile
+    consequence: "Старое опирание через раствор до 15 мм M100+ не использовать как норму 2027."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.8"
+    change8_2027_revalidated: true
+    status: revalidated_against_2027_text
+    consequence: "С 01.03.2027 устойчивость панельных перегородок при монтаже обеспечивать по ППР; старую универсальную анкерную схему не переносить."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+
+not_in_deferred_list_but_change8_revalidated:
   - clause: "9.2.1"
-    status: "Измененная формулировка введена основной частью Изменения №8 с 04.07.2026; используется после отдельной сверки."
+    status: "Новая формулировка действует основной частью Изменения №8; используется после отдельной сверки."
+  - clause: "9.6.4"
+    status: "Исключен основной частью Изменения №8 до целевого 2027; старые M75/7-9 см не использовать как актуальное универсальное правило."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.3"
+    status: "Исключен основной частью Изменения №8 до целевого 2027."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
+  - clause: "9.7.6"
+    status: "Переписан основной частью Изменения №8: контрольный ряд — по проектной/рабочей документации с геометрической проверкой; старые 80-123 мм не переносить."
+    file: "rules/56_sp70_large_format_silicate_2027.yaml"
   - clause: "9.2.2"
-    status: "Не указан в перечне пунктов с отложенной датой 01.03.2027; при изменении источника повторно проверить."
+    status: "Изменением №8 не изменен; правило целого кирпича в узких простенках сохраняется в своей области применения."
   - clause: "9.2.3"
-    status: "Не указан в перечне пунктов с отложенной датой 01.03.2027; при изменении источника повторно проверить."
+    status: "Изменением №8 не изменен; ограничение кирпича-половняка сохраняется в своей области применения."
   - clause: "9.2.5"
-    status: "Не указан в перечне пунктов с отложенной датой 01.03.2027; при изменении источника повторно проверить."
+    status: "Изменением №8 не изменен; повторно проверять при будущих изменениях."
 
 machine_gate:
   hard_fail_state: sp70_change8_2027_clause_not_revalidated
   trigger: "source.document == SP_70_13330_2012 AND source.clause intersects masonry_and_architectural_deferred_clauses AND change8_2027_revalidated != true"
-  allowed_resolution_states:
-    - revalidated_against_2027_text
-    - removed_from_target_profile
-    - blocked_pending_clause_revalidation
+  allowed_resolution_states: [revalidated_against_2027_text, removed_from_target_profile, blocked_pending_clause_revalidation]
 
 agent_logic:
-  - "Перед применением любого пункта раздела 9 СП 70 сначала проверить его наличие в deferred_clauses."
+  - "Перед применением любого пункта раздела 9 СП 70 сначала проверить его наличие в deferred_clauses и already_revalidated."
   - "Не считать, что Изменение №8 целиком действует с 04.07.2026: для перечисленных пунктов официальная дата — 01.03.2027."
   - "Не считать, что отсутствие нового числового правила разрешает использовать старое значение."
-  - "После постатейной сверки конкретного пункта добавить change8_2027_revalidated: true и кратко зафиксировать изменение смысла/числа."
+  - "Удаленный пункт не может служить default для нового объекта 2027+, даже если число привычно по практике."
 
 sources:
-  - "https://base.garant.ru/414672974/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_540802/"
+  - "https://meganorm.ru/mega_doc/norm_update_01092026/prikaz/0/izmenenie_N_8_k_sp_70_13330_2012_snip_3_03_01-87_nesushchie.html"

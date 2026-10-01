@@ -1,0 +1,106 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N13_TERRACE_PORCH_EXTERNAL_WALL
+purpose: "Детальный алгоритм сопряжения наружной стены с террасой, крыльцом, площадкой и наружной дверью. Узел рассматривает независимые осадки, воду, мороз, тепловой мост и порог; уровень площадки не задается одной типовой отметкой."
+
+normative_stack:
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_scope}
+  - {document: SP_22_13330_2016, changes: [1,2,3,4,5], role: foundation_and_ground_behavior}
+  - {document: SP_20_13330_2016, role: actions}
+  - {document: SP_63_13330_2018, role: RC_if_used}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_if_used}
+  - {document: SP_260_1325800_2023, role: LSTK_if_used}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture}
+  - {document: SP_28_13330_2017, changes: [1,2,3,4], role: durability_and_corrosion}
+  - {document: SP_71_13330_2017, role: insulation_and_finish_execution}
+  - {document: SP_59_13330_2020, changes: [1,2,3,4], role: accessibility_only_when_applicable}
+
+support_variants:
+  - independent_terrace_or_porch_foundation
+  - structurally_connected_platform_confirmed_by_KR
+  - suspended_timber_or_steel_platform
+  - ground_supported_paving_or_steps
+
+mandatory_components:
+  structural:
+    - confirmed_platform_support_system
+    - wall_connection_or_independence_strategy
+    - differential_settlement_or_movement_accommodation
+    - guard_or_step_structure_if required
+  water:
+    - exterior_surface_water_shedding_away_from_building
+    - wall_plinth_weather_protection
+    - door_threshold_and_sill_water_control_if opening_present
+    - waterproofing_flashing_transition_where required
+    - drainage_or_free_drying_path_for_platform_system
+  thermal_air:
+    - thermal_bridge_strategy_at_any_structural_connection
+    - continuity_of_wall_air_control_layer
+    - door_installation_joint_and_threshold_thermal_strategy_if present
+  durability:
+    - freeze_thaw_exposure_solution
+    - corrosion_or_biological_protection_for_external_structure
+    - separation_of_dissimilar_or_moisture_sensitive_materials
+
+critical_distinction:
+  rule: "Наружная площадка может быть конструктивно независимой от дома либо связанной с ним. Нельзя автоматически привязать террасную плиту к фундаменту/перекрытию дома только потому, что их отметки близки."
+
+algorithm:
+  - step: 1_classify_platform
+    action: "Определить функцию, материал, опорную схему, наличие наружной двери, расчетные нагрузки и условия грунта."
+  - step: 2_foundation_and_movement
+    action: "Получить из КР/геотехники решение опор и допустимое относительное перемещение между площадкой и домом."
+  - step: 3_finished_levels
+    action: "Назначить отметки после проверки водоотвода, порога/ступени, доступности при применимости и толщины фактических покрытий; не использовать один универсальный перепад."
+  - step: 4_water_path
+    action: "Проследить воду от двери, фасада и поверхности площадки наружу; стык не должен направлять воду под порог, за облицовку цоколя или к чувствительной древесине/утеплителю."
+  - step: 5_thermal_bridge
+    action: "Если площадка конструктивно проходит через тепловой контур, выполнить расчет узла и проектное решение терморазрыва/непрерывности; визуальный разрыв в 3D не является расчетом."
+  - step: 6_door_interface
+    action: "Применить N06/N05-логику для дверного блока, крепления и монтажного шва; порог и наружная гидрозащита должны быть согласованы с площадкой."
+  - step: 7_durability
+    action: "Проверить наружное увлажнение, снег/лед, мороз, коррозию металла, защиту древесины и доступ к обслуживаемым соединениям."
+  - step: 8_BIM_readback
+    action: "Проверить независимость/связь hosts, отметки чистых поверхностей, отсутствие случайного SEO/priority merge и NODE_ID."
+
+archicad_recipe:
+  house_wall: native_Wall
+  platform: "Native Slab/Beam/Column or system-specific elements according to actual structural semantics."
+  independent_platform: "Model as independent elements; do not merge/SEO into house foundation solely for graphic cleanliness."
+  connected_platform: "Connection geometry follows KR; use SEO/profile only where relation is physically true and read back association."
+  threshold_and_flashing: "Window/Door + verified profile/object/detail; micro waterproofing layers generally 2D + metadata."
+  tapir_primitives:
+    - CreateWalls
+    - CreateSlabs
+    - CreateBeams
+    - CreateColumns
+    - CreateDoors
+    - CreateProfiles
+    - CreateSolidElementLinks
+    - GetSolidElementLinks
+    - CreateDetails
+
+postconditions:
+  - platform_support_scheme_classified
+  - structural_connection_or_independence_ref_present
+  - finished_levels_are_project_values_not_defaults
+  - exterior_water_path_is_outward
+  - thermal_bridge_review_present_if_structure_crosses_envelope
+  - door_threshold_interface_reviewed_if_applicable
+  - no_unintended_merge_between_independent_structures
+  - NODE_ID_and_revision_written
+
+never_auto_assign:
+  - terrace_or_porch_foundation_type
+  - foundation_depth_or_section
+  - connector_or_anchor_type_and_spacing
+  - platform_level_relative_to_interior
+  - surface_slope
+  - threshold_height
+  - waterproofing_upstand_or_flashing_dimension
+  - thermal_break_product
+
+sources:
+  - "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  - "https://protect.gost.ru/sp/details/71e96332-a446-4a15-87a0-2db895479f61"

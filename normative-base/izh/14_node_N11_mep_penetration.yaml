@@ -1,0 +1,155 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL
+purpose: "Детальный алгоритм инженерной проходки через стену, перекрытие или фундамент: владелец отверстия, КР-согласование, гильза/футляр, деформации, вода/газ/воздух, пожарная заделка и Archicad/Tapir ownership."
+
+normative_stack:
+  - {document: SP_30_13330_2020, changes: [1,2,3,4,5], role: water_supply_and_sewer_penetrations}
+  - {document: SP_73_13330_2016, changes: [1,2,3], role: sanitary_system_installation, target_2027_note: "deferred parts of Change 3 effective 2027-03-01 where specified"}
+  - {document: SP_7_13130_2013, changes: [1,2,3], role: fire_safety_for_HVAC_penetrations_when_applicable}
+  - {document: SP_22_13330_2016, role: foundation_and_ground_deformation_inputs}
+  - {document: SP_63_13330_2018, role: RC_host_if_applicable}
+  - {document: SP_15_13330_2020, role: masonry_host_if_applicable}
+  - {document: SP_64_13330_2017, role: timber_host_if_applicable}
+
+penetration_classes:
+  - id: internal_pipe_through_wall_partition_slab
+    scope: "pipe crossings of internal walls, partitions and floors"
+    owner: MEP_with_AR_KR_coordination
+    rules:
+      - "СП 73 п.6.1.14: трубопровод проходит в гильзе из негорючего материала с возможностью свободного осевого перемещения."
+      - "Края гильзы: вровень с поверхностями стен/перегородок/потолков и на 30 мм выше поверхности чистого пола, кроме мест неподвижных опор."
+      - "СП 30 п.11.5 в своей области: гильза из полимерной или металлической трубы; внутренний диаметр не менее чем на 5–10 мм больше наружного диаметра трубопровода; зазор — негорючий гидрофобный материал, допускающий осевое перемещение."
+      - "Если пересекается конструкция с нормируемой огнестойкостью, узел пересечения должен выполнять применимые требования огнестойкости."
+  - id: water_supply_through_external_basement_or_foundation_wall
+    scope: "water supply inlet/crossing external basement wall or foundation"
+    owner: VK_KR_AR
+    rules:
+      - "СП 30 п.8.8: пересечение наружных стен подвала и фундамента выполняют под углом 90°."
+      - "В сухих грунтах решение включает зазор и эластичную водо-/газонепроницаемую заделку по применимому пункту; в мокрых грунтах — сальниковое/герметичное решение согласно проекту."
+      - "Геометрию проходки и зазор не переносить на канализационную трубу автоматически: для разных разделов СП 30 действуют отдельные пункты."
+  - id: sewer_through_wall_or_foundation
+    scope: "sewer pipeline through wall/foundation"
+    owner: VK_KR_AR
+    rules:
+      - "СП 30 п.15.3.15: жесткая заделка трубопроводов в кладке стен и фундаментах не допускается."
+      - "Отверстие должно учитывать расчетную величину деформаций основания; зазор заполняют плотным эластичным водо- и газонепроницаемым материалом."
+      - "Прокладка под фундаментом/футляр относится к отдельному конструктивно-инженерному решению и не создается автоматически как продолжение трассы."
+  - id: HVAC_duct_through_fire_rated_barrier
+    scope: "air duct through wall/floor/partition with rated fire performance"
+    owner: OV_fire_AR_KR
+    rules:
+      - "Проход транзитного воздуховода и его уплотнение проверяются по применимым требованиям СП 7 и рабочей документации; обычное отверстие Archicad без firestop metadata не является завершенным узлом."
+
+machine_rules:
+  - id: izh.N11.host_and_owner_required
+    automation: conditional
+    statement: "Каждая проходка должна иметь host GUID, тип конструкции, систему-владельца, requested-by discipline, approved-by KR where structural, назначение и revision."
+  - id: izh.N11.no_clash_driven_cut
+    automation: forbidden_to_infer
+    statement: "Коллизия MEP-трассы с несущим элементом не является разрешением на создание отверстия. Сначала согласование КР/изменение трассы/локальное конструктивное решение."
+    result: needs_structural_coordination
+  - id: izh.N11.internal_pipe_sleeve_floor_projection
+    source: SP_73_13330_2016
+    source_clause: "6.1.14"
+    automation: conditional
+    applies_when: "internal pipe crossing floor and no fixed support exception"
+    sleeve_top_above_finished_floor_mm: 30
+    statement: "Для применимого внутреннего пересечения верх гильзы выводят на 30 мм выше поверхности чистого пола."
+  - id: izh.N11.SP30_internal_sleeve_clearance
+    source: SP_30_13330_2020
+    source_clause: "11.5"
+    automation: conditional
+    applies_when: "pipeline and crossing are within clause 11.5 scope"
+    sleeve_inner_diameter_minus_pipe_outer_diameter_mm: {min: 5, max: 10}
+    statement: "Не превращать 5–10 мм в общее правило всех фундаментных/наружных проходок: оно относится к области п.11.5."
+  - id: izh.N11.foundation_rigid_embed_forbidden
+    source: SP_30_13330_2020
+    source_clause: "15.3.15"
+    automation: validation_only
+    statement: "Для канализационных трубопроводов в области п.15.3.15 жесткая заделка в кладке стен и фундаментах не допускается; учитывать расчетные деформации основания."
+
+component_model:
+  required:
+    - host_structure
+    - opening_or_reserved_void
+    - sleeve_case_or_sealed_penetration_if_required
+    - pipe_duct_or_cable_system_element
+    - annular_gap_or_movement_zone
+    - water_air_gas_seal_as_applicable
+    - firestop_as_applicable
+    - thermal_continuity_or_thermal_break_treatment_at_envelope
+    - corrosion_material_compatibility
+    - access_for_inspection_or_replacement_where_required
+  structural_additions_if_KR_requires:
+    - local_reinforcement
+    - trimming_member
+    - edge_beam
+    - relocated_opening
+
+algorithm:
+  - step: 1_route_and_host
+    action: "Resolve exact MEP system, route segment, host element/GUID, host structural role and envelope/fire role."
+  - step: 2_size_source
+    action: "Obtain pipe/duct/cable geometry from MEP design. Opening/sleeve geometry derives from the applicable system/standard/KR, not from a generic clearance."
+  - step: 3_KR_gate
+    action: "For any bearing/structural host, request KR approval before creating or resizing opening."
+  - step: 4_classify_penetration
+    action: "Choose internal sleeve / exterior foundation-water / sewer-foundation / HVAC-fire / other verified class; never merge their numeric rules."
+  - step: 5_movement_and_seal
+    action: "Define movement capability and water/gas/air/fire seal compatible with the classified case."
+  - step: 6_envelope
+    action: "At exterior envelope, restore thermal, air and water-control layers around the penetration."
+  - step: 7_execution_and_inspection
+    action: "Record installation sequence, hidden-work inspection, pressure/leak/firestop checks where applicable before closure."
+  - step: 8_readback
+    action: "Verify host-opening relation, opening geometry, system route, owner/approval properties and absence of unintended host cuts."
+
+archicad_tapir_recipe:
+  MEP_route:
+    commands: [CreateMEPRoutingElements, ModifyMEPRoutingElements, ConnectMEPElements]
+    gate: "Profile/cross section comes from MEP design/preference table, not architectural guess."
+  opening:
+    preferred: native_Opening_when_host_supported_by_verified_command
+    command: CreateOpenings
+    unresolved: "ModifyOpenings exact command remains unverified; resizing strategy must use a verified type-specific command or controlled recreate only after schema/live audit."
+  structural_relation:
+    use_SEO_only_when: "actual approved relation is a boolean operation rather than a semantic Opening"
+    commands: [CreateSolidElementLinks, GetSolidElementLinks]
+  properties:
+    required:
+      - PENETRATION_ID
+      - SYSTEM_ID
+      - OWNER_DISCIPLINE
+      - HOST_GUID
+      - HOST_STRUCTURAL_STATUS
+      - KR_APPROVAL_REF
+      - FIRESTOP_REF
+      - WATER_GAS_SEAL_REF
+      - SLEEVE_REF
+      - TARGET_PROFILE
+      - NODE_REVISION
+
+postconditions:
+  - opening_host_GUID_matches_request
+  - structural_host_has_current_KR_approval_ref
+  - penetration_class_matches_applied_rule_set
+  - route_and_opening_coordinates_are_consistent
+  - firestop_present_when_required
+  - exterior_envelope_contours_are_restored
+  - no_extra_unowned_openings_exist
+
+never_auto_assign:
+  - structural_opening_location_from_clash_only
+  - sleeve_size_for_all_cases_from_one_formula
+  - firestop_product
+  - local_reinforcement
+  - foundation_penetration_gap_without_correct_network_clause
+  - route_diameter_or_cross_section_without_MEP_design
+  - sealing_material_without_environment_and_system_scope
+
+sources:
+  - "SP 73.13330.2016 clause 6.1.14, current text with Changes 1-3"
+  - "SP 30.13330.2020 clauses 8.8, 11.5, 15.3.14-15.3.15 where applicable"
+  - "SP 73.13330.2016 Change 3 official Rosstandart card: selected deferred provisions effective 2027-03-01"

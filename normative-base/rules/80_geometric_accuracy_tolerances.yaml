@@ -1,0 +1,81 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Система точности геометрических параметров: отделить проектный размер, функциональный допуск, технологический допуск, фактическое измерение и расчет собираемости."
+
+current_documents:
+  - {document: GOST_R_58938_2020, title: "Система обеспечения точности геометрических параметров в строительстве. Основные положения", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58939_2020, title: "Правила выполнения измерений. Элементы заводского изготовления", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58941_2020, title: "Правила выполнения измерений. Общие положения", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58942_2020, title: "Технологические допуски", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58943_2020, title: "Контроль точности", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58944_2020, title: "Функциональные допуски", status: active, effective_from: 2021-01-01}
+  - {document: GOST_R_58945_2020, title: "Правила выполнения измерений параметров зданий и сооружений", status: active, effective_from: 2021-01-01}
+  - {document: GOST_21780_2006, title: "Расчет точности", status: active, effective_from: 2008-01-01}
+
+superseded_documents:
+  - {document: GOST_21779_82, status: superseded_in_RF, effective_until: 2020-12-31, replaced_in_RF_by: GOST_R_58942_2020}
+  - {document: GOST_26607_85, status: superseded_in_RF, effective_until: 2020-12-31, replaced_in_RF_by: GOST_R_58944_2020}
+  - {document: GOST_26433_1_89, status: superseded_in_RF, effective_until: 2020-12-31, replaced_in_measurement_domain_by: GOST_R_58939_2020}
+
+semantics:
+  - id: accuracy.nominal_not_tolerance
+    automation: auto
+    statement: "Номинальный/координационный проектный размер не должен содержать технологический допуск. В BIM хранить базовое значение размера отдельно от допустимого отклонения."
+
+  - id: accuracy.functional_vs_technological
+    automation: auto
+    statement: "Функциональный допуск и технологический допуск являются разными сущностями: первый связан с требуемой работоспособностью/взаимным положением, второй — с изготовлением, разбивкой и монтажом. Не использовать одно поле tolerance_mm для всех случаев."
+
+  - id: accuracy.actual_measurement_separate
+    automation: auto
+    statement: "Фактически измеренный размер/отклонение хранить отдельно от проектного допуска. Контроль соответствия выполняется сравнением измеренного значения с применимым допуском, а не изменением номинальной геометрии проекта."
+
+  - id: accuracy.no_design_error_from_tolerance
+    automation: forbidden_to_infer
+    statement: "Запрещено намеренно смещать ось, проем, стену, плиту или другой элемент в проектной модели на величину допуска, считая это допустимым проектным решением. Допуск описывает допустимое отклонение реализации/изготовления, а не альтернативную проектную геометрию."
+
+  - id: accuracy.product_standard_priority
+    automation: conditional
+    statement: "Если конкретный ГОСТ изделия или СП конструкции задает собственные предельные отклонения, использовать их в области применения изделия/работы; общая система точности не подменяет специальные значения."
+
+assembly_and_dimension_chains:
+  - id: accuracy.chain.requires_accuracy_calculation
+    source: {document: GOST_21780_2006, clause: "scope/general method"}
+    automation: manual_calculation
+    statement: "Для критической размерной цепи, где собираемость зависит от нескольких отклонений изготовления/разбивки/монтажа, выполнять расчет точности; нельзя складывать все максимальные допуски как произвольный запас без расчетной схемы."
+    requires_calculation: true
+
+  - id: accuracy.mounting_gap_not_residual
+    automation: forbidden_to_infer
+    statement: "Монтажный зазор окна, двери, панели, фасадной системы или сборного элемента нельзя определять как случайный остаток после округления модульной сетки и допусков. Он задается нормой/системой/проектным узлом и проверяется отдельно."
+    requires_manufacturer_data: true
+
+BIM_parameter_model:
+  required_fields:
+    - nominal_dimension
+    - coordination_dimension_if_applicable
+    - functional_tolerance_plus
+    - functional_tolerance_minus
+    - technological_tolerance_plus
+    - technological_tolerance_minus
+    - actual_measured_dimension_if_asbuilt
+    - source_document
+    - source_clause_or_table
+    - tolerance_scope
+    - inspection_method_if_required
+
+agent_logic:
+  - "Сначала строить идеальную проектную геометрию по нормативному/координационному размеру."
+  - "После этого назначать допуски как метаданные контроля, если они подтверждены специальным стандартом или расчетом точности."
+  - "Не увеличивать автоматически проем на сумму всех известных допусков; монтажный узел рассчитывается отдельно."
+  - "Не использовать устаревшие ГОСТ 21779-82 и 26607-85 как текущие источники профиля 2027."
+  - "При выпуске исполнительной/as-built модели фактические измерения не должны перезаписывать нормативные номинальные параметры без сохранения обоих значений."
+
+sources:
+  - "https://protect.gost.ru/gost/details/37cb81b5-7a3e-400f-98e9-768de84639fb"
+  - "https://protect.gost.ru/gost/details/e4b59959-55bc-4577-8628-16669add7d13"
+  - "https://protect.gost.ru/gost/details/542935c4-f5f6-457d-803e-c8110ae4dd59"
+  - "https://protect.gost.ru/gost/details/c6384f52-fbfb-4273-808c-0ca40a51d02b"
+  - "https://protect.gost.ru/gost/details/91b1293a-88a8-40b7-8899-0998ca1ea057"
+  - "https://protect.gost.ru/gost/changesdetails/ff35d9a5-1d04-49b8-9108-a1aa65733d0c"
+  - "https://protect.gost.ru/gost/changesdetails/2820ebab-2f75-4be3-953e-a2734fc6e19c"

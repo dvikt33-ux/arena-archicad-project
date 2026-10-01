@@ -1,4 +1,4 @@
-manifest_version: 54
+manifest_version: 55
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -120,6 +120,7 @@ rule_files:
   - 63_door_blocks_2026.yaml
   - 64_parking_fire_safety_2026.yaml
   - 65_drywall_partitions_linings.yaml
+  - 65_timber_apartment_fire_2026.yaml
   - 66_suspended_ceiling_systems.yaml
   - 67_communication_shafts_electrical_boxes.yaml
 

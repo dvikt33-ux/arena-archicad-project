@@ -1,0 +1,254 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_484_1311500_2020
+verified_changes: [1]
+purpose: >-
+  Архитектурная координация пожарного поста и приборов пожарной автоматики: этаж размещения,
+  расстояние до выхода, наблюдаемость, высоты органов управления, сервисные зоны и возможность
+  совмещения поста с диспетчерской/общим пространством. Расстановку извещателей, построение зон
+  контроля, алгоритмы СПА и электрические расчеты выполняет профильный раздел.
+
+revision_state:
+  status: active
+  change_1_effective_from: 2025-09-01
+  change_1_approval: "MChS order 252 dated 2025-03-27"
+
+fire_post_semantics:
+  source_clauses: ["3.22", "5.16"]
+  rules:
+    - id: fire.spa.post_not_always_separate_room
+      automation: validation_only
+      statement: >-
+        Пожарный пост является местом — помещением и/или частью помещения — для контроля режимов
+        работы и ручного управления СПА. Не требовать автоматически отдельную специализированную
+        комнату, если требования СП 484 допускают размещение поста в другом пространстве.
+
+    - id: fire.spa.post_shared_space_allowed
+      automation: conditional
+      allowed_shared_locations:
+        - dispatcher_room
+        - engineering_control_room
+        - hall
+        - vestibule
+        - corridor
+      statement: >-
+        Пожарный пост допускается размещать в помещениях схожего назначения и в помещениях общего
+        пользования при соблюдении всех требований к самому посту, доступу, обслуживанию и эвакуации.
+      conflict_policy: >-
+        Если оборудование выступает в путь движения, после размещения повторно проверять нормативную
+        ширину эвакуационного пути; разрешение общего пространства не разрешает его сужение.
+
+primary_device_location:
+  source_clause: "5.12, Change 1"
+  rules:
+    - id: fire.spa.primary_devices_on_fire_post_default
+      automation: validation_only
+      devices:
+        - PPKP
+        - PPU
+        - indication_and_control_functional_modules
+        - IBE
+      default_location: fire_post
+      statement: >-
+        ППКП, ППУ, функциональные модули индикации/управления и ИБЭ по базовому правилу
+        устанавливать на пожарном посту.
+
+    - id: fire.spa.devices_outside_post_exception
+      automation: conditional_exception
+      all_conditions:
+        - access_level_2_provided
+        - access_level_3_provided
+        - all_required_notifications_transmitted_to_fire_post
+        - required_light_and_sound_indication_available_at_fire_post
+        - required_manual_control_functions_available_at_fire_post
+      statement: >-
+        Размещение перечисленных устройств вне пожарного поста допускается только при одновременном
+        выполнении условий п.5.12. Архитектурный агент не использует свободную нишу вне поста как
+        автоматическую альтернативу.
+
+controls_and_visibility:
+  source_clause: "5.13, Change 1"
+  rules:
+    - id: fire.spa.control_indication_height
+      automation: conditional
+      dimension_semantics: vertical_to_control_or_indication
+      min_height_mm: 750
+      max_height_mm: 1800
+      applies_to: devices_with_controls_or_indication_under_clause_5_13
+      exception: >-
+        Для устройств без органов управления, устанавливаемых вне пожарного поста, высота установки
+        этим пунктом не регламентируется.
+
+    - id: fire.spa.post_single_observation_point
+      automation: conditional
+      requirement: all_control_and_indication_devices_visible_from_one_point
+      max_distance_from_observation_point_to_farthest_device_m: 5
+      statement: >-
+        Приборы и модули индикации/управления на пожарном посту компоновать так, чтобы их можно было
+        наблюдать из одной точки; расстояние до наиболее удаленного устройства — не более 5 м.
+
+service_clearances:
+  source_clause: "5.14, Change 1"
+  rules:
+    - id: fire.spa.manufacturer_service_clearance_priority
+      automation: hard_gate
+      statement: >-
+        Свободное пространство около ППКП/ППУ/ППКУП/модулей/ИБЭ принимать по технической
+        документации изготовителя. Если производитель требует больше fallback-минимумов СП,
+        применять требования изготовителя.
+      requires_manufacturer_data: true
+
+    - id: fire.spa.fallback_side_clearance
+      automation: conditional
+      condition: manufacturer_clearance_not_specified
+      dimension_semantics: clear
+      min_clearance_mm: 50
+      measure_between:
+        - device_and_wall_corner
+        - device_and_adjacent_device
+      statement: >-
+        При отсутствии требуемых данных в ТД изготовителя обеспечивать не менее 50 мм по вертикали
+        и горизонтали до углов стен или соседних перечисленных устройств.
+
+    - id: fire.spa.fallback_front_service_clearance
+      automation: conditional
+      condition: manufacturer_clearance_not_specified
+      dimension_semantics: clear_service_space
+      min_front_clearance_mm: 600
+      statement: >-
+        При отсутствии данных производителя свободное пространство с лицевой стороны устройства
+        должно быть не менее 600 мм.
+
+    - id: fire.spa.trays_near_devices_access_gate
+      automation: validation_only
+      statement: >-
+        Электротехнические короба, трубы и лотки могут быть ближе 50 мм только если не перекрывают
+        вентиляционные отверстия корпуса и сохраняют возможность открытия корпуса для обслуживания/ремонта.
+
+fire_post_floor_and_exit_distance:
+  source_clause: "5.15, Change 1"
+  rules:
+    - id: fire.spa.post_allowed_floors
+      automation: conditional
+      allowed_levels:
+        - basement_or_semi_basement
+        - first_floor
+        - second_floor
+      statement: >-
+        Пожарный пост размещать на цокольном, первом или втором этажах, кроме прямо предусмотренных
+        особенностей единого недвижимого комплекса.
+
+    - id: fire.spa.post_exit_distance_basement_first
+      automation: conditional
+      conditions:
+        fire_post_floor: [basement_or_semi_basement, first_floor]
+      dimension_semantics: route_distance
+      max_distance_m: 25
+      destination: building_exit
+      measure_from: nearest_fire_post_device_to_destination
+      statement: >-
+        На цокольном/первом этаже расстояние от пожарного поста до выхода из здания — не более 25 м.
+        Измерение вести от ближайшего к выходу прибора/модуля, перечисленного п.5.15, а не от центра комнаты.
+
+    - id: fire.spa.post_exit_distance_second_floor
+      automation: conditional
+      conditions:
+        fire_post_floor: second_floor
+      dimension_semantics: route_distance
+      max_distance_m: 10
+      destination: stairwell_with_direct_exit_outside
+      measure_from: nearest_fire_post_device_to_destination
+      statement: >-
+        На втором этаже расстояние от пожарного поста — не более 10 м до лестничной клетки,
+        имеющей непосредственный выход наружу.
+
+complex_building_exception:
+  source_clause: "5.15, Change 1"
+  rules:
+    - id: fire.spa.single_real_estate_complex_small_building_exception
+      automation: conditional_exception
+      all_conditions:
+        - object_is_single_real_estate_complex
+        - all_buildings_on_same_land_plot
+        - individual_building_area_m2_not_over_2000
+        - SPA_design_assignment_allows_centralized_fire_post
+      statement: >-
+        Для отдельных зданий единого недвижимого комплекса площадью каждого не более 2000 м²
+        допускается предусмотренная п.5.15 централизация пожарного поста только по заданию на проектирование СПА.
+
+fire_compartment_equipment:
+  source_clause: "5.23, Change 1"
+  rules:
+    - id: fire.spa.separate_control_devices_by_fire_compartment
+      automation: engineering_validation
+      condition: building_divided_into_fire_compartments
+      requirement: separate_PPKP_PPU_PPKUP_for_each_fire_compartment
+      statement: >-
+        Для каждого пожарного отсека контроль и управление СПЗ выполняются отдельными приборами;
+        архитектура должна учитывать фактическое количество приборов при резервировании пожарного поста.
+      requires_engineering_input: true
+
+suspended_ceiling_coordination:
+  source_clause: "5.19"
+  rules:
+    - id: fire.spa.cables_not_supported_by_suspended_ceiling
+      automation: hard_gate
+      condition: SPA_lines_above_suspended_ceiling
+      required_support: building_wall_or_structural_ceiling_with_drops_as_needed
+      prohibited: laying_cables_on_surface_of_suspended_ceiling
+      statement: >-
+        Линии СПА за подвесным потолком крепить к стенам и/или потолкам с необходимыми опусками;
+        не использовать поверхность подвесного потолка как несущую для кабелей.
+
+capacity_and_future_layout:
+  source_clause: "5.20, Change 1"
+  rules:
+    - id: fire.spa.capacity_reserve_not_architectural_area_formula
+      automation: engineering_validation
+      statement: >-
+        Запас емкости приборов 20%/100% относится к емкости СПА и не переводится архитектурным
+        агентом напрямую в площадь пожарного поста. Физическую площадь определять по реальному
+        количеству приборов, их габаритам и service envelopes после проекта СПА.
+      requires_engineering_input: true
+
+BIM_required_parameters:
+  - fire_post_id
+  - fire_post_space_type
+  - fire_post_floor
+  - fire_post_observation_point
+  - fire_post_device_ids
+  - fire_post_device_control_indication_height_mm
+  - fire_post_device_distance_from_observation_point_m
+  - device_manufacturer_id
+  - manufacturer_service_clearance_reference
+  - device_side_clearance_mm
+  - device_front_clearance_mm
+  - route_distance_to_building_exit_m
+  - route_distance_to_direct_exit_stair_m
+  - fire_compartment_id
+  - SPA_device_assignment_by_compartment
+  - suspended_ceiling_present
+  - SPA_cable_support_geometry
+  - egress_clear_width_after_fire_post_equipment_mm
+
+hard_fail_conditions:
+  - "fire post on a level outside clause 5.15 without explicit applicable exception"
+  - "required exit/stair route distance exceeds 25m or 10m for applicable floor"
+  - "control/indication device outside 0.75-1.8m where clause 5.13 applies"
+  - "farthest post device exceeds 5m from the single observation point"
+  - "manufacturer service zone or fallback 600mm front clearance is blocked"
+  - "fire-post equipment narrows required egress clear width in a shared corridor/hall/vestibule"
+  - "SPA cable is laid on suspended-ceiling surface"
+
+agent_logic:
+  - "Не создавать отдельную комнату пожарного поста по инерции старого шаблона: сначала проверить допустимое общее пространство."
+  - "Если пост в коридоре/холле, service envelope оборудования не входит в нормативный проход эвакуации."
+  - "25/10 м считать по маршруту от ближайшего прибора к требуемому выходу, а не по прямой между центрами помещений."
+  - "50/600 мм использовать только при отсутствии данных изготовителя."
+  - "Не преобразовывать 20%/100% резерв емкости СПА в произвольный процент площади помещения."
+
+sources:
+  - "https://protect.gost.ru/sp/details/e891a0d8-5003-42a3-8b86-682f26c69f6d"
+  - "https://protect.gost.ru/sp/changesdetails/85ff7ee2-fa84-47bf-905d-b3bb517b65dd"
+  - "https://www.consultant.ru/document/cons_doc_LAW_376143/11830bf832b849e0c12508169d51c6d68d13743c/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_502477/63ae4b26b06dfdfed67188ae8ba1eb08ef879405/"

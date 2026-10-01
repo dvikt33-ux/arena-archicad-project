@@ -1,0 +1,142 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES
+purpose: "Детальный алгоритм узла скатная деревянная крыша–наружная стена–карниз. Геометрия стропил, опор, анкеров, вентиляции и покрытия не назначается без расчетов и выбранной кровельной системы."
+
+normative_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], role: roof_design_and_covering_system}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structure_and_connections}
+  - {document: SP_20_13330_2016, role: snow_wind_and_other_actions}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_performance}
+  - {document: SP_71_13330_2017, role: execution_of_roof_insulation_and_vapor_control_layers}
+  - {document: SP_28_13330_2017, role: corrosion_and_biological_durability_interfaces}
+
+required_parts:
+  structure:
+    - KR_confirmed_rafter_truss_or_other_roof_member
+    - confirmed_wall_support_element
+    - bearing_detail
+    - uplift_and_lateral_connection
+    - wall_tie_or_ring_element_only_if_calculated
+  roof_cover_system:
+    - selected_covering_product_family
+    - normative_and_manufacturer_minimum_slope_gate
+    - underlay_or_water_control_layer_as_system_requires
+    - battens_or_deck_as_system_requires
+    - eaves_edge_drip_and_gutter_interface
+    - snow_ice_safety_elements_if applicable
+  thermal_air_vapor:
+    - thermal_layer_continuity_to_wall
+    - interior_air_vapor_control_continuity
+    - exterior_wind_weather_layer_transition
+    - protection_against_wind_washing_if relevant
+  ventilation_and_drying:
+    - ventilation_path_only_if_roof_system_is_ventilated
+    - inlet_at_eaves_if required
+    - continuous_path_to_outlet_ridge_or_other_exit_if required
+    - insect_bird_protection_without_blocking_required_air_path
+  durability:
+    - timber_moisture_protection
+    - metal_connector_corrosion_protection_as exposure_requires
+    - separation_of_incompatible_materials
+
+core_rules:
+  - id: izh.N07.roof_cover_before_slope
+    automation: forbidden_to_infer
+    statement: "Не назначать один уклон скатной кровли по умолчанию. Сначала выбрать тип покрытия и применимые требования СП 17/стандарта изделия/изготовителя, затем определить допустимый уклон."
+    result: needs_roof_cover_system
+  - id: izh.N07.rafter_and_anchor_from_KR
+    automation: forbidden_to_infer
+    statement: "Сечение/шаг стропил или ферм, опорный брус/мауэрлат, анкеры и противодействие ветровому отрыву определяются расчетной схемой КР, а не архитектурным шаблоном."
+    result: needs_structural_calculation
+  - id: izh.N07.vapor_layer_continuity
+    source: SP_71_13330_2017
+    source_clause: "5.2.1-5.2.3"
+    automation: validation_only
+    statement: "Пароизоляционный слой крыши выполняется непрерывно; в примыканиях к вертикальным поверхностям должна быть обеспечена герметичность и закрепление согласно проекту. Узел карниза не может обрывать внутренний воздухопароизоляционный контур."
+  - id: izh.N07.ventilation_not_universal
+    automation: forbidden_to_infer
+    statement: "Не назначать универсальную высоту вентзазора, площадь входа или схему вентиляции без определения конкретной кровельной конструкции и расчётных/системных требований."
+    result: needs_roof_system_design
+
+material_pack_variants:
+  masonry_RC_or_AAC_RC:
+    support:
+      - wall_or_RC_support_geometry_from_KR
+      - ring_beam_only_if_calculated
+      - anchor_base_verified_for_actual_material
+      - timber_mineral_material_moisture_separation_if required
+    prohibition: "Не крепить стропильную систему непосредственно к AAC/пустотелой кладке универсальным анкером из шаблона."
+  timber_wall:
+    support:
+      - top_plate_beam_or_truss_support_from_KR
+      - uplift_tie_and_lateral_load_path
+      - sheathing_bracing_continuity_if structural
+    prohibition: "Не считать обшивку автоматически несущей диафрагмой без КР."
+
+algorithm:
+  - step: 1_roof_system
+    action: "Выбрать конструктивную схему крыши и покрытие; зафиксировать допустимый диапазон уклона и требования подкровельных слоев."
+  - step: 2_KR_support
+    action: "Получить расчетные стропила/фермы, опорный узел, крепеж, горизонтальные/подъемные усилия и путь их передачи в стену."
+  - step: 3_water_path
+    action: "Проследить воду от покрытия через карниз/капельник/желоб наружу; подкровельная вода также должна иметь безопасный выход."
+  - step: 4_air_vapor
+    action: "Соединить внутренний воздухопароизоляционный слой крыши со стеновым контуром без незафиксированного разрыва за опорным узлом."
+  - step: 5_thermal
+    action: "Продолжить теплоизоляцию через верх стены/карниз так, чтобы фактический узел прошел локальную теплотехническую проверку."
+  - step: 6_ventilation
+    action: "Если система вентилируемая, создать непрерывный путь вход–канал–выход и проверить, что утеплитель/мембраны/защита от насекомых его не перекрывают."
+  - step: 7_durability
+    action: "Проверить увлажнение древесины, возможность высыхания, защиту металлических соединителей и совместимость мембран/химзащиты."
+  - step: 8_construction_sequence
+    action: "Проверить доступ к анкерам/лентам/мембранам до закрытия отделкой, обрешеткой и подшивкой карниза."
+  - step: 9_readback
+    action: "Сверить отметку опоры, геометрию крыши, выбранный уклон/покрытие, связи крыша–стена и node metadata."
+
+archicad_recipe:
+  wall: native_Wall
+  roof: native_Roof
+  structural_timber:
+    representation_by_LOD:
+      schematic: roof_semantics_plus_KR_reference
+      coordinated: native_Beam_Column_or_verified_objects_for_actual_members
+  repeated_eaves_profile: "Complex Profile only for stable repeated section; not for individual anchors/membranes."
+  trim_relationship:
+    native_preference: Trim_or_verified_associative_relation
+    tapir_status: "CreateRoofs source-verified; exact Trim command audited separately from SEO."
+  SEO_where_true_boolean_is_needed:
+    tapir: [CreateSolidElementLinks, GetSolidElementLinks]
+  membrane_and_tapes:
+    default: detail_2d_plus_properties
+  tapir_create: [CreateWalls, CreateRoofs]
+  tapir_profiles: [GetProfiles, CreateProfiles]
+  tapir_detail: [CreateDetails, CreateWorksheets]
+
+postconditions:
+  - roof_support_location_matches_KR
+  - covering_and_slope_are_compatible
+  - uplift_connection_has_KR_reference
+  - thermal_air_vapor_contours_are_closed
+  - water_path_exits_outward
+  - ventilation_path_if_required_is_continuous
+  - no_unapproved_cut_in_rafter_or_truss
+  - NODE_ID_and_revision_match_detail_output
+
+never_auto_assign:
+  - rafter_section
+  - rafter_spacing
+  - truss_geometry
+  - mauerlat_or_top_plate_section
+  - anchor_type_spacing_edge_distance
+  - roof_slope_before_covering_selection
+  - ventilation_gap_or_opening_area
+  - insulation_thickness
+  - eaves_overhang
+  - gutter_size
+
+sources:
+  - "SP 17.13330.2017 current revision through Change 5"
+  - "SP 64.13330.2017 current revision through Change 4"
+  - "SP 71.13330.2017 section 5.2 on continuous vapor-control execution"

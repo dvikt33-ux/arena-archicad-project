@@ -1,0 +1,264 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы ОВ, ВК и ЭОМ, которые должны влиять на планировку, вертикальные
+  соседства, фасад/кровлю, шахты и технические помещения до детальной инженерной трассировки.
+  Файл не рассчитывает расход воздуха, диаметры, гидравлику, электрические нагрузки или мощности.
+
+revision_dependencies:
+  - {document: SP_60_13330_2020, verified_changes: [1,2,3,4,5,6], revision_date: 2026-05-26}
+  - {document: SP_30_13330_2020, verified_changes: [1,2,3,4,5]}
+  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9]}
+
+ventilation_air_intake:
+  source: SP_60_13330_2020
+  rules:
+    - id: mep.ov.air_intake_pollution_horizontal_clearance
+      clause: "7.5.1"
+      automation: conditional
+      dimension_semantics: clear_horizontal
+      min_distance_m: 8
+      from_sources:
+        - waste_collection_places
+        - parking_and_vehicle_sources_in_clause_scope
+        - ramps
+        - public_roads
+        - loading_unloading_zones
+        - evaporative_cooling_systems
+        - chimney_tops
+        - other_pollution_or_odor_sources
+        - exhaust_outlets_with_harmful_substances_or_odors
+      statement: >-
+        Приемные устройства наружного воздуха, включая приточные шахты, не размещать ближе 8 м
+        по горизонтали от перечисленных источников загрязнения/запаха в области п.7.5.1.
+      conflict_policy: >-
+        Это минимальная архитектурная зона исключения. Расчет загрязнений, специальные санитарные
+        требования или документация оборудования могут потребовать большего расстояния.
+
+    - id: mep.ov.roof_air_intake_snow_clearance
+      clause: "7.5.1"
+      automation: conditional
+      dimension_semantics: clear_vertical
+      formula: "min_bottom_height = 1.5 * expected_max_snow_layer_thickness"
+      exception: >-
+        Допускается меньшее расстояние, если образование слоя снега предотвращено предусмотренными
+        нормой мероприятиями и обеспечена эксплуатационная очистка зоны воздухозабора.
+      required_inputs: [expected_max_snow_layer_thickness, snow_prevention_solution]
+
+    - id: mep.ov.air_intakes_adjacent_fire_compartments
+      clause: "7.5.4"
+      automation: conditional
+      condition: "separate outdoor air intakes serve adjacent fire compartments"
+      min_edge_to_edge_distance_m: 3
+      dimension_semantics: clear
+      statement: >-
+        Отдельные приемные устройства наружного воздуха систем, обслуживающих смежные пожарные
+        отсеки, разделять не менее чем на 3 м по горизонтали или вертикали.
+      exception_gate: >-
+        Общее приемное устройство для разных пожарных отсеков допускается только в случаях и при
+        противопожарных мерах п.7.5.4; архитектурный агент не объединяет их автоматически.
+
+ventilation_equipment_rooms:
+  source: SP_60_13330_2020
+  rules:
+    - id: mep.ov.residential_unit_no_adjacent_vent_equipment
+      clause: "7.1.8"
+      automation: hard_gate
+      condition: "residential_building_mechanical_ventilation_equipment"
+      prohibited_relative_positions_to_residential_room:
+        - directly_above
+        - directly_below
+        - directly_adjacent
+      statement: >-
+        Установки систем вентиляции жилых зданий с механическим побуждением не размещать
+        непосредственно над, под и смежно с жилыми помещениями; отдельно проверять шум и вибрацию.
+
+    - id: mep.ov.vent_room_same_fire_compartment_default
+      clause: "7.10.1; 10.3"
+      automation: validation_only
+      statement: >-
+        Помещение вентиляционного оборудования по базовой схеме располагают непосредственно в
+        обслуживаемом/защищаемом пожарном отсеке. Размещение за его пределами допускается только
+        по специальным условиям пожарных норм.
+
+    - id: mep.ov.vent_room_no_universal_area
+      clause: "7.10.1"
+      automation: forbidden_to_infer
+      statement: >-
+        Размер венткамеры определять по фактическому оборудованию с возможностью монтажа, ремонта,
+        демонтажа и сервисного обслуживания. Не применять коэффициент площади здания или один
+        типовой габарит венткамеры.
+      requires_engineering_input: true
+      required_inputs:
+        - equipment_envelope
+        - installation_clearances
+        - service_clearances
+        - dismantling_route
+
+sewer_architectural_routes:
+  source: SP_30_13330_2020
+  rules:
+    - id: mep.vk.sewer_hidden_revision_access
+      clause: "18.9"
+      automation: conditional
+      condition: "hidden_sewer_riser_has_revision"
+      dimension_semantics: clear_access_opening
+      min_access_hatch_mm: [300,400]
+      statement: >-
+        Напротив ревизий скрыто проложенных канализационных стояков предусматривать доступный люк
+        не менее 0,3 x 0,4 м. Не закрывать ревизию необслуживаемой отделкой или встроенной мебелью.
+
+    - id: mep.vk.sewer_prohibited_sensitive_rooms
+      clause: "18.11"
+      automation: hard_gate
+      prohibited_route_relation: "under_ceiling_or_along_wall_or_in_wall_or_in_floor"
+      room_types:
+        - residential_room
+        - preschool_sleeping_room
+        - hotel_guest_sleeping_room
+        - hospital_ward
+        - medical_office
+        - dining_hall
+        - administrative_work_room
+        - meeting_hall
+        - auditorium
+        - library
+        - classroom
+        - electrical_room
+        - transformer_room
+        - automation_control_room
+        - production_room_with_special_sanitary_regime
+      statement: >-
+        В перечисленных помещениях не прокладывать внутреннюю канализацию в запрещенных п.18.11
+        положениях. Проверка выполняется геометрически по пересечению трассы с объемом помещения.
+
+    - id: mep.vk.sewer_no_ceiling_over_food_and_valuable_rooms
+      clause: "18.11"
+      automation: hard_gate
+      prohibited_route_relation: under_ceiling
+      room_types:
+        - foodservice_room
+        - kitchen
+        - sales_hall
+        - food_storage
+        - valuable_goods_storage
+        - lobby
+        - room_with_valuable_art_finish
+        - moisture_sensitive_production_zone
+      statement: >-
+        Не проводить внутреннюю канализацию под потолком перечисленных пищевых, торговых,
+        ценных и влагочувствительных помещений в области п.18.11.
+
+    - id: mep.vk.upper_sewer_through_foodservice_in_shaft_no_revisions
+      clause: "18.13"
+      automation: conditional
+      condition: "upper_floor_domestic_sewer_riser_crosses_foodservice_or_other_embedded_premises"
+      required_route: communication_shaft
+      revisions_in_crossed_zone_allowed: false
+      statement: >-
+        Стояки бытовой канализации верхних этажей при прохождении через предприятие общепита и
+        другие встроенные помещения вести в коммуникационной шахте без ревизий в этой зоне.
+
+    - id: mep.vk.embedded_premises_separate_sewer_outlet
+      clause: "18.15"
+      automation: conditional
+      condition: "embedded_or_attached_premises_in_residential_building"
+      requirement: separate_sewer_outlet_from_residential_part
+      statement: >-
+        Выпуски бытовой канализации встроенно-пристроенных помещений предусматривать отдельно от
+        выпусков жилой части здания.
+
+electrical_rooms:
+  source: SP_256_1325800_2016
+  rules:
+    - id: mep.eom.switchboard_no_residential_adjacency
+      clause: "14.2"
+      automation: hard_gate
+      applies_to: [electrical_room, VRU, main_switchboard]
+      prohibited_relative_positions_to_residential_room:
+        - directly_above
+        - directly_below
+        - directly_adjacent
+      statement: >-
+        Электрощитовые, ВРУ и ГРЩ не располагать непосредственно над жилыми комнатами, под ними
+        или смежно с ними.
+
+    - id: mep.eom.switchboard_under_wet_room_technical_space_gate
+      clause: "14.2, current revision after Change 8"
+      automation: conditional_exception
+      condition: "switchboard_room_below_wet_process_room"
+      wet_room_types:
+        - toilet
+        - bathroom
+        - shower
+        - foodservice_kitchen
+        - washing_room
+        - other_wet_process_room
+      all_required_measures:
+        - technical_space_between_rooms
+        - reliable_waterproofing_preventing_moisture_entry
+      statement: >-
+        Размещение электрощитовой/ВРУ/ГРЩ под помещением с мокрым процессом допускается только
+        при предусмотренном техническом пространстве между ними и надежной гидроизоляции.
+      fail_if_measures_unknown: true
+
+    - id: mep.eom.transit_utilities_through_switchboard
+      clause: "14.3"
+      automation: mandatory_validation
+      permitted_only_as_exception:
+        - water_supply_pipe_without_branches_fittings_revisions_in_room
+        - heating_pipe_without_branches_fittings_revisions_in_room_except_room_heater_branch
+        - ventilation_or_other_duct_subject_to_clause_conditions
+      prohibited:
+        - gas_pipe
+        - combustible_liquid_pipe
+        - sewer_pipe
+        - internal_roof_drain
+      statement: >-
+        Не использовать электрощитовую как общую инженерную транзитную шахту. Канализация и
+        внутренние водостоки через нее запрещены; водоснабжение/отопление/короба допускаются лишь
+        как исключение при выполнении условий п.14.3.
+
+cross_discipline_generation_order:
+  - "1. До фиксации планировки создать room/zone volumes для жилых, мокрых, пищевых, электротехнических и иных чувствительных помещений."
+  - "2. Зарезервировать предварительные зоны венткамер, шахт ВК и электрощитовых как инженерные envelopes, не как окончательные размеры."
+  - "3. Применить вертикальные/смежностные hard gates до размещения оборудования и стояков."
+  - "4. На фасаде и кровле построить exclusion zones для воздухозабора относительно погрузки, мусора, парковки, дорог, выбросов и снега."
+  - "5. Получить от ОВ/ВК/ЭОМ фактическое оборудование, трассы, сервисные зоны и отверстия."
+  - "6. Любое отверстие в несущем элементе передать КР; любое пересечение пожарной преграды — пожарной координации."
+  - "7. После инженерной трассировки повторно проверить чистые проходы, высоты, двери, эвакуацию, МГН и обслуживаемость."
+
+BIM_required_parameters:
+  - room_function_type
+  - room_wet_process_status
+  - residential_room_volume
+  - fire_compartment_id
+  - air_intake_id
+  - air_intake_geometry
+  - pollution_source_zones
+  - expected_max_snow_layer_thickness
+  - ventilation_equipment_envelope
+  - ventilation_service_envelope
+  - ventilation_dismantling_route
+  - sewer_route_geometry
+  - sewer_revision_locations
+  - communication_shaft_id
+  - electrical_room_id
+  - switchboard_equipment_type
+  - technical_space_between_wet_and_electrical
+  - waterproofing_solution_reference
+  - MEP_opening_ids
+  - KR_opening_approval_status
+
+agent_logic:
+  - "Не вычислять размер венткамеры, шахты или электрощитовой по площади здания простым коэффициентом."
+  - "Сначала запрещенные соседства и зоны исключения, затем оптимизация планировки."
+  - "Не пропускать канализацию через запрещенное помещение только потому, что трасса короче."
+  - "Не размещать инженерный стояк или воздуховод путем автоматического вырезания несущей плиты/балки."
+  - "Числа этого файла — геометрические интерфейсы; диаметры, расходы, мощности и подбор оборудования остаются профильным расчетом."
+
+sources:
+  - "https://base.garant.ru/400536193/"
+  - "https://meganorm.ru/mega_doc/norm_update_01082026/metodika/0/sp_60_13330_2020_svod_pravil_otoplenie_ventilyatsiya_i.html"
+  - "https://base.garant.ru/400383625/"
+  - "https://base.garant.ru/77305472/"

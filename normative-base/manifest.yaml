@@ -1,4 +1,4 @@
-manifest_version: 44
+manifest_version: 45
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -112,6 +112,7 @@ rule_files:
   - 55_egress_stair_clear_width.yaml
   - 56_sp70_large_format_silicate_2027.yaml
   - 57_sp70_remaining_masonry_2027.yaml
+  - 58_stairwell_facade_opening_separation.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

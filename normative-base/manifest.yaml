@@ -1,4 +1,4 @@
-manifest_version: 66
+manifest_version: 67
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -138,6 +138,7 @@ rule_files:
   - 80_geometric_accuracy_tolerances.yaml
   - 81_fire_separation_matrix.yaml
   - 82_site_parking_urban_planning_2027.yaml
+  - 83_residential_site_open_space_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

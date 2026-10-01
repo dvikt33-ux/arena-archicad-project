@@ -1,0 +1,124 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+material_pack: AAC_RC
+purpose: "Материал-специфические правила узлов ИЖС для автоклавного газобетона в сочетании с железобетонными фундаментами/перекрытиями."
+
+scope:
+  product_standard: GOST_31360_2024
+  product_standard_status: active_from_2025-01-01
+  replaced_standard: GOST_31360_2007
+  corrections: ["ИУС 10-2024", "ИУС 9-2025", "ИУС 11-2025"]
+  structural_code: SP_15_13330_2020
+  execution_code: SP_70_13330_2012
+  RC_code: SP_63_13330_2018
+  product_scope_note: "ГОСТ 31360-2024 распространяется на неармированные блоки из автоклавного ячеистого конструкционно-теплоизоляционного бетона для несущих/самонесущих наружных и внутренних стен и перегородок в своей области применения; во влажных/мокрых режимах наружное ограждение требует защиты от переувлажнения."
+
+core_rules:
+  - id: izh.aac.product_identity_required
+    automation: conditional
+    statement: "Выбирать блок только из подтвержденной номенклатуры производителя, соответствующей ГОСТ 31360-2024; стандарт допускает диапазон геометрии, но это не каталог конкретного завода."
+  - id: izh.aac.no_wall_thickness_from_block_catalog
+    automation: forbidden_to_infer
+    statement: "Толщина стены не определяется автоматически шириной доступного блока: одновременно требуются проверка несущей способности/устойчивости и тепловлажностный расчет."
+    result: needs_structural_and_thermal_calculation
+  - id: izh.aac.no_brick_joint_rule
+    automation: forbidden_to_infer
+    statement: "Не переносить правила и производные шаги обычной кирпичной кладки на тонкошовную/клеевую кладку AAC. Технология шва должна соответствовать проекту, СП и системе материала."
+    result: needs_verified_aac_masonry_system
+  - id: izh.aac.moisture_protection
+    automation: validation_only
+    statement: "Для наружных ограждений AAC проверять защиту от переувлажнения, особенно при влажных/мокрых режимах и в цокольных/оконных/карнизных узлах."
+
+node_overrides:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    components:
+      - KR_confirmed_support_zone
+      - compatible_leveling_or_bedding_layer
+      - capillary_moisture_break_or_verified_equivalent
+      - robust_plinth_water_protection
+      - facade_or_render_base_system_compatible_with_AAC
+      - thermal_continuity_at_foundation_edge
+    critical_checks:
+      - moisture_from_ground_and_splash_zone
+      - local_bearing
+      - first_course_geometry
+      - differential_deformation_between_RC_and_AAC
+      - freeze_thaw_exposure_of_finish_system
+    forbidden:
+      - placing_unprotected_AAC_in_water_exposed_zone_by_template
+      - foundation_or_bearing_dimensions_from_block_width
+
+  IZH_N03_MASONRY_WALL_FLOOR:
+    precast_RC:
+      components:
+        - KR_confirmed_slab_and_bearing_solution
+        - local_load_distribution_solution_if_required
+        - ties_or_ring_element_only_if_KR_requires
+        - protection_of_AAC_at_concentrated_loads
+        - thermal_edge_solution
+      forbidden:
+        - universal_slab_bearing_length
+        - automatic_RC_belt
+        - direct_support_of_unverified_point_or_concentrated_load
+    monolithic_RC:
+      components:
+        - KR_confirmed_wall_slab_interface
+        - differential_deformation_strategy
+        - thermal_edge_solution
+      rule: "Монолитный пояс/участок ЖБ не является автоматическим обязательным элементом каждого AAC-узла; его необходимость и геометрию определяет расчетная схема."
+
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    components:
+      - AAC_unit_layout_for_selected_product
+      - compatible_bonding_or_tie_solution
+      - thermal_continuity
+      - finish_reinforcement_or_movement_strategy_if_required_by_system
+    forbidden:
+      - generic_brick_bond_pattern
+      - arbitrary_cut_unit_without_product_and_execution_check
+
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    components:
+      - KR_confirmed_head_solution
+      - AAC_compatible_window_fastening_base_or_local_insert_solution
+      - installation_joint_per_window_standards
+      - thermal_reveal_solution
+      - sill_water_shedding
+      - moisture_protection_of_exposed_AAC
+    critical_checks:
+      - fastener_suitability_for_AAC_or_embedded_support
+      - local_edge_strength
+      - crack_and_deformation_risk_at_opening
+      - joint_air_water_vapor_continuity
+    forbidden:
+      - copying_fastener_spacing_from_brick_or_concrete
+      - assuming_U_block_lintel_is_structurally_sufficient_without_KR
+      - universal_mounting_gap
+
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    components:
+      - KR_confirmed_roof_support_on_AAC
+      - local_RC_or_tie_element_only_if_calculated
+      - verified_anchor_base
+      - moisture_separation_between_timber_and_masonry_if required
+      - envelope_continuity
+    forbidden:
+      - anchoring_directly_to_AAC_by_generic_template
+      - universal_ring_beam_or_anchor_spacing
+
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    rules:
+      - "Small non-structural chases/penetrations still require material-specific limits; structural effect must be checked before automatic geometry change."
+      - "Large openings or openings near supports/edges return needs_structural_coordination."
+      - "Wet penetrations must maintain moisture protection of AAC and finish system."
+
+archicad_recipe_defaults:
+  wall: "Native Wall; use verified Building Material/Composite representing AAC + finish/insulation layers as appropriate."
+  product_unit_layout: "Do not model every block in general BIM unless a construction-layout task explicitly needs it; store system pitch/product metadata and use detail/worksheet for bond diagrams."
+  local_RC: "Separate native RC elements when they are actual calculated structural parts; never hide them inside a wall composite only for graphics."
+  openings: "Native Opening/Window/Door with node ownership and material-specific fastening metadata."
+
+sources:
+  - "https://protect.gost.ru/gost/details/e51e4bd7-2c0b-407b-9013-b5e9fca43e3f"
+  - "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"

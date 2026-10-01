@@ -1,0 +1,145 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Деформационные, температурно-усадочные и осадочные швы: предварительная архитектурная разбивка без подмены расчета КР."
+
+revision_dependencies:
+  - {document: SP_15_13330_2020, verified_changes: [1]}
+  - {document: SP_63_13330_2018, verified_changes: [1,2]}
+  - {document: SP_20_13330_2016, verified_changes: [1,2,3,4,5,6]}
+  - {document: SP_131_13330_2025, role: climatic_input}
+
+universal_gate:
+  - id: joints.no_universal_spacing
+    automation: forbidden_to_infer
+    statement: "Не существует одного универсального нормативного шага деформационных/температурно-усадочных швов для всех зданий. Расстояние зависит от материала, конструктивной схемы, температурного режима и специальных условий; архитектурный агент использует табличные пределы только в точной области допуска без расчета."
+    requires_calculation: true
+
+reinforced_concrete:
+  source: SP_63_13330_2018
+  rules:
+    - id: joints.rc.spacing_by_calculation_general
+      clause: "10.2.3 as amended by change 1"
+      amendment: 1
+      automation: manual_calculation
+      statement: "Расстояния между постоянными температурно-усадочными швами бетонных и железобетонных конструкций устанавливают расчетом."
+      requires_calculation: true
+
+    - id: joints.rc.no_calc_limits_table10_1a
+      clause: "10.2.3; table 10.1a"
+      amendment: 1
+      automation: conditional
+      statement: "При расчетной температуре наружного воздуха минус 40 °C и выше допускается не выполнять специальный расчет температурно-усадочных швов, если расстояние не превышает табличный предел для соответствующей конструктивной схемы и температурного режима. Это предел допуска без расчета, а не рекомендуемый модуль здания."
+      conditions: {design_outdoor_temperature_C: {min: -40}}
+      table_m:
+        concrete_precast: {heated_or_ground: 40, unheated: 35, outdoor: 30}
+        concrete_monolithic_with_structural_reinforcement: {heated_or_ground: 30, unheated: 25, outdoor: 20}
+        concrete_monolithic_without_structural_reinforcement: {heated_or_ground: 20, unheated: 25, outdoor: 10}
+        rc_precast_frame_one_storey: {heated_or_ground: 72, unheated: 60, outdoor: 48}
+        rc_precast_frame_multistorey: {heated_or_ground: 60, unheated: 50, outdoor: 40}
+        rc_precast_monolithic_or_monolithic_frame: {heated_or_ground: 50, unheated: 40, outdoor: 30}
+        rc_precast_monolithic_or_monolithic_wall: {heated_or_ground: 40, unheated: 30, outdoor: 25}
+      note: "Для железобетонных каркасных зданий табличные значения установлены при отсутствии связей либо размещении связей в середине температурного блока."
+      conflict_policy: "При невыполнении любого условия таблицы — needs_structural_calculation."
+
+    - id: joints.settlement_required_for_uneven_foundation_settlement
+      source: {document: SP_63_13330_2018, clause: "10.2"}
+      automation: manual_calculation
+      statement: "При неравномерной осадке фундаментов предусматривают разделение конструкций осадочными швами. Положение и конструкцию шва определяет КР на основании расчетов основания и здания."
+      requires_calculation: true
+
+masonry:
+  source: SP_15_13330_2020
+  rules:
+    - id: joints.masonry.general_temperature_shrinkage_calculation
+      clause: "9.84 as amended by change 1"
+      amendment: 1
+      automation: manual_calculation
+      statement: "Температурно-усадочные швы в каменных стенах устраивают в местах возможной концентрации деформаций; расстояния между ними устанавливают расчетом."
+      requires_calculation: true
+
+    - id: joints.masonry.table9_7_scope_gate
+      clause: "9.85"
+      automation: conditional
+      statement: "Таблицу 9.7 допускается применять без расчета только для предусмотренных п.9.85 неармированных наружных стен отапливаемых зданий и связанных случаев. Для основного случая длина армированных бетонных/стальных включений не более 3,5 м, ширина простенков не менее 0,8 м."
+      conditions:
+        wall_reinforcement: unreinforced
+        wall_location: external
+        building_thermal_mode: heated
+        max_reinforced_or_steel_inclusion_length_m: 3.5
+        min_pier_width_mm: 800
+      conflict_policy: "Если включение длиннее 3,5 м, участки кладки у его концов проверяют расчетом прочности и раскрытия трещин; таблица не закрывает проверку."
+
+    - id: joints.masonry.table9_7_no_calc_distances
+      clause: "9.85; table 9.7"
+      automation: conditional
+      dimension_semantics: axis
+      statement: "Максимальные расстояния между температурно-усадочными швами без расчета в области таблицы 9.7 зависят от материала кладки, марки раствора и температуры наиболее холодной пятидневки."
+      table_m:
+        temp_minus40_or_lower:
+          ceramic_natural_concreteblock_mortar_50_plus: 50
+          ceramic_natural_concreteblock_mortar_25_or_lower: 60
+          silicate_concrete_stone_mortar_50_plus: 35
+          silicate_concrete_stone_mortar_25_or_lower: 40
+        temp_minus30:
+          ceramic_natural_concreteblock_mortar_50_plus: 70
+          ceramic_natural_concreteblock_mortar_25_or_lower: 90
+          silicate_concrete_stone_mortar_50_plus: 50
+          silicate_concrete_stone_mortar_25_or_lower: 60
+        temp_minus20_or_higher:
+          ceramic_natural_concreteblock_mortar_50_plus: 100
+          ceramic_natural_concreteblock_mortar_25_or_lower: 120
+          silicate_concrete_stone_mortar_50_plus: 70
+          silicate_concrete_stone_mortar_25_or_lower: 80
+      interpolation_note: "Для промежуточных расчетных температур СП 15 допускает интерполяцию."
+      requires_object_classification: true
+
+    - id: joints.masonry.unheated_factors
+      clause: "9.85 g"
+      automation: conditional
+      statement: "Для неотапливаемых каменных зданий в области условий п.9.85 значения таблицы 9.7 корректируют: коэффициент 0,7 для закрытых зданий/сооружений и 0,6 для открытых сооружений."
+      values: {closed_unheated_factor: 0.7, open_structure_factor: 0.6}
+
+    - id: joints.masonry.seasonal_frost_underground_factor
+      clause: "9.85 d"
+      automation: conditional
+      statement: "Для каменных/крупноблочных стен подземных сооружений и фундаментов в зоне сезонного промерзания грунта расстояния таблицы 9.7 увеличивают в два раза; ниже границы сезонного промерзания и в зоне вечной мерзлоты пункт предусматривает отсутствие ограничения длины по этому критерию."
+      values: {seasonal_frost_factor: 2.0}
+      conflict_policy: "Это только температурно-усадочный критерий п.9.85; другие причины устройства деформационных швов и расчет основания сохраняются."
+
+facade_and_finish_interface:
+  - id: joints.must_propagate_through_nonstructural_layers
+    automation: validation_only
+    statement: "Конструкционный деформационный шов здания должен быть явно передан в модель фасада, отделки, кровли и пола через соответствующие системные узлы; нельзя непрерывно перекрывать его фасадным/отделочным слоем без предусмотренного решения."
+    conflict_policy: "Конкретная ширина и профиль узла задаются проектом системы и производителем; см. facade/roof/floor rule sets."
+    requires_manufacturer_data: true
+
+BIM_required_parameters:
+  - joint_type
+  - joint_axis
+  - joint_design_width_mm
+  - structural_system
+  - thermal_block_length_m
+  - building_thermal_mode
+  - outdoor_design_temperature_C
+  - masonry_material_group
+  - mortar_strength_grade
+  - masonry_pier_min_width_mm
+  - reinforced_inclusion_max_length_m
+  - settlement_joint_required
+  - structural_calculation_reference
+  - facade_joint_interface
+  - roof_joint_interface
+  - floor_joint_interface
+
+agent_logic:
+  - "Не разбивать здание на блоки каждые 30/40/60 м автоматически: сначала определить конструктивную систему и условия таблицы."
+  - "Числа таблиц 10.1а и 9.7 — верхние пределы области допуска без расчета, а не оптимальные длины температурного блока."
+  - "Осадочный шов не назначать по температурной таблице."
+  - "После назначения конструкционного шва автоматически требовать согласованный узел его прохождения через фасад, кровлю и пол."
+  - "Для климата брать актуальные данные из SP_131_13330_2025, а не из старых климатических таблиц проекта."
+
+sources:
+  - "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  - "https://base.garant.ru/400383621/"
+  - "https://base.garant.ru/73866632/"
+  - "https://library.nadzor-info.ru/doc/141689"

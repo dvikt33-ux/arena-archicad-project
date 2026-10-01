@@ -1,0 +1,116 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION
+purpose: "Детальный алгоритм углового и Т-образного сопряжения наружных/внутренних стен ИЖС. Геометрически похожие стыки разных конструктивных систем не считаются взаимозаменяемыми."
+
+normative_stack:
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_scope}
+  - {document: SP_15_13330_2020, role: masonry_structural_design_when_applicable}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structures_when_applicable}
+  - {document: SP_260_1325800_2023, role: cold_formed_LSTK_when_applicable}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_performance}
+  - {document: SP_28_13330_2017, changes: [1,2,3,4], role: durability_and_corrosion}
+  - {document: SP_71_13330_2017, role: insulation_and_finish_execution}
+
+classification_before_design:
+  geometry: [external_corner, internal_corner, T_junction, cross_junction, material_transition]
+  structural_role_each_wall: [loadbearing, selfbearing, nonbearing_partition]
+  material_system_each_wall: [ceramic_masonry, silicate_masonry, AAC, timber_frame, massive_or_engineered_timber, LSTK, reinforced_concrete, other_verified_system]
+  envelope_role: [external_envelope, internal_only]
+  movement_relation: [monolithic_or_bonded, mechanically_tied, sliding_or_movement_accommodating, independent]
+
+mandatory_contours:
+  structural:
+    - confirmed_load_path_of_each_wall
+    - material_specific_bond_tie_or_connector
+    - local_stability_and_out_of_plane_restraint_if_required
+    - movement_or_deformation_strategy_for_dissimilar_systems
+  thermal_air_moisture:
+    - continuous_thermal_layer_where_envelope
+    - continuous_air_control_layer
+    - vapor_control_transition_according_to_hygrothermal_design
+    - exterior_weather_resistive_layer_continuity
+    - drainage_and_drying_path_if_facade_system_requires
+  durability:
+    - corrosion_protection_for_metal_ties_or_profiles_as_required
+    - moisture_sensitive_material_protection
+    - compatible_contact_between_dissimilar_materials
+  fire_acoustic:
+    - fire_continuity_if_required_by_applicable_design
+    - acoustic_seal_and_flanking_path_check_if_partition_requirement_applies
+
+material_variants:
+  masonry_same_material:
+    rule: "Перевязку, анкеровку/связи и допустимую геометрию назначать по фактическому виду кладки, расчетной схеме и актуальному СП 15/СП 70; не генерировать схему перевязки только по толщине стены."
+    never_infer: [bond_pattern_without_unit_geometry, tie_spacing, movement_joint_need]
+  AAC:
+    rule: "Узел должен учитывать фактический формат блоков, технологию шва, локальную прочность и деформационную совместимость с примыкающей системой; кирпичную перевязку не переносить на AAC."
+    never_infer: [connector_type, connector_spacing, universal_mesh_reinforcement]
+  timber_frame:
+    rule: "Конфигурация стоек/обвязок/обшивки определяется расчетной работой каркаса и диафрагм; дополнительную стойку нельзя добавлять только ради удобства отделки без проверки теплотехнического и конструктивного эффекта."
+    never_infer: [stud_count_at_corner, fastener_pattern, sheathing_as_structural_diaphragm]
+  LSTK:
+    rule: "Стык профилей, раскрепление, соединители и передача усилий проектируются по СП 260.1325800.2023 и расчетной схеме; холодный мост через профиль проверяется в составе ограждения."
+    never_infer: [profile_section, screw_count, screw_spacing, thermal_break_geometry]
+  CLT_or_engineered_timber:
+    rule: "Панельный стык рассматривается как соединение расчетных панелей с отдельным крепежом, герметизацией и защитными слоями; геометрия шва производителя не считается универсальной."
+    never_infer: [panel_joint_profile, connector_type, screw_pattern]
+  dissimilar_material_T_junction:
+    rule: "Сначала установить, должна ли связь передавать усилия жестко или допускать относительные перемещения. Штукатурка, пена или отделка не считаются конструктивной связью."
+
+algorithm:
+  - step: 1_classify_hosts
+    action: "Определить материал, несущую роль, ориентацию слоев и расчетную функцию обеих стен."
+  - step: 2_structural_connection
+    action: "Получить из КР тип связи/перевязки, соединители, расчетные зоны и допустимые перемещения."
+    fail: needs_structural_connection_design
+  - step: 3_contour_mapping
+    action: "Для каждого функционального слоя наружной стены сопоставить продолжение через угол/Т-стык: несущий, теплоизоляционный, воздухонепроницаемый, парорегулирующий, водозащитный, фасадный/вентиляционный."
+  - step: 4_thermal_moisture
+    action: "Проверить двумерную/трехмерную неоднородность узла и риск локального охлаждения/увлажнения; плоское сопротивление стены не подтверждает узел."
+  - step: 5_movement
+    action: "Проверить усадку, температурные и влажностные деформации материалов и не замкнуть подвижный стык жестким отделочным слоем."
+  - step: 6_constructability
+    action: "Проверить монтажную последовательность соединителей, мембран, утеплителя и фасада до закрытия доступа."
+  - step: 7_BIM_readback
+    action: "Проверить GUID стен, reference lines, ориентацию слоев, фактическое пересечение, свойства NODE_ID и отсутствие непредусмотренных priority-based пересечений."
+
+archicad_recipe:
+  hosts: native_Wall
+  same_system_plan_junction: "Использовать корректные reference lines, Building Materials/Composites и priority-based junction только если автоматическое сопряжение соответствует реальному конструктивному стыку."
+  dissimilar_or_movement_joint: "Не заставлять стены визуально сливаться приоритетами материалов; разрыв/отдельные элементы и 2D-деталь должны отражать реальный подвижный или независимый стык."
+  discrete_connectors: "Verified Library Object or metadata/detail representation; не моделировать случайный Morph как расчетный крепеж."
+  repeated_edge_profile: "Complex Profile только для повторяемой геометрии стенового края, не как контейнер для крепежа и мембран."
+  tapir_primitives:
+    - CreateWalls
+    - ModifyWalls
+    - GetDetailsOfElements
+    - CreateBuildingMaterials
+    - CreateComposites
+    - CreateProfiles
+    - CreateDetails
+
+postconditions:
+  - wall_roles_and_material_systems_classified
+  - structural_connection_ref_present_when_required
+  - no_unintended_priority_intersection
+  - thermal_air_weather_contours_have_no_unresolved_break
+  - movement_strategy_recorded
+  - connector_geometry_not_invented
+  - NODE_ID_and_revision_written
+
+never_auto_assign:
+  - masonry_bond_pattern_without_exact_unit_and_structural_context
+  - wall_tie_or_anchor_type_and_spacing
+  - timber_corner_stud_configuration
+  - LSTK_profile_or_screw_pattern
+  - CLT_connector_or_screw_pattern
+  - movement_joint_width
+  - insulation_thickness
+  - membrane_product
+
+sources:
+  - "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  - "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+  - "https://protect.gost.ru/sp/details/70cfce3e-7c81-4b3e-a747-24147317b070"

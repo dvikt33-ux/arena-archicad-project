@@ -1,4 +1,4 @@
-manifest_version: 70
+manifest_version: 71
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -142,6 +142,7 @@ rule_files:
   - 84_plot_boundaries_red_lines_2027.yaml
   - 85_quarter_drives_pedestrian_routes_2027.yaml
   - 86_fire_compartment_base_matrices_2027.yaml
+  - 87_trk_children_foodservice_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

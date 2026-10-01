@@ -1,0 +1,97 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Алгоритм подбора конструктивной системы ИЖС без подмены инженерного расчета типовым решением."
+
+candidate_families:
+  foundations:
+    note: "Это семейства кандидатов, а не рекомендации и не разрешение на выбор без расчета."
+    types:
+      - reinforced_concrete_strip_or_wall_foundation
+      - reinforced_concrete_raft_or_slab
+      - pile_foundation_with_grillage
+      - special_foundation_solution_if_site_requires
+  loadbearing_walls:
+    types:
+      - ceramic_or_brick_masonry
+      - autoclaved_aerated_concrete_masonry
+      - silicate_masonry
+      - timber_or_timber_frame_system
+      - reinforced_concrete_or_steel_local_frames_where_calculated
+  floors:
+    types:
+      - monolithic_reinforced_concrete
+      - precast_reinforced_concrete
+      - timber_beam_or_engineered_timber
+      - mixed_system_only_if_calculated_and_detailed
+  roofs:
+    types:
+      - timber_pitched_roof
+      - reinforced_concrete_flat_or_low_slope_roof
+      - other_calculated_system_with_verified_product_and_code_scope
+
+selection_pipeline:
+  - stage: 1_scope
+    action: "Проверить применимость СП 55 и специальных норм объекта/участка."
+  - stage: 2_ground_and_foundation
+    action: "Отсечь фундаментные схемы, несовместимые с инженерно-геологическими условиями, грунтовыми водами, морозным пучением, осадками и соседней застройкой."
+  - stage: 3_structural_system
+    action: "Для каждого кандидата построить расчетную схему передачи вертикальных/горизонтальных нагрузок до основания; КР подтверждает сечения, армирование, устойчивость, опирания и соединения."
+  - stage: 4_envelope
+    action: "Проверить теплопередачу, температурные поля ключевых узлов, влагонакопление/конденсацию, воздухопроницаемость и защиту от воды."
+  - stage: 5_fire_and_durability
+    action: "Проверить пожарные, коррозионные, биологические и эксплуатационные ограничения конкретной системы."
+  - stage: 6_engineering_integration
+    action: "До фиксации несущей схемы зарезервировать подтвержденные вводы, проходки, шахты, оборудование и зоны обслуживания."
+  - stage: 7_constructability
+    action: "Проверить доступность изделий, допустимые пролеты/типоразмеры, монтажную последовательность, допуски и возможность контроля скрытых работ."
+  - stage: 8_optimization
+    action: "Только после прохождения обязательных ограничений сравнивать стоимость, скорость, массу, углерод, ремонтопригодность и архитектурную гибкость по критериям конкретного проекта."
+
+compatibility_checks:
+  - id: izh.selection.foundation_wall_interface
+    automation: validation_only
+    statement: "Материал/толщина стены и схема фундамента должны иметь расчетно подтвержденную опорную зону; нельзя центрировать стену на фундаменте только по визуальной симметрии."
+  - id: izh.selection.wall_floor_interface
+    automation: validation_only
+    statement: "Тип перекрытия должен быть совместим со стеной по передаче нагрузки, опиранию, локальным напряжениям, анкеровке/связям и деформациям."
+  - id: izh.selection.roof_wall_interface
+    automation: validation_only
+    statement: "Стропильная/кровельная система должна передавать вертикальные и распорные/ветровые усилия в подтвержденные несущие элементы; мауэрлат/анкеры/армопояс не назначаются автоматически."
+  - id: izh.selection.material_transition
+    automation: validation_only
+    statement: "Стык материалов с различными деформациями и влагорежимом требует отдельного узла: крепление, компенсация перемещений, герметизация и защита от влаги должны быть определены явно."
+
+no_universal_defaults:
+  - foundation_depth
+  - footing_width
+  - reinforcement
+  - masonry_pier_width
+  - lintel_bearing
+  - slab_bearing
+  - timber_member_section
+  - rafter_spacing
+  - anchor_spacing
+  - insulation_thickness
+  - waterproofing_system
+  - ventilation_duct_size
+  - pipe_diameter
+
+output_contract:
+  each_candidate_must_store:
+    - candidate_id
+    - system_description
+    - normative_scope
+    - required_calculations
+    - required_manufacturer_data
+    - unresolved_inputs
+    - compatible_node_families
+    - archicad_element_mapping
+    - rejection_reasons
+  selection_status_values:
+    - candidate
+    - blocked_missing_inputs
+    - rejected_normative
+    - rejected_calculation
+    - compatible_pending_optimization
+    - selected_by_project_decision

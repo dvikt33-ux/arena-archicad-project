@@ -1,4 +1,4 @@
-package_manifest_version: 1
+package_manifest_version: 2
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -11,6 +11,9 @@ load_order:
   - 04_tapir_capability_gap.yaml
   - 05_node_generation_algorithm.yaml
   - 06_canonical_nodes_v1.yaml
+  - 07_pack_masonry_rc.yaml
+  - 08_pack_aac_rc.yaml
+  - 09_pack_timber.yaml
 
 release_gate:
   require:
@@ -24,7 +27,15 @@ release_gate:
     - tapir_command_availability_verified_before_write
     - write_operations_have_readback_and_postconditions
 
-next_material_packs:
+completed_material_packs:
   - masonry_reinforced_concrete
   - AAC_reinforced_concrete
-  - timber_frame_and_timber_structures
+  - timber_structures
+
+next_cycles:
+  - exact_Tapir_command_schema_audit_for_node_recipe
+  - masonry_RC_detailed_joint_recipes
+  - AAC_RC_detailed_joint_recipes
+  - timber_detailed_joint_recipes
+  - thermal_moisture_interface_schema
+  - MEP_penetration_ownership_and_fire_water_seal_schema

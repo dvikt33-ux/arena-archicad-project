@@ -1,0 +1,121 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Единая семантическая модель архитектурно-конструктивного узла. Узел не является только 2D-чертежом."
+
+node_definition:
+  statement: "Узел — это согласованная система передачи усилий, геометрии, слоев защиты и инженерных проходов между двумя или более строительными системами, с проверяемыми источниками и статусами."
+
+mandatory_contours:
+  - id: load_path
+    meaning: "путь передачи постоянных, временных и особых воздействий между элементами"
+    owner: KR
+    fail_if_unknown: true
+  - id: connection_and_fasteners
+    meaning: "контакт, анкеровка, крепеж, сварка/болты/раствор/клей/механическое соединение в зависимости от системы"
+    owner: KR_or_verified_product_system
+    fail_if_unknown_when_structural: true
+  - id: movement_and_tolerance
+    meaning: "температурные/влажностные деформации, осадки, монтажные допуски, деформационные возможности герметиков и крепежа"
+    owner: multidisciplinary
+  - id: thermal_continuity
+    meaning: "непрерывность тепловой защиты и локальные мосты холода"
+    owner: AR_thermal
+    calculation_gate: true
+  - id: air_tightness
+    meaning: "непрерывность воздухонепроницаемого контура"
+    owner: AR
+  - id: vapor_control
+    meaning: "контроль диффузии/конвективного переноса влаги с учетом расчетного влажностного режима"
+    owner: AR_thermal
+    calculation_gate: true
+  - id: bulk_water_and_waterproofing
+    meaning: "защита от дождевой, талой, грунтовой и эксплуатационной воды"
+    owner: AR_KR
+  - id: drainage_and_drying
+    meaning: "организованный отвод воды и возможность высыхания конструкции там, где это предусмотрено системой"
+    owner: AR
+  - id: fire
+    meaning: "огнестойкость, распространение огня, пожарные рассечки/заделки проходок при применимости"
+    owner: fire_AR_KR
+  - id: acoustic
+    meaning: "звукоизоляция и исключение жестких мостиков/утечек звука, если нормируется"
+    owner: AR
+  - id: corrosion_and_biological
+    meaning: "защита металла, древесины, бетона/кладки от агрессивной среды и биопоражений"
+    owner: KR_AR
+  - id: mep_penetrations
+    meaning: "гильзы, отверстия, противопожарная/гидроизоляционная заделка, уклоны и зоны обслуживания"
+    owner: MEP_KR_AR
+  - id: construction_sequence
+    meaning: "порядок выполнения и доступность операций до закрытия последующими слоями"
+    owner: project_execution
+  - id: inspection_and_maintenance
+    meaning: "контролируемые скрытые работы, заменяемость герметиков/оборудования и доступ для обслуживания"
+    owner: multidisciplinary
+
+component_roles:
+  host_elements:
+    examples: [wall, slab, beam, column, roof, foundation, opening]
+  product_elements:
+    examples: [window_block, door_block, lintel, membrane, insulation_board, flashing, fastener, sleeve]
+  interface_materials:
+    examples: [mortar, adhesive, sealant, tape, foam, grout, gasket]
+  geometry_features:
+    examples: [rebate, groove, drip_edge, slope, ventilation_gap, drainage_gap, movement_gap]
+  calculated_zones:
+    examples: [bearing_zone, edge_distance, thermal_bridge_zone, fire_separation_zone, service_clearance]
+
+bim_representation_status:
+  allowed_values:
+    - modelled_native_3d
+    - modelled_library_object
+    - modelled_morph_exception
+    - relationship_only
+    - property_metadata
+    - detail_2d_only
+    - external_calculation_reference
+    - manufacturer_system_reference
+    - unresolved_blocked
+  policy: "Не моделировать микрокомпонент в 3D только ради полноты, если для управления проектом достаточно параметра/2D-условного обозначения; но не терять его семантическую роль."
+
+node_record_required_fields:
+  - node_id
+  - node_family
+  - hosts
+  - construction_system
+  - project_location
+  - applicability_conditions
+  - source_documents
+  - source_clauses_or_tables
+  - manufacturer_documents_if_any
+  - calculation_references
+  - contours
+  - component_list
+  - archicad_representation
+  - unresolved_items
+  - approval_status
+  - revision
+  - checked_at
+
+approval_statuses:
+  - concept_unverified
+  - normative_checked
+  - structural_calculation_required
+  - thermal_moisture_calculation_required
+  - engineering_coordination_required
+  - manufacturer_data_required
+  - coordinated
+  - approved_for_model
+  - obsolete
+
+normative_basis_notes:
+  - "СП 55 требует учитывать надежность, влагозащиту, конденсацию, герметизацию, температурно-влажностные деформации и осадки; поэтому узел нельзя описывать только несущим контактом."
+  - "Для оконных/балконных блоков ГОСТ Р 70266-2022 рассматривает узел присоединения как систему светопрозрачной конструкции, монтажного шва, герметизации/изоляции, крепления и прилегающей части ограждающей конструкции."
+  - "ГОСТ 34378-2018 и ГОСТ Р 59495-2021 применяются к монтажу и креплению оконных/балконных дверных блоков и должны участвовать в узлах проемов в своей области применения."
+
+sources:
+  - "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  - "https://protect.gost.ru/gost/details/d57c7527-3aad-4d75-9c6b-57a26058f000"
+  - "https://protect.gost.ru/gost/details/4ec6d32f-f05d-4a38-904d-e2485a937573"
+  - "https://protect.gost.ru/gost/details/a5e91159-9557-43f7-9452-3f4d045638e0"

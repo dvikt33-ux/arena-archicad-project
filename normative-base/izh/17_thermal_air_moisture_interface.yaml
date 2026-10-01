@@ -1,0 +1,170 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Единый расчетно-BIM интерфейс теплового, воздухонепроницаемого и влажностного контуров узлов ИЖС по СП 50.13330.2024. Не подменяет профильный расчет."
+
+primary_document:
+  document: SP_50_13330_2024
+  status: active
+  effective_from: 2024-06-16
+  role: thermal_protection_air_permeability_moisture_protection
+
+independent_checks:
+  - id: thermal_plane_element
+    question: "Does the opaque/window/door construction satisfy the applicable plane-element thermal requirement?"
+    representation: external_calculation_reference
+  - id: thermal_linear_bridge
+    source_clause: "Appendix G, especially G.3"
+    question: "What is the additional heat loss through each linear thermal heterogeneity?"
+    required_method: "2D temperature-field calculation or verified published data permitted by the code methodology"
+    outputs: [psi_W_per_mK, heat_flow, calculation_geometry_ref]
+  - id: thermal_point_bridge
+    source_clause: "Appendix G, G.4"
+    question: "What is the additional heat loss through point thermal heterogeneity?"
+    required_method: "3D temperature-field calculation or verified data under applicable methodology"
+    outputs: [chi_W_per_K, calculation_geometry_ref]
+  - id: internal_surface_temperature
+    source_clause: "5.7"
+    question: "Are all critical internal surface temperatures above the applicable minimum/dew-point condition?"
+    critical_zones:
+      - conductive_inclusions
+      - external_corners
+      - transition_above_ground_to_ground_contact
+      - window_reveals
+      - skylight_reveals_if_present
+    required_method: "temperature field for all thermally nonuniform zones or permitted test method"
+  - id: air_permeability
+    source_clause: "7"
+    question: "Does the envelope construction meet required resistance to air permeability?"
+    building_scale: true
+    node_role: "Node must preserve the designed continuous air-control layer; a geometric seam without defined sealing cannot be marked airtight."
+  - id: vapor_moisture
+    source_clause: "8.1"
+    question: "Does the assembly resist unacceptable moisture accumulation under the code vapor-transfer calculation?"
+    required_method: "1D vapor-transfer calculation for the prescribed condition; additional system-specific hygrothermal analysis may be needed where the 1D code method does not resolve local junction behavior."
+
+residential_dewpoint_inputs:
+  source_clause: "5.7"
+  note: "These are calculation humidity inputs stated by the code for dew-point/internal-surface checks, not indoor comfort design targets."
+  cases:
+    residential_rooms_percent: 55
+    kitchens_percent: 60
+    bathrooms_percent: 65
+    warm_basements_crawlspaces_with_services_percent: 75
+    warm_attics_residential_percent: 55
+
+node_data_contract:
+  geometry_snapshot:
+    required:
+      - node_id
+      - node_revision
+      - calculation_section_or_volume_boundary
+      - all_layer_geometries_used_in_calculation
+      - openings_fasteners_structural_inclusions_affecting_field
+      - material_ids
+      - interior_exterior_orientation
+  material_properties:
+    required_from_verified_sources:
+      - thermal_conductivity_design_condition
+      - vapor_permeability_or_resistance_data
+      - layer_thickness
+      - service_condition_factor_where_applicable
+    prohibition: "Do not derive thermal/vapor properties from material name alone."
+  boundary_conditions:
+    required:
+      - indoor_temperature_source
+      - indoor_humidity_source
+      - outdoor_design_temperature_source
+      - climate_location
+      - surface_heat_transfer_coefficients_per_applicable_method
+  outputs:
+    required_when_applicable:
+      - minimum_internal_surface_temperature
+      - dewpoint_temperature
+      - linear_psi
+      - point_chi
+      - heat_flow
+      - moisture_check_status
+      - air_permeability_check_status
+      - calculation_tool_and_version
+      - calculation_file_hash_or_reference
+
+machine_rules:
+  - id: izh.envelope.no_Uvalue_only_node_approval
+    automation: forbidden_to_infer
+    statement: "Нельзя одобрить наружный узел только по сопротивлению теплопередаче плоской стены/крыши. Линейные и точечные неоднородности учитываются отдельно, а критические внутренние поверхности проверяются по температурному полю."
+    result: needs_node_thermal_calculation
+  - id: izh.envelope.surface_temperature_gate
+    source: SP_50_13330_2024
+    source_clause: "5.7"
+    automation: validation_only
+    statement: "Минимальная температура внутренней поверхности непрозрачного ограждения в применимой области должна быть не ниже точки росы; проверка должна охватывать зоны теплотехнической неоднородности."
+  - id: izh.envelope.linear_bridge_geometry_lock
+    automation: conditional
+    statement: "Геометрия узла в Archicad, переданная в 2D-теплотехнический расчет, получает calculation geometry revision. Изменение толщины слоя, положения окна, плиты, анкера или другого учитываемого включения инвалидирует расчет."
+  - id: izh.envelope.air_layer_continuity
+    source: SP_50_13330_2024
+    source_clause: "7"
+    automation: validation_only
+    statement: "У каждого наружного узла должен быть указан непрерывный air-control path между примыкающими конструкциями; отсутствие материала/герметизации на стыке блокирует утверждение узла."
+  - id: izh.envelope.vapor_from_calculation_not_rule_of_thumb
+    source: SP_50_13330_2024
+    source_clause: "8.1"
+    automation: forbidden_to_infer
+    statement: "Положение и требуемое сопротивление пароизоляционного/парорегулирующего слоя не назначать по правилу 'пароизоляция всегда изнутри'. Требование определяется расчетом сопротивления паропроницанию и конкретной конструкцией/режимом."
+    result: needs_moisture_calculation
+  - id: izh.envelope.wet_room_joint_vapor_gate
+    source: SP_50_13330_2024
+    source_clause: "8 notes/applicable joint requirement"
+    automation: validation_only
+    applies_when: "wet or humid internal regime at envelope joint, including opening-to-wall insulation joint where applicable"
+    statement: "Влажный/мокрый режим требует отдельной проверки парозащиты теплоизолирующих уплотнений сопряжений; обычная монтажная схема сухого помещения не копируется автоматически."
+
+contour_graph_representation:
+  thermal:
+    edges: "material regions and calculated bridge interfaces"
+    failures: [unresolved_bridge, unverified_material_property, stale_calculation]
+  air:
+    edges: "continuous sealed layer/path through wall-roof-window-floor-foundation junction"
+    failures: [open_end, unsealed_penetration, incompatible_transition, unknown_product]
+  vapor:
+    edges: "layers contributing resistance according to calculation"
+    failures: [rule_of_thumb_only, discontinuity_not_analyzed, stale_layer_geometry]
+  bulk_water:
+    note: "Bulk-water management is separate from vapor diffusion and is handled by node-specific water-path logic; do not use vapor calculation as proof of rain/groundwater waterproofing."
+
+archicad_integration:
+  elements:
+    - "Store calculation-facing materials/layers as actual Building Materials/Composite skins or explicit node components when geometrically relevant."
+    - "Do not create fake thermal geometry solely for drawing if it is not the geometry used by the calculation."
+  node_properties:
+    - THERMAL_CALC_ID
+    - THERMAL_CALC_GEOMETRY_REV
+    - THERMAL_CALC_STATUS
+    - PSI_VALUE_IF_APPLICABLE
+    - CHI_VALUE_IF_APPLICABLE
+    - MIN_INTERNAL_SURFACE_TEMP
+    - DEWPOINT_INPUT_REF
+    - AIR_PERMEABILITY_STATUS
+    - MOISTURE_CALC_ID
+    - MOISTURE_CALC_STATUS
+  invalidation_events:
+    - wall_or_roof_composite_changed
+    - insulation_geometry_changed
+    - structural_inclusion_geometry_changed
+    - window_door_position_or_size_changed
+    - fastener_or_anchor_geometry_in_thermal_model_changed
+    - material_property_source_changed
+    - climate_or_indoor_boundary_conditions_changed
+
+agent_logic:
+  - "Never infer thermal safety from visual continuity of insulation."
+  - "Never infer airtightness from a closed 3D solid. Airtightness is a designed sealed path with material/joint data."
+  - "Never merge bulk-water waterproofing and vapor control into one generic 'membrane' property."
+  - "After any geometry change touching a calculation domain, mark calculation status stale before allowing node release."
+
+sources:
+  - "SP 50.13330.2024 clause 5.7: internal surface temperature and thermal nonuniformity"
+  - "SP 50.13330.2024 section 7: air permeability"
+  - "SP 50.13330.2024 section 8: protection against overmoistening"
+  - "SP 50.13330.2024 Appendix G: linear/point thermal heterogeneities"

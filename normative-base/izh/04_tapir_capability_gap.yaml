@@ -4,12 +4,13 @@ package: IZH_NODE_ENGINEERING
 archicad_version: 29
 upstream_tapir_release_checked: "1.5.9"
 upstream_release_date: 2026-09-09
-purpose: "Разделить возможности upstream Tapir, generic connector и безопасного journal/applier слоя проекта."
+upstream_source_commit_checked: "654037ee8773a19a30eb4243257ca7537e40aa55"
+purpose: "Разделить возможности upstream Tapir, generic connector и безопасного journal/applier слоя проекта; не считать примитив отсутствующим без проверки исходников/схемы."
 
 three_layers:
   upstream_tapir:
     description: "Add-On exposes additional JSON commands on top of Graphisoft API."
-    source: "https://github.com/ENZYME-APD/tapir-archicad-automation/releases"
+    source: "https://github.com/ENZYME-APD/tapir-archicad-automation"
   project_connector:
     file: "src/accollab/connector.py"
     branch: agent-handoff
@@ -18,6 +19,66 @@ three_layers:
     file: "src/accollab/applier.py"
     branch: agent-handoff
     current_scope: "primary modify by move vector plus lock/unlock/comment orchestration; create/delete and non-move geometry modification are intentionally unsupported in safe apply path."
+
+source_verified_commands_for_node_work:
+  - command: CreateWalls
+    status: available_upstream
+    introduced_command_version: "1.4.0"
+    evidence: "AddOnMain registration + implementation + examples"
+    project_action: typed_wrapper_and_readback
+  - command: ModifyWalls
+    status: available_upstream
+    introduced_command_version: "1.4.0"
+    semantics: "Only connected/supplied optional inputs are changed; exact writable fields are schema-defined."
+    known_limit: "Poly plan geometry is not a generic settable cross-section mode through ModifyWalls; profile mechanism is separate."
+    project_action: typed_wrapper_per_allowed_field
+  - command: CreateSlabs
+    status: available_upstream
+    introduced_command_version: "1.0.3"
+    evidence: "ElementCreationCommands + examples"
+    project_action: typed_wrapper_and_geometry_readback
+  - command: CreateOpenings
+    status: available_upstream
+    introduced_command_version: "1.4.0"
+    verified_hosts_from_current_component_description: [walls, slabs, beams, meshes]
+    note: "Graphisoft native Opening also supports Roof; current Tapir CreateOpenings component description must be treated as command-specific scope. Do not assume roof-host support without direct schema/live verification."
+    project_action: typed_wrapper_plus_host_ownership_and_KR_gate
+  - command: ModifyOpenings
+    status: unresolved_not_found_by_exact_source_search
+    project_action: "Do not claim absent. Inspect command_definitions/source registration or test live command list before deciding extension is needed."
+  - command: CreateSolidElementLinks
+    status: available_upstream
+    introduced_command_version: "1.5.4"
+    semantics: "Creates solid element operation links between target and operator elements."
+    project_action: typed_relation_wrapper
+  - command: RemoveSolidElementLinks
+    status: available_upstream
+    introduced_command_version: "1.5.4"
+    project_action: typed_relation_wrapper_with_preconditions
+  - command: GetSolidElementLinks
+    status: available_upstream
+    introduced_command_version: "1.5.4"
+    semantics: "Returns links grouped by queried element role, target/operator."
+    project_action: mandatory_postcondition_readback_for_SEO
+  - command: CreateProfiles
+    status: available_upstream
+    introduced_command_version: "1.5.4"
+    semantics: "Create or overwrite Profile attributes as a copy of an existing Profile geometry with supplied overrides."
+    related_command: GetProfiles
+    project_action: "Typed profile template wrapper; no Tapir fork required for supported copy/override workflow."
+  - command: CreateDetails
+    status: available_upstream
+    introduced_command_version: "1.4.0"
+    semantics: "Creates independent Detail databases."
+    project_action: typed_document_wrapper
+  - command: CreateWorksheets
+    status: available_upstream
+    evidence: "Registered/documented alongside CreateDetails in current source/resources."
+    project_action: typed_document_wrapper
+  - command_family: source_based_detail_marker
+    status: unresolved
+    note: "CreateDetails confirms independent Detail databases. Exact command for creating a source-based Detail marker linked to model geometry was not confirmed by exact source search in this audit."
+    project_action: source_and_live_command_audit_before_extension_decision
 
 verified_upstream_capability_groups:
   element_creation_and_editing:
@@ -43,11 +104,9 @@ verified_upstream_capability_groups:
     examples: [create, modify, connect, query]
     action_for_project: "Add typed wrappers + discipline ownership gates + safe relation readback."
   element_relations:
-    status: partial_to_broad_upstream_support
-    examples:
-      - GetRelationsOfElements
-      - solid_element_operations_available_in_current_upstream_family
-    action_for_project: "Use relationship receipts; never infer success only from command return."
+    status: source_verified_for_SEO
+    commands: [CreateSolidElementLinks, RemoveSolidElementLinks, GetSolidElementLinks]
+    action_for_project: "Use relationship receipts and GetSolidElementLinks postconditions."
   favorites_and_library:
     status: available_in_upstream
     examples:
@@ -58,24 +117,28 @@ verified_upstream_capability_groups:
     action_for_project: "Use Favorites for verified construction/product templates; store library/favorite version in operation payload."
   attributes:
     status: broad_upstream_support
-    note: "Current releases include extended get/set/create/delete attribute operations; exact per-attribute schemas must be verified before enabling automatic writes."
-    action_for_project: schema_verification_required
+    profile_status: "CreateProfiles/GetProfiles source-verified."
+    action_for_project: "Verify exact schema of each attribute family before writes."
+  document_output:
+    status: partial_source_verified
+    available: [CreateDetails, CreateWorksheets]
+    unresolved: [source_based_detail_marker_from_model_region]
 
 safe_bridge_missing_for_node_generation:
   - id: bridge.typed_create
     priority: P0
     need: "Safe typed create operations for wall/slab/beam/column/roof/opening/object/window/door/stair with idempotency key."
-    current_gap: "applier rejects create in journal path"
+    current_gap: "applier rejects create in journal path although upstream Tapir exposes many create primitives."
   - id: bridge.typed_modify_geometry
     priority: P0
-    need: "Safe geometry/property changes beyond MoveElements: dimensions, polygon, layer/structure/favorite/GDL parameters where explicitly allowed."
-    current_gap: "applier handles move vector only"
+    need: "Safe geometry/property changes beyond MoveElements: dimensions, polygon, layer/structure/favorite/GDL parameters where explicitly allowed by each command schema."
+    current_gap: "applier handles move vector only; upstream has type-specific Modify commands such as ModifyWalls."
   - id: bridge.delete_with_preconditions
     priority: P0
     need: "Delete with exact GUID/type/revision preconditions, backup/receipt and explicit authorization."
   - id: bridge.relationship_ops
     priority: P0
-    need: "Create/remove SEO and other exposed relations with target/operator role, relation type and post-read validation."
+    need: "Wrap Create/Remove/GetSolidElementLinks with target/operator role, operation type and mandatory post-read validation."
   - id: bridge.opening_ownership
     priority: P0
     need: "Opening must store host, owner discipline, requested-by system, clearance/shape, approval status and KR gate."
@@ -87,16 +150,24 @@ safe_bridge_missing_for_node_generation:
     need: "Validate GUID existence, type, critical geometry, properties, host relations, SEO relations, counts and node revision after write."
   - id: bridge.runtime_handshake
     priority: P0
-    need: "Require Archicad version + Tapir version + command availability before executing node recipe."
+    need: "Require Archicad version + Tapir version + exact command availability/schema compatibility before executing node recipe."
   - id: bridge.favorite_library_pin
     priority: P1
     need: "Pin favorite/library-part identity/version so generated nodes do not silently change after library updates."
   - id: bridge.detail_output
     priority: P1
-    need: "Automated detail/worksheet production and linked markers if exact upstream command support is verified; otherwise separate Tapir extension or another Archicad Add-On API wrapper may be required."
+    need: "Typed wrapper for independent Detail/Worksheet databases now confirmed upstream; source-based model-linked Detail marker remains unresolved."
   - id: bridge.complex_profile_authoring
     priority: P1
-    need: "Programmatic creation/editing of Complex Profile attributes only after exact current Tapir schema is verified. If not exposed, implement an Add-On extension; do not fake profiles using Morphs."
+    need: "Typed wrapper around GetProfiles/CreateProfiles for copy/override profile workflows; direct arbitrary profile geometry authoring beyond supported schema must be audited separately."
+
+extension_needed_status:
+  confirmed_needed_now: []
+  unresolved_candidates:
+    - source_based_detail_marker_linked_to_model_region
+    - unsupported_opening_modification_fields_if_live_schema_cannot_cover_required_edit
+    - native_associative_relations_other_than_SEO_where_no_current_command_exists
+  policy: "Ни один unresolved candidate не является основанием форкать Tapir до проверки current command_definitions/source registration and live GetAddOnCommands/command availability."
 
 fork_tapir_only_when:
   - "Required Archicad API function is genuinely absent from current Tapir command set after schema/source verification."
@@ -130,6 +201,10 @@ required_safe_operation_envelope:
     - "Failure in one critical node component leaves the node blocked/incomplete, not silently partially approved."
 
 sources:
-  - "https://github.com/ENZYME-APD/tapir-archicad-automation/releases"
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation"
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/blob/main/archicad-addon/Sources/AddOnMain.cpp"
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/blob/main/archicad-addon/Sources/SolidElementOperationCommands.cpp"
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/blob/main/archicad-addon/Sources/AttributeCommands.cpp"
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/blob/main/archicad-addon/Sources/DocumentCreationCommands.cpp"
   - "repo:agent-handoff/src/accollab/connector.py"
   - "repo:agent-handoff/src/accollab/applier.py"

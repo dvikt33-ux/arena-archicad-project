@@ -1,4 +1,4 @@
-manifest_version: 72
+manifest_version: 73
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -144,6 +144,7 @@ rule_files:
   - 86_fire_compartment_base_matrices_2027.yaml
   - 87_trk_children_foodservice_2027.yaml
   - 88_food_retail_sanitary_2027.yaml
+  - 89_trk_loading_logistics_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

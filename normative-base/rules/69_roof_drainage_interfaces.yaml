@@ -1,0 +1,126 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Кровельный водоотвод и примыкания 2027+: геометрия воронок, парапетов, инверсионных кровель и запрет устаревшего правила о фиксированном числе воронок."
+
+revision_dependencies:
+  - {document: SP_17_13330_2017, verified_changes: [1,2,3,4,5]}
+  - {document: SP_30_13330_2020, role: internal_water_supply_and_sewerage_calculation}
+  - {document: SP_32_13330_2018, role: external_sewerage_calculation}
+
+roof_slope_and_drainage:
+  source: SP_17_13330_2017
+  rules:
+    - id: roof.valley.minimum_slope
+      clause: "4.3"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Уклон кровли в ендовах принимают в зависимости от расстояния между воронками, но не менее 0,5%."
+      values: {min_slope_percent: 0.5}
+
+    - id: roof.internal_drain.local_depression
+      clause: "5.1.25"
+      automation: conditional
+      dimension_semantics: level
+      statement: "В зоне воронки внутреннего водостока предусматривают местное понижение водоизоляционного ковра на 15-20 мм в радиусе 0,5-1,0 м."
+      values:
+        depression_mm: {min: 15, max: 20}
+        radius_mm: {min: 500, max: 1000}
+
+    - id: roof.internal_drain.axis_from_obstructions
+      clause: "5.1.25"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Ось воронки внутреннего водостока располагают на расстоянии не менее 600 мм от парапета и других выступающих над кровлей частей здания."
+      values: {min_axis_distance_mm: 600}
+
+    - id: roof.internal_drain.count_calculated_change5
+      clause: "9.2 as amended by change 5"
+      amendment: 5
+      automation: manual_calculation
+      statement: "На каждом участке кровли, ограниченном стенами/парапетами, количество воронок определяют по их пропускной способности и району строительства по СП 30.13330 и СП 32.13330. Универсальный минимум 'две воронки на участок' для профиля 2027 не применять."
+      requires_calculation: true
+      conflict_policy: "Старые справочные материалы и судебные документы, цитирующие предыдущую редакцию п.9.2, не являются основанием вернуть правило о фиксированном минимальном количестве воронок."
+
+    - id: roof.external_organized_downpipe_spacing
+      clause: "9.7 as amended by change 5"
+      amendment: 5
+      automation: conditional
+      dimension_semantics: axis
+      statement: "При наружном организованном водоотводе расстояние между водосточными трубами принимают не более 24 м; площадь поперечного сечения/диаметр трубы определяют расчетом."
+      values: {max_spacing_m: 24}
+      requires_calculation: true
+
+waterproofing_interfaces:
+  source: SP_17_13330_2017
+  rules:
+    - id: roof.vertical_interfaces.additional_waterproofing
+      clause: "5.1.18"
+      automation: conditional
+      statement: "В местах примыкания кровли к парапетам, стенкам фонарей, проходкам труб, водосточным воронкам, вентиляционным шахтам и аналогичным элементам предусматривают дополнительный водоизоляционный ковер по соответствующей конструкции приложения Б."
+
+    - id: roof.parapet_up_to_600_waterproofing_to_top
+      clause: "5.1.22 as amended by change 2"
+      amendment: 2
+      automation: conditional
+      dimension_semantics: level
+      statement: "Если парапет, противопожарная стена или стенка деформационного шва выступает над поверхностью водоизоляционного ковра на высоту до 600 мм, дополнительный слой водоизоляционного ковра заводят на верхнюю грань."
+      values: {height_scope_max_mm: 600}
+
+    - id: roof.parapet_top_protection
+      clause: "5.1.23 as amended by change 2"
+      amendment: 2
+      automation: validation_only
+      statement: "Верхнюю грань парапетов, противопожарных стен и стенок деформационного шва защищают предусмотренным СП фартуком либо парапетными плитами с герметизацией стыков и слезниками."
+      requires_manufacturer_data: true
+
+    - id: roof.vapour_barrier.vertical_turnup
+      clause: "4.4v as amended by change 4"
+      amendment: 4
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "В местах примыкания теплоизоляционного слоя к стенам, фонарям, шахтам и оборудованию пароизоляцию поднимают не менее чем на высоту толщины теплоизоляционного слоя и приклеивают к вертикальной поверхности."
+      formula: "vapour_barrier_turnup_height >= insulation_thickness"
+
+inversion_roof:
+  source: SP_17_13330_2017
+  rules:
+    - id: roof.inversion.drainage_ring
+      clause: "5.4.2"
+      automation: validation_only
+      statement: "Для инверсионной кровли конструктивное решение должно обеспечивать отвод воды преимущественно по верхней поверхности; применяют воронки внутреннего водостока с дренажным кольцом для отвода воды, попавшей под теплоизоляционные плиты."
+      requires_manufacturer_data: true
+
+obsolete_rules:
+  - id: roof.internal_drain.fixed_two_funnels_obsolete
+    automation: forbidden_to_infer
+    statement: "Не использовать в новой модели 2027+ старое правило о не менее двух воронках на каждом участке кровли как универсальную норму: Изменение №5 изложило п.9.2 в новой редакции с расчетным определением количества."
+
+BIM_required_parameters:
+  - roof_drainage_type
+  - roof_zone_boundaries
+  - roof_finished_slope_percent
+  - valley_slope_percent
+  - drain_axis_coordinates
+  - drain_local_depression_depth_mm
+  - drain_local_depression_radius_mm
+  - parapet_and_upstand_geometry
+  - calculated_drain_flow
+  - calculated_drain_count
+  - downpipe_spacing_m
+  - waterproofing_turnup_geometry
+  - vapour_barrier_turnup_geometry
+  - inversion_roof_status
+  - selected_drain_product
+
+agent_logic:
+  - "Не размещать воронку впритык к парапету ради удобства трассировки: проверить 600 мм до оси."
+  - "Не считать число воронок по площади простым эмпирическим коэффициентом; использовать профильный гидравлический расчет."
+  - "Локальное понижение вокруг воронки моделировать как геометрию кровли/уклонообразующего слоя, а не только 2D-условным обозначением."
+  - "Для инверсионной кровли не применять обычную одноуровневую воронку без проверки конструкции и данных производителя."
+  - "Не смешивать высоту парапета как ограждения безопасности с высотой вертикального примыкания водоизоляционного ковра; это разные проверки."
+
+sources:
+  - "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  - "https://base.garant.ru/71729740/"
+  - "https://base.garant.ru/411461695/"
+  - "https://base.garant.ru/408556555/"

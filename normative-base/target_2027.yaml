@@ -1,29 +1,47 @@
 profile: RU_2027_PLUS
 target_year: 2027
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 purpose: "Нормативный профиль для проектов, реализация которых начнется не ранее 2027 года."
 
-source_policy:
-  primary_research_source_for_this_audit: GARANT
-  rule: >-
-    После перехода на аудит по системе ГАРАНТ будущие изменения считаются подтвержденными
-    только если ГАРАНТ содержит сам документ/изменение и дату введения. Ранее найденные
-    внешние ссылки без подтверждения в ГАРАНТ не используются как активные правила.
+source_authority_policy:
+  standards_and_codes_status:
+    primary: "Федеральный информационный фонд стандартов Росстандарта (protect.gost.ru) и официальный орган, утвердивший СП/ГОСТ."
+    use_for:
+      - document_identity
+      - status
+      - replacement
+      - amendment_identity
+      - approval_and_registration
+      - effective_date
+      - official_scope_metadata
+  legal_applicability:
+    primary: "Реестр требований ЕИС «Стройкомплекс.РФ» и действующее законодательство РФ."
+    use_for:
+      - requirement_applicability_to_expertise
+      - legally_relevant_date_logic
+      - registered_requirement_status
+  consolidated_legal_text_and_cross_check:
+    source: GARANT
+    role: "Независимая правовая/текстовая сверка, удобный источник консолидированного текста и правовых актов; отсутствие карточки ГОСТ/СП в ГАРАНТ само по себе не отменяет официальную регистрацию Росстандарта."
+  manufacturer_and_system_data:
+    role: "Дополнительный обязательный источник там, где норматив отсылает к конкретной продукции/системе. Не заменяет норматив и расчет."
+  drafts:
+    rule: "Проекты изменений, публичные обсуждения, планы стандартизации и документы без официальной даты введения не становятся активными правилами."
 
 selection_policy:
-  - "Если будущая редакция или изменение официально утверждены и имеют точную дату вступления в силу в 2027 году, применять их при проектировании уже сейчас."
-  - "Не применять проекты изменений, планы стандартизации и неутвержденные документы."
-  - "Документ со статусом 'Принят', но без подтвержденной применимой даты введения не становится активным правилом автоматически."
+  - "Если новая редакция или изменение официально утверждены и имеют точную дату вступления до или в 2027 году, применять их при проектировании целевого профиля заранее в той части, которая будет действовать в период реализации."
+  - "Если изменение имеет разные даты введения для разных пунктов, хранить эти части раздельно и применять каждую по ее официальной дате."
   - "Текущую редакцию, которая будет отменена или изменена до реализации проекта, хранить только как переходную/историческую."
-  - "Если будущее изменение удаляет числовое правило без универсальной замены, старое число запрещается использовать автоматически. Возвращать needs_project_or_manufacturer_data или needs_calculation."
-  - "Если действующий документ прекращает действие в 2027 году, а замена еще не утверждена, правила из него блокируются для периода после даты прекращения. Проект замены не использовать как норму."
-  - "Для каждого решения проверять не только статус СП/ГОСТ, но и применимость требования к конкретному объекту."
+  - "Если будущая редакция исключает числовое правило без универсальной замены, старое число запрещается использовать автоматически; возвращать needs_project_or_manufacturer_data или needs_calculation."
+  - "Если действующий документ прекращает действие в 2027 году, а официальная замена еще не введена/не утверждена, правила из него блокируются после даты прекращения; проект замены не использовать как норму."
+  - "Статус документа и юридическая применимость конкретного требования — разные проверки."
+  - "Для каждого решения проверять область применения, функциональное назначение, материал, высоту, пожарный/МГН статус и специальные нормы объекта."
 
 legal_2027:
   requirements_registry:
     effective_logic_from: 2027-03-01
     basis: "Федеральный закон от 28.12.2025 №507-ФЗ; новая редакция ч. 5.2 ст. 49 ГрК РФ"
-    rule: "Для экспертизы учитывать требования, включенные в Реестр требований на релевантную дату."
+    rule: "Для экспертизы учитывать требования, включенные в Реестр требований на релевантную законодательству дату."
     automation: mandatory_validation
     garant_source: "https://www.garant.ru/news/2015759/"
 
@@ -31,11 +49,63 @@ confirmed_transitions:
   - id: SP70_CHANGE8_DEFERRED
     document: SP_70_13330_2012
     amendment: 8
-    effective_from: 2027-03-01
-    target_profile_action: apply_now_for_2027_design
+    general_effective_from: 2026-07-04
+    deferred_parts_effective_from: 2027-03-01
+    target_profile_action: apply_all_parts_effective_for_2027_scope
     affected_architectural_clause: "9.2.4"
-    effect: "Пункт 9.2.4 исключается. Числа горизонтального/вертикального шва 12/10 мм более не использовать как нормативное автоматическое правило целевого профиля 2027."
-    garant_source: "https://base.garant.ru/414672974/"
+    effect: "Пункт 9.2.4 исключается с 01.03.2027; прежние 12/10 мм не использовать как нормативное автоматическое правило целевого профиля 2027 после этой даты."
+    official_source: "https://protect.gost.ru/sp/changesdetails/c1b0a1c8-73c5-480b-a9dc-0ad44d636d09"
+
+  - id: SP45_CHANGE4_2027_PARTS
+    document: SP_45_13330_2017
+    amendment: 4
+    general_effective_from: 2026-07-04
+    deferred_parts_effective_from: 2027-03-01
+    target_profile_action: apply_deferred_parts_when_scope_matches
+    role: "земляные сооружения, основания и фундаменты; смежный КР/ПОС слой"
+    official_source: "https://protect.gost.ru/sp/changesdetails/af748f79-c5de-443b-a10f-7542d35b9bce"
+
+  - id: SP73_CHANGE3_2027_PARTS
+    document: SP_73_13330_2016
+    amendment: 3
+    general_effective_from: 2026-07-10
+    deferred_parts_effective_from: 2027-03-01
+    target_profile_action: apply_deferred_parts_when_scope_matches
+    role: "внутренние санитарно-технические системы; смежный инженерный слой"
+    official_source: "https://protect.gost.ru/sp/changesdetails/b595a91d-d798-4c82-9345-8419ea696528"
+
+  - id: SP129_CHANGE2_2027_PARTS
+    document: SP_129_13330_2019
+    amendment: 2
+    general_effective_from: 2026-07-04
+    deferred_parts_effective_from: 2027-03-01
+    target_profile_action: apply_deferred_parts_when_scope_matches
+    official_source: "https://protect.gost.ru/sp/changesdetails/ad63a3b9-7f8a-494f-a9b2-14c1bc11833c"
+
+  - id: SP433_CHANGE1_2027_PARTS
+    document: SP_433_1325800_2019
+    amendment: 1
+    general_effective_from: 2026-07-04
+    deferred_parts_effective_from: 2027-03-01
+    target_profile_action: apply_deferred_parts_when_scope_matches
+    official_source: "https://protect.gost.ru/sp/changesdetails/d68f59b9-f4bc-4adf-8f8a-8ca695de41ff"
+
+  - id: SP445_CHANGE1_2027_PART
+    document: SP_445_1325800_2023
+    amendment: 1
+    general_effective_from: 2026-07-04
+    deferred_parts_effective_from: 2027-03-01
+    applicability: "районы многолетнемерзлых грунтов и область самого СП"
+    target_profile_action: apply_deferred_parts_when_scope_matches
+    official_source: "https://protect.gost.ru/sp/changesdetails/de4e053a-ffd5-4d82-8ba3-0d7583f0460c"
+
+  - id: SP113_CHANGE4
+    document: SP_113_13330_2023
+    amendment: 4
+    effective_from: 2026-10-03
+    target_profile_action: apply
+    effect: "Для профиля 2027 учитывать СП 113 с изменениями №1-4; Изм. №4 актуализирует большой набор ссылочных НД, включая СП 42.13330.2026 и СП 70 с Изм. №8."
+    official_source: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
 
   - id: GOST475_2026
     document: GOST_475_2026
@@ -43,47 +113,49 @@ confirmed_transitions:
     replaces: GOST_475_2016
     target_profile_action: apply
     scope: "деревянные и комбинированные дверные блоки"
-    garant_source: "https://base.garant.ru/414249961/"
+    official_source: "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
+
+  - id: GOST_R_72602_2026
+    document: GOST_R_72602_2026
+    effective_from: 2027-01-01
+    target_profile_action: apply
+    scope: "конструкции для удаления дымовых газов в области стандарта"
+    effect: "Проекты 2027+ должны маршрутизировать дымоходные/газоходные узлы через новую редакцию и документацию конкретной системы, а не через универсальный типовой зазор."
+    official_source: "https://protect.gost.ru/gost/details/33e4244f-34e0-426d-8d1d-7ae8dd94d5a3"
+
+  - id: GOST_33124_2026
+    document: GOST_33124_2026
+    effective_from: 2026-12-01
+    replaces: GOST_33124_2021
+    target_profile_action: apply
+    scope: "LVL/ДКШ в области стандарта"
+    garant_source: "https://base.garant.ru/414739335/"
 
   - id: SANPIN_1_2_3685_21_EXPIRY
     document: SANPIN_1_2_3685_21
     valid_until: 2027-03-01
     target_profile_action: block_after_expiry
-    affected_topics: ["insolation","daylighting sanitary limits","noise sanitary limits","microclimate sanitary limits"]
-    effect: >-
-      Для периода после даты прекращения действия санитарного документа его числовые значения
-      не переносятся автоматически. До подтверждения нового действующего документа в ГАРАНТе
-      соответствующие проверки остаются blocked_pending_official_replacement.
-    replacement_status: not_confirmed_in_garant_on_audit_date
+    affected_topics: ["insolation", "daylighting sanitary limits", "noise sanitary limits", "microclimate sanitary limits"]
+    effect: "После прекращения действия числовые требования не переносятся автоматически. До подтверждения официального заменяющего санитарного акта соответствующие проверки остаются blocked_pending_official_replacement."
+    replacement_status: not_confirmed_official_on_audit_date
     agent_action_after_2027_03_01: blocked_pending_official_replacement
 
-confirmed_current_levels_for_2027:
-  documents:
-    - {document: SP_1_13130_2020, latest_change: 3, garant_source: "https://base.garant.ru/74019594/"}
-    - {document: SP_14_13330_2018, latest_change: 4, garant_source: "https://base.garant.ru/71985096/"}
-    - {document: SP_45_13330_2017, latest_change: 3, garant_source: "https://base.garant.ru/71715370/"}
-    - {document: SP_59_13330_2020, latest_change: 4, garant_source: "https://base.garant.ru/400382837/"}
-    - {document: SP_71_13330_2017, latest_change: 4, note: "Порядок совместного применения Изм. №3 и №4 дополнительно разъяснен ФАУ ФЦС", garant_source: "https://www.garant.ru/products/ipo/prime/doc/413155655/"}
-    - {document: SP_73_13330_2016, latest_change: 2, garant_source: "https://base.garant.ru/71551908/"}
-    - {document: SP_113_13330_2023, latest_change: 2, garant_source: "https://base.garant.ru/407887809/"}
-    - {document: SP_118_13330_2022, latest_change: 5, garant_source: "https://base.garant.ru/404976079/"}
-    - {document: SP_129_13330_2019, latest_change: 1, garant_source: "https://base.garant.ru/74350380/"}
-
-rejected_or_unverified_external_claims:
-  - {document: SP_113_13330_2023, claimed_change: 4, action: reject_until_garant_confirmation}
-  - {document: SP_45_13330_2017, claimed_change: 4, action: reject_until_garant_confirmation}
-  - {document: SP_73_13330_2016, claimed_change: 3, action: reject_until_garant_confirmation}
-  - {document: SP_129_13330_2019, claimed_change: 2, action: reject_until_garant_confirmation}
-  - {document: SP_433_1325800_2019, claimed_change: 1, action: reject_until_garant_confirmation}
-  - {document: SP_445_1325800_2023, claimed_change: 1, action: reject_until_garant_confirmation}
+revision_sources:
+  architectural_core: revision_watch_2027.yaml
+  adjacent_structural_execution_engineering: revision_watch_adjacent_2027.yaml
+  special_functional: functional_revision_audit_2027.yaml
+  sanitary: sanitary_registry_2027.yaml
+  rule: "Эти файлы являются авторитетными для текущего проверенного уровня изменений; target_2027 не должен содержать противоречащий им более низкий уровень."
 
 agent_gate:
   before_model_generation:
     - "load target_2027.yaml"
     - "load revision_watch_2027.yaml"
     - "load revision_watch_adjacent_2027.yaml"
+    - "load functional_revision_audit_2027.yaml when special function applies"
+    - "load sanitary_registry_2027.yaml when sanitary requirement applies"
     - "reject rules superseded by confirmed_transitions"
-    - "reject expired documents without an officially adopted replacement"
+    - "reject expired documents without an officially adopted applicable replacement"
     - "verify object_function and special_code applicability"
-    - "verify requirements_registry applicability"
+    - "verify requirements_registry applicability separately from document status"
   fail_closed: true

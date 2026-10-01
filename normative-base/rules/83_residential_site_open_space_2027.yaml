@@ -1,0 +1,185 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_42_13330_2026
+purpose: >-
+  Геометрические правила придомовой территории и жилой застройки для 2027+:
+  бытовые разрывы, отступы площадок от окон, озеленение периметра, деревья/кустарники,
+  площадки для собак и ограничения размещения инженерных сетей под плоскостными объектами.
+
+revision_state:
+  document_status: active
+  effective_from: 2026-07-12
+  replaces: SP_42_13330_2016
+
+residential_building_spacing:
+  - id: site.residential.lowrise_long_side_spacing
+    source_clause: "6.4.23"
+    automation: conditional
+    dimension_semantics: clear_plan_distance
+    conditions: {residential_development: lowrise, storeys: "2-3", relation: long_side_to_long_side}
+    min_m: 15
+    additional_gates: [insolation, natural_lighting, fire_separation]
+
+  - id: site.residential.four_storey_long_side_spacing
+    source_clause: "6.4.23"
+    automation: conditional
+    dimension_semantics: clear_plan_distance
+    conditions: {residential_development: lowrise_multifamily, storeys: 4, relation: long_side_to_long_side}
+    min_m: 20
+    additional_gates: [insolation, natural_lighting, fire_separation]
+
+  - id: site.residential.long_side_to_end_spacing
+    source_clause: "6.4.23"
+    automation: conditional
+    dimension_semantics: clear_plan_distance
+    conditions: {relation: long_side_to_end_side}
+    min_m: 10
+    additional_gates: [insolation, natural_lighting, fire_separation]
+
+  - id: site.residential.constrained_spacing_reduction
+    source_clause: "6.4.23"
+    automation: requires_justification
+    statement: >-
+      В стесненных условиях уменьшение бытовых разрывов возможно только при соблюдении
+      требований инсоляции и освещенности и при условии непросматриваемости жилых помещений
+      из окна в окно. Для профиля после 01.03.2027 санитарные/инсоляционные числовые критерии
+      дополнительно проходят sanitary_registry_2027 gate.
+    prohibited_shortcut: "Не уменьшать разрыв только по признаку 'стесненные условия'."
+
+landscape_tree_shrub_clearances:
+  source_clause: "6.4.8, Table 6.3"
+  rules:
+    - id: site.landscape.wall_to_tree_axis
+      automation: conditional
+      dimension_semantics: clear_plan_distance_to_axis
+      from: exterior_wall
+      to: tree_trunk_axis
+      min_m: 5.0
+      applicability: tree_crown_diameter_not_over_5m
+
+    - id: site.landscape.wall_to_shrub
+      automation: conditional
+      dimension_semantics: clear_plan_distance
+      from: exterior_wall
+      to: shrub
+      min_m: 1.5
+
+    - id: site.landscape.large_crown_increase
+      automation: mandatory_validation
+      statement: "Для деревьев с диаметром кроны более 5 м табличные расстояния должны быть увеличены."
+      if_crown_diameter_over_5m: require_landscape_species_growth_check
+
+    - id: site.landscape.no_lighting_insolation_obstruction
+      automation: mandatory_validation
+      statement: >-
+        Деревья у зданий не должны препятствовать требуемой инсоляции и естественной освещенности;
+        учитывать вид дерева и перспективный взрослый размер, а не только геометрию саженца.
+
+residential_open_space_window_setbacks:
+  source_clause: "6.4.45, Table 6.5"
+  dimension_semantics: clear_plan_distance_from_window
+  rules:
+    - id: site.open_space.children_playground_to_windows
+      automation: conditional
+      element: children_playground
+      min_m: 10
+
+    - id: site.open_space.adult_rest_to_windows
+      automation: conditional
+      element: adult_rest_area
+      min_m: 8
+      local_norm_override_note: >-
+        СП допускает установление отступов площадок отдыха взрослых и физкультуры в НГП;
+        перед применением федерального значения проверить применимые НГП/РНГП/МНГП.
+
+    - id: site.open_space.sports_to_windows
+      automation: conditional
+      element: adult_physical_culture_or_sports_area
+      range_m: [10, 40]
+      selection_logic:
+        - "Наибольшие значения — для баскетбольных и футбольных площадок."
+        - "Наименьшие — для настольного тенниса."
+        - "При 10-30 м для спортивных игр предусматривать требуемые шумозащитные мероприятия."
+        - "30-40 м допускается без указанных в примечании таблицы специальных шумозащитных мероприятий."
+      requires_noise_classification: true
+
+    - id: site.open_space.dog_hygiene_to_windows
+      automation: conditional
+      element: dog_hygiene_area
+      range_m: [20, 40]
+      requires_noise_classification: true
+
+    - id: site.open_space.parking_to_windows_router
+      automation: mandatory_router
+      element: adjacent_parking
+      statement: >-
+        Для приобъектных стоянок таблица 6.5 не задает фиксированную цифру; направляет к СП 113
+        и санитарным требованиям. Использовать rules/82_site_parking_urban_planning_2027.yaml,
+        а не подставлять старый универсальный санитарный разрыв.
+
+open_space_green_perimeter:
+  - id: site.open_space.green_perimeter_50_percent
+    source: {document: SP_42_13330_2026, clause: "6.4.45, Table 6.5 note 4"}
+    automation: conditional
+    applies_to: [sports_game_area, children_playground, adult_rest_area]
+    min_greened_perimeter_percent: 50
+    statement: "Не менее 50% периметра указанных площадок предусматривать с озеленением деревьями и кустарниками."
+    conflict_policy: >-
+      Озеленение не должно нарушать visibility/safety, инженерные охранные зоны, СП59 доступность,
+      пожарный доступ и требования к инсоляции/освещенности.
+
+open_space_internal_spacing:
+  - id: site.open_space.boundary_green_strip
+    source_clause: "6.4.41"
+    automation: true
+    applies_to: multifamily_residential_site_open_space_elements
+    min_boundary_separation_m: 0.5
+    statement: >-
+      Между границами придомовых площадок предусматривать отступ шириной не менее 0,5 м
+      с устройством озеленения.
+
+  - id: site.open_space.dog_playground_from_residential_wall
+    source_clause: "6.4.37"
+    automation: conditional
+    element: dog_play_and_training_area
+    from: residential_building_wall
+    min_relation: greater_than
+    value_m: 20
+    note: "СП требует более 20 м, поэтому ровно 20,0 м не является проходным значением."
+
+utilities_under_flat_objects:
+  source_clause: "7.43"
+  rules:
+    - id: site.utilities.chambers_outside_flat_objects
+      automation: mandatory_validation
+      statement: >-
+        При новых/реконструируемых инженерных коммуникациях под плоскостными объектами колодцы
+        и камеры размещать в доступных для эксплуатации местах за границами таких объектов,
+        кроме предусмотренного СП исключения для автомобильных стоянок.
+
+    - id: site.utilities.no_heat_or_gas_under_sensitive_areas
+      automation: hard_gate
+      prohibited_under:
+        - children_playground
+        - sports_area
+        - adult_rest_area
+        - dog_play_or_training_area
+        - dog_hygiene_area
+      networks: [heat_network, gas_network]
+      statement: "Новые/реконструируемые тепловые сети и сети газоснабжения размещать вне перечисленных площадок."
+
+BIM_measurement_semantics:
+  - "Отступ площадки по таблице 6.5 измерять от окон жилых/общественных зданий, а не от оси стены или границы участка."
+  - "Расстояние до дерева измерять до оси ствола, не до края кроны; отдельный gate учитывает крупную крону."
+  - "Бытовой разрыв между зданиями не заменяет противопожарный разрыв: применить оба и выбрать геометрию, удовлетворяющую всем требованиям."
+  - "Отступ от площадки для собак >20 м до стены и отступ 20-40 м до окон — разные правила и должны проверяться отдельно."
+
+agent_logic:
+  - "Создавать отдельные контрольные зоны для окон, стен, площадок и осей деревьев; не хранить все как один setback."
+  - "Проверять местные НГП/РНГП/МНГП там, где СП 42 прямо допускает или требует их применение."
+  - "Не уменьшать спортивный отступ до 10 м без классификации площадки и предусмотренных шумозащитных мероприятий."
+  - "Не размещать дерево только по 5 м, если взрослая крона >5 м или нарушит освещенность/инсоляцию."
+  - "После 01.03.2027 санитарные и инсоляционные проверки проходят отдельный официальный replacement gate."
+
+sources:
+  - https://base.garant.ru/414570340/

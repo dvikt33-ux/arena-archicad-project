@@ -1,0 +1,176 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN
+purpose: "Детальный алгоритм узла мокрого помещения ИЖС: пол–стена–душ/трап–трубопровод–порог. Различает обязательную гидроизоляцию помещения, интенсивность воздействия жидкостей и специальную геометрию душевой."
+
+normative_stack:
+  - {document: SP_30_13330_2020, changes: [1,2,3,4,5], role: sanitary_appliances_drains_floor_waterproofing}
+  - {document: SP_29_13330_2011, changes: [1,2,3,4], role: floor_design_liquid_exposure_thresholds_and_waterproofing_details, change_4_effective_from: 2025-12-30}
+  - {document: SP_71_13330_2017, changes: [1,2,3], role: execution_of_insulation_and_finish_systems}
+  - {document: SP_73_13330_2016, changes: [1,2,3], role: sanitary_system_installation}
+  - {document: SP_59_13330_2020, changes: [1,2,3,4], role: accessibility_only_when_accessible_route_or_room_required}
+
+room_classification:
+  required_inputs:
+    - room_function
+    - water_draw_off_present
+    - wastewater_receiver_present
+    - shower_type
+    - floor_drain_or_channel_present
+    - liquid_exposure_intensity_for_SP29
+    - floor_structure
+    - adjacent_lower_space
+    - accessible_route_status
+    - wall_substrate_and_finish_system
+
+machine_rules:
+  - id: izh.N10.floor_waterproofing_SP30
+    source: SP_30_13330_2020
+    source_clause: "17.10"
+    automation: conditional
+    applies_when: "residential/public room has water inlet with draw-off fitting and wastewater receiver"
+    statement: "В области п.17.10 предусматривается гидроизоляция пола для защиты нижерасположенных помещений от протечек."
+  - id: izh.N10.residential_bathroom_drain_not_default
+    source: SP_30_13330_2020
+    source_clause: "17.8 note 2"
+    automation: forbidden_to_infer
+    applies_when: "bathroom of residential building"
+    statement: "Не добавлять трап в ванную ИЖС автоматически. Для ванных жилых зданий трап не является общим обязательным элементом; исключение — когда трап/душевой лоток выполняет роль душевого поддона."
+    result: needs_shower_drain_design_intent
+  - id: izh.N10.shower_slope_to_drain
+    source: SP_30_13330_2020
+    source_clause: "17.9"
+    automation: conditional
+    applies_when: "shower room/floor where clause 17.9 applies"
+    slope: {min: 0.01, max: 0.02}
+    statement: "Пол душевого помещения выполняют с уклоном 0,01–0,02 к лотку/трапу в области п.17.9. Это специальное правило душевой, а не универсальный уклон всего санузла."
+  - id: izh.N10.SP29_waterproofing_upturn_scope
+    source: SP_29_13330_2011
+    source_clause: "7.1-7.2"
+    automation: conditional
+    applies_when: "SP29 clause 7 waterproofing is triggered by medium/high liquid exposure in its stated cases"
+    min_upturn_above_floor_covering_mm: 200
+    statement: "Если гидроизоляция требуется именно по области раздела 7 СП 29, она должна быть непрерывной в примыканиях; у стен/труб/выступающих конструкций предусматривают продолжение не менее 200 мм от покрытия пола, а при струйном замачивании — на всю высоту замачивания. Не переносить это число на любой санузел без проверки 7.1."
+  - id: izh.N10.bathroom_floor_level_or_threshold
+    source: SP_29_13330_2011
+    source_clause: "4.8"
+    automation: conditional
+    general:
+      lower_finished_floor_mm: {min: 15, max: 20}
+      alternative_threshold_max_mm: 20
+    accessibility_override:
+      source: SP_59_13330_2020
+      source_clause: "6.2.4"
+      threshold_max_mm: 14
+      condition: "door is on accessible route and threshold is permitted/required under applicable accessibility rule"
+    statement: "Общий уровень/порог мокрого помещения и доступный маршрут проверяются раздельно; более специальное требование МГН нельзя нарушать ради общего 20-мм порога."
+
+functional_components:
+  floor_structure:
+    - structural_slab_or_floor_from_KR
+    - screed_or_slope_forming_layer_from_floor_design
+    - waterproofing_system
+    - finish_and_adhesive_system
+  wall_floor_transition:
+    - compatible_waterproofing_corner_transition
+    - substrate_preparation
+    - wall_finish_or_wet_zone_protection
+    - movement_or_sealant_joint_if system_requires
+  drain_or_channel:
+    - verified_drain_product
+    - drain_body_and_outlet
+    - flange_or_bonding_interface_compatible_with_waterproofing
+    - grate_or_channel_top_at_finished_level
+    - service_access
+    - trap_or_water_seal_configuration_from_VK_product_design
+  penetrations:
+    - sleeves_and_pipe_crossings_per_N11
+    - waterproofing_seal_around_penetration
+    - fire_acoustic_treatment_when_applicable
+  threshold:
+    - finished_floor_levels
+    - door_leaf_clearance
+    - threshold_profile_if used
+    - waterproofing_transition_below_or_around_threshold
+
+algorithm:
+  - step: 1_room_and_shower_classification
+    action: "Определить ванная/санузел/душевая, наличие душевого поддона/безбарьерного душа/трапа и интенсивность жидкостного воздействия."
+  - step: 2_waterproofing_basis
+    action: "Применить прямое требование СП 30 п.17.10, если выполнены его условия; отдельно определить, включается ли раздел 7 СП 29 и его 200-мм примыкания."
+  - step: 3_drain_intent
+    action: "Не создавать трап только потому, что помещение называется ванной. Если он является душевым приемником, получить конкретный продукт и VK-схему."
+  - step: 4_finished_levels
+    action: "Согласовать чистые отметки, порог/понижение и доступность. Отметки моделировать по финишному покрытию, а не по несущей плите."
+  - step: 5_slope_geometry
+    action: "Если применяется п.17.9, построить уклон 1–2% к фактическому лотку/трапу; проверить отсутствие обратных уклонов и конфликтов с дверью/оборудованием. Для других зон уклон определяется отдельным применимым правилом, не копируется автоматически."
+  - step: 6_waterproofing_contour
+    action: "Проверить непрерывность под покрытием, в углах, вокруг проходок и на интерфейсе трапа. Запретить гидроизоляционный слой, который геометрически заканчивается до фланца/примыкания."
+  - step: 7_VK_coordination
+    action: "Подтвердить отметку выпуска, диаметр, гидрозатвор/трап, доступность обслуживания и трассу; не резать перекрытие без N11/KR gate."
+  - step: 8_hidden_work_sequence
+    action: "Зафиксировать испытания/контроль основания, гидроизоляции и трубопроводов до закрытия стяжкой/плиткой/коробами."
+  - step: 9_readback
+    action: "Проверить финишные отметки, уклон, положение drain, opening/sleeve ownership, waterproofing metadata и NODE revision."
+
+archicad_tapir_recipe:
+  floor:
+    preferred: native_Slab_for_structural_or_major_finish_geometry
+    slope_strategy: "Use native Slab/roof-like geometry only if it truthfully represents floor build-up; otherwise keep structural slab flat and model slope-forming finish/screed as a separate validated element at the LOD where needed."
+    tapir: [CreateSlabs]
+  walls: native_Wall
+  drain:
+    preferred: verified_library_object_or_MEP_element
+    tapir: [CreateMEPRoutingElements, ConnectMEPElements, ApplyFavoritesToElements]
+  penetration:
+    delegate_to: IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL
+    tapir: [CreateOpenings]
+  waterproofing:
+    default: node_property_plus_2d_detail
+    3d_when: "needed for quantities, coordination, manufacturer/fabrication workflow or explicit LOD requirement"
+  detail_output:
+    tapir: [CreateDetails, CreateWorksheets]
+
+BIM_parameters_required:
+  - NODE_ID
+  - room_zone_id
+  - wet_room_classification
+  - SP30_17_10_applicable
+  - SP29_liquid_exposure_class
+  - finished_floor_level
+  - adjacent_floor_level
+  - threshold_height_if_any
+  - drain_product_ref
+  - drain_position_and_top_level
+  - shower_slope_rule_ref
+  - waterproofing_system_ref
+  - waterproofing_scope_and_upturn_condition
+  - VK_design_ref
+  - penetration_ids
+  - accessibility_status
+
+postconditions:
+  - waterproofing_required_status_resolved
+  - drain_presence_has_explicit_design_basis
+  - shower_slope_if_applicable_is_within_0_01_0_02_and_drains_to_receiver
+  - floor_level_or_threshold_rule_passes
+  - accessibility_override_passes_when_applicable
+  - drain_and_pipe_penetrations_are_owned_and_approved
+  - waterproofing_contour_reaches_verified_drain_interface
+  - NODE_ID_revision_matches_detail
+
+never_auto_assign:
+  - floor_drain_in_every_bathroom
+  - universal_one_percent_slope
+  - 200mm_waterproofing_upturn_without_SP29_scope_check
+  - screed_thickness
+  - waterproofing_product_or_layer_count
+  - drain_diameter_from_room_name
+  - pipe_route_or_floor_opening_without_VK_KR
+  - threshold_20mm_when_accessibility_rule_is_stricter
+
+sources:
+  - "SP 30.13330.2020 clauses 17.8-17.10 current with Changes through 5"
+  - "SP 29.13330.2011 clauses 4.5, 4.8, 7.1-7.2; Change 4 effective 2025-12-30"
+  - "SP 73.13330.2016 current with Changes through 3"

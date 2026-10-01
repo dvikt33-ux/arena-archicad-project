@@ -1,4 +1,4 @@
-package_manifest_version: 2
+package_manifest_version: 3
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -14,6 +14,7 @@ load_order:
   - 07_pack_masonry_rc.yaml
   - 08_pack_aac_rc.yaml
   - 09_pack_timber.yaml
+  - 10_tapir_command_matrix.yaml
 
 release_gate:
   require:
@@ -32,8 +33,11 @@ completed_material_packs:
   - AAC_reinforced_concrete
   - timber_structures
 
+completed_audits:
+  - exact_Tapir_critical_command_presence_audit
+
 next_cycles:
-  - exact_Tapir_command_schema_audit_for_node_recipe
+  - exact_Tapir_per_command_schema_and_context_audit
   - masonry_RC_detailed_joint_recipes
   - AAC_RC_detailed_joint_recipes
   - timber_detailed_joint_recipes

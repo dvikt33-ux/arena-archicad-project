@@ -1,4 +1,4 @@
-manifest_version: 46
+manifest_version: 47
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -39,7 +39,7 @@ load_order:
 
 precedence_rules:
   - target_2027.yaml overrides current-date status when an officially confirmed transition applies to 2027.
-  - revision_watch_2027.yaml invalidates an architectural/core rule whose claimed revision is below official_latest_change.
+  - revision_watch_2027.yaml invalidates an architectural/core rule whose claimed revision is below official_latest_change or whose source document is superseded.
   - revision_watch_adjacent_2027.yaml blocks coordination with stale KR/POS/engineering inputs but does not authorize the architectural agent to perform those discipline calculations.
   - functional_revision_audit_2027.yaml overrides stale special-code revision metadata and can block amendment-specific rules when effective status is ambiguous.
   - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change document identity without explicit replacement metadata.
@@ -114,6 +114,7 @@ rule_files:
   - 57_sp70_remaining_masonry_2027.yaml
   - 58_stairwell_facade_opening_separation.yaml
   - 59_public_lift_lobby_exceptions.yaml
+  - 60_stairwell_windows_and_swing_clearance.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING
@@ -126,6 +127,7 @@ hard_fail_states:
   - duplicate_rule_id
   - missing_target_profile
   - source_status_unknown
+  - superseded_document_used_as_current
   - rule_revision_below_official_latest
   - adjacent_discipline_revision_below_official_latest
   - functional_amendment_effective_status_ambiguous
@@ -143,7 +145,7 @@ release_gate:
   require:
     - all YAML files parse successfully
     - no duplicate machine rule ids across rules and loaded packages
-    - no automatic rule references a superseded clause for target 2027
+    - no automatic rule references a superseded clause or superseded document for target 2027
     - numeric automatic rules have source document and clause or table
     - future transitions have official effective dates
     - core rule files match revision_watch_2027.yaml

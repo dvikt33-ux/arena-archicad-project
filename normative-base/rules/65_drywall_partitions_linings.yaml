@@ -1,0 +1,140 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Каркасно-обшивные перегородки, облицовки и сопряжения из гипсокартонных/гипсоволокнистых/гипсовых плит: выбор системы по СП 163.1325800.2014 с Изм. №1 без подмены расчета библиотечным типом стены."
+
+revision_dependencies:
+  - {document: SP_163_1325800_2014, verified_changes: [1], status: active}
+  - {document: SP_71_13330_2017, verified_changes: [1,2,3,4], status: active}
+  - {document: GOST_6266_97, status: active, role: gypsum_plasterboard}
+  - {document: GOST_32614_2012, status: active, role: gypsum_board_product_standard}
+  - {document: SP_51_13330_2011, verified_changes: [1,2,3,4], role: acoustic_requirements}
+  - {document: SP_2_13130_2020, verified_changes: [1,2], role: fire_resistance_requirements}
+
+system_selection:
+  - id: drywall.partition.system_table_lookup
+    source: {document: SP_163_1325800_2014, clause: "7.1, tables 2, 3, 3a", amendment: 1}
+    automation: conditional
+    statement: "Тип перегородки, каркас, шаг стоек, число слоев обшивки и допустимую высоту выбирать как согласованную систему по таблицам СП 163. Запрещено задавать одну универсальную толщину или максимальную высоту для всех перегородок."
+    requires_manufacturer_data: false
+    requires_calculation: false
+    conflict_policy: "Если выбранная обшивка/толщина/каркас не соответствует табличной системе, переходить к расчету, а не экстраполировать таблицу."
+
+  - id: drywall.partition.other_board_thickness_height_calc
+    source: {document: SP_163_1325800_2014, clause: "7.1.1.1", amendment: 1}
+    automation: manual_calculation
+    statement: "При применении обшивок иной толщины, чем предусмотрено таблицами 3/3а, максимальную высоту перегородки для обеспечения прочности от собственного веса определяют расчетом."
+    requires_calculation: true
+
+  - id: drywall.partition.vertical_and_horizontal_loads
+    source: {document: SP_163_1325800_2014, clause: "7.1.1.3", amendment: 1}
+    automation: validation_only
+    statement: "Перегородку проверяют на сочетание вертикальных нагрузок (собственная масса и навесное оборудование) и горизонтальных эксплуатационных нагрузок; в сейсмических районах дополнительно учитывают расчетные сейсмические воздействия."
+    requires_calculation: true
+
+wet_and_moist_rooms:
+  - id: drywall.partition.wet_room_material_gate
+    source: {document: SP_163_1325800_2014, clause: "7.1", amendment: 1}
+    automation: conditional
+    statement: "В помещениях с влажным и мокрым режимами перегородки проектировать с металлическим каркасом и влагостойкой/влагостойко-огнестойкой обшивкой из типов, допускаемых СП 163, с защитой лицевой поверхности гидроизоляционными/водостойкими покрытиями или облицовкой."
+    conflict_policy: "Конкретный тип плиты и отделочного слоя выбирать по фактическому режиму помещения, требованиям производителя и проекту гидроизоляции; обычную сухую ГКЛ-систему не применять автоматически."
+
+movement_and_joints:
+  - id: drywall.partition.sliding_top_if_floor_deflection_gt_10
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.8"}
+    automation: conditional
+    statement: "При прогибе перекрытия от временных нагрузок более 10 мм для независимости деформаций каркаса перегородки рекомендуется предусматривать подвижное/скользящее верхнее присоединение согласно СП 163."
+    values: {deflection_trigger_mm_exclusive: 10}
+    requires_calculation: true
+    conflict_policy: "Значение прогиба должно поступать из КР; архитектурный агент не рассчитывает прогиб перекрытия самостоятельно."
+
+  - id: drywall.partition.expansion_joint_spacing
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.9", amendment: 1}
+    automation: conditional
+    statement: "В местах деформационных швов здания и в перегородках длиной более 15 м предусматривать температурные/деформационные швы; расстояние между ними и от края перегородки — не более 15 м."
+    values: {partition_length_trigger_mm_exclusive: 15000, max_joint_spacing_mm: 15000}
+
+openings_and_intersections:
+  - id: drywall.partition.door_jamb_studs_rigid_connection
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.6", amendment: 1}
+    automation: validation_only
+    statement: "Стоечные профили, ограждающие дверной проем, должны быть жестко прикреплены к направляющим; свободностоящее соединение без механической фиксации на стойки дверного проема не распространяется."
+
+  - id: drywall.partition.intersection_inserts
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.7", amendment: 1}
+    automation: validation_only
+    statement: "В местах пересечения перегородок предусматривать вставки из соответствующего металлического профиля или деревянных брусков, закрепленных к стойкам каркаса."
+
+  - id: drywall.partition.service_route_framing
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.10", amendment: 1}
+    automation: validation_only
+    statement: "В местах сопряжения перегородок с коммуникационными трассами предусматривать обрамляющие элементы между стойками каркаса."
+
+  - id: drywall.partition.pipe_penetration_seal
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.11", amendment: 1}
+    automation: validation_only
+    statement: "В местах прохода трубопроводов через обшивку предусматривать упругое закрепление/прокладки и герметизацию сопряжения; обычный геометрический BIM-проем не является завершенным узлом."
+
+fire_partitions:
+  - id: drywall.fire_partition.pipe_gt_60_gate
+    source: {document: SP_163_1325800_2014, clause: "7.1.4.6"}
+    automation: conditional
+    statement: "При пересечении противопожарной перегородки с нормируемым пределом огнестойкости более 30 мин трубопроводами диаметром более 60 мм применять предусмотренную СП 163 изоляцию/кожух с требуемым пределом огнестойкости; параметры узла согласовывать с пожарным и инженерным проектом."
+    values: {partition_fire_resistance_trigger_min_exclusive: 30, pipe_diameter_trigger_mm_exclusive: 60}
+    requires_calculation: false
+    conflict_policy: "Не превращать 30 мин в универсальный предел огнестойкости самой перегородки; требуемый EI определяется пожарной нормой объекта."
+
+  - id: drywall.fire_partition_opening_certified_fill
+    source: {document: SP_163_1325800_2014, clause: "7.1.4.8"}
+    automation: validation_only
+    statement: "Двери и другие заполнения проемов в противопожарных перегородках должны соответствовать требованиям к противопожарным заполнениям; обычный дверной объект библиотеки без подтвержденной пожарной характеристики не допускается как проверенное решение."
+
+wall_linings:
+  - id: drywall.lining.tile_stud_spacing
+    source: {document: SP_163_1325800_2014, clause: "7.2.5.9"}
+    automation: conditional
+    statement: "При облицовке стен керамической плиткой по каркасной обшивке шаг стоек принимать не более 400 мм, а обшивку предусматривать двухслойной."
+    values: {max_stud_spacing_mm: 400, minimum_sheathing_layers: 2}
+
+BIM_required_parameters:
+  - partition_system_id
+  - frame_material
+  - stud_profile
+  - stud_spacing_mm
+  - frame_configuration
+  - sheathing_standard
+  - sheathing_product_type
+  - sheathing_layer_count_each_side
+  - sheathing_thickness_mm
+  - insulation_fill_type
+  - total_partition_thickness_mm
+  - clear_partition_height_mm
+  - fire_resistance_requirement
+  - acoustic_requirement
+  - moisture_regime
+  - floor_deflection_from_KR_mm
+  - top_connection_type
+  - deformation_joint_status
+  - door_opening_reinforcement_status
+  - service_penetration_status
+
+hard_fail_conditions:
+  - "partition height accepted by extrapolating a table to an unlisted board thickness or system"
+  - "wet-room partition uses dry-room board/system without verified applicability"
+  - "door opening created without reinforced/rigidly connected jamb framing where required by the selected system"
+  - "partition crosses a building deformation joint without its own corresponding joint"
+  - "fire partition penetration treated as an ordinary unsealed BIM opening"
+  - "structural floor deflection required for joint design is unknown"
+
+agent_logic:
+  - "Перегородка — это система, а не только суммарная толщина стены."
+  - "Не назначать высоту перегородки из общей фразы 'до 9 м'; выбирать точную строку/систему таблиц 2, 3 или 3а либо выполнять расчет."
+  - "Не заменять акустический, пожарный и влагостойкий подбор количеством слоев по памяти; требование к характеристикам сначала получить из профильной нормы помещения/преграды."
+  - "Для инженерных трасс в толще перегородки резервировать пространство и обрамление по выбранной системе; не вырезать стойки постфактум без проверки."
+  - "При изменении шага стоек, типа профиля, числа слоев или высоты повторно валидировать систему целиком."
+
+sources:
+  - "https://protect.gost.ru/sp/details/92439dea-05ad-4cfe-9dc4-c1bddcdb8c55"
+  - "https://protect.gost.ru/sp/changesdetails/1acf76a9-1db8-4fef-9759-b7528bcfaee3"
+  - "https://protect.gost.ru/gost/details/b82ec807-cf21-4116-87ff-2a9687c33979"
+  - "https://protect.gost.ru/gost/details/2bab5670-8967-4962-94cb-4e15a4d15f4b"
+  - "https://base.garant.ru/71121328/"

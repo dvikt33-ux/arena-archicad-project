@@ -31,16 +31,17 @@ coldest_five_day_temperature_source:
     statement: "Среднюю температуру наиболее холодной пятидневки для таблицы 9.1 получать из актуального СП 131.13330.2025 для конкретного места строительства; не вводить климатическое значение по памяти, городу-аналогии или старому СП 131.13330.2020."
     requires_project_location_climate_data: true
 
- double_vestibule_table:
+double_vestibule_table:
   source: SP_54_13330_2022
   clause: "9.21, table 9.1"
   dimension_semantics: not_applicable
+  interval_semantics: "min_inclusive <= temperature < max_exclusive; absent bound means unbounded"
   rules:
     - id: residential.entrance.double_vestibule_t_ge_minus20
       automation: conditional
       statement: "При средней температуре наиболее холодной пятидневки −20 °C и выше двойной тамбур требуется в зданиях этажностью 16 и более."
       conditions:
-        coldest_five_day_mean_C: {min: -20}
+        coldest_five_day_mean_C: {min_inclusive: -20}
         storeys: {min: 16}
       values: {double_vestibule_required: true}
 
@@ -48,7 +49,7 @@ coldest_five_day_temperature_source:
       automation: conditional
       statement: "При температуре ниже −20 °C до −25 °C включительно двойной тамбур требуется с 12 этажей."
       conditions:
-        coldest_five_day_mean_C: {greater_than: -25, less_than: -20, include_lower_temperature_boundary: true}
+        coldest_five_day_mean_C: {min_inclusive: -25, max_exclusive: -20}
         storeys: {min: 12}
       boundary_semantics: "−25 °C включается в этот диапазон; −20 °C относится к более теплой строке таблицы."
       values: {double_vestibule_required: true}
@@ -57,7 +58,7 @@ coldest_five_day_temperature_source:
       automation: conditional
       statement: "При температуре ниже −25 °C до −35 °C включительно двойной тамбур требуется с 10 этажей."
       conditions:
-        coldest_five_day_mean_C: {greater_than: -35, less_than: -25, include_lower_temperature_boundary: true}
+        coldest_five_day_mean_C: {min_inclusive: -35, max_exclusive: -25}
         storeys: {min: 10}
       boundary_semantics: "−35 °C включается в этот диапазон; −25 °C относится к предыдущей строке."
       values: {double_vestibule_required: true}
@@ -66,7 +67,7 @@ coldest_five_day_temperature_source:
       automation: conditional
       statement: "При температуре ниже −35 °C до −40 °C включительно двойной тамбур требуется с 4 этажей."
       conditions:
-        coldest_five_day_mean_C: {greater_than: -40, less_than: -35, include_lower_temperature_boundary: true}
+        coldest_five_day_mean_C: {min_inclusive: -40, max_exclusive: -35}
         storeys: {min: 4}
       boundary_semantics: "−40 °C включается в этот диапазон; −35 °C относится к предыдущей строке."
       values: {double_vestibule_required: true}
@@ -75,17 +76,17 @@ coldest_five_day_temperature_source:
       automation: conditional
       statement: "При температуре ниже −40 °C двойной тамбур требуется в зданиях с 1 этажа."
       conditions:
-        coldest_five_day_mean_C: {less_than: -40}
+        coldest_five_day_mean_C: {max_exclusive: -40}
         storeys: {min: 1}
       values: {double_vestibule_required: true}
 
 boundary_regression_cases:
   - {temperature_C: -19.999, storeys: 15, expected_double_vestibule: false_by_table_9_1}
-  - {temperature_C: -20.000, storeys: 16, expected_double_vestibule: true}
-  - {temperature_C: -25.000, storeys: 12, expected_double_vestibule: true}
-  - {temperature_C: -35.000, storeys: 10, expected_double_vestibule: true}
-  - {temperature_C: -40.000, storeys: 4, expected_double_vestibule: true}
-  - {temperature_C: -40.001, storeys: 1, expected_double_vestibule: true}
+  - {temperature_C: -20.000, storeys: 16, expected_double_vestibule: true, matched_interval: "[-20,+inf)"}
+  - {temperature_C: -25.000, storeys: 12, expected_double_vestibule: true, matched_interval: "[-25,-20)"}
+  - {temperature_C: -35.000, storeys: 10, expected_double_vestibule: true, matched_interval: "[-35,-25)"}
+  - {temperature_C: -40.000, storeys: 4, expected_double_vestibule: true, matched_interval: "[-40,-35)"}
+  - {temperature_C: -40.001, storeys: 1, expected_double_vestibule: true, matched_interval: "(-inf,-40)"}
 
 special_notes:
   source: SP_54_13330_2022
@@ -131,7 +132,7 @@ BIM_required_parameters:
 agent_logic:
   - "Сначала определить климатические данные и этажность по СП 54, затем число последовательно расположенных тамбуров, после этого проверять чистую геометрию каждого доступного тамбура по СП 59."
   - "Не использовать старое правило 'тамбур глубиной 1,5 м' из СП 54.13330.2011 как текущую норму 2027."
-  - "Температурные границы таблицы 9.1 не округлять; −20, −25, −35 и −40 °C принадлежат конкретным строкам таблицы."
+  - "Температурные границы таблицы 9.1 не округлять; −20, −25, −35 и −40 °C принадлежат конкретным неперекрывающимся интервалам."
   - "Одинарный тамбур с воздушно-тепловой завесой — проектное исключение по заданию и расчету, а не оптимизационный default."
 
 sources:

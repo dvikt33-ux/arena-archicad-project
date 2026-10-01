@@ -1,0 +1,85 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Бетонные блоки стен подвалов и технических подполий: актуальная типология ГОСТ 13579-2018 и запрет выбора фундамента по каталожной геометрии без КР/геотехники."
+
+source_document:
+  document: GOST_13579_2018
+  title: "Блоки бетонные для стен подвалов. Технические условия"
+  status: active
+  effective_from: 2019-05-01
+  official_status_url: "https://protect.gost.ru/gost/details/590002ea-b5b0-4bf5-9e47-a772c8c16f06"
+
+scope:
+  - id: basement_blocks.scope
+    automation: validation_only
+    statement: "ГОСТ 13579-2018 распространяется на бетонные блоки из тяжелого, легкого и плотного силикатного бетона установленной стандартом плотности для стен подвалов и технических подполий; сплошные блоки допускается применять для фундаментов."
+
+product_types:
+  source: GOST_13579_2018
+  rules:
+    - id: basement_blocks.types
+      clause: "4.1"
+      automation: conditional
+      statement: "Блоки подразделяются на три нормативных семейства."
+      types:
+        - {code: FBS, ru_code: "ФБС", definition: "сплошной"}
+        - {code: FBV, ru_code: "ФБВ", definition: "с вырезом для укладки перемычек и пропуска коммуникаций под потолками подвалов/техподполий"}
+        - {code: FBP, ru_code: "ФБП", definition: "пустотный, с открытыми вниз пустотами"}
+
+    - id: basement_blocks.table_lookup
+      clause: "4.2; table 1"
+      automation: conditional
+      dimension_semantics: nominal_product
+      statement: "Для стандартного изделия форму и основные размеры брать из таблицы 1 ГОСТ 13579-2018; марка библиотечного объекта должна соответствовать фактической длине, ширине, высоте и типу бетона."
+
+    - id: basement_blocks.nonstandard_sizes_allowed_by_agreement
+      clause: "4.2 note"
+      automation: validation_only
+      statement: "Стандарт допускает изготовление блоков с размерами, отличными от таблицы 1, на действующем оборудовании по согласованию заказчика и изготовителя. Поэтому отсутствие размера в основной таблице не означает автоматический запрет, но такой блок нельзя выдавать за стандартную табличную марку."
+      requires_manufacturer_data: true
+
+    - id: basement_blocks.mark_semantics
+      clause: "4.3"
+      automation: validation_only
+      statement: "Марка блока кодирует тип и округленные размерные признаки, но точную геометрию BIM следует получать из табличной марки/рабочей документации, а не восстанавливать только по строке названия."
+
+structural_boundary:
+  - id: basement_blocks.foundation_selection_requires_KR_geotech
+    automation: forbidden_to_infer
+    statement: "Факт, что ФБС разрешен стандартом для фундаментов, не позволяет автоматически выбирать ширину, длину, класс бетона, количество рядов или схему фундамента. Требуются инженерно-геологические данные и расчет КР."
+    requires_calculation: true
+
+  - id: basement_blocks.communication_cutout_no_field_inference
+    automation: forbidden_to_infer
+    statement: "Проход коммуникаций не следует создавать произвольной вырезкой стандартного ФБС в BIM. Использовать предусмотренный проектом ФБВ, монолитный участок или иное подтвержденное КР решение."
+    requires_calculation: true
+    requires_manufacturer_data: true
+
+  - id: basement_blocks.waterproofing_not_product_property
+    automation: validation_only
+    statement: "Выбор блока не определяет гидроизоляцию подземной стены. Гидроизоляцию, дренаж, утепление и защиту от грунтовой влаги/воды проектировать отдельным узлом по условиям участка и профильным нормам."
+
+BIM_required_parameters:
+  - block_standard
+  - block_type
+  - block_mark
+  - nominal_length_mm
+  - nominal_width_mm
+  - nominal_height_mm
+  - concrete_type
+  - manufacturer_or_working_drawing_reference
+  - wall_or_foundation_role
+  - geotechnical_input_reference
+  - KR_calculation_reference
+  - communication_opening_solution
+  - waterproofing_system_reference
+
+agent_logic:
+  - "Не превращать таблицу ФБС в автоматический проект фундамента."
+  - "Не подрезать стандартный блок ради остатка или трубы без подтвержденного решения."
+  - "Нестандартный размер хранить как approved_custom_product с источником изготовителя/рабочего чертежа."
+  - "Геометрию подземной части согласовывать с гидроизоляцией, утеплением и инженерными вводами до финальной раскладки блоков."
+
+sources:
+  - "https://protect.gost.ru/gost/details/590002ea-b5b0-4bf5-9e47-a772c8c16f06"
+  - "https://base.garant.ru/72206416/"

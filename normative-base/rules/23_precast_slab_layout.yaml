@@ -1,6 +1,6 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
-purpose: "Алгоритм раскладки сборных железобетонных плит перекрытия: нормативные типоразмеры, координационные/конструктивные размеры, остаточные полосы и запрет произвольной подрезки."
+purpose: "Алгоритм раскладки сборных железобетонных плит перекрытия: точные нормативные сочетания ПК, координационные/конструктивные размеры, ПБ по данным изготовителя, остаточные полосы и запрет произвольной подрезки."
 
 revision_dependencies:
   - {document: GOST_26434_2025, status: active, effective_from: 2026-01-01, scope: "load-bearing floor slabs for residential buildings"}
@@ -11,61 +11,75 @@ revision_dependencies:
 scope_gate:
   - id: slab.layout.GOST26434_scope
     automation: conditional
-    statement: "ГОСТ 26434-2025 применять как типоразмерную основу для плит несущей части перекрытий жилых зданий. Для общественных/производственных объектов не переносить его типоразмерный каталог автоматически без подтверждения применимости конкретного изделия/ТУ/проекта КР."
+    statement: "ГОСТ 26434-2025 применять как типоразмерную основу для плит несущей части перекрытий жилых зданий. Для общественных/производственных объектов не переносить его каталог автоматически без подтверждения применимости конкретного изделия/ТУ/проекта КР."
     requires_object_classification: true
 
 coordination_catalog:
   source: GOST_26434_2025
   clause: "4.4, table 1 and notes"
   rules:
-    - id: slab.layout.PK_main_coordination_grid
-      automation: conditional
-      statement: >-
-        Для типов 1ПК/2ПК/3ПК стандартный основной ряд координационных длин включает
-        2400..6600 мм с шагом 300 мм, а также 7200 и 7500 мм; применимые ширины проверять по
-        конкретной строке таблицы 1. Для длины 9000 мм предусмотрены только отдельные сочетания
-        типа 1ПК и ширин 1000/1200/1500 мм.
-      values:
-        regular_length_range_mm: [2400,6600]
-        regular_length_step_mm: 300
-        additional_lengths_mm: [7200,7500]
-        special_1PK_length_mm: 9000
-        special_1PK_widths_mm: [1000,1200,1500]
+    - id: slab.layout.PK_exact_coordination_whitelist
+      automation: auto
       dimension_semantics: coordination
-      note: "Не генерировать декартово произведение всех длин и ширин; валидировать точное сочетание по таблице 1."
+      statement: "Для типов 1ПК/2ПК/3ПК использовать только сочетания длины и ширины, непосредственно разрешенные таблицей 1. Основной ряд почти регулярный, но содержит исключения, поэтому декартово произведение диапазонов запрещено."
+      combinations:
+        common_widths_mm: [1000,1200,1500,1800,2400,3000,3600]
+        lengths_with_all_common_widths_mm: [2400,2700,3300,3600,3900,4200,4500,4800,5100,5400,5700,6000,6300,6600,7200,7500]
+        exceptions:
+          - {length_mm: 3000, allowed_widths_mm: [1000,1200,1500,1800,2400,3000], note: "3600 mm width absent from table 1 for length 3000"}
+          - {length_mm: 9000, allowed_types: ["1PK"], allowed_widths_mm: [1000,1200,1500], note: "note 5: 9000 mm length applies only to 1PK"}
+      type_prefix_rule: "For listed combinations except 9000 mm, table note 1 permits 2PK and 3PK by replacing the 1PK type prefix; 9000 mm remains 1PK only by note 5."
+      conflict_policy: "If an exact pair is not present after applying the explicit type rule and exceptions, reject it as not in GOST 26434-2025 table 1; do not round to nearest pair."
 
     - id: slab.layout.PKT_coordination
       automation: conditional
-      statement: "Для 1ПКТ/2ПКТ/3ПКТ координационная длина 3600..6600 мм с шагом 300 мм, а также 7200 и 7500 мм; ширина 2400..3600 мм с шагом 300 мм."
+      dimension_semantics: coordination
+      statement: "Для 1ПКТ/2ПКТ/3ПКТ координационная длина 3600..6600 мм включительно с шагом 300 мм, а также 7200 и 7500 мм; ширина 2400..3600 мм включительно с шагом 300 мм."
       values:
         length_range_mm: [3600,6600]
         length_step_mm: 300
         additional_lengths_mm: [7200,7500]
         width_range_mm: [2400,3600]
         width_step_mm: 300
-      dimension_semantics: coordination
 
     - id: slab.layout.PKK_coordination
       automation: conditional
-      statement: "Для 1ПКК/2ПКК/3ПКК координационная длина 2400..6600 мм с шагом 300 мм; ширина 4800..6600 мм с шагом 300 мм, а также 7200 мм."
+      dimension_semantics: coordination
+      statement: "Для 1ПКК/2ПКК/3ПКК координационная длина 2400..6600 мм включительно с шагом 300 мм; ширина 4800..6600 мм включительно с шагом 300 мм, а также 7200 мм."
       values:
         length_range_mm: [2400,6600]
         length_step_mm: 300
         width_range_mm: [4800,6600]
         width_step_mm: 300
         additional_widths_mm: [7200]
-      dimension_semantics: coordination
 
     - id: slab.layout.PB_widths
       automation: conditional
-      statement: "Для плит непрерывного формования ПБ координационные ширины стандартного ряда — 1000, 1200 и 1500 мм."
-      values: {coordination_widths_mm: [1000,1200,1500]}
       dimension_semantics: coordination
+      statement: "Для плит непрерывного формования 1,5ПБ/1,6ПБ/1,8ПБ/2,2ПБ/2,65ПБ/3ПБ/3,2ПБ/3,3ПБ/4ПБ/4,5ПБ/5ПБ координационные ширины — 1000, 1200 и 1500 мм."
+      values: {coordination_widths_mm: [1000,1200,1500]}
 
     - id: slab.layout.PB_length_manufacturer_defined
       automation: forbidden_to_infer
-      statement: "Для ПБ координационную длину нельзя генерировать из универсального табличного ряда: длина определяется параметрами формовочного оборудования изготовителя и рабочей документацией конкретного изделия."
+      statement: "Для ПБ координационную длину нельзя генерировать из универсального табличного ряда: длина устанавливается по параметрам формовочного оборудования изготовителя."
       requires_manufacturer_data: true
+
+axis_coordination:
+  source: GOST_26434_2025
+  rules:
+    - id: slab.layout.coord_length_equals_structural_grid_step
+      clause: "4.5, figure 1"
+      automation: conditional
+      dimension_semantics: coordination
+      statement: "Плиты в перекрытии располагают так, чтобы их координационная длина соответствовала поперечному или продольному шагу несущих конструкций здания."
+      conflict_policy: "Это связь координационной сетки и изделия; она не означает, что фактический габарит плиты равен расстоянию между гранями опор."
+
+    - id: slab.layout.paired_axes_thick_internal_wall
+      clause: "4.5, figure 2"
+      automation: validation_only
+      statement: "Если во внутренних несущих стенах толщиной 300 мм и более применены парные координационные оси (заменяемые в документации одной разбивочной осью), координационную длину плиты определяют с учетом координационной вставки по рисунку 2, а не просто равной полному расстоянию между разбивочными осями."
+      conditions: {internal_bearing_wall_thickness_mm: {min: 300}, paired_coordination_axes: true}
+      conflict_policy: "Не вычислять размер вставки по памяти; использовать принятую координационную схему проекта и рисунок/проектные данные."
 
 coordination_to_constructive_dimensions:
   source: GOST_26434_2025
@@ -73,17 +87,14 @@ coordination_to_constructive_dimensions:
   rules:
     - id: slab.layout.coord_not_constructive
       automation: auto
-      statement: "Координационная длина/ширина плиты не равна автоматически конструктивному габариту изделия. Конструктивный размер определяется из координационного с учетом дополнительных размеров a1/a2/a3 для конкретной конструктивной системы здания."
+      statement: "Координационная длина/ширина плиты не равна автоматически конструктивному габариту изделия. Конструктивный размер определяется из координационного с учетом дополнительных размеров a1/a2/a3 для конкретной конструктивной системы."
       dimension_semantics: not_applicable
 
     - id: slab.layout.masonry_nonseismic_a1
       automation: conditional
-      statement: "Для зданий со стенами из кирпича, камней и блоков вне указанной стандартом сейсмической группы таблица 2 использует a1=20 мм по длине; по ширине a1=10 мм при координационной ширине менее 2400 мм и 20 мм при ширине 2400 мм и более. Значения подлежат уточнению рабочей документацией."
-      conditions: {structural_system: "masonry walls", seismic_case: "non 7-9 table row"}
-      values:
-        length_a1_mm: 20
-        width_a1_mm_if_coord_width_lt_2400: 10
-        width_a1_mm_if_coord_width_ge_2400: 20
+      statement: "Для зданий со стенами из кирпича, камней и блоков, кроме расчетной сейсмичности 7-9 баллов, таблица 2 задает a1=20 мм по длине; по ширине a1=10 мм при координационной ширине менее 2400 мм и 20 мм при ширине 2400 мм и более."
+      conditions: {structural_system: "masonry walls", seismic_case: "not 7-9"}
+      values: {length_a1_mm: 20, width_a1_mm_if_coord_width_lt_2400: 10, width_a1_mm_if_coord_width_ge_2400: 20}
       dimension_semantics: constructive_product
 
     - id: slab.layout.masonry_seismic_a2
@@ -95,7 +106,7 @@ coordination_to_constructive_dimensions:
 
     - id: slab.layout.frame_a2
       automation: conditional
-      statement: "Для каркасных зданий таблица 2 задает по длине a1=20 мм и a2=350 мм; применять только в области соответствующей схемы и уточнять проектной документацией."
+      statement: "Для каркасных зданий таблица 2 задает по длине a1=20 мм и a2=350 мм; применять только в области соответствующей схемы и рабочей документации."
       conditions: {structural_system: "frame"}
       values: {length_a1_mm: 20, length_a2_mm: 350}
       dimension_semantics: constructive_product
@@ -106,23 +117,20 @@ factory_cutting:
   rules:
     - id: slab.layout.PB_factory_filler_cut
       automation: conditional
-      statement: >-
-        Стандартные ПБ допускается продольно разрезать на заводе-изготовителе на плиты-доборы
-        различной ширины только при обеспечении несущей способности, жесткости и трещиностойкости
-        и в соответствии с рабочими чертежами плит.
+      statement: "Стандартные ПБ допускается продольно разрезать на заводе-изготовителе на плиты-доборы различной ширины только при обеспечении несущей способности, жесткости и трещиностойкости и по рабочим чертежам плит."
       requires_manufacturer_data: true
       requires_calculation: true
 
     - id: slab.layout.PB_factory_oblique_cut
       automation: conditional
-      statement: "Для перечисленных стандартом типов ПБ допускаются заводские косые резы по рабочим чертежам; угол реза не менее 45 градусов."
+      statement: "Для перечисленных стандартом типов ПБ допускаются заводские косые резы по рабочим чертежам; угол реза не менее 45°."
       values: {min_cut_angle_deg: 45}
       requires_manufacturer_data: true
       requires_calculation: true
 
     - id: slab.layout.no_field_cutting
       automation: forbidden_to_infer
-      statement: "Запрещено автоматически подрезать, штробить или произвольно укорачивать/сужать многопустотную плиту непосредственно в BIM как способ заполнить остаток. Любая нестандартная геометрия должна быть подтверждена изготовителем/рабочими чертежами и КР."
+      statement: "Запрещено автоматически подрезать, штробить или произвольно укорачивать/сужать многопустотную плиту непосредственно в BIM для заполнения остатка. Любая нестандартная геометрия должна быть подтверждена изготовителем/рабочими чертежами и КР."
       requires_manufacturer_data: true
       requires_calculation: true
 
@@ -131,11 +139,11 @@ layout_algorithm:
   steps:
     - "1. Определить конструктивную схему, направление несения, опорные линии и подтвержденный КР тип плиты."
     - "2. Определить координационный пролет/полосу между опорными элементами отдельно от фактического расстояния между их гранями."
-    - "3. Отобрать только допустимые для типа сочетания длины и ширины из ГОСТ/рабочих чертежей производителя."
-    - "4. Перевести координационные размеры в конструктивные по соответствующей строке таблицы 2 и проектным уточнениям."
-    - "5. Заполнять полосу целыми стандартными плитами, оптимизируя число типоразмеров и сохраняя требуемые швы/зазоры."
-    - "6. Остаточную полосу не распределять путем растяжения стандартных плит. Проверить: допустимая стандартная ширина, заводская ПБ-доборная плита, монолитный участок или иное рассчитанное КР решение."
-    - "7. Для каждого края проверить фактическое опирание, но не назначать его нормативной константой без КР."
+    - "3. Для ПК валидировать точную пару длина×ширина по whitelist; для ПКТ/ПКК — по их диапазонам; для ПБ — ширину по стандарту, длину по подтвержденным данным изготовителя."
+    - "4. Перевести координационные размеры в конструктивные по соответствующей строке таблицы 2 и проектной координационной схеме."
+    - "5. Заполнять полосу целыми стандартными плитами, оптимизируя число типоразмеров и сохраняя проектные швы/зазоры."
+    - "6. Остаточную полосу не распределять растяжением стандартных плит. Проверить допустимую стандартную ширину, заводскую ПБ-доборную плиту, монолитный участок или иное рассчитанное КР решение."
+    - "7. Для каждого края проверить фактическое опирание, но не назначать его универсальной константой без КР."
     - "8. Не размещать отверстия под инженерные сети после раскладки без согласованного задания КР и производителя для преднапряженных/многопустотных плит."
     - "9. Повторно проверить нагрузки, проемы, лестничные клетки, шахты, пожарные преграды и междисциплинарные отверстия."
 
@@ -151,6 +159,7 @@ optimization_policy:
     - "stretch standard slab to residual width"
     - "shorten hollow-core slab graphically without approved product"
     - "assume every 300-mm coordination length is manufacturable for PB"
+    - "assume 3000x3600 is a valid PK pair merely because both dimensions occur elsewhere in the table"
     - "assume slab bearing depth from a typical handbook value"
 
 BIM_required_parameters:
@@ -180,4 +189,5 @@ agent_logic:
 
 sources:
   - "https://protect.gost.ru/gost/details/a4e2e4eb-0cde-48c3-ab02-d3d9e24b0fcc"
+  - "https://meganorm.ru/Data/854/85490.pdf"
   - "https://protect.gost.ru/gost/details/2cad8d31-5b41-45ad-9eb6-0e0125c69b15"

@@ -1,4 +1,4 @@
-package_manifest_version: 3
+package_manifest_version: 4
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -15,6 +15,9 @@ load_order:
   - 08_pack_aac_rc.yaml
   - 09_pack_timber.yaml
   - 10_tapir_command_matrix.yaml
+  - 11_node_N01_foundation_wall_plinth.yaml
+  - 12_node_N05_window_connection.yaml
+  - 13_node_N07_roof_wall_eaves.yaml
 
 release_gate:
   require:
@@ -35,11 +38,14 @@ completed_material_packs:
 
 completed_audits:
   - exact_Tapir_critical_command_presence_audit
+  - detailed_N01_foundation_wall_plinth
+  - detailed_N05_window_connection
+  - detailed_N07_roof_wall_eaves
 
 next_cycles:
   - exact_Tapir_per_command_schema_and_context_audit
-  - masonry_RC_detailed_joint_recipes
-  - AAC_RC_detailed_joint_recipes
-  - timber_detailed_joint_recipes
+  - detailed_N11_MEP_penetration
+  - detailed_N10_wet_room_floor_wall_drain
+  - detailed_N03_wall_floor_connection
   - thermal_moisture_interface_schema
-  - MEP_penetration_ownership_and_fire_water_seal_schema
+  - safe_bridge_typed_operation_contract

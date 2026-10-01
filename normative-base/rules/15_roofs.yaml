@@ -1,8 +1,11 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 primary_document: SP_17_13330_2017
-verified_changes: [1,2,3,4,5]
-purpose: "Базовые правила геометрии кровли без универсального уклона и без подмены расчета библиотечным типом."
+verified_changes: [1, 2, 3, 4, 5]
+purpose: >-
+  Правила выбора уклона кровли по действующей таблице 4.1 СП 17.13330.2017
+  с Изменениями №1-5. Матрица задает нормативную геометрию только после выбора
+  кровельной системы и не заменяет расчет несущих конструкций, водоотвода и узлов.
 
 revision_state:
   status: active
@@ -13,61 +16,221 @@ slope_logic:
   - id: roof.slope_by_material
     source_clause: "4.3 and Table 4.1"
     automation: conditional
-    statement: "Уклон кровли назначается по виду водоизоляционного слоя/кровельного материала, а не единым значением для здания."
+    statement: >-
+      Уклон назначается по виду водоизоляционного слоя/кровельного материала.
+      Один глобальный уклон для здания запрещен.
     agent_input_required: roof_covering_system
+
   - id: roof.valley_min_slope
     source_clause: "4.3"
     automation: true
     min_percent: 0.5
-    note: "В ендовах уклон принимается также в зависимости от расстояния между воронками; 0,5% — нижний предел, а не автоматически оптимальное значение."
+    note: >-
+      В ендовах уклон также определяется расстоянием между водосточными воронками;
+      0,5% — только нижний нормативный предел.
+
   - id: roof.reduced_slope_waterproofing
     source_clause: "4.3"
     automation: validation_only
-    statement: "При уменьшении уклона относительно обычного решения предусматривать дополнительные мероприятия по водонепроницаемости согласно применимой системе кровли."
+    statement: >-
+      Если конкретная система допускает уклон ниже обычного/табличного решения только при
+      специальных мероприятиях, агент обязан применить предусмотренную системой дополнительную
+      водонепроницаемость и проверить стандарт/документацию изделия. Самовольное уменьшение запрещено.
+
   - id: roof.deflection_compensation
     source: SP_17_13330_2017_change_4
     source_clause: "4.3"
     automation: requires_structural_input
-    statement: "Для обеспечения проектного уклона учитывать строительный подъем несущих конструкций, компенсирующий расчетные прогибы по второй группе предельных состояний."
+    statement: >-
+      Для обеспечения проектного уклона несущие конструкции должны учитывать строительный подъем,
+      компенсирующий расчетные прогибы по второй группе предельных состояний по СП 20.13330.
 
-verified_system_examples:
-  - system: bituminous_shingles
-    supporting_standard: GOST_R_70340_2022
-    usual_min_slope_deg: 12
-    automation: conditional
-    note: "При меньшем уклоне стандарт допускает решение только при выполнении специальных требований к сплошному подкровельному водоизоляционному слою."
-  - system: metal_tiles
-    supporting_standard: GOST_R_58739_2019
-    min_slope_deg: 12
-    min_slope_percent: 20
-    automation: conditional
-  - system: ceramic_or_cement_sand_tiles
-    supporting_standard: GOST_R_70342_2022
-    general_min_slope_deg: 22
-    general_min_slope_percent: 40
-    automation: conditional
-    note: "Конкретная модель черепицы и документация изготовителя могут требовать дополнительной проверки; при снижении уклона нужен предусмотренный стандартом водоизоляционный слой."
+slope_matrix_table_4_1:
+  dimension_semantics:
+    percent: roof_slope_percent
+    degrees: approximate_angle_representation_from_standard_table
+    rule: "Для машинной проверки хранить нормативное значение в процентах; градусы — сопутствующее представление таблицы."
+
+  systems:
+    - id: roof.slope.roll_bituminous_gravel_protection
+      table_item: "1.1.1, first subitem"
+      system: non_exploited_bituminous_roll_with_gravel_protection
+      automation: conditional
+      min_percent: 1.5
+      max_percent: 10
+      table_degrees: [1, 6]
+
+    - id: roof.slope.roll_bituminous_factory_coarse_or_foil_top
+      table_item: "1.1.1, second subitem"
+      system: non_exploited_bituminous_roll_with_factory_coarse_surfacing_or_metal_foil
+      automation: conditional
+      min_percent: 1.5
+      table_min_degrees: 1
+      upper_bound: null
+      additional_rules:
+        - condition: "slope_percent >= 25"
+          requirement: anti_sliding_measures_for_waterproofing_membrane
+        - condition: "slope_percent > 20"
+          requirement: verify_SP17_table_5_1
+      note: >-
+        В актуальной таблице после Изм. №4 прежний диапазон 1,5-25% заменен на минимум 1,5%;
+        уклоны 25% и более не запрещены автоматически, но включают специальные требования.
+
+    - id: roof.slope.mastic_gravel_protection
+      table_item: "1.1.2, first subitem"
+      system: non_exploited_mastic_with_gravel_protection
+      automation: conditional
+      min_percent: 1.5
+      max_percent: 10
+      table_degrees: [1, 6]
+
+    - id: roof.slope.mastic_paint_protection
+      table_item: "1.1.2, second subitem"
+      system: non_exploited_mastic_with_protective_paint_layer
+      automation: conditional
+      min_percent: 1.5
+      table_min_degrees: 1
+
+    - id: roof.slope.polymer_roll_or_mastic
+      table_item: "1.1.3"
+      system: non_exploited_polymer_roll_or_mastic
+      automation: conditional
+      min_percent: 1.5
+      table_min_degrees: 1
+
+    - id: roof.slope.exploited
+      table_item: "1.2"
+      system: exploited_roof
+      automation: conditional
+      min_percent: 1.5
+      max_percent: 3.0
+      table_degrees: [1, 2]
+
+    - id: roof.slope.inversion
+      table_item: "1.3"
+      system: inversion_roof
+      automation: conditional
+      min_percent: 1.5
+      max_percent: 3.0
+      table_degrees: [1, 2]
+
+    - id: roof.slope.green
+      table_item: "1.4"
+      system: green_roof
+      automation: conditional
+      min_percent: 1.5
+      max_percent: 3.0
+      table_degrees: [1, 2]
+
+    - id: roof.slope.ceramic_cement_sand_polymer_cement_tiles
+      table_item: "2.1.1, first subitem"
+      system: ceramic_cement_sand_or_polymer_cement_tiles
+      automation: conditional
+      min_percent: 40
+      table_min_degrees: 22
+      note: "Дополнительно учитывать приложение Ж и документацию конкретной формы черепицы."
+
+    - id: roof.slope.bituminous_shingles
+      table_item: "2.1.1, second subitem"
+      system: bituminous_shingles
+      automation: conditional
+      min_percent: 20
+      table_min_degrees: 12
+      supporting_standard: GOST_R_70340_2022
+      reduced_slope_gate: >-
+        Меньший уклон возможен только при выполнении специальных требований к сплошному
+        подкровельному водоизоляционному слою по применимому стандарту/системе.
+
+    - id: roof.slope.metal_seam_tiles
+      table_item: "2.1.2"
+      system: metal_seam_tiles
+      automation: conditional
+      min_percent: 47
+      table_min_degrees: 25
+
+    - id: roof.slope.small_format_tiles
+      table_item: "2.1.3"
+      system: chrysotile_cement_slate_composite_or_fibre_cement_tiles
+      automation: conditional
+      min_percent: 40
+      table_min_degrees: 22
+
+    - id: roof.slope.corrugated_chrysotile_or_bituminous_sheets
+      table_item: "2.2, first subitem"
+      system: corrugated_chrysotile_cement_or_bituminous_sheets
+      automation: conditional
+      min_percent: 20
+      table_min_degrees: 12
+
+    - id: roof.slope.corrugated_fibre_cement_sheets
+      table_item: "2.2, second subitem"
+      system: corrugated_fibre_cement_sheets
+      automation: conditional
+      min_percent: 36
+      table_min_degrees: 20
+
+    - id: roof.slope.metal_profile_or_metal_tiles
+      table_item: "2.3"
+      system: metal_corrugated_profile_including_metal_tiles
+      automation: conditional
+      min_percent: 20
+      table_min_degrees: 12
+      supporting_standard_for_metal_tiles: GOST_R_58739_2019
+
+    - id: roof.slope.metal_sheet_or_coil
+      table_item: "3"
+      system: galvanized_polymer_coated_stainless_copper_zinc_titanium_or_aluminium_sheet
+      automation: conditional
+      min_percent: 10
+      table_min_degrees: 6
+
+    - id: roof.slope.precast_rc_trough_panels
+      table_item: "4"
+      system: precast_rc_trough_panels_with_factory_mastic_waterproofing
+      automation: conditional
+      min_percent: 5
+      max_percent: 10
+      table_degrees: [3, 6]
+
+material_specific_detail_gate:
+  - id: roof.slope.tile_appendix_detail
+    automation: mandatory_validation
+    applies_to: ceramic_and_cement_sand_tiles
+    source_clause: "6.1.2 and Appendix Ж"
+    statement: >-
+      Таблица 4.1 задает общий нижний уровень 40% (22°), но форма черепицы и схема укладки
+      имеют дополнительные значения в приложении Ж. Перед выпуском геометрии конкретной модели
+      черепицы проверить соответствующую строку приложения и документацию изготовителя.
+
+  - id: roof.slope.product_documentation_cannot_weaken_code
+    automation: true
+    statement: >-
+      Документация производителя может уточнять/ужесточать геометрию системы. Она не используется
+      как основание для ослабления СП без прямо предусмотренной СП/стандартом процедуры.
 
 roof_guarding:
   source_clause: "SP 17 clause 4.8 + special building code"
   automation: validation_only
   rule: >-
-    Необходимость и высоту ограждения кровли определять по специальному СП здания (например,
-    жилому или общественному) совместно с СП 17 и ГОСТ на ограждения. Не использовать одну
-    высоту для всех кровель.
-  safety_note: "Для кровель без постоянного нормативного ограждения/с недостаточной высотой либо при уклоне свыше установленного СП 17 предела проверять страховочные системы безопасности."
+    Необходимость и высоту ограждения кровли определять по специальному СП здания совместно
+    с СП 17 и ГОСТ на ограждения. Не использовать одну высоту для всех кровель.
+  safety_note: >-
+    Для кровель без постоянного нормативного ограждения/с недостаточной высотой либо при уклоне
+    свыше установленного СП 17 предела проверять предусмотренные системой элементы безопасности.
 
 agent_logic:
-  - "Сначала выбрать тип кровельной системы и материал, затем допустимый уклон, затем конструктивный пирог и водоотвод."
+  - "Сначала классифицировать кровельную систему, затем применять строку таблицы 4.1."
+  - "Хранить уклон в процентах как первичное нормативное поле и не подменять его округленными градусами."
   - "Не использовать 12° как универсальный уклон скатной кровли."
   - "Не формировать разуклонку без размещения воронок/желобов и проверки ендов."
-  - "Не компенсировать прогиб несущей конструкции произвольным увеличением слоя утеплителя: требовать данные КР."
-  - "Толщины утеплителя и пароизоляционные решения получать из теплотехнического/влажностного расчета, а не из стандартного BIM-пирога."
-
-pending_catalog:
-  status: manual_until_full_table_audit
-  note: "Полный машинный каталог значений таблицы 4.1 по всем кровельным материалам должен быть внесен только после отдельной построчной проверки актуальной редакции с Изм. №1-5."
+  - "Не компенсировать прогиб произвольным увеличением слоя утеплителя — требовать данные КР."
+  - "Толщины утеплителя и пароизоляционное решение получать из теплотехнического/влажностного расчета."
+  - "При выборе конкретного продукта дополнительно проверить стандарт системы и техническую документацию изготовителя."
 
 sources:
   - https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8
-  - https://protect.gost.ru/sp/changesdetails/c660c8fe-0ace-4b25-b976-8acad8a8154e
+  - https://base.garant.ru/71729740/
+  - https://base.garant.ru/408556555/
+  - https://base.garant.ru/405853465/
+  - https://base.garant.ru/74207104/
+  - https://base.garant.ru/405853547/

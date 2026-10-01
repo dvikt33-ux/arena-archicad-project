@@ -1,16 +1,25 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
-purpose: "Контроль последней официально опубликованной редакции ключевых СП. Этот файл не заменяет правила; он блокирует применение rule-файла, если его revision_level ниже подтвержденного уровня."
+purpose: "Контроль последней официально опубликованной редакции ключевых СП. Этот файл не заменяет правила; он блокирует применение rule-файла, если его revision_level ниже подтвержденного уровня или если документ уже заменен новой редакцией."
 
 policy:
   - "Источник уровня ревизии — официальная карточка Росстандарта/официальный орган; ГАРАНТ используется как независимая текстовая и датировочная сверка."
   - "Проекты изменений хранятся только как watch_item и не применяются."
-  - "Если официальная карточка получает новое изменение, затронутые rule-файлы переводятся в needs_reaudit до постатейной проверки."
+  - "Если официальная карточка получает новое изменение или новый заменяющий СП, затронутые rule-файлы переводятся в needs_reaudit до постатейной проверки."
   - "Номер изменения сам по себе не означает, что каждый пункт базового СП изменен; числовые правила перепроверяются по содержанию изменения."
 
 core_documents:
   - {document: SP_1_13130_2020, topic: egress, official_latest_change: 3, status: active, source_url: "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"}
   - {document: SP_2_13130_2020, topic: fire_resistance, official_latest_change: 2, change_2_effective_from: 2026-01-01, status: active, source_url: "https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1"}
+  - document: SP_3_13130_2026
+    topic: fire_alarm_and_evacuation_management
+    official_latest_change: null
+    status: active
+    effective_from: 2026-06-01
+    replaces: SP_3_13130_2009
+    obsolete_document: SP_3_13130_2009
+    target_2027_action: "use SP_3_13130_2026 only; invalidate references treating SP_3_13130_2009 as current"
+    source_url: "https://protect.gost.ru/sp/details/adbbe747-e283-43c0-bb61-0efd01572113"
   - document: SP_4_13130_2013
     topic: fire_compartmentation_and_site_access
     official_latest_change: 4
@@ -29,7 +38,7 @@ core_documents:
   - {document: SP_54_13330_2022, topic: apartment_buildings, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"}
   - {document: SP_59_13330_2020, topic: accessibility, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"}
   - {document: SP_60_13330_2020, topic: hvac, official_latest_change: 6, status: active, source_url: "https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262"}
-  - {document: SP_63_13330_2018, topic: reinforced_concrete, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c667"}
+  - {document: SP_63_13330_2018, topic: reinforced_concrete, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c3a58c667"}
   - document: SP_70_13330_2012
     topic: construction_of_bearing_and_enclosing_structures
     official_latest_change: 8
@@ -42,12 +51,14 @@ core_documents:
   - {document: SP_113_13330_2023, topic: parking, official_latest_change: 4, change_4_effective_from: 2026-10-03, target_2027_action: apply, status: active, source_url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131", garant_url: "https://base.garant.ru/407887809/"}
   - {document: SP_118_13330_2022, topic: public_buildings, official_latest_change: 5, status: active, source_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"}
   - {document: SP_131_13330_2025, topic: climatology, official_latest_change: null, status: active, source_url: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"}
-  - document: SP_256_1325800_2016
-    topic: electrical_installations
-    official_latest_change: 9
+  - {document: SP_256_1325800_2016, topic: electrical_installations, official_latest_change: 9, status: active, numbering_note: "Официальная карточка также содержит изменение №0 к Изменению №4; это историческая корректировка, не уровень после №9.", source_url: "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"}
+  - document: SP_550_1311500_2026
+    topic: highrise_fire_safety
+    official_latest_change: null
     status: active
-    numbering_note: "Официальная карточка также содержит изменение №0 к Изменению №4; это историческая корректировка, не уровень после №9."
-    source_url: "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"
+    effective_from: 2026-06-01
+    scope: "F1.3 fire height >75 m; public including multifunctional fire height >50 m"
+    source_url: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
 
 functional_documents:
   - {document: SP_158_13330_2014, topic: medical, official_latest_change: 7, latest_change_effective_from: 2026-08-10, status: active, source_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"}
@@ -64,6 +75,6 @@ functional_documents:
 
 release_gate:
   - "Перед каждым крупным релизом базы повторно открыть official source_url каждого core_document и каждого functional_document, реально используемого проектом."
-  - "Если official_latest_change вырос — найти затронутые пункты и invalidate соответствующие auto/conditional rules до аудита."
+  - "Если official_latest_change вырос или документ заменен новой редакцией — найти затронутые пункты и invalidate соответствующие auto/conditional rules до аудита."
   - "Если найдено только draft/public_discussion — записать watch_item, но не менять действующие размеры."
   - "Для проекта загружать и проверять ревизии только применимых специальных СП, но общие core_documents проверять всегда."

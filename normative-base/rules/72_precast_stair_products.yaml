@@ -1,0 +1,124 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Сборные железобетонные марши, площадки и накладные проступи: типология ГОСТ 9818-2015 и безопасный подбор библиотечного изделия после нормативной проверки лестницы."
+
+source_document:
+  document: GOST_9818_2015
+  title: "Марши и площадки лестниц железобетонные. Технические условия"
+  status: active
+  effective_from: 2016-01-01
+  replaces: GOST_9818_85
+  official_status_url: "https://protect.gost.ru/gost/details/136e8274-22f4-4ff9-b69b-520e7beebc99"
+
+scope_gate:
+  - id: precast_stair.gost9818.scope
+    automation: validation_only
+    statement: "ГОСТ 9818-2015 распространяется на железобетонные марши, площадки и накладные проступи из тяжелого или легкого бетона установленной стандартом плотности для лестниц зданий различного назначения. Специальные условия агрессивной среды и сейсмики требуют дополнительных проектных указаний."
+
+product_families:
+  source: GOST_9818_2015
+  rules:
+    - id: precast_stair.flight_types
+      clause: "4.1"
+      automation: conditional
+      statement: "Тип марша выбирается из нормативных семейств, а не создается произвольным растяжением библиотечного объекта."
+      types:
+        - {code: LM, ru_code: "ЛМ", definition: "плоский марш без фризовых ступеней"}
+        - {code: LMF, ru_code: "ЛМФ", definition: "ребристый марш с фризовыми ступенями"}
+        - {code: LMP, ru_code: "ЛМП", definition: "ребристый марш с полуплощадками"}
+
+    - id: precast_stair.landing_types
+      clause: "4.2"
+      automation: conditional
+      statement: "Площадки выбираются по типу совместимого марша."
+      types:
+        - {code: 1LP, ru_code: "1ЛП", use_with: "ЛМ", definition: "плоская площадка"}
+        - {code: 2LP, ru_code: "2ЛП", use_with: "ЛМ", definition: "ребристая площадка"}
+        - {code: LPF, ru_code: "ЛПФ", use_with: "ЛМФ", definition: "ребристая площадка"}
+        - {code: LPP, ru_code: "ЛПП", use_with: "ЛМП", definition: "ребристая площадка/полуплощадка"}
+
+    - id: precast_stair.overlay_tread_types
+      clause: "4.3"
+      automation: conditional
+      statement: "Накладные проступи стандартизованы как отдельные изделия."
+      types:
+        - {code: 1LN, ru_code: "1ЛН", use: "нижние и рядовые ступени"}
+        - {code: 2LN, ru_code: "2ЛН", use: "площадки и верхние ступени"}
+
+product_geometry:
+  - id: precast_stair.exact_mark_table_lookup
+    source: {document: GOST_9818_2015, clause: "4.4-4.6; tables 1-8"}
+    automation: conditional
+    dimension_semantics: nominal_product
+    statement: "После выбора типа точную марку и все основные размеры марша/площадки/проступи брать из соответствующей таблицы ГОСТ 9818-2015. Не генерировать промежуточную длину, ширину или высоту, отсутствующую в табличной марке, как стандартное изделие."
+
+  - id: precast_stair.no_parametric_stretch
+    automation: forbidden_to_infer
+    statement: "Стандартный сборный марш или площадку запрещено параметрически растягивать до произвольной этажной высоты или ширины. Если нормативная лестница не совпадает с типоразмером, требуется другая марка либо отдельное рассчитанное решение."
+    requires_calculation: true
+
+standard_load_classes:
+  source: GOST_9818_2015
+  rules:
+    - id: precast_stair.temporary_load_residential
+      clause: "4.7"
+      automation: validation_only
+      statement: "Марши и площадки стандарта предусматривают расчетную временную нагрузку 3,5 кПа для жилых зданий (без учета собственного веса, при коэффициенте надежности по нагрузке, указанном стандартом)."
+      conditions: {building_use: residential}
+      values: {temporary_load_kPa: 3.5}
+      conflict_policy: "Это характеристика области стандартного изделия, а не разрешение не выполнять расчет КР и проверку фактических нагрузок."
+
+    - id: precast_stair.temporary_load_public_industrial
+      clause: "4.7"
+      automation: validation_only
+      statement: "Для общественных и производственных зданий, а также вспомогательных зданий промпредприятий стандарт предусматривает расчетную временную нагрузку 4,7 кПа."
+      conditions: {building_use: [public, industrial, auxiliary_industrial]}
+      values: {temporary_load_kPa: 4.7}
+      conflict_policy: "При более высоких проектных воздействиях стандартная марка не считается автоматически допустимой."
+
+interface_with_architectural_stair_rules:
+  - id: precast_stair.geometry_after_egress_check
+    automation: auto
+    statement: "Сначала определить чистую ширину марша, геометрию ступеней, число подъемов, площадки, уклон и МГН/пожарные требования по rules/16_stair_geometry.yaml, rules/55_egress_stair_clear_width.yaml и применимым специальным нормам; только затем искать совместимую марку ГОСТ 9818."
+
+  - id: precast_stair.product_width_not_clear_width
+    automation: auto
+    statement: "Номинальная/конструктивная ширина сборного марша не равна автоматически требуемой ширине пути эвакуации в свету. Фактический свободный размер после стен, зазоров, отделки и ограждений проверять отдельно."
+
+  - id: precast_stair.finished_levels_gate
+    automation: validation_only
+    statement: "Высоту вертикальной проекции стандартного марша сопоставлять с отметками чистых полов и конструкцией площадок/перекрытий. Не компенсировать несовпадение высот одной нестандартной ступенью."
+
+safety_and_execution:
+  - id: precast_stair.specific_finish_variants
+    source: {document: GOST_9818_2015, clause: "marking notes"}
+    automation: validation_only
+    statement: "В маркировке предусмотрены варианты отделки лицевой поверхности, левого исполнения, сейсмического и специального исполнения; выбирать точную марку по проектной документации, а не хранить эти признаки только графически."
+
+BIM_required_parameters:
+  - stair_function
+  - egress_status
+  - building_use
+  - clear_flight_width_required_mm
+  - floor_to_floor_finished_height_mm
+  - selected_precast_family
+  - selected_product_mark
+  - product_nominal_length_mm
+  - product_nominal_width_mm
+  - product_vertical_projection_mm
+  - product_load_class_kPa
+  - landing_product_mark
+  - finish_variant
+  - left_right_execution
+  - seismic_execution_if_required
+  - KR_approval_reference
+
+agent_logic:
+  - "Типовой ЖБ марш — дискретное изделие, а не параметрическая лестница любой высоты."
+  - "Не подбирать марку только по этажной высоте: сначала должна пройти архитектурная/пожарная геометрия лестницы."
+  - "Не считать ширину изделия шириной в свету."
+  - "Если подходящего типоразмера нет, не искажать нормативную ступень; перейти к другому конструктивному решению с КР."
+
+sources:
+  - "https://protect.gost.ru/gost/details/136e8274-22f4-4ff9-b69b-520e7beebc99"
+  - "https://base.garant.ru/71313780/"

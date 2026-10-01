@@ -1,4 +1,4 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 purpose: "Эвакуационные двери и выходы: размер в свету, высота, ширина, направление открывания, двупольные двери, турникеты и конфликт с доступностью."
 
@@ -62,11 +62,13 @@ exit_width:
 
     - id: door.egress.fifty_or_more
       clause: "4.2.19"
+      amendment: 1
       automation: conditional
       dimension_semantics: clear
-      statement: "При числе эвакуирующихся через выход 50 человек и более минимальная ширина выхода из помещения — 1,2 м."
-      values: {trigger_people: 50, min_clear_width_mm: 1200}
+      statement: "При числе эвакуирующихся через выход 50 человек и более минимальная ширина эвакуационного выхода из помещения — 1,2 м."
+      values: {trigger_people_min: 50, min_clear_width_mm: 1200}
       requires_calculation: true
+      audit_note: "Формулировка '50 человек и более' подтверждена текстом Изменения №1 к СП 1.13130.2020."
 
 stair_exit_width:
   source: SP_1_13130_2020
@@ -87,15 +89,18 @@ stair_exit_width:
       values: {trigger_required_width_mm: 1200, each_exit_min_mm: 900}
 
 external_landing:
-  - id: door.egress.external_landing_width
-    source: {document: SP_1_13130_2020, clause: "4.2.21"}
+  - id: door.egress.external_landing_plan_dimensions
+    source: {document: SP_1_13130_2020, clause: "4.2.21", amendment: 1}
     automation: conditional
-    statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную входную площадку шириной не менее 1,5 ширины полотна наружной двери."
-    formula: "landing_clear_width >= 1.5 * exterior_door_leaf_width"
     dimension_semantics: clear
+    statement: "Перед наружной дверью-эвакуационным выходом предусматривать горизонтальную входную площадку, у которой и длина, и ширина не менее 1,5 ширины полотна наружной двери."
+    formula:
+      min_landing_length: "1.5 * exterior_door_leaf_width"
+      min_landing_width: "1.5 * exterior_door_leaf_width"
     notes:
-      - "Пункт 4.2.21 в консолидированном тексте ГАРАНТ прямо нормирует ширину площадки."
-      - "Не выводить автоматически вторую размерность площадки из коэффициента 1,5; глубину/длину проверять по иным применимым нормам входной группы, МГН и функционального назначения."
+      - "Изменение №1 специально дополнило исходную формулировку словами 'длиной и'; проверять обе плановые размерности площадки."
+      - "Ширина полотна двери не тождественна ширине прохода в свету; оба параметра должны храниться отдельно."
+      - "Если площадка входит в доступный маршрут МГН, дополнительно проверять СП 59.13330.2020 и принимать все применимые ограничения одновременно."
 
 opening_direction:
   - id: door.egress.opening_direction
@@ -179,6 +184,8 @@ BIM_required_parameters:
   - calculated_evacuating_people
   - accessible_route_status
   - stair_exit_status
+  - exterior_landing_clear_length_mm
+  - exterior_landing_clear_width_mm
 
 agent_logic:
   - "Никогда не считать библиотечную дверь с названием D900 автоматически проходом 900 мм в свету."
@@ -187,8 +194,10 @@ agent_logic:
   - "Исключение 600 мм не применять к обычным помещениям и не использовать на доступном маршруте, если СП 59 требует 900 мм."
   - "Для двупольной двери хранить состояние каждой створки active/passive; пассивную фиксированную створку не включать в расчет эвакуационной ширины."
   - "Наличие широкой коробки не компенсирует неправильное направление открывания, отсутствие самозакрывания или требуемой фурнитуры."
+  - "Для наружного эвакуационного выхода проверять обе размерности входной площадки по п. 4.2.21 после Изменения №1."
 
 sources:
   - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/changesdetails/4b61ecb6-45d2-4938-8de2-d5bb5712e61d"
   - "https://protect.gost.ru/sp/changesdetails/de574ad5-67fc-4e31-a0a5-a793c94b1cc7"
-  - "https://base.garant.ru/74019594/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/fb41af21ee5160adb0f0158d298622a82c4634f8/"

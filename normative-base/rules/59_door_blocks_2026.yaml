@@ -1,0 +1,194 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Деревянные и комбинированные дверные блоки по ГОСТ 475-2026: продуктовая классификация, размерная логика, прочность, долговечность и граница с эвакуационными/противопожарными требованиями."
+
+source_document:
+  document: GOST_475_2026
+  title: "Блоки дверные деревянные и комбинированные. Общие технические условия"
+  status_for_target_2027: active
+  effective_from: 2026-10-01
+  replaces: GOST_475_2016
+  official_status_url: "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
+
+scope_gate:
+  - id: door475.scope.normal_wood_composite
+    automation: validation_only
+    statement: "ГОСТ 475-2026 распространяется на наружные и внутренние деревянные и комбинированные дверные блоки зданий и сооружений различного назначения."
+
+  - id: door475.scope.special_doors_excluded
+    automation: forbidden_to_infer
+    statement: "ГОСТ 475-2026 не распространяется на двери специального назначения, включая противопожарные, пуленепробиваемые и взрывостойкие. Нельзя присвоить обычной двери свойства специальной двери только параметром BIM; требуется отдельный норматив/сертифицированное изделие."
+    requires_manufacturer_data: true
+
+classification:
+  source: GOST_475_2026
+  rules:
+    - id: door475.group.application
+      clause: "4.2; Appendix A"
+      automation: conditional
+      statement: "Группу дверного блока определять по назначению, поскольку минимальные продуктовые характеристики различаются."
+      groups:
+        A_A1: {designation: DN, use: "наружная входная в здание"}
+        B: {designation: DV, use: "входная в квартиру с лестничной клетки"}
+        V: {designation: DM, use: "межкомнатная/внутренняя, включая двери на путях эвакуации в области стандарта"}
+        S: {designation: DS, use: "внутренняя дверь санузла"}
+
+    - id: door475.opening_1300_requires_double_leaf
+      clause: "4.7"
+      automation: conditional
+      dimension_semantics: structural_opening
+      statement: "Двери для проемов шириной 1300 мм и более должны быть двупольными."
+      conditions: {door_opening_width_mm: {min: 1300}}
+      values: {double_leaf_trigger_opening_width_mm: 1300}
+      conflict_policy: "Требование к двупольности изделия не определяет автоматически ширину прохода в свету; активные/пассивные створки и эвакуационную ширину проверять по СП 1.13130."
+
+product_geometry:
+  source: GOST_475_2026
+  rules:
+    - id: door475.geometry.project_or_TZ
+      clause: "5.2.1"
+      automation: conditional
+      statement: "Конструкцию, габаритные размеры, архитектурный рисунок, схему открывания, материал и другие параметры двери устанавливают в техническом задании на изготовление или проектной документации."
+
+    - id: door475.geometry.system_hardware_based
+      clause: "5.2.4"
+      automation: forbidden_to_infer
+      statement: "Габаритные размеры и площадь изделия, размеры и масса открывающихся полотен и соотношение их ширины/высоты назначаются с учетом моментов сопротивления сечения брусков, схемы открывания, петель, заполнения и рекомендаций производителей профилей, петель и фурнитуры. Универсальный максимальный размер/массу полотна не задавать."
+      requires_manufacturer_data: true
+
+    - id: door475.geometry_matches_project_opening
+      clause: "5.3.2"
+      automation: conditional
+      statement: "Конфигурация и размеры дверей должны соответствовать габаритным размерам дверных проемов, установленным проектом здания. Приложение Б содержит справочные примеры минимальных габаритов проемов; их не использовать как универсальный закрытый типоряд без сверки самого рисунка и проекта."
+
+    - id: door475.no_opening_equals_clear_width
+      automation: auto
+      statement: "Ширина стенового проема, наружный габарит коробки, ширина полотна и фактический проход в свету являются разными BIM-параметрами. Требуемый проход в свету по эвакуации/МГН не заменяется размером проема по ГОСТ 475."
+
+tolerances_factory_not_design_gaps:
+  source: GOST_475_2026
+  rules:
+    - id: door475.frame_leaf_factory_tolerances
+      clause: "5.3.3, table 4"
+      automation: validation_only
+      dimension_semantics: actual
+      statement: "Предельные отклонения рамочных элементов и полотен являются производственными допусками, а не проектными монтажными зазорами."
+      rows:
+        - {nominal_interval_mm: "<=1000", box_inner_size_tolerance_mm: "+/-1.0", leaf_outer_size_tolerance_mm: "-1.0", overlap_gap_tolerance_mm: "+1.5"}
+        - {nominal_interval_mm: ">1000..2000", box_inner_size_tolerance_mm: "+2.0/-1.0", leaf_outer_size_tolerance_mm: "+/-1.0", overlap_gap_tolerance_mm: "+1.0/-0.5"}
+        - {nominal_interval_mm: ">2000", box_inner_size_tolerance_mm: "+2.0/-1.0", leaf_outer_size_tolerance_mm: "+1.0/-2.0", overlap_gap_tolerance_mm: "+1.5/-0.5"}
+      conflict_policy: "Не прибавлять эти допуски к строительному проему как монтажный шов."
+
+    - id: door475.diagonal_difference
+      clause: "5.3.4"
+      automation: validation_only
+      statement: "Разность длин диагоналей прямоугольных рамочных элементов: не более 2 мм при площади изделия до 1,5 м² включительно и не более 3 мм при площади свыше 1,5 м²."
+      values: {area_threshold_m2: 1.5, max_diagonal_difference_mm_up_to_threshold: 2, max_diagonal_difference_mm_over_threshold: 3}
+
+    - id: door475.leaf_sag_with_threshold
+      clause: "5.3.6"
+      automation: validation_only
+      statement: "Провисание дверной створки собранного изделия с порогом не должно превышать 2 мм на 1 м ширины и должно сохранять свободное вхождение створки в коробку при закрывании."
+      values: {max_sag_mm_per_m_width: 2}
+
+mechanical_strength:
+  source: GOST_475_2026
+  rules:
+    - id: door475.minimum_strength_by_application
+      clause: "4.5; Appendix A"
+      automation: conditional
+      statement: "Минимальный класс механической прочности зависит от группы/назначения двери."
+      cases:
+        - {group: A1, min_strength_class: M4}
+        - {group: A, min_strength_class: M3}
+        - {group: B, min_strength_class: M3}
+        - {group: V, min_strength_class: M2}
+        - {group: S, min_strength_class: M1}
+      conflict_policy: "Прочностный класс изделия не заменяет пожарную, эвакуационную или взломостойкую классификацию."
+
+reliability_cycles:
+  source: GOST_475_2026
+  clause: "5.4.1, table 5"
+  rules:
+    - id: door475.minimum_operating_cycles
+      automation: conditional
+      statement: "Минимальная безотказность двери по числу циклов открывания/закрывания зависит от назначения и интенсивности эксплуатации."
+      cases:
+        - {use: "internal apartment room / sliding / folding / sanitary", min_cycles: 20000}
+        - {use: "internal public or industrial building, including sanitary", min_cycles: 100000}
+        - {use: "door on egress route", min_cycles: 50000}
+        - {use: "apartment entrance from stairwell", min_cycles: 200000}
+        - {use: "external entrance high intensity", min_cycles: 500000}
+        - {use: "external entrance medium intensity", min_cycles: 200000}
+        - {use: "external entrance low intensity", min_cycles: 150000}
+      requires_object_classification: true
+
+opening_force:
+  source: GOST_475_2026
+  rules:
+    - id: door475.opening_force_general_product
+      clause: "5.4.8"
+      automation: validation_only
+      statement: "При испытании усилие открывания полотна дверей групп А/А1/Б не должно превышать 75 Н, группы В — 50 Н."
+      cases:
+        - {groups: [A, A1, B], max_opening_force_N: 75}
+        - {groups: [V], max_opening_force_N: 50}
+      note: "Стандарт оговаривает, что при испытаниях наружных дверей не учитываются некоторые эксплуатационные воздействия, включая внезапную ветровую разность давления и встроенные устройства закрывания."
+
+    - id: door475.opening_force_accessible
+      clause: "5.4.8 note"
+      automation: conditional
+      statement: "Для дверей, предназначенных для прохода людей с ограниченными возможностями, усилие открывания следует предусматривать не более 25 Н."
+      conditions: {accessible_route_status: true}
+      values: {max_opening_force_N: 25}
+      conflict_policy: "Проверять совместно со СП 59.13330 и требованиями к доводчику/противопожарной двери; наличие специальной двери может потребовать отдельного изделия/решения."
+
+interface_with_egress_and_fire:
+  - id: door475.egress_product_not_egress_geometry
+    automation: auto
+    statement: "То, что дверь группы В предназначена для пути эвакуации и имеет минимум 50 000 циклов, не доказывает нормативную ширину/высоту эвакуационного выхода. Геометрию, активные створки, направление открывания, самозакрывание и Антипанику проверять по rules/21_doors_egress_openings.yaml."
+
+  - id: door475.fire_door_router
+    automation: forbidden_to_infer
+    statement: "Если требуется противопожарная дверь или иная дверь специального назначения, выйти из ГОСТ 475-2026 и использовать профильный норматив и сертифицированное специальное изделие."
+    requires_manufacturer_data: true
+
+BIM_required_parameters:
+  - door_product_standard
+  - door_application_group
+  - manufacturer_product_id
+  - structural_opening_width_mm
+  - structural_opening_height_mm
+  - frame_outer_width_mm
+  - frame_outer_height_mm
+  - leaf_count
+  - leaf_widths_mm
+  - leaf_heights_mm
+  - active_leaf_flags
+  - leaf_mass_kg
+  - swing_or_slide_scheme
+  - threshold_status
+  - clear_opening_width_mm
+  - clear_opening_height_mm
+  - mechanical_strength_class
+  - required_operating_cycles
+  - measured_or_declared_opening_force_N
+  - accessible_route_status
+  - special_fire_door_status
+
+library_generation_policy:
+  - "Не создавать закрытый каталог дверей 700/800/900/1000×2000/2100 как будто это единственные нормативные размеры ГОСТ 475-2026."
+  - "Библиотечный тип должен ссылаться на производителя/систему либо быть явно концептуальным и не иметь статуса approved_product."
+  - "При ширине стенового проема >=1300 мм автоматически поднимать проверку double_leaf_required, но отдельно рассчитывать фактический проход через активные створки."
+  - "Производственные допуски таблицы 4 не использовать как монтажный зазор."
+  - "Противопожарные двери хранить в отдельном семействе/классификации и не выдавать за двери ГОСТ 475-2026."
+
+agent_logic:
+  - "Сначала определить назначение и специальные требования проема, затем группу/тип изделия; не выбирать дверь только по размеру отверстия."
+  - "Размер двери определяется проектом и подтвержденной конструкцией/фурнитурой; универсального максимума полотна из этого ГОСТ не выводить."
+  - "1300 мм относится к ширине проема для требования двупольности; это не минимальная эвакуационная ширина и не ширина активной створки."
+  - "25 Н для доступной двери проверять как отдельный эксплуатационный параметр и не смешивать с геометрией 900 мм в свету по СП 59."
+
+sources:
+  - "https://protect.gost.ru/gost/details/2bf7f4c0-72ba-4abf-a9c2-264c9d51ed16"
+  - "https://meganorm.ru/mega_doc/norm_update_01082026/gost_gosudarstvennyj-standart/0/gost_475-2026_mezhgosudarstvennyy_standart_bloki_dvernye.html"

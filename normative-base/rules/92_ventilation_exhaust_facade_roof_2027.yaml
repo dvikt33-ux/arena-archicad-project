@@ -1,0 +1,142 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_60_13330_2020
+verified_changes: [1,2,3,4,5,6]
+purpose: >-
+  Архитектурная координация выбросов общеобменной вентиляции на фасаде и кровле, особенно для
+  встроенно-пристроенных общественных помещений, торговли и общепита в жилых зданиях. Файл задает
+  зоны исключения и проверяемые отношения к окнам/воздухозаборам, но не выполняет расчет ОВ.
+
+clean_exhaust_embedded_public_in_residential:
+  source_clause: "7.6.13, current revision including Change 5"
+  rules:
+    - id: mep.ov.exhaust_clean_to_residential_openable_windows
+      automation: conditional
+      conditions:
+        source: embedded_or_attached_public_premises_in_residential_building
+        exhaust_contains_harmful_substances_or_odors: false
+      permitted_outlet_locations:
+        - roof_of_embedded_attached_part
+        - facade_of_embedded_attached_part
+        - facade_of_technical_floor_or_space
+      dimension_semantics: clear_horizontal
+      min_distance_m: 8
+      measure_to:
+        - exterior_wall_of_residential_part_with_openable_windows
+        - openable_windows_of_neighboring_building
+      statement: >-
+        Выброс воздуха без вредных веществ и запахов от встроенно-пристроенных общественных
+        помещений располагать не ближе 8 м по горизонтали до наружной стены жилой части с
+        открывающимися окнами либо до окон соседнего здания в области п.7.6.13.
+
+    - id: mep.ov.exhaust_clean_same_wall_to_air_intake
+      automation: conditional
+      conditions:
+        exhaust_contains_harmful_substances_or_odors: false
+        exhaust_and_air_intake_on_same_wall: true
+      dimension_semantics: clear
+      min_distance_m: 2
+      relative_position_preference: air_intake_below_exhaust
+      statement: >-
+        Для указанного чистого выброса расстояние до приемного устройства наружного воздуха на той
+        же стене должно быть не менее 2 м; воздухозабор следует располагать ниже выброса.
+
+odorous_or_harmful_exhaust:
+  source_clause: "7.6.13, Change 5"
+  rules:
+    - id: mep.ov.exhaust_odor_default_roof_route
+      automation: validation_only
+      examples:
+        - foodservice_zone
+        - retail_with_specific_odors
+        - household_service_with_odors
+      default_location: roof_of_building_containing_source
+      statement: >-
+        Выбросы воздуха с вредными веществами или запахами от соответствующих встроенных помещений
+        по базовому маршруту размещать на кровле здания, в которое встроены эти помещения.
+
+    - id: mep.ov.exhaust_odor_facade_exception_to_windows
+      automation: conditional_exception
+      permitted_exception_locations:
+        - facade_at_served_floor
+        - facade_at_technical_floor_or_space
+        - roof_of_embedded_attached_part
+      all_conditions:
+        - air_cleaning_system_removes_harmful_and_unpleasant_odor_substances
+        - horizontal_clearance_to_openable_windows_at_least_15m
+      dimension_semantics: clear_horizontal
+      min_distance_to_openable_windows_m: 15
+      measure_to:
+        - openable_windows_of_residential_part
+        - openable_windows_of_neighboring_buildings
+      statement: >-
+        Фасадный/пониженный выброс загрязненного или пахнущего воздуха допускается только при
+        предусмотренной очистке и расстоянии не менее 15 м по горизонтали до открывающихся окон.
+      fail_if_air_cleaning_unknown: true
+
+    - id: mep.ov.exhaust_odor_to_air_intake_standard_router
+      automation: mandatory_router
+      route_to: GOST_R_59972
+      statement: >-
+        Расстояние от выброса с вредными веществами/запахами до приемных устройств наружного воздуха
+        определять по требованиям ГОСТ Р 59972 и профильному расчету; не подменять его правилом 2 м
+        для чистого выброса.
+
+outlet_velocity_validation:
+  source_clause: "7.6.14"
+  rules:
+    - id: mep.ov.exhaust_velocity_facade_with_windows
+      automation: validation_only
+      condition: "outlet_on_facade_with_windows"
+      max_live_section_velocity_m_s: 2.5
+      requires_engineering_calculation: true
+      statement: >-
+        После подбора ОВ проверить скорость удаляемого воздуха в живом сечении фасадного выброса;
+        значение 2,5 м/с является пределом проверки, а не основанием выбирать площадь решетки без расчета.
+
+    - id: mep.ov.exhaust_velocity_unserviceable_roof
+      automation: validation_only
+      condition: "outlet_on_unserviceable_roof"
+      max_live_section_velocity_m_s: 5
+      requires_acoustic_calculation: true
+      statement: >-
+        Для выброса на необслуживаемой кровле проверять предел 5 м/с с проведением акустических расчетов.
+
+architecture_generation_logic:
+  - "1. Классифицировать вытяжной воздух: без вредностей/запахов либо содержащий вредности/запахи."
+  - "2. Определить, встроено ли обслуживаемое помещение в жилое здание и какие окна являются открывающимися."
+  - "3. На фасаде/кровле создать exclusion zones 8 м или 15 м только для соответствующего случая."
+  - "4. Одновременно наложить exclusion zones воздухозаборов из rules/91_engineering_architectural_interfaces_2027.yaml."
+  - "5. Для пахнущего/загрязненного выброса запросить систему очистки и расчет ОВ; без них фасадное исключение не разрешать."
+  - "6. После размещения проверить архитектуру фасада, окна, противопожарные зоны, доступ обслуживания и акустику."
+
+BIM_required_parameters:
+  - exhaust_outlet_id
+  - exhaust_source_room_id
+  - exhaust_air_quality_classification
+  - harmful_substances_or_odors_present
+  - outlet_location_type
+  - outlet_geometry
+  - openable_window_geometry
+  - residential_part_exterior_wall_geometry
+  - neighboring_building_window_geometry
+  - outdoor_air_intake_geometry
+  - air_cleaning_system_reference
+  - outlet_live_section_velocity_m_s
+  - acoustic_calculation_reference
+
+hard_fail_conditions:
+  - "clean embedded-public exhaust is inside the applicable 8 m window exclusion zone"
+  - "odorous/harmful facade exception is used without air-cleaning confirmation"
+  - "odorous/harmful facade exception is within 15 m horizontally of applicable openable windows"
+  - "2 m clean-exhaust rule is reused for harmful/odorous exhaust"
+
+agent_logic:
+  - "Не выводить воздух от кухни/фудкорта рядом с окном только потому, что шахта ближе."
+  - "Не считать любой выброс 'чистым' без классификации ОВ."
+  - "Расстояния до окон и до воздухозабора хранить отдельными измерениями."
+  - "Скорость выброса проверять после инженерного расчета, а не использовать как архитектурный подбор сечения."
+
+sources:
+  - "https://base.garant.ru/400536193/"
+  - "https://meganorm.ru/mega_doc/norm_update_01082026/metodika/0/sp_60_13330_2020_svod_pravil_otoplenie_ventilyatsiya_i.html"

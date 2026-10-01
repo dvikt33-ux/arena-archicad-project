@@ -1,4 +1,4 @@
-manifest_version: 45
+manifest_version: 46
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -113,6 +113,7 @@ rule_files:
   - 56_sp70_large_format_silicate_2027.yaml
   - 57_sp70_remaining_masonry_2027.yaml
   - 58_stairwell_facade_opening_separation.yaml
+  - 59_public_lift_lobby_exceptions.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

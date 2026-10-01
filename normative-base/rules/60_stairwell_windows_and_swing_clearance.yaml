@@ -1,0 +1,113 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Интерфейс окон/остекления лестничных клеток и открывающихся полотен с нормативной геометрией пути эвакуации. Правила должны проверяться на реальной 3D-геометрии створок и дверей, а не только по номинальным размерам проема."
+
+revision_dependencies:
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_2_13130_2020, verified_changes: [1,2]}
+  - {file: rules/31_stairwell_types.yaml, role: "stairwell type classification"}
+  - {file: rules/55_egress_stair_clear_width.yaml, role: "required stair clear width"}
+  - {file: rules/54_stairwell_door_interfaces.yaml, role: "fire door and stairwell exit interfaces"}
+
+stairwell_daylight_openings:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.window.glazing_area
+      clause: "4.4.12"
+      automation: conditional
+      dimension_semantics: actual
+      statement: "Для лестничных клеток в области общего требования п.4.4.12 световые проемы в наружных стенах предусматриваются на каждом этаже; суммарная площадь остекления должна быть не менее 1,2 м², один из габаритных размеров остекленной части — не менее 0,6 м."
+      values:
+        min_total_glazing_area_m2: 1.2
+        min_one_glazed_dimension_mm: 600
+      conflict_policy: "Не применять механически к Л2, заглубленным цокольным этажам, подвалам, подземным этажам и иным прямо указанным исключениям; альтернативные решения без естественного освещения проверять отдельным пакетом СП 1."
+
+stairwell_operable_windows:
+  source: SP_2_13130_2020
+  rules:
+    - id: stairwell.window.L1_H1_H3_operable_each_aboveground_floor
+      clause: "5.4.16 б"
+      automation: conditional
+      statement: "В наружных стенах лестничных клеток Л1, Н1 и Н3 на каждом надземном этаже должны быть окна согласно СП 1.13130, открывающиеся изнутри без ключа и других специальных устройств."
+      conditions: {stairwell_type: [L1,H1,H3], storey_position: aboveground}
+      conflict_policy: "Учитывать предусмотренные самим п.5.4.16 специальные исключения первого этажа и Н1; не заменять открываемость только дистанционным приводом."
+
+    - id: stairwell.window.stationary_hardware_only
+      clause: "5.4.16 б"
+      automation: conditional
+      statement: "Открывание окон Л1/Н1/Н3 должно обеспечиваться стационарной фурнитурой, в том числе допускается удлинительная штанга; автоматические и дистанционно управляемые устройства не являются заменой требуемой стационарной фурнитуры."
+      conditions: {stairwell_type: [L1,H1,H3], operable_window_required: true}
+
+    - id: stairwell.window.opening_device_height
+      clause: "5.4.16 б"
+      automation: auto
+      dimension_semantics: level
+      statement: "Устройство для открывания требуемого окна располагается не выше 1,7 м от уровня площадки лестничной клетки или пола этажа."
+      values: {max_opening_device_height_above_adjacent_floor_or_landing_mm: 1700}
+
+    - id: stairwell.window.openable_leaf_area_not_normalized
+      clause: "5.4.16 б"
+      automation: validation_only
+      statement: "Количество и площадь открываемых створок в требуемом окне п.5.4.16 не нормируются; нельзя ошибочно требовать, чтобы вся площадь остекления 1,2 м² была открывающейся."
+
+    - id: stairwell.window.H2_normally_nonoperable
+      clause: "5.4.16 б"
+      automation: conditional
+      statement: "При наличии остекленных проемов в лестничных клетках Н2 они должны быть не открывающимися в обычной эксплуатации; допускаются устройства для открывания только на период обслуживания, мытья и ремонта."
+      conditions: {stairwell_type: H2}
+
+first_floor_and_H1_exceptions:
+  source: SP_2_13130_2020
+  clause: "5.4.16 б"
+  rules:
+    - id: stairwell.window.first_floor_exception_requires_exact_case
+      automation: validation_only
+      statement: "Отсутствие оконного проема в наружной ограждающей конструкции лестничной клетки на уровне первого этажа допускается только в случаях, прямо перечисленных в п.5.4.16; это не универсальное разрешение удалять окно первого этажа."
+
+    - id: stairwell.window.H1_fixed_glazing_exception
+      automation: validation_only
+      statement: "Для Н1 вместо открываемых окон допускается специальный вариант неоткрывающегося остекления площадью не менее 1,2 м² в наружных стенах/стенах тамбуров, ведущих в переход наружной воздушной зоны, либо аналогичное остекление дверей — только в точной области п.5.4.16."
+      values: {min_fixed_glazing_area_m2: 1.2}
+
+swing_clearance:
+  source: SP_1_13130_2020
+  rules:
+    - id: stairwell.door.max_open_position_preserves_required_width
+      clause: "4.4.2"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Двери, выходящие на лестничную клетку, в максимально открытом положении не должны уменьшать требуемую ширину лестничных площадок и маршей."
+      conflict_policy: "Проверять геометрическую зону полотна при максимальном открывании после вычисления требуемой ширины по rules/55_egress_stair_clear_width.yaml."
+
+    - id: stairwell.window.max_open_position_preserves_egress_envelope
+      source: {document: SP_2_13130_2020, clause: "5.4.16 б"}
+      automation: auto
+      dimension_semantics: clear
+      statement: "Тип и направление открывания створок требуемых окон не нормируются, но при максимально открытом положении должна сохраняться нормативная ширина и высота пути эвакуации по лестничной клетке."
+      conflict_policy: "В BIM проверять sweep/envelope створки относительно чистого эвакуационного габарита, а не только коллизию с стеной."
+
+BIM_required_parameters:
+  - stairwell_type
+  - storey_position
+  - glazing_total_area_m2
+  - glazed_part_dimensions_mm
+  - window_operability
+  - window_opening_hardware_type
+  - opening_device_height_above_finished_floor_mm
+  - window_leaf_max_open_envelope
+  - stairwell_door_max_open_envelope
+  - required_stair_clear_width_mm
+  - required_stair_clear_height_mm
+  - actual_clear_width_with_leaf_open_mm
+  - actual_clear_height_with_leaf_open_mm
+
+agent_logic:
+  - "Окно лестничной клетки моделировать не как абстрактный проем: хранить остекленную площадь, открываемость, фурнитуру, высоту ручки/штанги и envelope открывания."
+  - "Не считать окно нормативным только по площади 1,2 м²: для Л1/Н1/Н3 дополнительно требуется корректная открываемость по СП 2."
+  - "Не делать окно Н2 обычным открывающимся окном только ради проветривания."
+  - "После расстановки дверей и окон повторно вычислять фактический чистый габарит эвакуационного пути в их максимально открытом положении."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_351940/8a1a4f1894115399acdbf73bfa34c70c66b39e54/"
+  - "https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1"
+  - "https://www.consultant.ru/document/cons_doc_LAW_496609/"

@@ -1,4 +1,4 @@
-package_manifest_version: 5
+package_manifest_version: 6
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -21,6 +21,15 @@ load_order:
   - 14_node_N11_mep_penetration.yaml
   - 15_node_N10_wet_room_floor_wall_drain.yaml
   - 16_node_N03_wall_floor_connection.yaml
+  - 17_node_N04_wall_corner_T_junction.yaml
+  - 18_node_N08_roof_ridge.yaml
+  - 19_node_N09_roof_penetration_chimney_vent.yaml
+  - 20_node_N13_terrace_porch_wall.yaml
+  - 21_pack_lstk.yaml
+  - 22_pack_clt_engineered_timber.yaml
+  - 23_thermal_moisture_interface_schema.yaml
+  - 24_safe_bridge_operation_contract.yaml
+  - 25_tapir_schema_audit_2026_10_01.yaml
 
 release_gate:
   require:
@@ -31,29 +40,44 @@ release_gate:
     - no_draft_normative_source_is_active
     - no_material_specific_connection_is_reused_across_systems_without_pack_validation
     - no_structural_penetration_without_KR_gate
-    - tapir_command_availability_verified_before_write
-    - write_operations_have_readback_and_postconditions
+    - thermal_air_vapor_bulk_water_drying_contours_checked_for_exposed_nodes
+    - tapir_command_availability_and_schema_verified_before_write
+    - write_operations_use_typed_contract_with_readback_and_postconditions
+    - opening_geometry_edit_does_not_assume_nonexistent_ModifyOpenings
+    - new_GDL_authoring_does_not_assume_AddFilesToEmbeddedLibrary_is_an_authoring_API
 
 completed_material_packs:
   - masonry_reinforced_concrete
   - AAC_reinforced_concrete
   - timber_structures
+  - LSTK_cold_formed_steel
+  - CLT_and_engineered_timber
 
 completed_audits:
   - exact_Tapir_critical_command_presence_audit
+  - exact_Tapir_schema_and_extension_gap_audit_2026_10_01
+  - safe_bridge_typed_operation_contract
+  - thermal_moisture_interface_schema
   - detailed_N01_foundation_wall_plinth
+  - detailed_N03_wall_floor_connection
+  - detailed_N04_wall_corner_T_junction
   - detailed_N05_window_connection
   - detailed_N07_roof_wall_eaves
-  - detailed_N11_MEP_penetration
+  - detailed_N08_roof_ridge
+  - detailed_N09_roof_penetration_chimney_vent
   - detailed_N10_wet_room_floor_wall_drain
-  - detailed_N03_wall_floor_connection
+  - detailed_N11_MEP_penetration
+  - detailed_N13_terrace_porch_wall
   - SP29_change4_effective_date_reaudit
+  - target_2027_source_authority_reconciliation
 
 next_cycles:
-  - exact_Tapir_per_command_schema_and_context_audit
-  - thermal_moisture_interface_schema
-  - safe_bridge_typed_operation_contract
-  - detailed_N04_wall_corner_T_junction
-  - detailed_N08_roof_ridge
-  - detailed_N09_roof_penetration
-  - detailed_N13_terrace_porch_wall
+  - detailed_N02_ground_floor_external_wall
+  - detailed_N06_entrance_door_threshold
+  - detailed_N12_internal_wall_floor_finish_transition
+  - detailed_N14_internal_loadbearing_wall_foundation
+  - exact_window_joint_partial_replacement_audit_GOST30971_GOST_R59599
+  - source_based_detail_marker_native_API_audit
+  - foundation_system_selection_matrix_without_typical_dimensions
+  - safe_applier_P0_wrapper_design_and_tests
+  - facade_and_rainscreen_node_family_expansion

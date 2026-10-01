@@ -17,8 +17,7 @@ sanitary_documents:
     status: active
     effective_from: 2026-09-01
     effective_until: 2032-09-01
-    replaces:
-      - SP_SAN_2_1_3678_20
+    replaces: [SP_SAN_2_1_3678_20]
     source_urls:
       - "https://www.consultant.ru/document/cons_doc_LAW_535828/"
       - "https://base.garant.ru/414329111/"
@@ -40,8 +39,7 @@ sanitary_documents:
     status: active
     effective_from: 2026-09-01
     effective_until: 2032-09-01
-    replaces:
-      - SP_SAN_2_3_6_3668_20
+    replaces: [SP_SAN_2_3_6_3668_20]
     scope_note: >-
       Применять к деятельности по реализации пищевой продукции, включая торговые объекты,
       используемые здания, сооружения, помещения, территории, оборудование и транспорт.
@@ -66,8 +64,7 @@ sanitary_documents:
     status: active
     effective_from: 2026-09-01
     effective_until: 2032-09-01
-    replaces:
-      - SANPIN_2_3_2_4_3590_20
+    replaces: [SANPIN_2_3_2_4_3590_20]
     scope_note: >-
       Для целевого профиля 2027 является действующим санитарным источником организации
       общественного питания. Старые ссылки строительных СП на СанПиН 3590-20 маршрутизировать
@@ -83,6 +80,19 @@ sanitary_documents:
     repealed_from: 2026-09-01
     replaced_by: SANPIN_2_3_2_4_4282_26
     repeal_basis: "Постановление Главного государственного санитарного врача РФ от 02.06.2026 №18"
+
+  - id: SANPIN_2_1_3684_21
+    designation: "СанПиН 2.1.3684-21"
+    title: "Санитарно-эпидемиологические требования к содержанию территорий городских и сельских поселений, к водным объектам, питьевой воде и питьевому водоснабжению, атмосферному воздуху, почвам, жилым помещениям, эксплуатации производственных, общественных помещений, организации и проведению санитарно-противоэпидемических (профилактических) мероприятий"
+    status: active_until_expiry
+    effective_until: 2027-03-01
+    target_2027_policy: >-
+      После 01.03.2027 не использовать как действующее основание. Если новое профильное правило
+      (например СП 2.3.6.4281-26) ссылается на СанПиН 2.1.3684-21, независимое требование нового
+      правила сохраняется, но зависимая санитарная проверка после этой даты должна быть повторно
+      привязана к официальному преемнику.
+    source_urls:
+      - "https://base.garant.ru/400289764/"
 
   - id: SANPIN_1_2_3685_21
     designation: "СанПиН 1.2.3685-21"
@@ -101,6 +111,24 @@ sanitary_documents:
       - "https://www.consultant.ru/document/cons_doc_LAW_375839/"
 
 replacement_watch:
+  - id: SANPIN_2_1_DRAFT_2026_REPLACEMENT
+    designation: "проект СанПиН 2.1...-26"
+    title: "Санитарно-эпидемиологические требования к содержанию территорий городских и сельских поселений, к водным объектам, питьевой воде и питьевому водоснабжению, атмосферному воздуху, почвам, жилым помещениям, эксплуатации производственных, общественных помещений, организации и проведению санитарно-противоэпидемических (профилактических) мероприятий"
+    prepared_by: "Роспотребнадзор"
+    draft_date: 2026-07-20
+    status: draft_do_not_apply
+    intended_effective_from: 2027-03-01
+    intended_replacement_of: SANPIN_2_1_3684_21
+    draft_intended_valid_until: 2033-03-01
+    source_url: "https://www.garant.ru/products/ipo/prime/doc/56960867/"
+    audit_note: "Проверено 2026-10-01: опубликован проект будущего акта, но утвержденный/зарегистрированный финальный преемник в этом проходе не найден."
+    activation_requirements:
+      - official_approval_act_found
+      - official_publication_or_registration_confirmed
+      - effective_date_confirmed
+      - final_text_compared_with_draft
+      - architecture_relevant_clauses_reaudited
+
   - id: SANPIN_1_2_DRAFT_2026_REPLACEMENT
     designation: "проект СанПиН 1.2.-26"
     title: "Гигиенические нормативы и требования к обеспечению безопасности и (или) безвредности для человека факторов среды обитания"
@@ -144,12 +172,16 @@ routing_rules:
     statement: "Любая машинная норма профиля 2027 со ссылкой на СанПиН 2.3/2.4.3590-20 как действующий источник блокируется и маршрутизируется на СанПиН 2.3/2.4.4282-26."
     automation: auto
 
+  - id: sanitary.block_3684_after_2027_03_01
+    statement: "После 01.03.2027 СанПиН 2.1.3684-21 не может использоваться как действующее основание архитектурного/эксплуатационного санитарного правила. До подтверждения финального преемника зависимые правила получают blocked_pending_sanitary_replacement."
+    automation: auto
+
   - id: sanitary.block_3685_after_2027_03_01
     statement: "После 01.03.2027 СанПиН 1.2.3685-21 не может использоваться как действующее основание числового архитектурного правила. До появления утвержденного преемника такие правила получают blocked_pending_sanitary_replacement."
     automation: auto
 
-  - id: sanitary.draft_replacement_not_authoritative
-    statement: "Проект СанПиН 1.2.-26 от 31.07.2026 хранится только как watch item и не является источником проектных чисел."
+  - id: sanitary.draft_replacements_not_authoritative
+    statement: "Проекты преемников СанПиН 2.1.3684-21 и СанПиН 1.2.3685-21 хранятся только как watch items и не являются источниками проектных чисел/правил."
     automation: auto
 
 sources:
@@ -159,5 +191,7 @@ sources:
   - "https://www.consultant.ru/law/hotdocs/94315.html"
   - "https://www.consultant.ru/law/hotdocs/94329.html"
   - "https://base.garant.ru/414329257/"
+  - "https://base.garant.ru/400289764/"
+  - "https://www.garant.ru/products/ipo/prime/doc/56960867/"
   - "https://base.garant.ru/400274954/"
   - "https://base.garant.ru/57061926/"

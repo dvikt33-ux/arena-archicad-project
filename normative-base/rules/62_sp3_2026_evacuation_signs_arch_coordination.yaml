@@ -1,0 +1,134 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Архитектурная координация СОУЭ и знаков пожарной безопасности по СП 3.13130.2026, действующему с 01.06.2026 взамен СП 3.13130.2009. Файл не выполняет электроакустический/электротехнический расчет."
+
+source_document:
+  id: SP_3_13130_2026
+  title: "Системы противопожарной защиты. Система оповещения и управления эвакуацией людей при пожаре. Требования пожарной безопасности"
+  status: active
+  effective_from: 2026-06-01
+  replaces: SP_3_13130_2009
+  source_url: "https://protect.gost.ru/sp/details/adbbe747-e283-43c0-bb61-0efd01572113"
+
+supersession_gate:
+  - id: soue.sp3_2009_not_current
+    automation: auto
+    statement: "Для профиля 2027 СП 3.13130.2009 не является действующим источником: он заменен СП 3.13130.2026 с 01.06.2026."
+    conflict_policy: "Любое правило, которое трактует СП 3.13130.2009 как текущий документ, блокировать до повторной привязки."
+
+legacy_type_translation:
+  source: SP_3_13130_2026
+  clause: "5.3.2, Appendix A"
+  rules:
+    - id: soue.legacy_types_are_translation_input
+      automation: validation_only
+      statement: "Новый СП не строит проектирование на фиксированной классификации СОУЭ 1-5 типов. Если другой действующий норматив продолжает требовать СОУЭ 1-5 типа, способ оповещения выбирают через обязательное приложение А СП 3.13130.2026."
+      conflict_policy: "Не удалять ссылку специальной нормы на исторический тип и не применять старую таблицу СП 3.13130.2009; выполнить перевод по приложению А нового СП."
+
+    - id: soue.legacy_type_sound_speech_mapping
+      automation: validation_only
+      statement: "Приложение А нового СП содержит переходное соответствие старых типов способам оповещения; полное проектное решение определяется уже требованиями СП 3.13130.2026 и особенностями объекта."
+      conflict_policy: "Не считать перевод старого типа достаточным для определения состава оборудования, зонирования, очередности и управления эвакуацией."
+
+evacuation_management_project_documentation:
+  source: SP_3_13130_2026
+  rules:
+    - id: soue.signs.project_documentation_fields
+      clause: "7.2.2"
+      automation: auto
+      statement: "В проектной документации должны быть определены места размещения эвакуационных знаков и знаков пожарной безопасности с указанием цветографического изображения, размера и способа подсветки."
+      BIM_required_fields:
+        - sign_location
+        - sign_semantic_code_or_image
+        - sign_dimensions
+        - illumination_method
+
+    - id: soue.egress_management_methods_are_selected_not_assumed
+      clause: "7.2.1"
+      automation: validation_only
+      statement: "Управление эвакуацией может включать эвакуационное освещение, подсветку знаков, автоматическое/дистанционное открывание запоров, экстренную связь и дополнительную информацию; применимый состав определяется для конкретного объекта по СП 3 и другим пожарным нормам."
+      conflict_policy: "Архитектурный агент резервирует и координирует подтвержденные элементы, но не назначает состав СОУЭ из типового шаблона."
+
+fire_safety_signs:
+  source: SP_3_13130_2026
+  rules:
+    - id: soue.signs.exit_door_location
+      clause: "9.3.9"
+      automation: conditional
+      statement: "Эвакуационные знаки, указывающие эвакуационные выходы, размещаются над дверьми или непосредственно на дверях эвакуационных выходов, ведущих непосредственно наружу; в остальных случаях они применяются в комбинации со знаками направления движения."
+      conflict_policy: "Положение знака проверять с учетом фактического положения двери/створки и видимости; знак не должен терять смысл при открывании двери."
+
+    - id: soue.signs.photoluminescent_min_illumination
+      clause: "9.4.4"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Знаки пожарной безопасности на основе фотолюминесцентных материалов допускаются при обеспечении освещенности не менее 50 лк в месте размещения при включенном рабочем освещении."
+      conditions: {sign_illumination_type: photoluminescent}
+      values: {min_working_illumination_lux: 50}
+      requires_lighting_calculation_or_measurement: true
+
+    - id: soue.signs.execution_selected_in_design
+      clause: "9.4.2"
+      automation: validation_only
+      statement: "Исполнение знаков пожарной безопасности должно быть указано в задании на проектирование либо выбрано проектной организацией по согласованию с заказчиком."
+
+notification_device_architectural_coordination:
+  source: SP_3_13130_2026
+  rules:
+    - id: soue.devices.general_mounting_height
+      clause: "6.18.1"
+      automation: conditional
+      dimension_semantics: level
+      statement: "Звуковые, речевые, световые и комбинированные пожарные оповещатели, как правило, устанавливают так, чтобы низ корпуса находился не ниже 2,3 м от пола/покрытия; размещение ниже допускается при выполнении предусмотренных СП условий защиты. Для квартир/апартаментов предусмотрено отдельное исключение."
+      values: {general_min_bottom_of_device_above_floor_mm: 2300}
+      conflict_policy: "Не снижать высоту автоматически. При размещении ниже 2,3 м хранить основание исключения и способ защиты, если он требуется."
+
+    - id: soue.devices.mounting_surface_reservation
+      clause: "6.18.2"
+      automation: validation_only
+      statement: "Оповещатели крепятся к стенам, потолкам и иным строительным конструкциям с учетом требуемой ориентации; архитектурная модель должна оставлять подтвержденные монтажные поверхности и не закрывать их отделкой/оборудованием после координации."
+
+    - id: soue.devices.sports_mechanical_protection
+      clause: "6.18.5"
+      automation: conditional
+      statement: "В помещениях с вероятностью механического повреждения оповещателей при нормальной эксплуатации, например спортивных игровых залах, требуется защищенное исполнение либо дополнительная защитная конструкция по технической документации."
+      conditions: {mechanical_damage_risk: true}
+      requires_manufacturer_data: true
+
+acoustic_and_system_design_boundary:
+  - id: soue.acoustic_layout_requires_profile_calculation
+    automation: forbidden_to_infer
+    statement: "Количество, мощность, направленность и окончательное размещение звуковых/речевых оповещателей нельзя определять архитектурным агентом только по площади помещения. Требуется профильное проектирование с проверкой слышимости/разборчивости по СП 3.13130.2026."
+    requires_calculation: true
+
+  - id: soue.closed_doors_affect_acoustic_validation
+    source: {document: SP_3_13130_2026, clause: "6.8.2"}
+    automation: validation_only
+    statement: "Проверка слышимости выполняется при закрытых дверях; поэтому акустическая модель и дверные конструкции должны передаваться профильному расчету, а не считаться несущественными для СОУЭ."
+
+BIM_required_parameters:
+  - evacuation_sign_id
+  - evacuation_sign_location
+  - evacuation_sign_image_or_code
+  - evacuation_sign_width_height
+  - evacuation_sign_illumination_type
+  - working_illumination_at_sign_lux
+  - notification_device_type
+  - notification_device_bottom_level_mm
+  - notification_device_orientation
+  - notification_device_mounting_surface
+  - mechanical_protection_if_required
+  - acoustic_calculation_reference
+  - system_design_reference
+
+agent_logic:
+  - "Не использовать старую классификацию СОУЭ 1-5 как самостоятельный алгоритм проектирования после 01.06.2026."
+  - "Если профильный СП старой структуры требует конкретный тип СОУЭ, переводить требование через приложение А СП 3.13130.2026, затем применять полный новый СП."
+  - "Знаки являются элементами проектной документации с конкретной геометрией/местом/подсветкой и должны присутствовать в BIM/АР-координации."
+  - "Оповещатели координировать архитектурно, но не рассчитывать средствами архитектурного правила."
+
+sources:
+  - "https://protect.gost.ru/sp/details/adbbe747-e283-43c0-bb61-0efd01572113"
+  - "https://www.consultant.ru/document/cons_doc_LAW_528258/2310ef8b796808ecd329d62cb1d476507eb9a4ef/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_528258/f79b4a0fe1dba48257cedc0752dc20ad91e5e63e/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_528258/734b0be7fd888a015b73c130c4e324332fcecdae/"

@@ -25,8 +25,11 @@ commands:
   - {command: CreateSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
   - {command: RemoveSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
   - {command: GetSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", role: mandatory_SEO_postcondition}
+  - {command: TrimElements, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", semantics: "Trims construction elements with roof or shell; use for native associative roof/shell trim where applicable."}
+  - {command: GetElementTrims, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", role: mandatory_Trim_postcondition}
+  - {command: RemoveElementTrims, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.9", semantics: "Removes a trim relation between an element and its roof/shell trimming element."}
 
-  - {command: CreateProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", semantics: "Create/overwrite Profile attributes using existing profile geometry plus supported overrides."}
+  - {command: CreateProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", semantics: "Create or overwrite Profile attributes using existing profile geometry plus supported overrides."}
   - {command: GetProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, role: profile_template_and_readback}
   - {command: ApplyFavoritesToElements, domain: favorite, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
 
@@ -48,7 +51,8 @@ node_recipe_mapping:
     likely_primitives: [CreateWalls, CreateWindows, CreateProfiles, ApplyFavoritesToElements, CreateDetails]
     warning: "Window block/favorite and actual installation joint remain product/project data; independent Detail is documentation, not source of truth."
   IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
-    likely_primitives: [CreateWalls, CreateRoofs, CreateSolidElementLinks, GetSolidElementLinks, CreateProfiles]
+    likely_primitives: [CreateWalls, CreateRoofs, TrimElements, GetElementTrims, RemoveElementTrims, CreateProfiles]
+    warning: "Prefer native associative Trim when the architectural relationship is wall/element trimmed by roof or shell; use SEO only for a genuinely different boolean relation."
   IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN:
     likely_primitives: [CreateSlabs, CreateWalls, CreateMEPRoutingElements, ConnectMEPElements, CreateOpenings]
   IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
@@ -61,6 +65,7 @@ project_implementation_order:
     - typed_CreateWalls_CreateSlabs_CreateOpenings
     - typed_DeleteElements_with_preconditions
     - typed_SEO_create_remove_get
+    - typed_Trim_create_remove_get
     - typed_element_detail_readback
     - node_id_property_write_and_verify
   P1:
@@ -74,9 +79,11 @@ project_implementation_order:
     - source_based_detail_marker_if_upstream_support_is_proven
 
 extension_policy:
-  confirmed_Tapir_extension_needed: false
-  current_reason: "All currently critical IZH node primitives audited so far are present upstream except several unresolved higher-level/document-edit semantics."
-  fork_gate: "Do not extend Tapir until exact missing semantic is demonstrated absent from source registration, command definitions and live command availability for Archicad 29."
+  confirmed_Tapir_geometry_extension_needed: false
+  confirmed_possible_safety_extension:
+    - "Idempotent client mutation token for strict exactly-once create semantics if unattended crash recovery is required. This is not a missing geometry primitive; it is a transaction/idempotency feature."
+  current_reason: "Critical IZH geometry/relation primitives audited so far are present upstream; remaining unresolved items are higher-level/document/edit semantics or strict crash-safety semantics."
+  fork_gate: "Do not extend Tapir until exact missing semantic is demonstrated absent from source registration, command definitions and live command availability for Archicad 29, except a deliberately scoped safety/idempotency extension justified by crash semantics."
 
 source_paths:
   - archicad-addon/Sources/AddOnMain.cpp

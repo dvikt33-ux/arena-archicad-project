@@ -104,10 +104,12 @@ archicad_recipe:
       coordinated: native_Beam_Column_or_verified_objects_for_actual_members
   repeated_eaves_profile: "Complex Profile only for stable repeated section; not for individual anchors/membranes."
   trim_relationship:
-    native_preference: Trim_or_verified_associative_relation
-    tapir_status: "CreateRoofs source-verified; exact Trim command audited separately from SEO."
+    native_preference: Trim
+    tapir: [TrimElements, GetElementTrims, RemoveElementTrims]
+    source_verified_in: Tapir_1_5_9
+    rule: "Для истинного отношения element trimmed by Roof/Shell использовать нативный Trim и обязательно перечитывать GetElementTrims; не подменять его SEO только ради одинакового булевого вида."
   SEO_where_true_boolean_is_needed:
-    tapir: [CreateSolidElementLinks, GetSolidElementLinks]
+    tapir: [CreateSolidElementLinks, GetSolidElementLinks, RemoveSolidElementLinks]
   membrane_and_tapes:
     default: detail_2d_plus_properties
   tapir_create: [CreateWalls, CreateRoofs]
@@ -121,6 +123,7 @@ postconditions:
   - thermal_air_vapor_contours_are_closed
   - water_path_exits_outward
   - ventilation_path_if_required_is_continuous
+  - expected_trim_relation_read_back_when_used
   - no_unapproved_cut_in_rafter_or_truss
   - NODE_ID_and_revision_match_detail_output
 
@@ -140,3 +143,4 @@ sources:
   - "SP 17.13330.2017 current revision through Change 5"
   - "SP 64.13330.2017 current revision through Change 4"
   - "SP 71.13330.2017 section 5.2 on continuous vapor-control execution"
+  - "Tapir 1.5.9 source: TrimElements/GetElementTrims/RemoveElementTrims"

@@ -1,0 +1,211 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: >-
+  Градостроительный слой размещения и расчета стоянок для модели 2027+:
+  приоритет местных/региональных нормативов, федеральный fallback СП 42.13330.2026,
+  пешеходная доступность, въезды/выезды и запрет устаревших универсальных санитарных разрывов.
+
+revision_dependencies:
+  - {document: SP_42_13330_2026, status: active, effective_from: 2026-07-12, replaces: SP_42_13330_2016}
+  - {document: SP_113_13330_2023, verified_changes: [1, 2, 3, 4], role: parking_building_and_geometry}
+  - {document: SP_59_13330_2020, verified_changes: [1, 2, 3, 4], role: accessible_parking_and_routes}
+  - {document: SP_51_13330_2011, role: noise_calculation}
+  - {document: SANITARY_RULES_2027, status: unresolved_after_2027_03_01, role: sanitary_limits}
+
+parking_demand_router:
+  - id: site.parking.local_norms_first
+    source: {document: SP_42_13330_2026, clause: "8.112"}
+    automation: mandatory_router
+    statement: >-
+      Требуемое число мест для стоянки/хранения индивидуального транспорта сначала принимать
+      по НГП, РНГП, МНГП и ПЗЗ применимой территории. Только при отсутствии параметра в этих
+      документах использовать федеральный fallback таблицы 8.16 и приложения И СП 42.
+    required_inputs:
+      - project_location
+      - applicable_NGP_RNGP_MNGP
+      - applicable_PZZ
+    if_local_parameter_exists: use_local_parameter
+    if_local_parameter_absent: use_SP42_fallback
+
+  - id: site.parking.public_building_fallback
+    source: {document: SP_42_13330_2026, clause: "8.119, Appendix И"}
+    automation: conditional
+    statement: >-
+      Для общественных зданий федеральные нормы приобъектной стоянки по приложению И применять
+      только как fallback, когда применимые НГП/РНГП/МНГП не задают соответствующий параметр.
+
+public_building_fallback_examples:
+  source: {document: SP_42_13330_2026, table: "И.1"}
+  dimension_semantics: demand_ratio
+  rules:
+    - id: site.parking.trade_shop_hypermarket_fallback
+      automation: conditional
+      object_class: shops_retail_hypermarkets
+      calculation_unit: gross_floor_area_m2_per_one_parking_space
+      range: [30, 35]
+      note: "Использовать только после parking_demand_router и точной классификации объекта."
+
+    - id: site.parking.shopping_center_fallback
+      automation: conditional
+      object_class: shopping_center_shopping_entertainment_center_supermarket_department_store
+      calculation_unit: gross_floor_area_m2_per_one_parking_space
+      range: [40, 50]
+      note: >-
+        Для многофункционального ТРК сначала определить, допускает ли применимая методика расчет
+        как единый объект или требует раздельного расчета функций; не суммировать и не смешивать
+        строки таблицы произвольно.
+
+    - id: site.parking.specialized_retail_fallback
+      automation: conditional
+      object_class: specialized_nonfood_episdodic_demand_shop
+      calculation_unit: gross_floor_area_m2_per_one_parking_space
+      range: [60, 70]
+
+cooperative_and_transit_adjustments:
+  - id: site.parking.cooperative_peak_shift_reduction
+    source: {document: SP_42_13330_2026, clause: "8.120-8.121"}
+    automation: requires_justification
+    condition: "shared parking serves multiple functions AND peak demand is demonstrably separated in time"
+    central_area_reduction_percent: [15, 20]
+    peripheral_area_reduction_percent: [10, 15]
+    statement: >-
+      Уменьшение суммарного числа мест допускается только для кооперированной стоянки при
+      обосновании разнесения пиков спроса. Агент не применяет коэффициент только потому, что
+      здание многофункциональное.
+
+  - id: site.parking.rapid_transit_reduction
+    source: {document: SP_42_13330_2026, clause: "8.122"}
+    automation: requires_justification
+    reduction_percent: 25
+    statement: >-
+      В населенном пункте со скоростным общественным транспортом расчетное число мест для объектов
+      в установленной пешеходной доступности до станций внеуличного транспорта допускается снижать
+      на 25%. Требуется подтверждение вида транспорта и пешеходной доступности; местные нормы
+      проверяются прежде применения федерального допуска.
+
+residential_rules:
+  - id: site.parking.residential_guest_min
+    source: {document: SP_42_13330_2026, clause: "8.117"}
+    automation: conditional
+    min_spaces_per_1000_residents: 30
+    statement: >-
+      На территории жилой застройки гостевые места предусматривают не менее 30 на 1000 жителей
+      либо в соответствии с НГП/РНГП/МНГП. Сначала проверить местные нормативы.
+
+walking_access:
+  source: {document: SP_42_13330_2026, clause: "8.125"}
+  dimension_semantics: pedestrian_route_length
+  rules:
+    - id: site.parking.walk_to_residential_entrance
+      automation: conditional
+      max_m: 200
+      destination: residential_building_entrance
+    - id: site.parking.walk_to_large_trade_or_food
+      automation: conditional
+      max_m: 200
+      destination: large_trade_or_public_catering_entrance
+    - id: site.parking.walk_to_other_service_admin
+      automation: conditional
+      max_m: 250
+      destination: other_service_or_administrative_building
+    - id: site.parking.walk_to_mass_occupancy
+      automation: conditional
+      max_m: 400
+      destination: mass_occupancy_object
+      note: >-
+        Увеличение до предусмотренного СП предела возможно только при одновременном выполнении
+        специальных обеспечительных мероприятий п. 8.125; не применять автоматически.
+    - id: site.parking.accessible_route_separate
+      automation: mandatory_validation
+      statement: >-
+        Для мест МГН использовать специальную дальность и доступный маршрут по СП 59/СП 113;
+        общие 200/250/400 м не заменяют требования доступности.
+
+site_area_precheck:
+  source: {document: SP_42_13330_2026, clause: "8.126, Table 8.17"}
+  dimension_semantics: preliminary_site_area_per_space
+  statement: >-
+    Показатели таблицы 8.17 применяются для предварительного размера земельного участка стоянки,
+    а не как размеры машино-места или проезда.
+  values_m2_per_space:
+    one_storey_garage: 30
+    two_storey_garage: 20
+    three_storey_garage: 14
+    four_storey_garage: 12
+    five_storey_garage: 10
+    surface_parking: 25
+
+entrance_exit_location:
+  - id: site.parking.entrance_intersection_stop_minima
+    source: {document: SP_42_13330_2026, clause: "8.127"}
+    automation: conditional
+    dimension_semantics: clear_plan_distance
+    statement: "Наименьшие расстояния назначаются по расчету, но не менее приведенных значений."
+    minima_m:
+      to_major_street_intersection: 50
+      to_local_street_intersection: 20
+      to_public_transport_stop_boarding_area: 30
+
+  - id: site.parking.SP113_open_surface_entry_consistency
+    source: {document: SP_113_13330_2023, clause: "7.3.2"}
+    automation: validation_only
+    statement: >-
+      Для наземной плоскостной одноуровневой стоянки отдельно проверить п. 7.3.2 СП 113;
+      его минимумы 50/20/30 м должны быть согласованы с СП 42 и фактической категорией улицы.
+
+sanitary_and_noise_placement:
+  - id: site.parking.no_legacy_fixed_window_setback_table
+    source: {document: SP_42_13330_2026, clause: "8.124"}
+    automation: forbidden_to_infer
+    statement: >-
+      Для наземных/подземных/обвалованных гаражей и открытых стоянок легковых автомобилей без
+      иных источников загрязнения не переносить автоматически старые универсальные таблицы
+      расстояний до окон. Выбор размещения обосновывается градостроительным решением и расчетами
+      рассеивания загрязнений воздуха и шума с обеспечением СП 51 и санитарных требований.
+    requires_calculation: true
+
+  - id: site.parking.sanitary_2027_gap
+    automation: hard_gate
+    statement: >-
+      Поскольку СанПиН 1.2.3685-21 прекращает действие 01.03.2027, после этой даты санитарные
+      числовые критерии брать только из официально действующего на расчетную дату документа.
+      До появления подтвержденной замены база не переносит старые значения автоматически.
+    if_date_on_or_after: 2027-03-01
+    if_replacement_not_verified: blocked_pending_official_replacement
+
+  - id: site.parking.vent_shafts_special_route
+    source: {document: SP_42_13330_2026, clause: "8.124 note"}
+    automation: mandatory_router
+    statement: >-
+      Расстояния от вентиляционных шахт подземных стоянок проверять по специальным требованиям,
+      включая СП 113, СП 60 и применимые санитарные требования; не использовать правило для
+      обычного въезда как замену требованиям вентиляционной шахты.
+
+model_requirements:
+  required_parameters:
+    - project_location
+    - local_planning_norms_reference
+    - PZZ_reference
+    - object_function_classification
+    - calculated_population_or_users
+    - parking_demand_method
+    - parking_space_count_before_adjustments
+    - parking_adjustment_justification
+    - accessible_parking_count_and_route
+    - pedestrian_route_to_served_entrance_m
+    - parking_entry_exit_coordinates
+    - road_and_intersection_classification
+    - air_pollution_calculation_reference_if_required
+    - noise_calculation_reference_if_required
+
+agent_logic:
+  - "Сначала местные/региональные нормативы, затем федеральный fallback СП 42."
+  - "Не рассчитывать ТРК только по одной строке без проверки функциональной классификации и местных норм."
+  - "Не применять скидку кооперированной стоянки без доказанного разнесения часов пик."
+  - "Не путать площадь участка на одно место с геометрией машино-места — геометрия находится в rules/14_parking_geometry.yaml."
+  - "Не применять старые фиксированные санитарные разрывы до окон вместо действующей расчетной процедуры СП 42.13330.2026."
+  - "Пожарные расстояния/проезды проверять отдельно через rules/13_fire_site_access.yaml и rules/81_fire_separation_matrix.yaml."
+
+sources:
+  - https://base.garant.ru/414570340/
+  - https://base.garant.ru/407887809/

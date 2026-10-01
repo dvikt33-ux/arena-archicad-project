@@ -1,0 +1,188 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_2_13130_2020
+verified_changes: [1, 2]
+purpose: >-
+  Базовые матрицы допустимой пожарной высоты и площади этажа в пределах пожарного отсека
+  для многоквартирных жилых зданий Ф1.3, основной группы общественных зданий,
+  предприятий бытового обслуживания Ф3.5 и предприятий торговли Ф3.1.
+  Только базовые табличные значения; специальные увеличения и исключения требуют отдельного подтверждения.
+
+revision_state:
+  status: active
+  official_card: https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1
+  latest_verified_change: 2
+  change_2_effective_from: 2026-01-01
+
+scope_router:
+  - id: fire.compartment.route_by_function
+    source_clause: "6.5.1; 6.7.1"
+    automation: mandatory_router
+    routes:
+      F1_3_multifamily_or_apartment_type_dormitory: table_6_8
+      F3_1_trade: table_6_11
+      F3_5_consumer_services: table_6_10
+      public_general_within_6_7_1: table_6_9
+    hard_gate: >-
+      До выбора таблицы определить функциональный класс пожарной опасности и проверить,
+      не устанавливает ли СП 2 либо специальный функциональный СП отдельные требования.
+      Для высотных зданий в области СП 550 использовать rules/47_highrise_fire_2027.yaml.
+
+common_semantics:
+  fire_height: "пожарная высота по применимым пожарным нормам, не архитектурная высота до конька/парапета"
+  compartment_area: "площадь этажа в пределах пожарного отсека"
+  floor_count: "надземные этажи без верхнего технического этажа там, где это прямо указано таблицей"
+  rule: >-
+    Табличная строка задает допустимую комбинацию параметров, а не независимые максимумы.
+    Нельзя взять высоту из одной строки и площадь отсека из другой.
+
+residential_F1_3_table_6_8:
+  source: {document: SP_2_13130_2020, clause: "6.5.1", table: "6.8"}
+  automation: conditional
+  envelopes:
+    - {id: fire.compartment.F1_3.I_C0, fire_resistance_degree: I, structural_fire_hazard_class: C0, max_fire_height_m: 75, max_floor_area_m2: 2500}
+    - {id: fire.compartment.F1_3.II_C0, fire_resistance_degree: II, structural_fire_hazard_class: C0, max_fire_height_m: 50, max_floor_area_m2: 2500}
+    - {id: fire.compartment.F1_3.II_C1, fire_resistance_degree: II, structural_fire_hazard_class: C1, max_fire_height_m: 28, max_floor_area_m2: 2200}
+    - {id: fire.compartment.F1_3.III_C0, fire_resistance_degree: III, structural_fire_hazard_class: C0, max_fire_height_m: 28, max_floor_area_m2: 1800}
+    - {id: fire.compartment.F1_3.III_C1, fire_resistance_degree: III, structural_fire_hazard_class: C1, max_fire_height_m: 15, max_floor_area_m2: 1800}
+    - {id: fire.compartment.F1_3.IV_C0_h5, fire_resistance_degree: IV, structural_fire_hazard_class: C0, max_fire_height_m: 5, max_floor_area_m2: 1000}
+    - {id: fire.compartment.F1_3.IV_C0_h3, fire_resistance_degree: IV, structural_fire_hazard_class: C0, max_fire_height_m: 3, max_floor_area_m2: 1400}
+    - {id: fire.compartment.F1_3.IV_C1_h5, fire_resistance_degree: IV, structural_fire_hazard_class: C1, max_fire_height_m: 5, max_floor_area_m2: 800}
+    - {id: fire.compartment.F1_3.IV_C1_h3, fire_resistance_degree: IV, structural_fire_hazard_class: C1, max_fire_height_m: 3, max_floor_area_m2: 1200}
+    - {id: fire.compartment.F1_3.IV_C2_h5, fire_resistance_degree: IV, structural_fire_hazard_class: C2, max_fire_height_m: 5, max_floor_area_m2: 500}
+    - {id: fire.compartment.F1_3.IV_C2_h3, fire_resistance_degree: IV, structural_fire_hazard_class: C2, max_fire_height_m: 3, max_floor_area_m2: 900}
+    - {id: fire.compartment.F1_3.V_h5, fire_resistance_degree: V, structural_fire_hazard_class: not_normalized, max_fire_height_m: 5, max_floor_area_m2: 500}
+    - {id: fire.compartment.F1_3.V_h3, fire_resistance_degree: V, structural_fire_hazard_class: not_normalized, max_fire_height_m: 3, max_floor_area_m2: 800}
+  notes:
+    - "Альтернативные строки IV/V с высотой 3 и 5 м являются разными допустимыми конвертами; не объединять максимальную площадь низкой строки с большей высотой."
+    - "Мансардный этаж и специальные условия п.6.5.2+ проверяются отдельно; базовая матрица их не активирует автоматически."
+
+public_general_table_6_9:
+  source: {document: SP_2_13130_2020, clause: "6.7.1", table: "6.9"}
+  automation: conditional
+  floor_area_columns_m2: [one_storey, two_storey, three_storey, four_to_five, six_to_nine, ten_to_sixteen]
+  rows:
+    - id: fire.compartment.public.I_C0
+      fire_resistance_degree: I
+      structural_fire_hazard_class: C0
+      max_fire_height_m: 50
+      max_floor_area_m2: {one_storey: 6000, two_storey: 5000, three_storey: 5000, four_to_five: 5000, six_to_nine: 5000, ten_to_sixteen: 2500}
+    - id: fire.compartment.public.II_C0
+      fire_resistance_degree: II
+      structural_fire_hazard_class: C0
+      max_fire_height_m: 50
+      max_floor_area_m2: {one_storey: 6000, two_storey: 4000, three_storey: 4000, four_to_five: 4000, six_to_nine: 4000, ten_to_sixteen: 2200}
+    - id: fire.compartment.public.II_C1
+      fire_resistance_degree: II
+      structural_fire_hazard_class: C1
+      max_fire_height_m: 28
+      max_floor_area_m2: {one_storey: 5000, two_storey: 3000, three_storey: 3000, four_to_five: 2000, six_to_nine: 1200, ten_to_sixteen: null}
+    - id: fire.compartment.public.III_C0
+      fire_resistance_degree: III
+      structural_fire_hazard_class: C0
+      max_fire_height_m: 15
+      max_floor_area_m2: {one_storey: 3000, two_storey: 2000, three_storey: 2000, four_to_five: 1200, six_to_nine: null, ten_to_sixteen: null}
+    - id: fire.compartment.public.III_C1
+      fire_resistance_degree: III
+      structural_fire_hazard_class: C1
+      max_fire_height_m: 12
+      max_floor_area_m2: {one_storey: 2000, two_storey: 1400, three_storey: 1200, four_to_five: 800, six_to_nine: null, ten_to_sixteen: null}
+    - id: fire.compartment.public.IV_C0
+      fire_resistance_degree: IV
+      structural_fire_hazard_class: C0
+      max_fire_height_m: 9
+      max_floor_area_m2: {one_storey: 2000, two_storey: 1400, three_storey: null, four_to_five: null, six_to_nine: null, ten_to_sixteen: null}
+    - id: fire.compartment.public.IV_C1
+      fire_resistance_degree: IV
+      structural_fire_hazard_class: C1
+      max_fire_height_m: 6
+      max_floor_area_m2: {one_storey: 2000, two_storey: 1400, three_storey: null, four_to_five: null, six_to_nine: null, ten_to_sixteen: null}
+    - id: fire.compartment.public.IV_C2_C3
+      fire_resistance_degree: IV
+      structural_fire_hazard_class: [C2, C3]
+      max_fire_height_m: 6
+      max_floor_area_m2: {one_storey: 1200, two_storey: 800, three_storey: null, four_to_five: null, six_to_nine: null, ten_to_sixteen: null}
+    - id: fire.compartment.public.V_C1_C3
+      fire_resistance_degree: V
+      structural_fire_hazard_class: [C1, C2, C3]
+      max_fire_height_m: 6
+      max_floor_area_m2: {one_storey: 1200, two_storey: 800, three_storey: null, four_to_five: null, six_to_nine: null, ten_to_sixteen: null}
+  null_semantics: "Прочерк таблицы: здание данной степени/класса не может иметь указанное число этажей по этой таблице."
+
+consumer_services_F3_5_table_6_10:
+  source: {document: SP_2_13130_2020, clause: "6.7.1", table: "6.10"}
+  automation: conditional
+  floor_area_columns_m2: [one_storey, multistorey_up_to_6_aboveground]
+  rows:
+    - {id: fire.compartment.F3_5.I_C0, fire_resistance_degree: I, structural_fire_hazard_class: C0, max_fire_height_m: 18, max_floor_area_m2: {one_storey: 3000, multistorey_up_to_6_aboveground: 2500}}
+    - {id: fire.compartment.F3_5.II_C0, fire_resistance_degree: II, structural_fire_hazard_class: C0, max_fire_height_m: 18, max_floor_area_m2: {one_storey: 3000, multistorey_up_to_6_aboveground: 2500}}
+    - {id: fire.compartment.F3_5.II_C1, fire_resistance_degree: II, structural_fire_hazard_class: C1, max_fire_height_m: 6, max_floor_area_m2: {one_storey: 2500, multistorey_up_to_6_aboveground: 1000}}
+    - {id: fire.compartment.F3_5.III_C0, fire_resistance_degree: III, structural_fire_hazard_class: C0, max_fire_height_m: 6, max_floor_area_m2: {one_storey: 2500, multistorey_up_to_6_aboveground: 1000}}
+    - {id: fire.compartment.F3_5.III_C1, fire_resistance_degree: III, structural_fire_hazard_class: C1, max_fire_height_m: 5, max_floor_area_m2: {one_storey: 1000, multistorey_up_to_6_aboveground: null}}
+    - {id: fire.compartment.F3_5.IV_C0_C1, fire_resistance_degree: IV, structural_fire_hazard_class: [C0, C1], max_fire_height_m: 5, max_floor_area_m2: {one_storey: 1000, multistorey_up_to_6_aboveground: null}}
+    - {id: fire.compartment.F3_5.IV_C2_C3, fire_resistance_degree: IV, structural_fire_hazard_class: [C2, C3], max_fire_height_m: 5, max_floor_area_m2: {one_storey: 500, multistorey_up_to_6_aboveground: null}}
+    - {id: fire.compartment.F3_5.V_C1_C3, fire_resistance_degree: V, structural_fire_hazard_class: [C1, C2, C3], max_fire_height_m: 5, max_floor_area_m2: {one_storey: 500, multistorey_up_to_6_aboveground: null}}
+
+trade_F3_1_table_6_11:
+  source: {document: SP_2_13130_2020, clause: "6.7.1", table: "6.11"}
+  automation: conditional
+  floor_area_columns_m2: [one_storey, two_storey, three_to_five_storey]
+  rows:
+    - {id: fire.compartment.F3_1.I_II_C0, fire_resistance_degree: [I, II], structural_fire_hazard_class: C0, max_fire_height_m: 28, max_floor_area_m2: {one_storey: 3500, two_storey: 3000, three_to_five_storey: 2500}}
+    - {id: fire.compartment.F3_1.III_C0_C1, fire_resistance_degree: III, structural_fire_hazard_class: [C0, C1], max_fire_height_m: 8, max_floor_area_m2: {one_storey: 2000, two_storey: 1000, three_to_five_storey: null}}
+    - {id: fire.compartment.F3_1.IV_C0, fire_resistance_degree: IV, structural_fire_hazard_class: C0, max_fire_height_m: 3, max_floor_area_m2: {one_storey: 1000, two_storey: null, three_to_five_storey: null}}
+    - {id: fire.compartment.F3_1.IV_V_C1_C3, fire_resistance_degree: [IV, V], structural_fire_hazard_class: [C1, C2, C3], max_fire_height_m: 3, max_floor_area_m2: {one_storey: 500, two_storey: null, three_to_five_storey: null}}
+  special_exception_gate: >-
+    Примечания и пункты раздела 6.7 содержат специальные возможности/ограничения для отдельных
+    видов торговли и противопожарных мероприятий. База не увеличивает табличную площадь автоматически;
+    каждое исключение требует отдельного подтвержденного rule id.
+
+special_function_gate:
+  - id: fire.compartment.special_function_precedence
+    automation: mandatory_validation
+    statement: >-
+      После выбора базовой таблицы проверить дополнительные требования раздела 6.7 и специальных
+      функциональных СП: зрелищные, образовательные, медицинские, спортивные, гостиничные,
+      многофункциональные и иные объекты могут иметь дополнительные ограничения или отдельные таблицы.
+    if_special_rule_more_strict: apply_special_rule
+
+  - id: fire.compartment.no_automatic_AUPT_area_increase
+    automation: forbidden_to_infer
+    statement: >-
+      Наличие АУПТ само по себе не является универсальным основанием увеличить площадь пожарного
+      отсека вдвое или на иной коэффициент. Увеличение допускается только там и в размере,
+      где это прямо предусмотрено конкретным пунктом/примечанием для данного типа объекта.
+
+  - id: fire.compartment.multi_functional_split
+    automation: mandatory_validation
+    statement: >-
+      В многофункциональном здании классифицировать функциональные части и пожарные отсеки до
+      выбора матрицы. Не считать весь ТРК автоматически Ф3.1 только из-за наличия магазинов.
+
+BIM_required_parameters:
+  - functional_fire_class
+  - building_or_compartment_function
+  - fire_resistance_degree
+  - structural_fire_hazard_class
+  - fire_height_m
+  - aboveground_floor_count_excluding_upper_technical_where_applicable
+  - floor_area_within_fire_compartment_m2
+  - fire_compartment_id
+  - automatic_fire_suppression_status
+  - special_function_code_route
+
+agent_logic:
+  - "Сначала функциональная классификация, затем таблица; не наоборот."
+  - "Строку таблицы проверять как единый design envelope: огнестойкость + конструктивный класс + высота + этажность + площадь."
+  - "Прочерк/null означает недопустимость данной этажности по базовой таблице, а не отсутствие ограничения."
+  - "Если объект выходит в область СП 550, переключиться на highrise route."
+  - "Не подменять пожарную высоту общей архитектурной высотой."
+  - "Не увеличивать пожарный отсек из-за наличия спринклеров без точного специального основания."
+
+sources:
+  - https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1
+  - https://protect.gost.ru/sp/changesdetails/fd8720c4-ae0b-496f-8796-eec45a151fbf
+  - https://www.consultant.ru/document/cons_doc_LAW_361298/cc41a1432ecb82e42ec1caa1208d64d1a5922e3a/
+  - https://meganorm.ru/mega_doc/fire_update_01122025/pravila/0/prikaz_mchs_rossii_ot_12_03_2020_N_151_red_ot_06_11_2025_ob.html
+  - https://www.consultant.ru/document/cons_doc_LAW_361298/5eec79597f108e76b27db619227290fc75afbb16/
+  - https://www.consultant.ru/document/cons_doc_LAW_361298/e566b3d26403a071041f60ff8a859956b442223c/

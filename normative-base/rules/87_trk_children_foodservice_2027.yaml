@@ -1,0 +1,251 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: >-
+  Уточняющий слой для ТРК/многофункциональных общественных зданий: детские игровые зоны
+  и предприятия общественного питания. Используются только актуальные на 2027 маршруты,
+  включая новые санитарные акты, действующие с 01.09.2026.
+
+revision_dependencies:
+  - {document: SP_464_1325800_2019, verified_changes: [1], status: active}
+  - {document: SP_160_1325800_2014, verified_changes: [1, 2, 3], status: active}
+  - {document: SP_118_13330_2022, verified_changes: [1, 2, 3, 4, 5], status: active}
+  - {document: SP_1_13130_2020, verified_changes: [1, 2, 3], status: active}
+  - {document: SANPIN_2_3_2_4_4282_26, effective_from: 2026-09-01, effective_until: 2032-09-01, status: active}
+  - {document: SANPIN_2_3_2_4_3590_20, status: repealed, repealed_from: 2026-09-01}
+
+children_play_areas:
+  - id: trk.children.allowed_public_contexts
+    source: {document: SP_118_13330_2022, clause: "5.65"}
+    automation: validation_only
+    statement: >-
+      Детские игровые зоны могут предусматриваться заданием на проектирование, в том числе в ТРК,
+      многофункциональных центрах, зрелищно-массовых объектах, предприятиях торговли и питания.
+      Сам факт допустимого типа здания не отменяет специальных пожарных и санитарных требований.
+
+  - id: trk.children.current_fire_route_above_first_floor
+    source: {document: SP_118_13330_2022, clause: "5.66"}
+    automation: mandatory_router
+    condition: "children_may_be_without_parent AND floor_number > 1"
+    route_to: SP_1_13130_2020_clause_7_1_13
+
+  - id: trk.children.max_floor_with_equipment
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: conditional
+    applies_to: child_area_with_attractions_or_play_equipment
+    max_floor_number: 3
+    statement: >-
+      Помещения/зоны пребывания детей с аттракционами и/или иным игровым оборудованием,
+      включая возможное пребывание без родителей, размещать не выше третьего этажа.
+
+  - id: trk.children.two_egress_routes_default
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: conditional
+    applies_to: child_area_with_attractions_or_play_equipment
+    min_evacuation_exits: 2
+    exit_relation: different_egress_routes
+    statement: >-
+      По умолчанию требуются не менее двух эвакуационных выходов на разные пути эвакуации.
+      Исключение для небольшой игровой детской комнаты проверяется отдельным rule id.
+
+  - id: trk.children.required_special_exit_destination
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: conditional
+    statement: >-
+      Не менее одного эвакуационного выхода должно вести непосредственно наружу, либо на
+      лестничную клетку с непосредственным выходом наружу, либо в коридор, отделенный от
+      примыкающих помещений противопожарными перегородками 1-го типа и ведущий наружу или
+      на лестничную клетку.
+    corridor_max_length_m: 15
+    stairwell_door_min_fire_door_type: 2
+
+  - id: trk.children.no_mezzanine
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: hard_gate
+    applies_to: child_area_with_attractions_or_play_equipment
+    mezzanine_allowed: false
+
+  - id: trk.children.small_room_single_exit_exception
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: conditional_exception
+    applies_to: child_play_room_children_may_be_without_parent
+    all_conditions:
+      max_area_m2: 100
+      max_simultaneous_people: 20
+    permitted_evacuation_exits: 1
+    exit_requirement: independent_evacuation_exit
+    route_distance_requirement: preschool_institution_egress_requirements
+    fail_if_any_condition_unknown: true
+    statement: >-
+      Исключение нельзя применять к большой игровой зоне, только потому что проектировщик хочет
+      оставить один выход: одновременно должны выполняться площадь до 100 м² и численность не более
+      20 человек, а путь эвакуации дополнительно соответствует требованиям дошкольных учреждений.
+
+  - id: trk.children.labyrinth_emergency_release
+    source: {document: SP_1_13130_2020, clause: "7.1.13"}
+    automation: mandatory_validation
+    condition: "labyrinth_or_multilevel_play_structure == true"
+    statement: "Предусмотреть мероприятия для экстренного вывода детей на путь эвакуации внутри помещения."
+
+  - id: trk.children.child_shops_cinemas_multifunctional
+    source: {document: SP_160_1325800_2014, clause: "7.13, current text with amendments"}
+    automation: conditional
+    applies_to: [child_goods_shop, child_cinema]
+    max_floor_number: 3
+
+  - id: trk.children.special_multifunctional_egress
+    source: {document: SP_160_1325800_2014, clause: "7.13, current text with amendments"}
+    automation: conditional
+    applies_to:
+      - temporary_child_stay_or_leisure_room
+      - child_cafe
+      - child_goods_shop
+      - child_cinema
+    statement: >-
+      Для соответствующих детских функций многофункционального здания предусматривать пути
+      эвакуации к двум рассредоточенным лестничным клеткам Л1 или Н2 либо к двум выходам
+      непосредственно наружу; дополнительно применять более конкретные требования СП 1.
+
+  - id: trk.children.block_legacy_sp160_two_floor_20m_rule
+    automation: forbidden_to_infer
+    statement: >-
+      Не использовать как действующее правило старую редакцию СП 160, в которой помещения
+      временного пребывания/досуга детей ограничивались вторым этажом и расстоянием 20 м до
+      эвакуационного выхода. В текущей редакции СП 160 после последующих изменений применяется
+      маршрутизация на актуальные СП 118 и СП 1. Прямые действующие ограничения брать из них.
+
+foodservice_general:
+  - id: trk.foodservice.current_sanitary_source
+    automation: mandatory_router
+    statement: >-
+      Для проектов 2027 санитарный слой предприятий общественного питания маршрутизировать на
+      СанПиН 2.3/2.4.4282-26. СанПиН 2.3/2.4.3590-20 отменен с 01.09.2026 и не применяется.
+    current_source: SANPIN_2_3_2_4_4282_26
+
+  - id: trk.foodservice.flow_separation
+    source: {document: SANPIN_2_3_2_4_4282_26, clause: "8"}
+    automation: mandatory_validation
+    statement: >-
+      Планировочная и технологическая схема должна обеспечивать последовательность процессов,
+      исключающую встречные потоки сырья, сырых полуфабрикатов и готовой продукции,
+      использованной и продезинфицированной посуды, а также встречное движение посетителей
+      и персонала, участвующего в приготовлении продукции.
+    BIM_required_flows:
+      - raw_food
+      - raw_semi_finished_food
+      - ready_food
+      - used_dishes
+      - sanitized_dishes
+      - visitors
+      - food_preparation_staff
+    validation: detect_opposing_or_crossing_incompatible_flow_routes
+
+  - id: trk.foodservice.production_ventilation_separate
+    source: {document: SANPIN_2_3_2_4_4282_26, clause: "15"}
+    automation: engineering_coordination_gate
+    statement: >-
+      Производственные помещения общественного питания должны иметь систему приточно-вытяжной
+      вентиляции отдельно от систем вентиляции помещений, не связанных с организацией питания,
+      включая санитарно-бытовые помещения.
+    discipline_boundary: OV
+
+  - id: trk.foodservice.local_exhaust_sources
+    source: {document: SANPIN_2_3_2_4_4282_26, clause: "16"}
+    automation: engineering_coordination_gate
+    statement: >-
+      Источники выделения газов, пыли, влаги и тепла требуют локальных вытяжных решений согласно
+      применимым санитарным/инженерным требованиям. Архитектор резервирует технологические зоны
+      и трассы, но параметры вытяжки определяет ОВ/технолог.
+    discipline_boundary: [OV, TX]
+
+  - id: trk.foodservice.separate_toilets_25plus
+    source: {document: SANPIN_2_3_2_4_4282_26, clause: "34"}
+    automation: conditional
+    condition: "seating_capacity >= 25"
+    statement: >-
+      Предусматривать отдельные туалеты с раковинами для мытья рук для посетителей и работников.
+    min_visitor_toilet_groups: 1
+    min_staff_toilet_groups: 1
+    note: "Количество приборов и доступность рассчитываются по применимым строительным и МГН нормам; данное правило фиксирует разделение групп."
+
+  - id: trk.foodservice.shared_toilet_under25
+    source: {document: SANPIN_2_3_2_4_4282_26, clause: "34"}
+    automation: conditional
+    all_conditions:
+      max_seating_capacity_exclusive: 25
+    shared_visitor_staff_toilet_allowed: true
+    entrance_condition: isolated_from_production_and_storage_rooms
+    statement: >-
+      Для предприятия менее чем на 25 посадочных мест допускается один туалет для посетителей
+      и персонала только при входе, изолированном от производственных и складских помещений.
+
+foodservice_in_TRK:
+  - id: trk.foodservice.common_or_separate_visitor_sanitary_groups
+    source: {document: SP_464_1325800_2019, clause: "7.7, Change 1"}
+    automation: design_option
+    statement: >-
+      Уборные и комнаты матери и ребенка для посетителей предприятия питания допускается
+      проектировать как отдельными в составе предприятия, так и общими с санитарными группами ТРК,
+      если остальные нормативы вместимости, доступности, путей и эксплуатации выполнены.
+    conflict_policy: >-
+      Возможность общих посетительских санузлов СП 464 не отменяет санитарное требование
+      СанПиН 4282-26 об отдельном санитарном обеспечении работников для предприятий от 25 мест.
+
+  - id: trk.foodservice.production_group_single_functional_zone
+    source: {document: SP_464_1325800_2019, clause: "7.8, Change 1"}
+    automation: design_option
+    statement: >-
+      Производственную группу помещений предприятий общественного питания допускается выполнять
+      единой функциональной зоной. Если объединяются цехи с различными температурно-влажностными
+      режимами или моечные разного назначения, оборудование и инженерные системы должны обеспечивать
+      требуемые параметры в местах обработки и приготовления продукции.
+    discipline_boundary: [AR, TX, OV, VK]
+
+  - id: trk.foodservice.fast_service_dining_area
+    source: {document: SP_464_1325800_2019, appendix: "E, Table E.1 note 2"}
+    automation: conditional
+    applies_to: fast_service_food_enterprise
+    statement: "Предусматривать собственный обеденный зал либо зону в составе фуд-корта (ресторанного дворика)."
+
+  - id: trk.foodservice.flexible_layout_full_cycle_gate
+    source: {document: SP_464_1325800_2019, appendix: "E, Table E.1 note 1"}
+    automation: validation_only
+    statement: >-
+      Для предприятий питания, работающих на сырье с полным технологическим циклом, применение
+      гибкой планировочной структуры ограничивается технологическим процессом и техническими требованиями.
+      Не превращать такую кухню в свободно переставляемый open-space без технологического проекта.
+
+BIM_required_parameters:
+  - child_zone_type
+  - child_zone_floor_number
+  - child_zone_area_m2
+  - child_zone_max_simultaneous_people
+  - child_zone_parent_supervision_mode
+  - child_zone_attractions_or_play_equipment
+  - child_zone_mezzanine_status
+  - child_zone_egress_count
+  - child_zone_egress_destination_types
+  - foodservice_type
+  - foodservice_seating_capacity
+  - foodservice_production_cycle
+  - foodservice_flow_routes
+  - foodservice_staff_toilet_id
+  - foodservice_visitor_toilet_id
+  - foodservice_production_ventilation_system_id
+  - foodservice_local_exhaust_coordination_status
+
+agent_logic:
+  - "Не применять к детским зонам старую редакцию СП 160 'не выше второго этажа / 20 м'."
+  - "Сначала различить детскую комнату, игровую зону с оборудованием, детский магазин и детский кинозал — правила не идентичны."
+  - "Одновыходное исключение детской комнаты требует одновременно area<=100m2 и persons<=20; при неизвестной численности исключение запрещено."
+  - "Для общепита не ссылаться на отмененный СанПиН 3590-20."
+  - "Планировать кухню по технологическим потокам; декоративная архитектурная схема без TX-flow model недостаточна."
+  - "Общие посетительские санузлы фудкорта и ТРК не означают, что персоналу можно не предусматривать требуемое санитарное обеспечение."
+
+sources:
+  - https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863
+  - https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896
+  - https://base.garant.ru/404976079/
+  - https://sudact.ru/law/prikaz-mchs-rossii-ot-19032020-n-194/sp-1.13130.2020-svod-pravil/7/7.1/tablitsa-7/
+  - https://www.consultant.ru/law/hotdocs/94329.html
+  - https://base.garant.ru/414329257/
+  - https://meganorm.ru/mega_doc/norm/klassifikaciya/0/sp_464_1325800_2019_svod_pravil_zdaniya.html

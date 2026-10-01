@@ -1,0 +1,295 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_464_1325800_2019
+verified_changes: [1]
+purpose: >-
+  Параметрическая архитектурная схема приемки и разгрузки ТРК: число разгрузочных мест,
+  платформы, габариты разгрузочных помещений, открытые площадки и связь с грузопотоками.
+  Используется актуальный текст СП 464 после Изменения №1; устаревшее универсальное требование
+  о закрытом дебаркадере для каждой торговли/общепита не применяется.
+
+revision_state:
+  status: active
+  change_1_approved_by: "Приказ Минстроя России от 15.12.2023 №930/пр"
+  official_card: https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863
+
+site_loading_location:
+  - id: trk.loading.open_area_service_yard
+    source_clause: "5.7"
+    automation: conditional
+    applies_to: open_loading_area
+    preferred_location: isolated_service_yard
+    statement: "Открытые разгрузочные площадки размещать в изолированных хозяйственных дворах ТРК."
+
+  - id: trk.loading.open_area_orientation_exception
+    source_clause: "5.7 note"
+    automation: conditional
+    statement: >-
+      Допускается ориентировать открытую разгрузочную площадку в сторону общественного здания
+      либо на глухой торец жилого здания; санитарные, шумовые, пожарные и транспортные требования
+      проверяются независимо.
+
+  - id: trk.loading.open_places_canopy
+    source_clause: "6.21, Change 1"
+    automation: true
+    applies_to: open_loading_place
+    requirement: canopy
+
+loading_zone_typology:
+  - id: trk.loading.zone_forms_current
+    source_clause: "6.20, Change 1"
+    automation: design_option
+    permitted_forms:
+      - closed_loading_room
+      - open_loading_area
+      - heated_loading_zone
+      - unheated_loading_zone
+      - tunnel_served_loading
+      - special_service_yard_loading
+      - underground_loading_level
+    statement: >-
+      Тип разгрузочной зоны выбирается проектом и технологией. Не навязывать всем предприятиям
+      закрытый дебаркадер по старой редакции пункта 6.21.
+
+  - id: trk.loading.total_places_by_enterprise
+    source_clause: "6.20, Appendix В.1"
+    automation: conditional
+    statement: >-
+      Общее число разгрузочных мест ТРК формировать как сумму расчетных значений по предприятиям
+      и учреждениям комплекса с учетом приложения В и задания на проектирование.
+
+trade_loading_places_table_V1:
+  source: {document: SP_464_1325800_2019, appendix: "В", table: "В.1"}
+  dimension_semantics: minimum_loading_place_count_by_sales_area
+  rules:
+    - id: trk.loading.food_universal_up_to_400
+      category: food_universal_assortment
+      sales_area_m2: {max: 400}
+      min_loading_places: 1
+    - id: trk.loading.food_universal_400_1000
+      category: food_universal_assortment
+      sales_area_m2: {min_exclusive: 400, max: 1000}
+      min_loading_places: 2
+    - id: trk.loading.food_universal_1001_1500
+      category: food_universal_assortment
+      sales_area_m2: {min: 1001, max: 1500}
+      min_loading_places: 3
+    - id: trk.loading.food_universal_1501_plus
+      category: food_universal_assortment
+      sales_area_m2: {min: 1501}
+      min_loading_places: 4
+
+    - id: trk.loading.food_specialized_non_produce
+      category: food_specialized_except_fruit_vegetable
+      sales_area_m2: {max: 100}
+      min_loading_places: 1
+      note: "Для иных площадей не экстраполировать без применимого расчета/задания."
+
+    - id: trk.loading.food_fruit_vegetable_up_to_400
+      category: food_specialized_fruit_vegetable
+      sales_area_m2: {max: 400}
+      min_loading_places: 1
+    - id: trk.loading.food_fruit_vegetable_401_plus
+      category: food_specialized_fruit_vegetable
+      sales_area_m2: {min: 401}
+      min_loading_places: 2
+
+    - id: trk.loading.nonfood_universal_expanded_up_to_650
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {max: 650}
+      min_loading_places: 1
+    - id: trk.loading.nonfood_universal_expanded_651_1500
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 651, max: 1500}
+      min_loading_places: 2
+    - id: trk.loading.nonfood_universal_expanded_1501_4500
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 1501, max: 4500}
+      min_loading_places: 3
+    - id: trk.loading.nonfood_universal_expanded_4501_6500
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 4501, max: 6500}
+      min_loading_places: 4
+    - id: trk.loading.nonfood_universal_expanded_6501_8500
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 6501, max: 8500}
+      min_loading_places: 5
+    - id: trk.loading.nonfood_universal_expanded_8501_13500
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 8501, max: 13500}
+      min_loading_places: 7
+    - id: trk.loading.nonfood_universal_expanded_13501_plus
+      category: nonfood_universal_or_specialized_expanded_assortment
+      sales_area_m2: {min: 13501}
+      min_loading_places: 8
+
+    - id: trk.loading.nonfood_full_except_furniture_building_up_to_650
+      category: nonfood_specialized_full_except_furniture_building_materials
+      sales_area_m2: {max: 650}
+      min_loading_places: 1
+    - id: trk.loading.nonfood_full_except_furniture_building_651_plus
+      category: nonfood_specialized_full_except_furniture_building_materials
+      sales_area_m2: {min: 651}
+      min_loading_places: 2
+
+    - id: trk.loading.nonfood_furniture_building_up_to_650
+      category: nonfood_specialized_furniture_or_building_materials
+      sales_area_m2: {max: 650}
+      min_loading_places: 1
+    - id: trk.loading.nonfood_furniture_building_651_1500
+      category: nonfood_specialized_furniture_or_building_materials
+      sales_area_m2: {min: 651, max: 1500}
+      min_loading_places: 2
+    - id: trk.loading.nonfood_furniture_building_1501_plus
+      category: nonfood_specialized_furniture_or_building_materials
+      sales_area_m2: {min: 1501}
+      min_loading_places: 3
+
+    - id: trk.loading.nonfood_narrow_assortment
+      category: nonfood_specialized_narrow_or_limited_assortment
+      sales_area_m2: not_normalized
+      min_loading_places: 1
+
+additional_dispatch_places:
+  - id: trk.loading.nonfood_full_dispatch_up_to_1000
+    source: {document: SP_464_1325800_2019, appendix: "В", table: "В.1 note 1"}
+    automation: conditional
+    category: specialized_nonfood_full_assortment
+    sales_area_m2: {max: 1000}
+    additional_loading_places_for_customer_goods_dispatch: 1
+  - id: trk.loading.nonfood_full_dispatch_over_1000
+    source: {document: SP_464_1325800_2019, appendix: "В", table: "В.1 note 1"}
+    automation: conditional
+    category: specialized_nonfood_full_assortment
+    sales_area_m2: {min_exclusive: 1000}
+    additional_loading_places_for_customer_goods_dispatch: 2
+
+shared_loading_reduction:
+  - id: trk.loading.shared_places_reduction_cap
+    source: {document: SP_464_1325800_2019, appendix: "В", clause: "В.1"}
+    automation: requires_justification
+    max_reduction_percent: 15
+    condition: "multiple_trade_enterprises_share_loading_places"
+    statement: >-
+      Совместное использование разгрузочных мест несколькими предприятиями торговли может
+      уменьшить их суммарное расчетное число не более чем на 15%. Применять только после
+      моделирования графика и совместимости грузопотоков.
+
+  - id: trk.loading.cargo_turnover_alternative_calculation
+    source: {document: SP_464_1325800_2019, appendix: "В", table: "В.1 note 2, Change 1"}
+    automation: requires_calculation
+    statement: >-
+      Допускается принимать число разгрузочных мест по расчету с учетом планируемого грузооборота
+      торговли и общепита, технологического оборудования, механизации и графика работы мест,
+      исключающего час-пик. Этот расчет не генерируется из одной площади помещения.
+    required_inputs:
+      - cargo_turnover_schedule
+      - vehicle_classes
+      - unloading_equipment
+      - mechanization_scheme
+      - peak_hour_exclusion_schedule
+
+platform_geometry:
+  source: {document: SP_464_1325800_2019, appendix: "В", clause: "В.2"}
+  rules:
+    - id: trk.loading.platform_standard_height
+      automation: conditional
+      condition: "ordinary_delivery_vehicle_platform"
+      platform_above_vehicle_area_m: [1.1, 1.2]
+    - id: trk.loading.platform_light_vehicle_height
+      automation: conditional
+      condition: "small_tonnage_or_passenger_delivery_vehicle"
+      platform_above_vehicle_area_m: [0.6, 0.8]
+    - id: trk.loading.platform_lifting_equipment_level
+      automation: conditional
+      condition: "project_brief_has_loading_lifting_equipment"
+      platform_relation: same_level_as_vehicle_area
+    - id: trk.loading.platform_rectangular_depth
+      automation: true
+      shape: rectangular
+      min_depth_m: 4.0
+    - id: trk.loading.platform_sawtooth_depth
+      automation: true
+      shape: sawtooth
+      min_depth_at_narrowest_m: 2.5
+
+closed_dead_end_loading_room:
+  source: {document: SP_464_1325800_2019, appendix: "В", clause: "В.3"}
+  rules:
+    - id: trk.loading.deadend_depth_small_vehicle
+      automation: conditional
+      vehicle_class: small_tonnage_or_passenger
+      dimension_from_gate_to_platform_min_m: 8.0
+    - id: trk.loading.deadend_depth_large_vehicle
+      automation: conditional
+      vehicle_class: heavy_refrigerated_or_trailer
+      dimension_from_gate_to_platform_min_m: 12.0
+    - id: trk.loading.clear_height
+      automation: conditional
+      applies_to: [closed_loading_room, covered_loading_space]
+      clear_height_from_carriageway_to_projection_min_m: 4.2
+    - id: trk.loading.entry_gate_width
+      automation: conditional
+      min_clear_width_m: 3.6
+    - id: trk.loading.entry_gate_height
+      automation: conditional
+      min_clear_height_m: 4.2
+
+logistics_flow_gates:
+  - id: trk.loading.vehicle_swept_path_required
+    automation: mandatory_validation
+    statement: >-
+      Нормативный габарит помещения не заменяет проверку траектории расчетного автомобиля.
+      Перед фиксацией геометрии проверить въезд, поворот, постановку к платформе и выезд выбранного
+      класса транспорта без конфликтов с колоннами, воротами, парковкой, пожарным доступом и МГН.
+
+  - id: trk.loading.goods_to_freight_vertical_transport
+    automation: mandatory_validation
+    statement: >-
+      Разгрузочную зону связывать с грузовыми лифтами/товарными маршрутами без использования
+      посетительских эвакуационных путей как постоянного грузового коридора. Число грузовых
+      лифтов определяется расчетом грузопотоков и заданием.
+
+  - id: trk.loading.food_flow_separation
+    automation: mandatory_router
+    condition: "food_retail_or_foodservice_present"
+    downstream_rules:
+      - rules/87_trk_children_foodservice_2027.yaml
+      - rules/88_food_retail_sanitary_2027.yaml
+    statement: >-
+      Для продуктов и общепита дополнительно проверять санитарную поточность, раздельность
+      несовместимых потоков и технологические зоны; число разгрузочных мест СП 464 не заменяет эти проверки.
+
+BIM_required_parameters:
+  - enterprise_id
+  - enterprise_trade_category
+  - sales_area_m2
+  - loading_place_count
+  - loading_place_shared_group
+  - loading_zone_type
+  - design_vehicle_class
+  - vehicle_swept_path
+  - platform_shape
+  - platform_level_m
+  - vehicle_area_level_m
+  - loading_room_clear_height_m
+  - loading_gate_clear_width_m
+  - loading_gate_clear_height_m
+  - service_yard_id
+  - freight_route_id
+  - freight_lift_ids
+  - cargo_turnover_calculation_reference
+
+agent_logic:
+  - "Сначала классифицировать каждое предприятие по таблице В.1, затем суммировать; не считать весь ТРК одной торговой площадью."
+  - "Сокращение на 15% — верхний предел при совместном использовании, не коэффициент по умолчанию."
+  - "Для общепита, специальных арендаторов и нестандартного грузооборота использовать расчет и задание, а не придумывать строку таблицы."
+  - "Не применять старое правило обязательного закрытого дебаркадера ко всем предприятиям после Изменения №1."
+  - "Все размеры ворот/высоты проверять как чистые габариты после конструкций, инженерии и оборудования."
+
+sources:
+  - https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863
+  - https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a
+  - https://base.garant.ru/73866956/
+  - https://base.garant.ru/73866956/a496d02287c1e8a2f8df9041972293a4/
+  - https://base.garant.ru/408556999/

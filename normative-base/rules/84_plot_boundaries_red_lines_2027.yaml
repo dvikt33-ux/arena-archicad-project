@@ -1,0 +1,119 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_42_13330_2026
+purpose: >-
+  Не допустить ложного универсального отступа здания от границы участка или красной линии.
+  Числовая посадка ОКС маршрутизируется к действующему градостроительному регламенту/ПЗЗ,
+  документации по планировке территории и специальным федеральным нормам для конкретного случая.
+
+revision_state:
+  status: active
+  effective_from: 2026-07-12
+  replaces: SP_42_13330_2016
+
+base_router:
+  - id: site.boundary.no_universal_general_setback
+    source: {document: SP_42_13330_2026, clause: "6.2.55-6.2.56"}
+    automation: forbidden_to_infer
+    statement: >-
+      Для общего случая ОКС не назначать из СП 42 универсальный отступ 3 м, 5 м либо иное
+      привычное число от границы земельного участка или красной линии. Размещение застройки
+      относительно красных линий может устанавливаться как предельный параметр градостроительного
+      регламента; иные неустановленные регламентом параметры определяются применимыми СП,
+      техническими регламентами и иными законными требованиями.
+
+  - id: site.boundary.local_regulation_required
+    automation: mandatory_router
+    required_inputs:
+      - cadastral_plot_boundary
+      - red_lines_if_established
+      - applicable_PZZ_and_urban_regulation
+      - permitted_use_and_territorial_zone
+      - approved_planning_documentation_if_applicable
+      - ZOUIT_boundaries
+    if_missing: site_placement_source_data_incomplete
+    statement: >-
+      Перед генерацией посадки здания получить применимый градостроительный регламент и ограничения
+      территории. Не заменять отсутствующие исходные данные шаблонным отступом.
+
+  - id: site.boundary.fire_distance_is_separate_constraint
+    automation: true
+    statement: >-
+      Противопожарное расстояние между зданиями по СП 4.13130 и отступ здания от границы участка/
+      красной линии — разные ограничения. Выполнение одного не доказывает выполнение другого.
+    downstream_rule: rules/81_fire_separation_matrix.yaml
+
+  - id: site.boundary.household_spacing_is_separate_constraint
+    automation: true
+    statement: >-
+      Бытовые разрывы между жилыми зданиями по п. 6.4.23 и отступ от границы земельного участка
+      — разные геометрические проверки.
+    downstream_rule: rules/83_residential_site_open_space_2027.yaml
+
+red_line_and_road_special_case:
+  source: {document: SP_42_13330_2026, clause: "6.4.17"}
+  applicability: >-
+    Строительство/реконструкция дорог в населенных пунктах и автомобильных дорог категорий I-III,
+    расположенных сопредельно с границами населенного пункта; не переносить на любой проезд/улицу.
+  rules:
+    - id: site.boundary.major_road_to_residential_plot_setback_line
+      automation: conditional
+      dimension_semantics: clear_plan_distance
+      from: edge_of_main_carriageway
+      to: setback_line_from_residential_plot_boundaries
+      min_m: 50
+
+    - id: site.boundary.redline_coincident_residential_plot_to_wall
+      automation: conditional
+      dimension_semantics: clear_plan_distance
+      condition: "residential_plot_boundary_coincides_with_red_line AND clause_6_4_17_road_case"
+      from: residential_plot_boundary_coincident_with_red_line
+      to: residential_building_wall
+      min_m: 20
+
+    - id: site.boundary.road_special_case_reduction
+      automation: requires_calculation
+      statement: >-
+        В стесненных условиях предусмотренное п. 6.4.17 сокращение допускается только с
+        шумозащитными мероприятиями, обеспечивающими нормативное снижение воздействия.
+        Не уменьшать 50/20 м автоматически.
+      requires_noise_verification: true
+
+model_semantics:
+  distinct_geometry_objects:
+    - cadastral_plot_boundary
+    - adjacent_plot_boundary
+    - red_line
+    - building_permitted_placement_boundary
+    - road_carriageway_edge
+    - fire_clearance_zone
+    - household_spacing_zone
+    - ZOUIT_boundary
+  prohibited_aliasing:
+    - "red_line == cadastral_plot_boundary"
+    - "fire_clearance == plot_boundary_setback"
+    - "household_spacing == plot_boundary_setback"
+
+agent_logic:
+  - "Не предлагать 3 м/5 м по памяти, пока не загружены ПЗЗ/градрегламент конкретного участка."
+  - "Если красная линия отсутствует в исходных данных, не конструировать ее из края дороги или кадастровой границы."
+  - "Наложить все независимые ограничения и формировать permitted_building_envelope как их пересечение."
+  - "Если ограничения конфликтуют и допустимая зона исчезает, вернуть site_constraints_conflict вместо уменьшения нормативных расстояний."
+  - "Специальное значение 20 м по п.6.4.17 применять только в буквальной области этого пункта, а не как общий отступ жилого дома от красной линии."
+
+BIM_required_parameters:
+  - plot_id
+  - cadastral_boundary_geometry
+  - territorial_zone_id
+  - permitted_use
+  - PZZ_reference
+  - urban_regulation_reference
+  - red_line_geometry_and_source
+  - planning_documentation_reference
+  - ZOUIT_geometry_and_types
+  - building_permitted_placement_boundary
+  - fire_clearance_validation_status
+  - household_spacing_validation_status
+
+sources:
+  - https://base.garant.ru/414570340/

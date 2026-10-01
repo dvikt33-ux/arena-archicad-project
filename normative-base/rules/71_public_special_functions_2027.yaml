@@ -1,0 +1,176 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Специальные общественные функции 2027+: кино/зрительные залы, спорт/фитнес, библиотека/медиатека и обеденные залы. Только подтвержденные архитектурные параметры и маршрутизация к профильным нормам."
+
+revision_dependencies:
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {document: SP_309_1325800_2017, verified_changes: [1]}
+  - {document: SP_332_1325800_2017, verified_changes: [1,2,3,4]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+
+cinema_and_auditorium:
+  rules:
+    - id: special.cinema.route_to_sp309
+      source: {document: SP_118_13330_2022, clause: "5.37"}
+      automation: validation_only
+      statement: "Зрительные залы зрелищных организаций, включая кинозалы, проектируют по СП 309.1325800; общие нормативы СП 118 не заменяют профильную геометрию зала."
+
+    - id: special.cinema.area_per_seat
+      source: {document: SP_309_1325800_2017, clause: "6.1.2.8; table 3"}
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Площадь кинозала на одно зрительское место зависит от уровня комфорта."
+      cases:
+        - {comfort_level: 1, min_area_per_seat_m2: 0.7}
+        - {comfort_level: 2, min_area_per_seat_m2: 0.6}
+        - {comfort_level: 3, min_area_per_seat_m2: 0.6}
+      requires_object_classification: true
+
+    - id: special.cinema.max_hall_length_from_screen
+      source: {document: SP_309_1325800_2017, clause: "Appendix B, table B.3"}
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для кинозалов круглогодичного использования длина зрительного зала от экрана до спинки сидений последнего ряда — не более 45 м для уровней комфорта 1-3."
+      values: {max_length_m: 45}
+
+    - id: special.cinema.sightline_required
+      source: {document: SP_309_1325800_2017, clause: "Appendix B, table B.3"}
+      automation: manual_calculation
+      statement: "Расстановку мест и уклоны пола/амфитеатра проверяют расчетом видимости по параметрам СП 309; площадь на место сама по себе не доказывает видимость экрана."
+      requires_calculation: true
+
+    - id: special.cinema.accessible_seats_current_sp59
+      source: {document: SP_309_1325800_2017, clause: "6.1.2.9"}
+      automation: validation_only
+      statement: "Места МГН в зрительном зале проверять по текущей редакции СП 59.13330.2020 и применимым специальным нормам; не использовать старую ссылочную редакцию СП 59 из исходного текста СП 309."
+
+sports_and_fitness:
+  rules:
+    - id: special.sport.current_revision_gate
+      source: {document: SP_332_1325800_2017, clause: "status"}
+      automation: validation_only
+      statement: "Для спортивных сооружений целевого профиля использовать СП 332.1325800.2017 с изменениями №1-4."
+
+    - id: special.sport.hall_height_by_sport
+      source: {document: SP_332_1325800_2017, clause: "6.2"}
+      automation: forbidden_to_infer
+      statement: "Высоту над спортивной зоной определяют по требованиям конкретного вида спорта/регламентам и СП 332; за пределами спортивной зоны допускается плавное уменьшение высоты, но не ниже 3,0 м. Универсальную высоту спортзала 3 м не назначать."
+      values: {outside_sport_zone_absolute_min_height_mm: 3000}
+      requires_object_classification: true
+
+    - id: special.sport.changing_door_clearance
+      source: {document: SP_332_1325800_2017, clause: "table 6 note"}
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Размеры дверных проемов в свету для рассматриваемых вспомогательных помещений спортсменов принимают не менее 0,9 м шириной и 2,3 м высотой."
+      values: {min_clear_width_mm: 900, min_clear_height_mm: 2300}
+
+    - id: special.sport.changing_room_passages
+      source: {document: SP_332_1325800_2017, clause: "table 7"}
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Проходы в раздевальных задаются по схеме оборудования; значения в скобках относятся к спортсменам на креслах-колясках."
+      cases:
+        - {layout: "between opposing bench rows", min_mm: 1500, wheelchair_min_mm: 1800}
+        - {layout: "bench to parallel wall or opposite lockers", min_mm: 1100, wheelchair_min_mm: 1500}
+        - {layout: "between locker rows or lockers to wall", min_mm: 600, wheelchair_min_mm: 900}
+        - {layout: "in front of standalone lockers", min_mm: 500, wheelchair_min_mm: 900}
+        - {layout: "side passage", min_mm: 500, wheelchair_min_mm: 900}
+        - {layout: "main passage", min_mm: 1000, wheelchair_min_mm: 1800}
+
+    - id: special.sport.athlete_route_separation
+      source: {document: SP_332_1325800_2017, clause: "changing-room planning section"}
+      automation: validation_only
+      statement: "Пути движения занимающихся/спортсменов из раздевальных в зал не должны пересекаться с путями движения иных клиентских групп."
+
+library_and_media:
+  source: SP_118_13330_2022
+  rules:
+    - id: special.library.reading_area_per_seat
+      clause: "5.45"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Минимальная площадь читального зала библиотеки зависит от оборудования читательского места."
+      cases:
+        - {workplace: "one- or two-seat table", min_area_per_place_m2: 2.4}
+        - {workplace: "PC workstation", min_area_per_place_m2: 4.5}
+
+    - id: special.library.closed_storage_area
+      clause: "5.46"
+      automation: conditional
+      statement: "Площадь закрытого хранения бумажного фонда нормируется на 1000 единиц хранения."
+      cases:
+        - {shelving: stationary, min_area_m2_per_1000_units: 2.5}
+        - {shelving: mobile, min_area_m2_per_1000_units: 1.5}
+
+    - id: special.library.open_access_fund_area
+      clause: "5.46"
+      automation: conditional
+      statement: "Зона фондов открытого доступа читальных залов и абонемента — не менее 4,5 м² на 1000 единиц хранения."
+      values: {min_area_m2_per_1000_units: 4.5}
+
+    - id: special.coworking.not_library_by_default
+      automation: forbidden_to_infer
+      statement: "Коворкинг не следует автоматически нормировать как библиотечный читальный зал. Сначала классифицировать фактический функциональный процесс: офисное рабочее место, читальное место библиотеки, переговорная, учебная зона или смешанная функция."
+      requires_object_classification: true
+
+food_halls:
+  source: SP_118_13330_2022
+  rules:
+    - id: special.foodhall.dining_area_per_seat
+      clause: "5.48; table 5.3"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Площадь обеденного зала без раздаточной на одно место определяется типом предприятия общественного питания."
+      cases:
+        - {type: "restaurant waiter service", min_area_per_seat_m2: 1.8}
+        - {type: "restaurant with stage and dance floor", min_area_per_seat_m2: 2.0}
+        - {type: "self-service canteen", min_area_per_seat_m2: 1.8}
+        - {type: "cafe snack bar beer bar", min_area_per_seat_m2: 1.6}
+        - {type: "automatic cafe fast-service non-alcohol bar", min_area_per_seat_m2: 1.4}
+      note: "Специализированные предприятия общественного питания — площадь по заданию на проектирование."
+
+    - id: special.foodhall.kitchen_sanitary_router
+      automation: validation_only
+      statement: "Производственные, складские и технологические помещения общепита проектировать по СП 464/СП 118 и действующим санитарным требованиям. Площадь обеденного зала на место не является формулой площади кухни."
+
+sanitary_2027_gate:
+  - id: special.functions.sanpin_expiry_gate
+    automation: validation_only
+    statement: "Если специальное правило зависит от СанПиН 1.2.3685-21 после 01.03.2027, применять общий target_2027 fail-closed до подтверждения официальной замены; числовые правила самого СП 118/СП 309/СП 332 остаются самостоятельными только в своей области."
+
+BIM_required_parameters:
+  - special_function_type
+  - special_function_code
+  - cinema_comfort_level
+  - cinema_seat_count
+  - cinema_hall_area_m2
+  - cinema_screen_to_last_row_m
+  - sightline_calculation_status
+  - sport_type
+  - sport_zone_clear_height_mm
+  - athlete_route_geometry
+  - changing_room_equipment_layout
+  - library_reading_place_type
+  - library_storage_unit_count
+  - shelving_type
+  - food_service_type
+  - dining_seat_count
+  - dining_hall_area_without_servery_m2
+
+agent_logic:
+  - "Не считать многофункциональное помещение соответствующим всем сценариям по одной геометрии: каждый предусмотренный функциональный процесс проверять отдельно."
+  - "Кинозал валидировать по площади, длине и видимости; ни один из этих трех критериев не заменяет два других."
+  - "Высоту спортзала выбирать после определения вида спорта и оборудования."
+  - "Коворкинг классифицировать по реальному использованию, а не по названию помещения."
+  - "Площадь обеденного зала рассчитывать отдельно от кухни, раздаточной, складов и разгрузки."
+
+sources:
+  - "https://base.garant.ru/404976079/"
+  - "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"
+  - "https://protect.gost.ru/sp/changesdetails/4eaa2215-cc20-4965-a05d-2912766bdbeb"
+  - "https://base.garant.ru/71886642/"
+  - "https://base.garant.ru/71886642/f7ee959fd36b5699076b35abf4f52c5c/"
+  - "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
+  - "https://protect.gost.ru/sp/changesdetails/37a85293-e2cf-4732-a6e1-8e0d7965c164"
+  - "https://base.garant.ru/71899364/"

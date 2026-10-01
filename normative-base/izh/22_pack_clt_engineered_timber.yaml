@@ -1,0 +1,161 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+material_pack: CLT_ENGINEERED_TIMBER
+purpose: "Материал-специфический пакет ИЖС для перекрестноклееной древесины (CLT/ДПК), клееных несущих элементов и LVL/ДКШ. CLT, glulam и LVL имеют разные продуктовые стандарты и не объединяются в один взаимозаменяемый материал."
+
+normative_stack:
+  structural_design:
+    - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structural_calculation}
+    - {document: SP_20_13330_2016, role: actions}
+  CLT_products:
+    - {document: GOST_R_56706_2022, status: active, role: CLT_general_technical_requirements, official_source: "https://protect.gost.ru/gost/details/392f40ec-4fb4-433e-bc23-8ce4c37a44f9"}
+    - {document: GOST_R_70875_2023, status: active, role: CLT_floor_slabs_for_residential_and_public_buildings}
+    - {document: GOST_R_70878_2023, status: active, role: CLT_wall_panels, official_source: "https://protect.gost.ru/gost/details/034876ac-537b-4de7-9cd7-86aaebc8ee8b"}
+    - {document: GOST_R_70749_2023, status: active, role: CLT_glue_joint_strength_and_durability_tests, official_source: "https://protect.gost.ru/gost/details/281b94cb-db09-4ba9-b4bd-51ca9ac54fa3"}
+  glued_structural_timber:
+    - {document: GOST_20850_2025, status: active, effective_from: 2026-01-01, role: glued_loadbearing_timber_except_CLT_and_LVL, official_source: "https://protect.gost.ru/gost/details/a3941097-2253-44c0-82e0-ef89082f64c1"}
+    - {document: GOST_33120_2026, status: active, effective_from: 2026-07-01, role: glue_joint_strength_test_methods, official_source: "https://protect.gost.ru/gost/details/df369938-7c22-4646-931b-7df97f07dddb"}
+    - {document: GOST_19414_2023, status: active, role: finger_glued_joint_requirements, official_source: "https://protect.gost.ru/gost/details/ad3c9a08-8975-4321-b5de-605fab0efb8d"}
+  LVL_DKSH:
+    - document: GOST_33124_2026
+      status_for_target_2027: active
+      effective_from: 2026-12-01
+      replaces: GOST_33124_2021
+      role: LVL_DKSH_product_requirements
+      garant_source: "https://base.garant.ru/414739335/"
+      note: "Для профиля 2027 использовать ГОСТ 33124-2026. ГОСТ 20850-2025 прямо исключает LVL/ДКШ и CLT из своей области в соответствующей части."
+  envelope_and_durability:
+    - {document: SP_50_13330_2024, role: thermal_air_moisture}
+    - {document: SP_28_13330_2017, role: biological_corrosion_and_material_protection}
+    - {document: SP_17_13330_2017, role: roofs_if_used}
+
+material_identity_gate:
+  rule: "До выбора узла однозначно определить продукт: CLT/ДПК, клееный брус/балка по ГОСТ 20850, LVL/ДКШ по ГОСТ 33124 или цельная древесина. Нельзя переносить соединение, пределы обработки или product geometry между этими семействами."
+
+core_rules:
+  - id: izh.engineered_timber.section_from_calculation
+    automation: forbidden_to_infer
+    statement: "Толщина/слойность CLT-панели, сечение клееной балки/колонны, LVL-сечение и пролет не назначаются по этажности или архитектурному модулю без расчета СП 64 и подтвержденных характеристик продукта."
+    result: needs_structural_calculation
+  - id: izh.engineered_timber.connection_from_design
+    automation: forbidden_to_infer
+    statement: "Винты, нагели, стальные пластины, уголки, анкеры, вклеенные стержни и их расположение являются расчетным соединением. Не копировать connection schedule между CLT, glulam и LVL."
+    result: needs_structural_connection_design
+  - id: izh.engineered_timber.panel_cut_from_KR_and_product
+    automation: forbidden_to_infer
+    statement: "Проемы, вырезы, пазы, выборки и сверления в несущих панелях/балках допускаются только по расчету и product/fabrication rules; BIM clash не разрешает автоматическую резку."
+  - id: izh.engineered_timber.moisture_protection
+    automation: validation_only
+    statement: "Торцы, кромки, монтажные стыки и временно открытые поверхности должны иметь проектную защиту от увлажнения; узел обязан иметь путь отвода воды и возможность предусмотренного высыхания."
+  - id: izh.engineered_timber.air_seal_not_structure
+    automation: validation_only
+    statement: "Плотное геометрическое примыкание деревянных панелей не доказывает воздухонепроницаемость. Шов должен иметь отдельное подтвержденное решение герметизации/лент/прокладок или иной системы."
+  - id: izh.engineered_timber.fire_gate
+    automation: validation_only
+    statement: "Огнестойкость узла определяется расчетом/защитой/облицовками и поведением соединителей; видимое массивное сечение в BIM не является подтверждением требуемого предела огнестойкости."
+
+node_overrides:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    components:
+      - calculated_mineral_foundation_or_other_KR_support
+      - CLT_or_timber_panel_support_detail_from_KR
+      - hold_down_and_shear_transfer_from_KR
+      - capillary_bulk_water_separation
+      - protected_panel_edge_and_end_grain
+      - thermal_air_weather_transition
+    forbidden: [panel_directly_extended_into_soil_by_template, universal_hold_down_spacing, universal_sill_plate]
+
+  IZH_N02_GROUND_FLOOR_EXTERNAL_WALL:
+    variants: [CLT_wall_RC_ground_slab, CLT_wall_CLT_or_timber_floor, glulam_frame_with_panel_infill]
+    rules:
+      - "Узел пола и стены определяется реальным несущим продуктом и передачей вертикальных/горизонтальных усилий."
+      - "Торцевая зона CLT перекрытия у наружной стены требует отдельной тепловлажностной проверки; торец панели не оставлять в зоне риска увлажнения без защиты."
+
+  IZH_N03_MASONRY_WALL_FLOOR:
+    replacement_family: engineered_timber_wall_floor
+    components:
+      - calculated_panel_or_beam_bearing
+      - shear_and_uplift_connection
+      - panel_edge_or_beam_end_moisture_protection
+      - fire_acoustic_joint_if_required
+      - thermal_air_vapor_continuity_at_external_envelope
+    forbidden: [universal_bearing_length, generic_angle_bracket, copied_RC_slab_joint]
+
+  IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION:
+    components:
+      - calculated_panel_or_frame_connection
+      - assembly_tolerance_and_movement_gap_if_required
+      - air_seal_tape_or_gasket_system_from_project
+      - exterior_weather_layer_transition
+      - thermal_layer_continuity
+    forbidden: [universal_panel_screw_pattern, assuming_panel_contact_is_air_seal]
+
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    components:
+      - KR_approved_panel_opening_and_header_strategy
+      - sealed_and_protected_cut_edges
+      - verified_window_fastening_base
+      - installation_joint
+      - exterior_sill_water_management
+      - thermal_air_vapor_transition
+    forbidden: [opening_cut_without_panel_design, universal_window_screw_into_CLT, exposed_end_grain_at_sill]
+
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    variants: [CLT_roof_panel, glulam_or_LVL_rafters, truss_or_hybrid]
+    rule: "Сначала классифицировать расчетную систему; сплошная CLT-панель и балочно-стропильная схема имеют разные узлы опирания, герметизации и проходок."
+
+  IZH_N08_PITCHED_ROOF_RIDGE:
+    variants: [CLT_panel_ridge, glulam_structural_ridge, LVL_ridge_or_rafter, hybrid]
+    forbidden: [universal_screw_pattern, arbitrary_panel_bevel, copied_timber_frame_ridge]
+
+  IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT:
+    rules:
+      - "Any cut in CLT/beam/LVL host requires KR/product approval and exact fabrication geometry."
+      - "Protect cut wood edges from moisture and apply fire/product gate for hot penetrations."
+
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    rules:
+      - "Prefer factory/coordinated panel openings where possible; late drilling through loadbearing panel is not an automatic clash-resolution action."
+      - "Store fabrication opening ID and approval revision separately from MEP route ID."
+
+archicad_representation:
+  CLT_panel: "Native Wall/Slab/Roof can represent panel host when geometry and semantics remain truthful; store exact product/panel/fabrication identifiers as properties."
+  glulam_or_LVL_members: "Native Beam/Column with exact profile/section from KR/product data."
+  panel_layering: "Do not fake cross-lamination as dozens of 3D layers unless fabrication visualization requires it; panel product identity and structural properties are primary."
+  connectors: "Verified Library Object or metadata/detail; explicit 3D only when coordination/fabrication requires."
+  joints: "Native hosts remain separate; do not use SEO to hide a real joint gap or movement interface."
+  openings: "Native Opening after structural/fabrication approval."
+  tapir_primitives:
+    - CreateWalls
+    - CreateSlabs
+    - CreateRoofs
+    - CreateBeams
+    - CreateColumns
+    - CreateOpenings
+    - CreateObjects
+    - ApplyFavoritesToElements
+    - CreateDetails
+
+BIM_parameters_required:
+  - timber_product_family
+  - product_standard
+  - manufacturer_product_id
+  - panel_or_member_mark
+  - structural_calc_ref
+  - connection_schedule_ref
+  - fabrication_model_ref_if_applicable
+  - moisture_protection_system_ref
+  - thermal_node_calc_ref
+  - fire_solution_ref_if_applicable
+  - NODE_ID
+  - NODE_REVISION
+
+sources:
+  - "https://protect.gost.ru/gost/details/392f40ec-4fb4-433e-bc23-8ce4c37a44f9"
+  - "https://protect.gost.ru/gost/details/034876ac-537b-4de7-9cd7-86aaebc8ee8b"
+  - "https://protect.gost.ru/gost/details/281b94cb-db09-4ba9-b4bd-51ca9ac54fa3"
+  - "https://protect.gost.ru/gost/details/a3941097-2253-44c0-82e0-ef89082f64c1"
+  - "https://protect.gost.ru/gost/details/df369938-7c22-4646-931b-7df97f07dddb"
+  - "https://protect.gost.ru/gost/details/ad3c9a08-8975-4321-b5de-605fab0efb8d"
+  - "https://base.garant.ru/414739335/"

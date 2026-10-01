@@ -1,0 +1,249 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Контракт безопасного применения node-recipe через project bridge. Расширяет текущую move-only модель до typed create/modify/delete/relations без передачи LLM произвольного JSON в Archicad."
+
+current_project_state:
+  connector:
+    file: src/accollab/connector.py
+    branch: agent-handoff
+    verified:
+      - generic_Tapir_command_transport
+      - GetProductInfo
+      - GetAddOnVersion
+      - GetDetailsOfElements
+      - basic_read_helpers
+  applier:
+    file: src/accollab/applier.py
+    branch: agent-handoff
+    verified_behavior:
+      - primary_modify_only
+      - computes_move_vector
+      - before_checksum_gate
+      - missing_element_gate
+      - hard_lock_gate
+      - MoveElements_explicit_success_required
+      - post_move_readback_and_after_checksum
+      - receipt_recovery_when_current_checksum_already_equals_after
+    unsupported_today:
+      - create
+      - delete
+      - non_move_typed_modification
+      - relation_create_remove
+      - node_batch_semantics
+
+operation_kinds:
+  - CREATE_ELEMENT_TYPED
+  - MODIFY_ELEMENT_TYPED
+  - DELETE_ELEMENT_TYPED
+  - CREATE_RELATION_TYPED
+  - REMOVE_RELATION_TYPED
+  - CREATE_DOCUMENT_TYPED
+  - MEP_CONNECT_TYPED
+
+state_machine:
+  states:
+    - PREPARED
+    - EXECUTING
+    - MUTATED_UNVERIFIED
+    - VERIFIED
+    - APPLIED
+    - BLOCKED_PRECONDITION
+    - BLOCKED_AMBIGUOUS_RECONCILIATION
+    - COMPENSATING
+    - COMPENSATED
+    - COMPENSATION_FAILED
+    - UNKNOWN_COMMIT_STATE
+  transitions:
+    - "Persist PREPARED before any mutating Archicad command."
+    - "After raw mutation response is obtained, persist returned GUIDs/relations immediately as MUTATED_UNVERIFIED before later enrichment steps."
+    - "Only after type/geometry/property/relation readback matches expected postconditions can state become VERIFIED/APPLIED."
+    - "A crash or transport error after sending a mutating command but before durable receipt produces UNKNOWN_COMMIT_STATE; never replay create blindly."
+
+operation_envelope:
+  required:
+    - operation_id
+    - idempotency_key
+    - node_id
+    - node_revision
+    - operation_kind
+    - command_name
+    - command_contract_version
+    - archicad_version_expected
+    - tapir_version_range
+    - authorizer
+    - source_rule_ids
+    - target_profile
+    - preconditions
+    - typed_payload
+    - expected_postconditions
+    - compensation_plan
+  prohibited:
+    - arbitrary_untyped_command_from_LLM
+    - wildcard_delete
+    - write_without_target_profile
+    - structural_opening_without_KR_ref
+
+runtime_handshake:
+  verified_connector_methods:
+    archicad: GetProductInfo
+    tapir: GetAddOnVersion
+  policy:
+    - "Reject node recipe if Archicad major/build contract is outside validated range."
+    - "Reject command if Tapir version is below the source-verified introduction version."
+    - "Command schema hash/version belongs to the wrapper contract; version number alone must not authorize fields not tested by the project."
+    - "Database/view context is part of the precondition for commands known to be context-sensitive, including CreateWindows/CreateDoors."
+
+CREATE_ELEMENT_TYPED:
+  preconditions:
+    - exact_element_type
+    - project_database_context
+    - favorite_or_attribute_ids_resolved
+    - typed_payload_schema_valid
+    - node_scope_and_normative_gates_pass
+    - no_conflicting_hard_lock_or_project_state
+  execution:
+    - persist_PREPARED
+    - execute_exact_allowlisted_Create_command
+    - validate_per_item_response_and_capture_returned_GUID
+    - persist_MUTATED_UNVERIFIED_immediately
+    - read_type_and_details
+    - apply_and_verify_required_node_properties_if_separate_step
+    - validate_geometry_and_host_relation
+    - persist_APPLIED
+  crash_reconciliation:
+    response_not_durable_case: >-
+      Current upstream CreateElements commands return Archicad-generated GUIDs only after ACAPI_Element_Create.
+      If the process/transport loses the response before the receipt is durable, blind retry is forbidden.
+    current_bridge_fallback:
+      - snapshot_pre_create_candidate_region_and_types
+      - search_post_crash_for_type_geometry_time_context_candidates
+      - if_exactly_one_candidate_matches_strong_fingerprint_then_manual_or_policy_controlled_adoption
+      - if_zero_or_multiple_candidates_then_BLOCKED_AMBIGUOUS_RECONCILIATION
+    strict_exactly_once_option:
+      tapir_extension: recommended_if_exactly_once_is_required
+      required_semantic: >-
+        An idempotent create token/clientMutationId handled inside the Add-On: before create, return existing
+        element bound to the token; otherwise create element and atomically bind token within the same undoable
+        operation, then return GUID. Retry with the same token must never create a second element.
+      note: "This is an automation-safety extension, not a missing Archicad geometry primitive."
+
+MODIFY_ELEMENT_TYPED:
+  preconditions:
+    - element_GUID_exists
+    - exact_type_matches_wrapper
+    - before_fingerprint_or_checksum_matches
+    - only_explicitly_allowlisted_fields_present
+  policy:
+    - "Use type-specific Modify command/schema; do not treat GetDetails JSON as a writable generic object."
+    - "After write, read back every critical changed field and recompute fingerprint."
+    - "If wrapper cannot read back a writable field deterministically, that field is not eligible for unattended automation."
+
+DELETE_ELEMENT_TYPED:
+  preconditions:
+    - exact_GUID
+    - exact_type
+    - current_checksum_matches_expected
+    - ownership_or_authorization_matches
+    - dependency_scan_complete
+    - node_compensation_or_rebuild_plan_exists
+  execution:
+    - persist_PREPARED
+    - DeleteElements
+    - verify_GUID_absent
+    - verify_no_required_relation_or_node_part_left_dangling
+    - persist_APPLIED
+  prohibition: "No delete by spatial query alone."
+
+RELATION_TYPED:
+  SEO:
+    create: CreateSolidElementLinks
+    readback: GetSolidElementLinks
+    remove: RemoveSolidElementLinks
+    required_fields: [target_GUID, operator_GUID, operation_type]
+  trim:
+    create: TrimElements
+    readback: GetElementTrims
+    remove: RemoveElementTrims
+    scope: roof_or_shell_trimming_relation
+  policy:
+    - "Relationship receipt stores both endpoint GUIDs and relation semantics."
+    - "A visually correct result without relation readback is not accepted as an associative node."
+
+NODE_BATCH:
+  rationale: "Tapir mutating commands are individually wrapped in Archicad undoable commands, but a multi-command node recipe is not automatically one atomic transaction."
+  state_machine:
+    - batch_PREPARED
+    - operations_APPLY_in_deterministic_dependency_order
+    - each_operation_receipt_durable
+    - batch_VERIFY_all_postconditions
+    - batch_APPLIED
+  on_failure:
+    - mark_node_INCOMPLETE
+    - stop_dependent_operations
+    - calculate_compensation_from_verified_receipts_only
+    - remove_relations_before_deleting_created_hosts_when_required
+    - never_compensate_preexisting_elements_without_explicit_inverse_and_precondition
+  release_rule: "An INCOMPLETE batch cannot be promoted to approved_for_model even if visible geometry looks correct."
+
+fingerprints:
+  element_fingerprint_components:
+    - GUID_when_known
+    - type
+    - critical_geometry
+    - host_or_story
+    - critical_attribute_ids
+    - selected_properties
+    - node_id
+    - node_revision
+  relation_fingerprint_components:
+    - relation_type
+    - endpoint_GUIDs
+    - operation_semantics
+  note: "Fingerprint content is type-specific. One universal checksum over opaque GetDetails JSON is insufficient for long-term schema evolution."
+
+extension_decision:
+  upstream_geometry_gap_confirmed: false
+  bridge_gap_confirmed: true
+  tapir_extension_confirmed_use_case:
+    - idempotent_create_token_for_strict_exactly_once_semantics_if_project_requires_unattended_crash_recovery
+  tapir_extension_not_needed_for:
+    - typed_walls_slabs_roofs_stairs_windows_doors_creation
+    - delete_elements
+    - SEO_relations
+    - roof_shell_trim_relations
+    - profile_copy_override_workflow
+    - independent_detail_worksheet_creation
+    - MEP_routes_and_connections
+  unresolved_before_extension_decision:
+    - source_based_detail_marker_linked_to_model_region
+    - exact_opening_modify_semantics
+
+implementation_phases:
+  P0_safe_core:
+    - typed_wrapper_registry
+    - wrapper_schema_tests_against_pinned_Tapir_source
+    - PREPARED_and_UNKNOWN_COMMIT_STATE_store_support
+    - typed_CreateWalls_CreateSlabs_CreateOpenings
+    - typed_DeleteElements
+    - typed_SEO_and_Trim_relations
+    - type_specific_postcondition_readback
+  P1_node_products:
+    - CreateWindows_CreateDoors_with_database_context_gate
+    - CreateRoofs_CreateStairs
+    - GetProfiles_CreateProfiles
+    - Favorites
+    - MEP_routes_connections
+  P2_crash_hardening:
+    - strict_idempotent_create_extension_if_required
+    - automated_compensation_tests
+    - fault_injection_between_command_and_receipt
+  P3_documentation:
+    - Details_Worksheets
+    - source_based_detail_marker_after_exact_support_audit
+
+sources:
+  - "repo agent-handoff/src/accollab/applier.py"
+  - "repo agent-handoff/src/accollab/connector.py"
+  - "Tapir ElementCreationCommands.cpp CreateElementsCommandBase::Execute"
+  - "Tapir SolidElementOperationCommands.cpp"

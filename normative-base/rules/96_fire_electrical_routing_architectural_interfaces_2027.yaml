@@ -1,0 +1,187 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_6_13130_2025
+correction_date: 2026-06-25
+purpose: >-
+  Архитектурная координация электроустановок систем противопожарной защиты: положение
+  электропомещения относительно ввода, взаиморезервируемые трассы, разделение силовых линий и
+  линий связи, вертикальные кабельные шахты и проходки противопожарных преград. Электрические
+  нагрузки, селективность, сечения и подбор НКУ выполняются ЭОМ/СПЗ.
+
+revision_state:
+  status: active
+  effective_from: 2026-06-29
+  replaces: SP_6_13130_2021
+  correction:
+    approved: 2026-06-05
+    effective_from: 2026-06-25
+    affected_clause: "6.4 first paragraph"
+    action: use_corrected_text
+  registry_applicability_note:
+    statement: >-
+      Применимость отдельных фрагментов СП 6 по перечню документов 123-ФЗ хранить отдельно от
+      технической редакции документа. По актуализированному перечню имеются исключения для абзаца 2
+      п.5.4, примечания 3 к таблице 6.1 и приложения Е; примечание 3 таблицы 6.1 включается с 01.07.2027.
+      Правила настоящего файла основаны на иных пунктах и не распространяют статус одного фрагмента на весь СП.
+
+legacy_gate:
+  - id: fire.eom.no_SP6_2021_as_current
+    automation: hard_gate
+    statement: >-
+      Для профиля 2027 не применять СП 6.13130.2021 как текущий источник: он заменен СП 6.13130.2025
+      с 29.06.2026.
+
+input_to_electrical_room:
+  source_clause: "5.1"
+  rules:
+    - id: fire.eom.redundant_cables_input_to_switchgear_room_max_length
+      automation: conditional
+      dimension_semantics: cable_route_length
+      max_length_m: 5
+      measure_from: building_cable_entry_point
+      measure_to: electrical_room_with_LV_switchgear
+      condition: new_construction_or_non_exempt_case
+      statement: >-
+        Длина взаиморезервируемых кабелей от места ввода в здание до электропомещения с размещенным
+        НКУ должна быть не более 5 м. Это длина трассы кабеля, а не расстояние по прямой между точками.
+      exception: >-
+        При реконструкции систем электроснабжения существующего здания допускается учитывать
+        фактическое расположение электрощитовых по условиям п.5.1.
+
+    - id: fire.eom.redundant_routes_architecture
+      automation: validation_only
+      statement: >-
+        Планировка должна позволять выполнить независимые/разделенные маршруты взаиморезервируемых
+        линий в требуемой СП конфигурации; архитектурный агент не сводит обе линии в единственную
+        незащищенную нишу ради сокращения трассы.
+      requires_engineering_input: true
+
+EMI_separation:
+  source_clause: "6.4 corrected text"
+  rules:
+    - id: fire.eom.power_to_fire_signal_parallel_clearance
+      automation: conditional
+      dimension_semantics: clear_between_routes
+      condition: >-
+        fire_protection_power_wiring_or_other_power_wiring_voltage_above_50VAC_or_75VDC
+        parallel_to_fire_protection_communication_line
+      min_clearance_mm_without_EMI_protection: 300
+      exceptions:
+        - parallel_section_length_not_over_1m
+        - crossing_location
+      statement: >-
+        После поправки 2026 параллельная прокладка соответствующих силовых электропроводок ближе
+        300 мм к линиям связи СПЗ не допускается без защиты от электромагнитных помех, кроме
+        участков до 1 м и мест пересечения.
+
+    - id: fire.eom.high_voltage_power_to_SPZ_parallel_clearance
+      automation: conditional
+      dimension_semantics: clear_between_routes
+      condition: >-
+        SPZ_wiring_voltage_above_50VAC_or_75VDC parallel_to_power_wiring_voltage_above_110VAC
+      min_clearance_mm_without_EMI_protection: 300
+      statement: >-
+        Для указанного сочетания электропроводок СПЗ и силовых линий свыше 110 В также требуется
+        расстояние не менее 300 мм либо защита линий связи СПЗ от электромагнитных помех.
+
+vertical_fire_system_routes:
+  source_clause: "6.13"
+  rules:
+    - id: fire.eom.SPZ_vertical_crossing_floor_route
+      automation: conditional
+      condition: "SPZ_wiring_or_communication_line_crosses_fire_floor_vertically"
+      allowed_route_types:
+        - cable_shaft
+        - closed_channel_in_building_structure
+        - building_structure_channel_protected_by_one_sided_fire_resistant_box
+      statement: >-
+        Вертикальные электропроводки и линии связи СПЗ через противопожарные перекрытия размещать
+        в кабельных шахтах/замкнутых каналах либо защищенных предусмотренным СП огнестойким коробом.
+
+    - id: fire.eom.SPZ_vertical_shaft_no_egress_width_loss
+      automation: hard_gate
+      statement: >-
+        При выделении вертикальной трассы противопожарными преградами сохранять нормативную ширину
+        пути эвакуации. Кабельная шахта не может быть добавлена в коридор ценой уменьшения его
+        требуемого размера в свету.
+
+fire_barrier_penetrations:
+  source_clause: "7.8"
+  rules:
+    - id: fire.eom.cable_penetration_fire_resistance
+      automation: conditional
+      condition: "electrical_wiring_or_busway_crosses_fire_barrier"
+      penetration_standard: GOST_R_53310
+      min_fire_resistance_relation: "penetration >= crossed_fire_barrier_required_fire_resistance"
+      statement: >-
+        В узлах пересечения противопожарных преград электропроводками/шинопроводами предусматривать
+        кабельную проходку/проход с огнестойкостью не ниже требуемой огнестойкости самой преграды.
+      conflict_policy: >-
+        Не моделировать отверстие в пожарной преграде как обычную пустоту; оно должно иметь отдельный
+        объект проходки, классификацию и подтверждение системы.
+      requires_manufacturer_data: true
+
+escape_route_fire_resistant_boxes:
+  source_clause: "7.11"
+  rules:
+    - id: fire.eom.fire_box_internal_penetration_spacing
+      automation: conditional
+      conditions:
+        - cable_wiring_uses_constructive_fire_protection_or_fire_resistant_box
+        - route_on_common_egress_space
+      common_egress_spaces:
+        - corridor
+        - hall
+        - vestibule
+        - foyer
+        - atrium_or_passage_gallery
+      internal_penetration_min_fire_resistance: EI45
+      max_horizontal_spacing_between_internal_penetrations_m: 30
+      additional_location: at_each_route_change
+      statement: >-
+        Внутри конструктивной огнезащиты/огнестойкого короба на общих путях эвакуации предусматривать
+        проходки не менее EI45 не реже чем через 30 м горизонтальной трассы и при каждом изменении трассы.
+
+calculation_and_product_boundaries:
+  - id: fire.eom.no_architectural_electrical_sizing
+    automation: forbidden_to_infer
+    statement: >-
+      Архитектурный агент не назначает сечения кабелей, мощность резервного источника, селективность,
+      время автономной работы, тип НКУ или огнестойкую кабельную систему без ЭОМ/СПЗ и документации производителя.
+
+BIM_required_parameters:
+  - building_cable_entry_point
+  - fire_system_electrical_room_id
+  - LV_switchgear_id
+  - redundant_cable_route_ids
+  - redundant_cable_route_lengths_m
+  - route_voltage_class
+  - fire_communication_line_geometry
+  - EMI_protection_status
+  - cable_shaft_id
+  - cable_shaft_fire_separation
+  - fire_barrier_id
+  - cable_penetration_id
+  - cable_penetration_fire_resistance
+  - fire_resistant_box_route_geometry
+  - egress_clear_width_after_shaft_mm
+  - EOM_calculation_reference
+
+hard_fail_conditions:
+  - "SP6_2021 used as current rule source"
+  - "new-building redundant cable route from entry to NCU room exceeds 5m without applicable exception"
+  - "corrected 300mm EMI rule is evaluated using pre-correction voltage wording"
+  - "fire barrier is penetrated without classified cable penetration"
+  - "vertical cable shaft reduces required egress clear width"
+
+agent_logic:
+  - "Размещать электропомещение и шахты до финальной фиксации коридоров, но не подменять этим проект ЭОМ."
+  - "5 м считать по маршруту кабеля, не по прямой в плане."
+  - "300 мм — условие разделения трасс без ЭМ-защиты, а не универсальная ширина кабельной шахты."
+  - "Каждое пересечение пожарной преграды создавать как проверяемый узел проходки."
+
+sources:
+  - "https://protect.gost.ru/sp/details/40528e45-0061-4e4f-816d-8789a254389f"
+  - "https://base.garant.ru/414473191/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_524326/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_544799/"

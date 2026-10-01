@@ -1,0 +1,114 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Коммуникационные шахты, ревизионные люки, места пропуска трубопроводов и скрытые электрические коробки в каркасно-обшивных конструкциях: архитектурная координация без подмены пожарного/инженерного расчета."
+
+revision_dependencies:
+  - {document: SP_163_1325800_2014, verified_changes: [1], status: active}
+  - {document: SP_60_13330_2020, verified_changes: [1,2,3,4,5,6], role: HVAC_and_fire_requirements}
+  - {document: GOST_30247_1_94, status: active, role: fire_resistance_test_method}
+
+shaft_enclosure:
+  - id: shaft.gypsum_system_metal_frame
+    source: {document: SP_163_1325800_2014, clause: "7.3.1", amendment: 1}
+    automation: conditional
+    statement: "Ограждение коммуникационной шахты и места пропуска трубопроводов в области СП 163 выполнять как системную каркасно-обшивную конструкцию по металлическому каркасу, с узлами обрамления коммуникаций; произвольная тонкая BIM-стенка без системного состава не является проверенным ограждением шахты."
+
+  - id: shaft.gypsum_layering_by_requirement
+    source: {document: SP_163_1325800_2014, clause: "7.3.2", amendment: 1}
+    automation: conditional
+    statement: "Число и толщина слоев обшивки шахты выбираются по требуемой тепло- и огнезащите. СП 163 предусматривает варианты с одним или двумя слоями листов/плит толщиной 12,5 мм либо одним слоем 24 мм и минераловатной теплоизоляцией 30-80 мм, но конкретный вариант нельзя выбирать только по геометрии шахты."
+    values:
+      standard_sheet_thickness_mm: 12.5
+      thick_single_layer_sheet_mm: 24
+      mineral_wool_thickness_range_mm: [30,80]
+    conflict_policy: "Не трактовать перечисленные составы как автоматически достаточные для любого EI/R/EI. Сначала получить требуемую характеристику из пожарного/инженерного задания и подтвердить конкретную систему."
+
+access_hatches:
+  - id: shaft.access_hatch_required
+    source: {document: SP_163_1325800_2014, clause: "7.3.3", amendment: 1}
+    automation: conditional
+    statement: "Для доступа к коммуникациям в ограждении шахты предусматривать ревизионные люки в необходимых местах обслуживания."
+    conflict_policy: "Количество и положение люков определять по обслуживаемому оборудованию и инженерному заданию, а не по универсальному шагу."
+
+  - id: shaft.access_hatch_performance_not_lower
+    source: {document: SP_163_1325800_2014, clause: "7.3.3", amendment: 1}
+    automation: validation_only
+    statement: "Конструктивное решение ревизионного люка должно обеспечивать тепло- и огнезащитные качества не ниже, чем ограждение шахты в целом."
+    conflict_policy: "Обычный библиотечный люк без подтвержденных характеристик не считать допустимым в нормируемом ограждении."
+
+electrical_boxes:
+  - id: partition.electrical_boxes_no_opposite
+    source: {document: SP_163_1325800_2014, clause: "7.3.4", amendment: 1}
+    automation: auto
+    statement: "Не допускается устанавливать электрические коробки в перегородках непосредственно друг напротив друга."
+
+  - id: partition.electrical_boxes_min_edge_offset
+    source: {document: SP_163_1325800_2014, clause: "7.3.4", amendment: 1}
+    automation: auto
+    dimension_semantics: clear
+    statement: "Минимальное смещение блоков розеток, выключателей и других электрических коробок на противоположных сторонах перегородки — не менее 150 мм от края до края блоков."
+    values: {min_edge_to_edge_offset_mm: 150}
+    conflict_policy: "Более строгие акустические, пожарные или системные требования могут увеличить разнос."
+
+fire_resistance:
+  - id: shaft.fire_resistance_from_profile_requirements
+    source: {document: SP_163_1325800_2014, clause: "7.3.5", amendment: 1}
+    automation: forbidden_to_infer
+    statement: "Требуемую огнестойкость ограждения коммуникационной шахты, включая места пропуска трубопроводов, нельзя назначать универсальным числом из СП 163; ее определяют по применимым требованиям СП 60.13330 и пожарного законодательства/профильных норм объекта."
+    requires_calculation: true
+
+  - id: shaft.fire_resistance_test_method
+    source: {document: SP_163_1325800_2014, clause: "7.3.5", amendment: 1}
+    automation: validation_only
+    statement: "Подтверждение огнестойкости ограждающих конструкций шахты должно опираться на предусмотренный СП 163 метод/испытания по ГОСТ 30247.1; BIM-состав слоев сам по себе не доказывает предел огнестойкости."
+    conflict_policy: "Использовать протокол/сертифицированную систему или иное предусмотренное нормативами подтверждение, а не вычислять EI по сумме толщин листов."
+
+penetrations_and_service:
+  - id: shaft.penetration_requires_owned_detail
+    automation: validation_only
+    statement: "Каждое пересечение ограждения шахты коммуникацией должно иметь идентификатор системы, габарит проходки, отметку, узел герметизации/огнезаделки при необходимости и владельца инженерного задания."
+
+  - id: shaft.no_postfactum_random_opening
+    automation: forbidden_to_infer
+    statement: "Запрещено создавать произвольный проем в ограждении шахты только потому, что трасса пересекла стену в BIM. Проходка сначала должна быть согласована с инженерным и пожарным решением."
+    requires_manufacturer_data: true
+
+BIM_required_parameters:
+  - shaft_id
+  - shaft_function
+  - shaft_enclosure_system_id
+  - shaft_required_fire_resistance
+  - shaft_required_thermal_performance
+  - shaft_frame_system
+  - shaft_sheathing_product
+  - shaft_sheathing_layer_count
+  - shaft_insulation_type
+  - shaft_insulation_thickness_mm
+  - access_hatch_id
+  - access_hatch_service_target
+  - access_hatch_fire_performance
+  - access_hatch_thermal_performance
+  - penetration_id
+  - penetration_system_owner
+  - penetration_firestop_system
+  - electrical_box_side
+  - electrical_box_group_id
+  - opposite_side_box_edge_offset_mm
+
+hard_fail_conditions:
+  - "access hatch has lower fire or thermal performance than the enclosing shaft where those properties are required"
+  - "electrical boxes are directly opposite or edge-to-edge offset is below 150 mm"
+  - "shaft fire resistance is inferred from gypsum layer count without required source/verification"
+  - "penetration has no engineering owner or verified sealing/firestop solution where applicable"
+  - "shaft geometry is reduced below service-access requirements just to fit architectural layout"
+
+agent_logic:
+  - "Моделировать шахту как функциональный объем обслуживания плюс ограждение, а не только как пустоту между стенами."
+  - "Сначала получить состав инженерных систем и требуемую огнестойкость, затем выбирать системное ограждение и люки."
+  - "Проверять расположение розеток/коробок одновременно с обеих сторон перегородки; односторонняя проверка плана не выявляет нарушение 150 мм."
+  - "Любое изменение размера шахты должно повторно проверять инженерные трассы, обслуживание, огнестойкость, акустику и положение ревизионных люков."
+
+sources:
+  - "https://protect.gost.ru/sp/details/92439dea-05ad-4cfe-9dc4-c1bddcdb8c55"
+  - "https://protect.gost.ru/gost/details/d794020e-641c-464e-bc3f-c74af2b40381"
+  - "https://base.garant.ru/71121328/"

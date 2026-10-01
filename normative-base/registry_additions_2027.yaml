@@ -23,6 +23,12 @@ documents:
       - "ИУС 7-2023"
     source_url: "https://protect.gost.ru/gost/details/33107f24-da2a-4700-8d8e-a3fdcba7ffb4"
 
+  - id: GOST_30247_1_94
+    title: "Конструкции строительные. Методы испытаний на огнестойкость. Несущие и ограждающие конструкции"
+    status: active
+    effective_from: 1996-01-01
+    source_url: "https://protect.gost.ru/gost/details/d794020e-641c-464e-bc3f-c74af2b40381"
+
   - id: SP_3_13130_2026
     title: "Системы противопожарной защиты. Система оповещения и управления эвакуацией людей при пожаре. Требования пожарной безопасности"
     status: active
@@ -42,6 +48,14 @@ documents:
     status: active
     effective_from: 2024-06-16
     source_url: "https://protect.gost.ru/sp/details/fad4db83-c22c-4629-b7cf-456ef675ce85"
+
+  - id: SP_549_1311500_2026
+    title: "Многоквартирные жилые дома с применением конструкций из древесины и древесных материалов. Требования пожарной безопасности"
+    status: active
+    effective_from: 2026-04-01
+    verified_changes: []
+    scope: "секционные МКД Ф1.3 пожарной высотой от 5 до 15 м с применением предусмотренных СП деревянных конструкций"
+    source_url: "https://protect.gost.ru/sp/details/77625f5e-6bb0-40dc-82e2-7a15b15fa861"
 
   - id: SP_550_1311500_2026
     title: "Здания высотные. Требования пожарной безопасности"

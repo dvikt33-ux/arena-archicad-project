@@ -1,0 +1,100 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SANPIN_2_1_3684_21
+purpose: >-
+  Узкое градостроительно-эксплуатационное исключение для складирования снега в районах
+  Крайнего Севера и приравненных местностях по Постановлению Главного государственного
+  санитарного врача РФ от 10.09.2026 №25. Для профиля 2027 поправка применяется как уже
+  утвержденная и официально опубликованная будущая норма, вступающая в силу 05.10.2026.
+
+revision_state:
+  base_document_effective_until: 2027-03-01
+  amendment_act: "Постановление от 10.09.2026 №25"
+  minjust_registration: "23.09.2026 №88406"
+  official_publication_date: 2026-09-24
+  amendment_effective_from: 2026-10-05
+  target_profile_action: apply
+  affected_clause: "34"
+
+scope_gate:
+  - id: site.snow_storage.north_exception_scope
+    automation: conditional
+    all_conditions:
+      territory_classification:
+        - Far_North
+        - equivalent_to_Far_North
+      snow_contains_deicing_reagents: false
+    statement: >-
+      Исключение применяется только одновременно к территории Крайнего Севера/приравненной
+      местности и снегу без противогололедных реагентов. При неизвестном составе снега или
+      неподтвержденной территориальной классификации исключение не применять.
+
+geometry_and_surface:
+  - id: site.snow_storage.north_no_impermeable_surface_required_by_clause34
+    source: {document: SANPIN_2_1_3684_21, clause: "34", amendment: 25}
+    automation: conditional
+    conditions:
+      territory_classification:
+        - Far_North
+        - equivalent_to_Far_North
+      snow_contains_deicing_reagents: false
+    impermeable_surface_required_by_this_clause: false
+    statement: >-
+      В области исключения п.34 допускает складирование снега на площадке без
+      водонепроницаемого покрытия.
+
+  - id: site.snow_storage.north_no_earth_bunding_required_by_clause34
+    source: {document: SANPIN_2_1_3684_21, clause: "34", amendment: 25}
+    automation: conditional
+    conditions:
+      territory_classification:
+        - Far_North
+        - equivalent_to_Far_North
+      snow_contains_deicing_reagents: false
+    continuous_earth_bund_required_by_this_clause: false
+    statement: >-
+      В области исключения п.34 допускает складирование снега без обвалования сплошным
+      земляным валом.
+
+anti_overreach:
+  - id: site.snow_storage.no_global_relaxation
+    automation: hard_gate
+    statement: >-
+      Не интерпретировать поправку №25 как общее разрешение устраивать снегоприемную площадку
+      без покрытия/обвалования по всей России или для снега с противогололедными реагентами.
+      За пределами точной области исключения применять остальные требования действующей
+      санитарной нормы и проектные экологические/водоотводные ограничения.
+
+  - id: site.snow_storage.no_reagent_assumption
+    automation: forbidden_to_infer
+    statement: >-
+      Отсутствие противогололедных реагентов должно быть подтверждено исходными данными
+      эксплуатации/содержания территории. Агент не вправе считать снег чистым по умолчанию.
+
+expiry_gate:
+  - id: site.snow_storage.sanpin3684_expiry
+    automation: mandatory_router
+    condition: "regulatory_date >= 2027-03-01"
+    route_to: sanitary_registry_2027.yaml
+    statement: >-
+      После прекращения действия СанПиН 2.1.3684-21 это исключение не переносится автоматически
+      в будущий санитарный документ. Нужна повторная проверка финального преемника.
+
+BIM_required_parameters:
+  - project_regulatory_date
+  - territory_classification
+  - snow_storage_site_id
+  - snow_contains_deicing_reagents
+  - snow_composition_data_source
+  - snow_storage_surface_type
+  - earth_bund_present
+  - drainage_solution_reference
+
+agent_logic:
+  - "Для RU_2027_PLUS учитывать поправку №25 с 05.10.2026, но только до expiry gate 01.03.2027."
+  - "Не применять северное исключение по одному климатическому району: требуется юридическая классификация территории как Крайний Север или приравненная местность."
+  - "Не считать отсутствие покрытия/вала автоматически хорошим проектным решением: правило лишь снимает эти два требования п.34 в узкой области."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_545158/"
+  - "https://www.consultant.ru/law/hotdocs/95761.html"

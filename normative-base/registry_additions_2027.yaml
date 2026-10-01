@@ -135,3 +135,24 @@ documents:
       height_max_m: 50
       underground_depth_max_m: 15
     source_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+
+  - id: SP_163_1325800_2014
+    title: "Конструкции с применением гипсокартонных и гипсоволокнистых листов. Правила проектирования и монтажа"
+    status: active
+    effective_from: 2014-10-01
+    verified_changes: [1]
+    change_1_effective_from: 2022-01-28
+    source_url: "https://protect.gost.ru/sp/details/92439dea-05ad-4cfe-9dc4-c1bddcdb8c55"
+
+  - id: GOST_6266_97
+    title: "Листы гипсокартонные. Технические условия"
+    status: active
+    effective_from: 1999-04-01
+    corrections: ["ИУС 7-2002", "ИУС 11-2010"]
+    source_url: "https://protect.gost.ru/gost/details/b82ec807-cf21-4116-87ff-2a9687c33979"
+
+  - id: GOST_32614_2012
+    title: "Плиты гипсовые строительные. Технические условия"
+    status: active
+    effective_from: 2015-01-01
+    source_url: "https://protect.gost.ru/gost/details/2bab5670-8967-4962-94cb-4e15a4d15f4b"

@@ -1,0 +1,137 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N05_WINDOW_HEAD_JAMB_SILL
+purpose: "Детальный алгоритм узла присоединения окна к наружной стене: изделие, проем, крепление, монтажный шов, герметизация, теплотехника и водоотвод."
+
+normative_stack:
+  - {document: GOST_23166_2024, role: window_and_balcony_block_general_requirements}
+  - {document: GOST_34378_2018, role: installation_work_and_control}
+  - {document: GOST_30971_2012, role: installation_joint_general_requirements_and_calculation_methods, partial_replacement_gate: registry}
+  - {document: GOST_R_59495_2021, role: fastening_system_in_scope}
+  - {document: GOST_R_70266_2022, role: sealing_and_connection_system_execution_control}
+  - {document: SP_50_13330_2024, role: thermal_air_performance}
+  - {document: SP_15_13330_2020, role: structural_masonry_opening_when_applicable}
+  - {document: SP_64_13330_2017, role: timber_opening_when_applicable}
+
+system_definition:
+  source: GOST_R_70266_2022
+  statement: "Узел присоединения в общем случае состоит не только из оконного блока: коробка СПК + монтажный шов + водо-/пароизоляция шва + система крепежа + часть ограждающей конструкции в зоне теплотехнической неоднородности; при необходимости добавляются откосы, подоконник, отлив и иные элементы ПД."
+
+required_parts:
+  product:
+    - verified_window_block_and_configuration
+    - exact_library_part_or_product_parameters
+    - manufacturer_documents_and_installation_constraints
+  structural_opening:
+    - opening_width_height_and_level
+    - wall_material_and_structure
+    - KR_confirmed_head_lintel_or_frame
+    - actual_fastening_base_at_jamb_head_sill_zones
+  installation_joint:
+    - design_mounting_gap
+    - thermal_acoustic_fill
+    - exterior_water_weather_protection
+    - interior_air_vapor_control
+    - movement_capacity_compatible_with_block_and_wall
+  fastening:
+    - fastening_system_approved_for_window_and_base_material
+    - positions_spacing_edge_conditions_from_applicable_standard_product_design
+    - support_blocks_or_other_load_transfer_components_as required by system
+  sill:
+    - exterior_sill_or_flashing
+    - outward_water_shedding
+    - end_and_jamb_transitions
+    - protected_connection_to_window
+    - thermal_continuity_below_frame
+  interior:
+    - interior_sill_if present
+    - reveal_finish
+    - continuous_air_vapor_seal_to_wall_layer
+
+material_pack_variants:
+  masonry_RC:
+    fastening_gate: "Fastener/base suitability for exact brick/stone/mortar region; do not place fasteners into an assumed solid substrate hidden inside hollow masonry."
+    head_gate: "Use KR-confirmed lintel/monolithic solution; if precast GOST 948 lintel is used, exact current mark and geometry."
+  AAC_RC:
+    fastening_gate: "Use AAC-compatible fastening base/system or separately designed insert; do not copy concrete/brick anchor spacing."
+    moisture_gate: "Protect exposed AAC at sill/reveal from water ingress before finishing."
+  timber:
+    fastening_gate: "Fasten to confirmed framing/opening members, not only sheathing/finish unless the system explicitly permits it."
+    head_gate: "Header/opening frame and bracing effect are KR-owned."
+    membrane_gate: "Connect window joint to interior air/vapor layer and exterior weather-resistive layer without dead-ending them at the reveal."
+
+algorithm:
+  - step: 1_classify_product_and_wall
+    action: "Resolve window product, opening type, wall material/assembly, exposure and project performance targets."
+  - step: 2_KR_opening
+    action: "Confirm structural opening/head/jamb support before inserting the window."
+  - step: 3_opening_vs_block
+    action: "Store separate dimensions for structural opening, block outer dimensions, mounting gaps and clear opening where relevant."
+  - step: 4_fastening_base
+    action: "Map every fastening zone to actual wall substrate/material; reject fastening to unknown or unsuitable layer."
+  - step: 5_joint_layers
+    action: "Design installation joint as separate functional layers for thermal/acoustic fill, exterior water/weather protection and interior air/vapor control."
+  - step: 6_thermal_check
+    action: "Check local temperature field/thermal bridge and condensation risk around frame/reveal; do not validate node from wall U/R value alone."
+  - step: 7_water_path
+    action: "Trace rainwater from facade/frame/sill outward; no inward-facing termination or trapped drainage path."
+  - step: 8_execution_documents
+    action: "Bind exact product, fasteners, sealants/tapes/membranes and installation sequence to working documentation/technological card where required."
+  - step: 9_BIM_readback
+    action: "Validate window host wall, exact block dimensions, insertion position, sill/head levels, node metadata and selected product/favorite identity."
+
+archicad_recipe:
+  wall: native_Wall
+  product: native_Window
+  structural_opening: "Window-host opening is native; if separate reservation/geometry is required, preserve opening/block distinction in properties rather than duplicating cuts blindly."
+  lintel: "Separate verified structural element/library product; never hidden as graphical wall modification if it is a real KR element."
+  repeated_reveal_or_sill_profile: "Complex Profile only when it truthfully represents a repeated construction; otherwise discrete object/2D detail."
+  installation_joint_micro_layers: "Node metadata + Detail 2D by default; explicit 3D only if coordination/quantity or fabrication needs it."
+  tapir_create: [CreateWindows]
+  tapir_template: [ApplyFavoritesToElements]
+  tapir_profile: [GetProfiles, CreateProfiles]
+  tapir_document: [CreateDetails, CreateWorksheets]
+  database_context_gate: "CreateWindows/CreateDoors documented behavior requires appropriate active database/view context; include context in preflight and receipt."
+
+BIM_parameters_required:
+  - NODE_ID
+  - wall_GUID
+  - window_GUID
+  - window_product_id
+  - favorite_or_library_version
+  - opening_width_mm
+  - opening_height_mm
+  - block_width_mm
+  - block_height_mm
+  - mounting_gap_left_right_top_bottom
+  - fastening_system_ref
+  - fastening_base_material
+  - lintel_KR_ref
+  - thermal_node_calc_ref
+  - sill_flashing_ref
+  - installation_joint_system_ref
+  - approval_status
+
+postconditions:
+  - window_is_hosted_by_expected_wall
+  - product_dimensions_match_selected_window
+  - opening_and_block_dimensions_remain_distinct
+  - fastening_base_is_known
+  - head_structure_is_KR_confirmed
+  - thermal_node_review_is_current
+  - sill_water_path_documented
+  - joint_layers_documented
+
+never_auto_assign:
+  - one_universal_mounting_gap
+  - fastener_type_or_spacing_from_window_size_only
+  - lintel_mark_from_opening_width_only
+  - sill_projection_or_slope_without_system_project_data
+  - foam_as_complete_joint_solution
+  - frame_position_in_wall_only_by_visual_centering
+
+sources:
+  - "GOST R 70266-2022 definition of connection node and sealing functions"
+  - "GOST 34378-2018 installation/control and project-product conformity"
+  - "GOST 30971-2012 installation-joint requirements and calculation appendices"

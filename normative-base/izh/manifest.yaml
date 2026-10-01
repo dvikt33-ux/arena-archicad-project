@@ -1,4 +1,4 @@
-package_manifest_version: 6
+package_manifest_version: 7
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -22,7 +22,9 @@ load_order:
   - 15_node_N10_wet_room_floor_wall_drain.yaml
   - 16_node_N03_wall_floor_connection.yaml
   - 17_node_N04_wall_corner_T_junction.yaml
+  - 17_thermal_air_moisture_interface.yaml
   - 18_node_N08_roof_ridge.yaml
+  - 18_safe_bridge_typed_operation_contract.yaml
   - 19_node_N09_roof_penetration_chimney_vent.yaml
   - 20_node_N13_terrace_porch_wall.yaml
   - 21_pack_lstk.yaml

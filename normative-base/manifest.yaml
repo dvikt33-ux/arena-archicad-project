@@ -1,4 +1,4 @@
-manifest_version: 62
+manifest_version: 63
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -134,6 +134,7 @@ rule_files:
   - 76_spds_general_plan_working_drawings.yaml
   - 77_fire_finish_materials_2027.yaml
   - 78_eskd_graphics_2027_transition.yaml
+  - 79_story_levels_vertical_coordination.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

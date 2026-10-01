@@ -1,0 +1,284 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_SAN_2_3_6_4281_26
+purpose: >-
+  Архитектурно-планировочные санитарные правила продуктовых магазинов и иных торговых объектов,
+  реализующих пищевую продукцию, по действующему в 2027 СП 2.3.6.4281-26.
+  Правила переводят санитарные требования в BIM-связи помещений и инженерные gates,
+  не подменяя технологический проект и расчеты инженерных систем.
+
+revision_state:
+  designation: "СП 2.3.6.4281-26"
+  approved_by: "Постановление Главного государственного санитарного врача РФ от 02.06.2026 №17"
+  minjust_registration: "02.06.2026 №86851"
+  status: active
+  effective_from: 2026-09-01
+  effective_until: 2032-09-01
+  replaces: SP_SAN_2_3_6_3668_20
+
+sanitary_transition_gates:
+  - id: foodretail.sanitary.current_source
+    automation: true
+    statement: "В профиле 2027 использовать СП 2.3.6.4281-26; отмененный СП 2.3.6.3668-20 не применять."
+
+  - id: foodretail.sanitary.3684_dependency_gate
+    automation: mandatory_router
+    statement: >-
+      Пункты СП 4281, которые дополнительно зависят от СанПиН 2.1.3684-21, после 01.03.2027
+      должны быть повторно сопоставлены официальному преемнику СанПиН 2.1.3684-21.
+      Самостоятельные прямые требования СП 4281 продолжают действовать до 01.09.2032.
+    downstream: sanitary_registry_2027.yaml
+
+  - id: foodretail.sanitary.3685_numeric_gate
+    automation: mandatory_router
+    statement: >-
+      Числовые уровни освещения, шума, микроклимата и иные параметры, которые СП 4281
+      отсылает к СанПиН 1.2.3685-21, после 01.03.2027 брать только из официального преемника.
+    downstream: sanitary_registry_2027.yaml
+
+placement_and_loading:
+  - id: foodretail.loading.residential_building_no_courtyard_loading
+    source_clause: "7-8"
+    automation: conditional
+    condition: "food_retail_embedded_attached_to_multifamily_residential_building"
+    prohibited_loading_side: residential_courtyard_with_residential_entrances
+    permitted_loading_routes_in_rule:
+      - residential_building_end_facade
+      - underground_tunnel_or_closed_dock
+      - road_side
+    statement: >-
+      Для встроенного/встроенно-пристроенного/пристроенного к МКД торгового объекта
+      загрузку не организовывать со стороны двора, где расположены входы в жилые помещения.
+      Дополнительные требования СанПиН 2.1.3684-21 после 01.03.2027 проходят replacement gate.
+
+water_and_sewer_architecture:
+  - id: foodretail.sewer.production_separate_when_embedded
+    source_clause: "17"
+    automation: engineering_coordination_gate
+    condition: "food_retail_located_in_multifamily_public_or_administrative_building"
+    statement: >-
+      Водоотведение стоков от производственных помещений торгового объекта обеспечивать
+      отдельно от системы водоотведения здания, в котором он расположен.
+    discipline_boundary: VK
+
+  - id: foodretail.sewer.no_unprotected_risers
+    source_clause: "17"
+    automation: hard_gate
+    applies_to: [production_room, packing_room, food_storage_room]
+    prohibited:
+      - sewer_riser_without_protective_box
+      - sewer_riser_with_cleanout_or_revision_opening_in_room
+    statement: >-
+      В производственных, фасовочных и складских помещениях не размещать канализационные
+      стояки без защитных коробов и стояки с отверстиями для прочисток/ревизий.
+
+  - id: foodretail.sewer.washing_bath_backflow_protection
+    source_clause: "17"
+    automation: engineering_coordination_gate
+    applies_to: washing_bath_for_equipment_inventory_or_containers
+    requirement: air_gap_or_grease_trap_as_applicable
+    discipline_boundary: [VK, TX]
+
+ventilation_and_environment:
+  - id: foodretail.ventilation.no_cross_contamination
+    source_clause: "19"
+    automation: engineering_coordination_gate
+    statement: >-
+      Система вентиляции стационарного торгового объекта должна исключать загрязнение воздушной
+      среды, ухудшение условий в связанных общественных/административных зданиях и порчу пищевой продукции.
+    discipline_boundary: OV
+
+  - id: foodretail.ventilation.sanitary_rooms_autonomous
+    source_clause: "19"
+    automation: engineering_coordination_gate
+    applies_to: [staff_toilet, shower, women_hygiene_room]
+    ventilation_system_relation: autonomous
+    discipline_boundary: OV
+
+  - id: foodretail.lighting.reference_gate
+    source_clause: "20"
+    automation: mandatory_router
+    statement: >-
+      Помещения подготовки, склады, санитарно-бытовые, административные помещения и торговые
+      залы обеспечиваются естественным и/или искусственным освещением, но числовые уровни
+      после 01.03.2027 требуют официального преемника СанПиН 1.2.3685-21.
+
+  - id: foodretail.luminaire.food_protection
+    source_clause: "21"
+    automation: conditional
+    applies_to: [food_storage_room, food_preparation_room, food_sales_area]
+    requirement: luminaire_fragment_protection
+    statement: "Светильники защищать от попадания осколков стекла в пищевую продукцию."
+
+  - id: foodretail.noise.reference_gate
+    source_clause: "22"
+    automation: mandatory_router
+    statement: >-
+      Уровни шума торговых залов должны соответствовать действующим санитарным гигиеническим
+      нормативам; после 01.03.2027 не использовать числовые значения СанПиН 1.2.3685-21 без преемника.
+
+product_flow_and_zoning:
+  - id: foodretail.flow.no_crossing_unpacked_food_nonfood
+    source_clause: "23"
+    automation: mandatory_validation
+    incompatible_flows:
+      - unpacked_food_vs_unpacked_nonfood
+      - unpacked_unprocessed_food_vs_ready_to_eat_food
+    statement: >-
+      Планировка должна обеспечивать поточность без встречных и перекрестных потоков
+      перечисленных несовместимых групп.
+
+  - id: foodretail.preparation.specialized_departments
+    source_clause: "24"
+    automation: conditional
+    condition: "specialized_department_present"
+    department_types:
+      - meat
+      - fish
+      - vegetables
+      - gastronomy
+      - dairy_and_fats
+    requirement: specially_equipped_preparation_or_packing_room_or_zone
+
+  - id: foodretail.preparation.ready_to_eat_washpoints
+    source_clause: "24"
+    automation: conditional
+    condition: "packing_ready_to_eat_without_preliminary_washing_or_heat_treatment"
+    required_equipment:
+      - washing_bath_hot_cold_water_mixer
+      - handwash_basin
+
+  - id: foodretail.preparation.perishable_cooling
+    source_clause: "24"
+    automation: conditional
+    condition: "perishable_food_is_stored_in_packing_room_or_zone"
+    requirement: refrigeration_equipment
+
+  - id: foodretail.customer_baskets_separate_processing_storage
+    source_clause: "25"
+    automation: validation_only
+    statement: >-
+      Контейнеры, тележки и корзины самообслуживания покупателей обрабатывать и хранить
+      отдельно от торгового оборудования и инвентаря.
+
+cleaning_and_storage:
+  - id: foodretail.cleaning_inventory_room_or_dedicated_place
+    source_clause: "26"
+    automation: conditional
+    preferred_requirement: cleaning_inventory_and_disinfectant_preparation_room_with_hot_and_cold_water
+    fallback_allowed: specially_designated_storage_place
+    statement: >-
+      Предусмотреть помещение для хранения/обработки уборочного инвентаря и приготовления
+      дезрастворов с ХВС/ГВС либо, когда отдельного помещения нет, специально выделенное место.
+
+  - id: foodretail.storage.food_nonfood_separation
+    source_clause: "27"
+    automation: conditional
+    preferred: separate_food_and_nonfood_storage_rooms
+    fallback: one_room_with_separate_zones_preventing_contact_contamination_and_odor_change
+    statement: >-
+      Пищевую и непищевую продукцию хранить раздельно; совместное складское помещение допустимо
+      только при физическом/функциональном зонировании, исключающем контакт и загрязнение.
+
+  - id: foodretail.sales.nonfood_separate_zone
+    source_clause: "27"
+    automation: conditional
+    condition: "nonfood_goods_sold_in_same_sales_hall"
+    requirement: separate_nonfood_sales_zone_department_section_or_shelving
+
+vertical_adjacency:
+  - id: foodretail.no_food_rooms_below_wet_dirty_rooms
+    source_clause: "28"
+    automation: hard_gate
+    lower_room_types:
+      - food_storage_room
+      - food_preparation_room
+      - refrigerated_chamber
+    prohibited_directly_above_room_types:
+      - shower
+      - toilet
+      - washing_room
+      - room_with_floor_drain_connected_to_sewer
+    BIM_check: vertical_overlap
+    statement: >-
+      Не размещать помещения хранения/подготовки пищевой продукции и холодильные камеры
+      под душевыми, туалетами, моечными и помещениями с канализационными трапами.
+
+finish_requirements:
+  - id: foodretail.finish.cleanable_disinfectable_nontoxic
+    source_clause: "29"
+    automation: material_property_validation
+    applies_to: internal_finishes
+    requirements:
+      - non_toxic
+      - wet_cleaning_resistant
+      - disinfectant_resistant
+    statement: "Материалы внутренней отделки должны соответствовать указанным санитарным свойствам."
+
+staff_and_visitor_toilets:
+  - id: foodretail.staff_toilet_required
+    source_clause: "30"
+    automation: mandatory_validation
+    required_for: food_retail_workers
+    equipment:
+      - toilet
+      - handwash_basin
+      - hot_and_cold_water_with_mixer
+
+  - id: foodretail.visitor_toilet_separate_from_staff
+    source_clause: "30"
+    automation: conditional
+    condition: "visitor_toilet_is_provided"
+    relation: separate_from_staff_toilet
+    statement: "Туалеты посетителей при их наличии должны быть оборудованы отдельно от туалетов работников."
+
+waste_architecture:
+  - id: foodretail.packaging_temporary_storage_not_in_routes
+    source_clause: "72"
+    automation: conditional
+    statement: >-
+      Временное хранение использованной упаковки без органических остатков допускается только
+      в специально выделенном помещении/зоне/секции/отделе; не в торговом зале, производственных,
+      фасовочных помещениях или коридорах.
+
+  - id: foodretail.food_waste_dedicated_cooling_option
+    source_clause: "73"
+    automation: conditional
+    statement: >-
+      Пищевые отходы и санитарный брак собираются отдельно; если предусматривается их временное
+      холодильное хранение, выделить отдельную холодильную камеру либо иное выделенное холодильное
+      оборудование и место для мытья тары пищевых отходов.
+
+BIM_required_parameters:
+  - retail_food_scope
+  - embedded_in_building_type
+  - loading_route_geometry
+  - raw_unprocessed_food_flow
+  - ready_to_eat_food_flow
+  - unpacked_nonfood_flow
+  - specialized_department_types
+  - packing_room_ids
+  - food_storage_room_ids
+  - nonfood_storage_room_ids
+  - refrigerated_chamber_ids
+  - upper_floor_room_types
+  - sewer_riser_locations_and_boxing
+  - floor_drain_locations
+  - cleaning_inventory_storage_id
+  - staff_toilet_id
+  - visitor_toilet_ids
+  - sanitary_room_ventilation_system_ids
+  - food_waste_storage_id
+
+agent_logic:
+  - "Не считать продуктовый магазин обычным универсальным Ф3.1 retail-box после определения пищевой торговли: включить санитарный планировочный слой."
+  - "Строить вертикальную матрицу соседства для складов/подготовки/холодильных камер и мокрых помещений верхнего этажа."
+  - "Потоки unprocessed/ready-to-eat/unpacked-nonfood моделировать отдельно; визуально широкого коридора недостаточно."
+  - "Не размещать канализационный стояк через пищевой склад/фасовочную без проверки п.17 и архитектурной защиты."
+  - "Числовые уровни света/шума после 01.03.2027 не наследовать из истекающего СанПиН 1.2.3685-21."
+  - "Требования СП 4281, напрямую сформулированные в документе, не блокировать только из-за истечения ссылочного СанПиН; блокировать именно зависимую часть проверки."
+
+sources:
+  - https://base.garant.ru/414329165/
+  - https://www.garant.ru/products/ipo/prime/doc/414229165/
+  - https://www.consultant.ru/law/hotdocs/94315.html

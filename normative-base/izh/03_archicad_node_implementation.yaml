@@ -1,0 +1,115 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+archicad_version: 29
+purpose: "Правила представления многоконтурных строительных узлов средствами Archicad без потери параметричности."
+
+native_element_policy:
+  priority_order:
+    - use_native_construction_element
+    - use_associative_connection
+    - use_composite_or_complex_profile
+    - use_library_object_for_discrete_product
+    - use_morph_only_when_native_semantics_are_insufficient
+    - add_2d_detail_enrichment_for_micro_components
+  reason: "Семантика, ведомости, свойства, связи и последующее редактирование важнее геометрической похожести."
+
+archicad_primitives:
+  building_material:
+    use_for:
+      - physical_material_identity
+      - intersection_priority
+      - cut_fill_and_surface_defaults
+    rule: "Приоритет пересечения — свойство Building Material и используется для автоматических приоритетных сопряжений; не подменять его порядком отрисовки."
+  composite:
+    use_for:
+      - repeated_layered_walls
+      - layered_slabs
+      - roof_assemblies_where_supported_by_element_structure
+    rule: "Слои пирога хранить семантически; не рисовать повторяющийся многослойный пирог набором несвязанных 2D линий."
+  complex_profile:
+    use_for:
+      - repeated_nonrectangular_wall_sections
+      - plinth_or_parapet_profiles_when_geometry_is_stable
+      - beams_and_columns_with_repeated_section
+    capabilities:
+      - multiple_building_materials
+      - wall_column_beam_and_selected_component_usage
+      - edge_offset_modifiers_for_wall_column_beam_profiles
+    rule: "Не помещать в профиль весь узел, если его части должны независимо двигаться, заменяться, специфицироваться или иметь отдельные связи."
+  opening:
+    hosts: [wall, slab, mesh, roof, beam]
+    use_for:
+      - mep_penetration_reservation
+      - shaft_or_large_hole
+      - niche_or_recess_with_limited_depth
+      - confirmed_polygonal_opening
+    rule: "Opening — самостоятельный ассоциативный элемент с ID/Classifications/Properties; использовать вместо разрушительного вырезания геометрии, если область применения подходит."
+  library_object:
+    use_for:
+      - windows_and_doors
+      - confirmed_products
+      - reusable_fastener_or_node_kit_when_scheduleable
+      - manufacturer_specific_components
+    rule: "Параметрический объект не является нормативным решением сам по себе; его параметры должны быть получены из подтвержденного изделия/проекта."
+  morph:
+    use_for: [exception_geometry, prototyping, geometry_not_expressible_natively]
+    rule: "Morph — последний выбор для постоянной проектной семантики; не переводить стены/слои/проемы в Morph ради удобства разовой булевой операции."
+
+associative_connections:
+  supported_archicad_concepts:
+    - automatic_priority_based_junctions
+    - trim_to_roof_or_shell
+    - merge_elements
+    - solid_element_operations
+    - join_wall_to_curtain_wall
+  rule: "Предпочитать ассоциативную связь разрушительному моделированию: изменение одного элемента должно корректно перестраивать связанный элемент."
+
+node_representation_strategy:
+  model_scale:
+    model_in_3d:
+      - primary_structural_hosts
+      - major_insulation_layers_when_needed_for_coordination
+      - openings_and_recesses
+      - windows_doors_lintels_if_product_is_confirmed
+      - major_flashings_or_profiles_when_geometry_affects_coordination
+      - service_sleeves_and_large_penetrations
+    normally_metadata_or_2d_detail:
+      - sealant_beads
+      - thin_tapes
+      - small_screws_and_nails
+      - mesh_reinforcement_symbolism
+      - local adhesive_layers_not_needed_for_coordination
+      - hidden_micro_components
+    decision_rule: "3D-моделирование компонента обязательно только если он влияет на координацию, количественный учет, проверку коллизий, расчетный контур или управляемое проектное решение."
+
+  detail_view:
+    fact: "Source-based Detail in Archicad 29 is an exploded 2D representation; the Detail window itself uses 2D tools."
+    consequence: "Detail viewpoint нельзя считать единственным источником истины параметрического узла. Источник истины — семантическая node record + модель; Detail используется для выпуска и 2D-доработки."
+    workflow:
+      - generate_or_update_model_geometry
+      - create_or_update_detail_reference
+      - regenerate_source_detail_when_needed
+      - apply_managed_2d_annotations
+      - validate_that_2d_note_revision_matches_node_revision
+
+properties_and_classification:
+  required_node_properties:
+    - NODE_ID
+    - NODE_FAMILY
+    - NODE_REVISION
+    - NODE_APPROVAL_STATUS
+    - TARGET_PROFILE
+    - SOURCE_DOCUMENT_SET
+    - KR_CALC_REF
+    - THERMAL_CALC_REF
+    - MEP_COORDINATION_REF
+    - MANUFACTURER_SYSTEM_REF
+    - UNRESOLVED_COUNT
+  rule: "Связь между элементами узла и записью узла должна восстанавливаться по устойчивому ID, а не по имени слоя или визуальному расположению."
+
+sources:
+  - "https://help.graphisoft.com/AC/29/INT/_AC29_Help/040_ElementsVB/040_ElementsVB-269.htm"
+  - "https://help.graphisoft.com/AC/29/INT/_AC29_Help/040_ElementsVB/040_ElementsVB-55.htm"
+  - "https://help.graphisoft.com/AC/29/INT/_AC29_Help/040_ElementsVB/040_ElementsVB-258.htm"
+  - "https://help.graphisoft.com/AC/29/INT/_AC29_Help/050_ViewsVB/050_ViewsVB-64.htm"

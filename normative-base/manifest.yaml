@@ -1,4 +1,4 @@
-manifest_version: 48
+manifest_version: 49
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -116,6 +116,7 @@ rule_files:
   - 59_public_lift_lobby_exceptions.yaml
   - 60_stairwell_windows_and_swing_clearance.yaml
   - 61_residential_entrance_vestibules_climate.yaml
+  - 62_sp3_2026_evacuation_signs_arch_coordination.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

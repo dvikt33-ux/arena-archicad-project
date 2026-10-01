@@ -1,0 +1,140 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Климатическая логика входных тамбуров многоквартирных жилых зданий по СП 54.13330.2022 пп.9.20-9.21 и таблице 9.1."
+
+revision_dependencies:
+  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_131_13330_2025, role: "current climatology source"}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4], role: accessibility}
+  - {file: rules/25_entrance_vestibules_lobbies.yaml, role: "MGN entrance and vestibule clear geometry"}
+
+base_entrance_vestibule_requirement:
+  source: SP_54_13330_2022
+  rules:
+    - id: residential.entrance.vestibule_climate_I_III
+      clause: "9.20"
+      automation: conditional
+      statement: "В климатических районах строительства I-III по СП 131.13330 при всех наружных входах в МКД предусматривают тамбуры или тамбур-шлюзы с глубиной и шириной, обеспечивающими доступность МГН по СП 59."
+      conditions:
+        climate_region: [I,II,III]
+        entrance_type_not: "entrance_from_external_air_zone_to_smokeproof_stairwell"
+      conflict_policy: "Конкретные чистые размеры доступного тамбура получать из действующего СП 59 и rules/25_entrance_vestibules_lobbies.yaml; не использовать старое универсальное 1,5 м из СП 54.13330.2011."
+
+    - id: residential.entrance.H1_air_zone_exception
+      clause: "9.20"
+      automation: validation_only
+      statement: "Общее требование п.9.20 к наружным входным тамбурам не распространяется на входы из наружной воздушной зоны в незадымляемую лестничную клетку; пожарные требования к такой схеме проверяются отдельно."
+
+coldest_five_day_temperature_source:
+  - id: residential.entrance.coldest_five_day_from_current_climatology
+    automation: forbidden_to_infer
+    statement: "Среднюю температуру наиболее холодной пятидневки для таблицы 9.1 получать из актуального СП 131.13330.2025 для конкретного места строительства; не вводить климатическое значение по памяти, городу-аналогии или старому СП 131.13330.2020."
+    requires_project_location_climate_data: true
+
+ double_vestibule_table:
+  source: SP_54_13330_2022
+  clause: "9.21, table 9.1"
+  dimension_semantics: not_applicable
+  rules:
+    - id: residential.entrance.double_vestibule_t_ge_minus20
+      automation: conditional
+      statement: "При средней температуре наиболее холодной пятидневки −20 °C и выше двойной тамбур требуется в зданиях этажностью 16 и более."
+      conditions:
+        coldest_five_day_mean_C: {min: -20}
+        storeys: {min: 16}
+      values: {double_vestibule_required: true}
+
+    - id: residential.entrance.double_vestibule_minus20_to_minus25
+      automation: conditional
+      statement: "При температуре ниже −20 °C до −25 °C включительно двойной тамбур требуется с 12 этажей."
+      conditions:
+        coldest_five_day_mean_C: {greater_than: -25, less_than: -20, include_lower_temperature_boundary: true}
+        storeys: {min: 12}
+      boundary_semantics: "−25 °C включается в этот диапазон; −20 °C относится к более теплой строке таблицы."
+      values: {double_vestibule_required: true}
+
+    - id: residential.entrance.double_vestibule_minus25_to_minus35
+      automation: conditional
+      statement: "При температуре ниже −25 °C до −35 °C включительно двойной тамбур требуется с 10 этажей."
+      conditions:
+        coldest_five_day_mean_C: {greater_than: -35, less_than: -25, include_lower_temperature_boundary: true}
+        storeys: {min: 10}
+      boundary_semantics: "−35 °C включается в этот диапазон; −25 °C относится к предыдущей строке."
+      values: {double_vestibule_required: true}
+
+    - id: residential.entrance.double_vestibule_minus35_to_minus40
+      automation: conditional
+      statement: "При температуре ниже −35 °C до −40 °C включительно двойной тамбур требуется с 4 этажей."
+      conditions:
+        coldest_five_day_mean_C: {greater_than: -40, less_than: -35, include_lower_temperature_boundary: true}
+        storeys: {min: 4}
+      boundary_semantics: "−40 °C включается в этот диапазон; −35 °C относится к предыдущей строке."
+      values: {double_vestibule_required: true}
+
+    - id: residential.entrance.double_vestibule_below_minus40
+      automation: conditional
+      statement: "При температуре ниже −40 °C двойной тамбур требуется в зданиях с 1 этажа."
+      conditions:
+        coldest_five_day_mean_C: {less_than: -40}
+        storeys: {min: 1}
+      values: {double_vestibule_required: true}
+
+boundary_regression_cases:
+  - {temperature_C: -19.999, storeys: 15, expected_double_vestibule: false_by_table_9_1}
+  - {temperature_C: -20.000, storeys: 16, expected_double_vestibule: true}
+  - {temperature_C: -25.000, storeys: 12, expected_double_vestibule: true}
+  - {temperature_C: -35.000, storeys: 10, expected_double_vestibule: true}
+  - {temperature_C: -40.000, storeys: 4, expected_double_vestibule: true}
+  - {temperature_C: -40.001, storeys: 1, expected_double_vestibule: true}
+
+special_notes:
+  source: SP_54_13330_2022
+  clause: "9.21 notes and following paragraph"
+  rules:
+    - id: residential.entrance.unheated_stair_apartment_vestibule
+      automation: conditional
+      statement: "При проектировании неотапливаемой лестничной клетки предусматривают тамбур при непосредственном входе в квартиру."
+      conditions: {stairwell_heating: unheated, direct_entry_to_apartment: true}
+
+    - id: residential.entrance.veranda_may_serve_as_vestibule
+      automation: validation_only
+      statement: "В качестве тамбура допускается использовать веранду в области примечания к таблице 9.1; веранда при этом должна удовлетворять применимым требованиям входной группы и доступности."
+
+    - id: residential.entrance.single_vestibule_with_air_curtain_exception
+      automation: manual_calculation
+      statement: "По заданию на проектирование вместо двойного тамбура допускается одинарный с воздушно-тепловой завесой, обеспечивающей допустимые параметры микроклимата по ГОСТ 30494-2011 с учетом п.8.3 СП 54, при выполнении мер против вертикального движения воздушных потоков внутри здания."
+      requires_calculation: true
+      requires_design_brief: true
+      conflict_policy: "Не заменять двойной тамбур одинарным автоматически только ради уменьшения площади входной группы."
+
+storey_semantics:
+  - id: residential.entrance.table_9_1_uses_storeys
+    source: {document: SP_54_13330_2022, clause: "Appendix A.1.7"}
+    automation: validation_only
+    statement: "Этажность для применения таблицы 9.1 определять по правилам СП 54 приложения А; не подменять количеством всех уровней BIM или количеством этажей вместе с подземными."
+    conflict_policy: "На участке с уклоном и при разной этажности секций определять этажность для соответствующей части/секции по правилам СП 54."
+
+BIM_required_parameters:
+  - site_climate_region
+  - coldest_five_day_mean_C
+  - coldest_five_day_source
+  - residential_storeys_for_table_9_1
+  - entrance_type
+  - vestibule_count_in_series
+  - vestibule_clear_depth_mm
+  - vestibule_clear_width_mm
+  - MGN_turning_and_door_swing_clearance
+  - stairwell_heating_status
+  - air_curtain_design_reference
+  - design_brief_reference
+
+agent_logic:
+  - "Сначала определить климатические данные и этажность по СП 54, затем число последовательно расположенных тамбуров, после этого проверять чистую геометрию каждого доступного тамбура по СП 59."
+  - "Не использовать старое правило 'тамбур глубиной 1,5 м' из СП 54.13330.2011 как текущую норму 2027."
+  - "Температурные границы таблицы 9.1 не округлять; −20, −25, −35 и −40 °C принадлежат конкретным строкам таблицы."
+  - "Одинарный тамбур с воздушно-тепловой завесой — проектное исключение по заданию и расчету, а не оптимизационный default."
+
+sources:
+  - "https://xn--e1ahdbdflckekkc.xn--p1ai/rntd/paragraph/270006"
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"

@@ -1,0 +1,195 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+audit_type: TAPIR_SCHEMA_AND_EXTENSION_GAP
+upstream_repository: ENZYME-APD/tapir-archicad-automation
+upstream_main_commit: "654037ee8773a19a30eb4243257ca7537e40aa55"
+archicad_target: 29
+purpose: "Точный аудит текущей публичной схемы Tapir: что уже можно оборачивать безопасным слоем, а какая семантика действительно отсутствует и требует расширения/другого контролируемого пути."
+
+method:
+  - inspect_current_main_command_registration
+  - inspect_current_command_definitions_json_schema
+  - inspect_common_type_specific_settings_schema
+  - compare_missing_semantics_with_Archicad_29_CPP_API
+  - distinguish_missing_safe_wrapper_from_missing_upstream_capability
+
+confirmed_upstream_capabilities:
+  core_creation:
+    - CreateWalls
+    - CreateSlabs
+    - CreateBeams
+    - CreateColumns
+    - CreateRoofs
+    - CreateStairs
+    - CreateWindows
+    - CreateDoors
+    - CreateOpenings
+    - CreateObjects
+    - CreateMorphs
+  attributes:
+    - CreateBuildingMaterials
+    - CreateComposites
+    - GetProfiles
+    - CreateProfiles
+    - ApplyFavoritesToElements
+  relations:
+    - CreateSolidElementLinks
+    - RemoveSolidElementLinks
+    - GetSolidElementLinks
+    - TrimElements
+    - GetElementTrims
+    - RemoveElementTrims
+    - GetRelationsOfElements
+  MEP:
+    - CreateMEPRoutingElements
+    - ModifyMEPRoutingElements
+    - ConnectMEPElements
+  documentation:
+    - CreateSections
+    - CreateDetails
+    - CreateWorksheets
+    - CreateAssociativeDimensions
+    - CreateAssociativeDimensionsOnSection
+  libraries:
+    - GetLibraries
+    - ReloadLibraries
+    - AddFilesToEmbeddedLibrary
+    - GetAvailableLibraryParts
+
+opening_audit:
+  create_command:
+    command: CreateOpenings
+    version: "1.4.0"
+    schema_confirmed_fields:
+      - ownerElementId
+      - basePoint
+      - width_optional
+      - height_optional
+    status: available_upstream
+  modify_command_search:
+    exact_command_ModifyOpenings: absent_from_current_command_definitions
+  generic_SetDetailsOfElements:
+    version: "1.0.7"
+    TypeSpecificSettings_confirmed_types:
+      - WallSettings
+      - ZoneSettings
+      - LineSettings
+      - ArcSettings
+      - HotspotSettings
+      - SplineSettings
+      - PolylineSettings
+      - HatchSettings
+      - DrawingSettings
+    OpeningSettings_present: false
+    conclusion: "Current exposed SetDetailsOfElements schema does not provide type-specific Opening geometry modification."
+  extension_decision:
+    preserve_GUID_edit_existing_opening_geometry: extension_needed_if_required
+    safe_without_extension: "Delete+recreate may be possible using DeleteElements + CreateOpenings, but it changes GUID/relations and is a high-risk compensation workflow; do not silently substitute it for true modify."
+    required_extension_semantics_if_built:
+      - modify_basePoint
+      - modify_width_height
+      - preserve_GUID
+      - preserve_or_explicitly_validate_host_relation
+      - undoable_command_scope_if_API_supports
+      - full_readback
+
+GDL_library_part_audit:
+  tapir_current:
+    can_inventory_existing_parts: true
+    can_place_existing_objects: true
+    can_add_prepared_files_to_embedded_library: true
+    command_to_author_new_placeable_GDL_library_part_from_sections_or_scripts: absent_from_current_command_definitions
+  native_Archicad_29_CPP_API:
+    functions_confirmed:
+      - ACAPI_LibraryPart_Create
+      - ACAPI_LibraryPart_AddSection
+      - ACAPI_LibraryPart_NewSection
+      - ACAPI_LibraryPart_WriteSection
+      - ACAPI_LibraryPart_EndSection
+      - ACAPI_LibraryPart_Save
+    important_semantics:
+      - "API can create a new Library Part from scratch, add textual sections such as 2D/3D scripts and save/register it."
+      - "LibraryPart Save/Register are documented as non-undoable data-structure modifiers in relevant API paths; do not promise normal model rollback."
+  extension_decision:
+    if_goal_is_only_place_existing_verified_object: no_extension_needed
+    if_goal_is_import_prebuilt_GSM_file: no_geometry_extension_needed_use_AddFilesToEmbeddedLibrary_with_managed_file_pipeline
+    if_goal_is_agent_authors_new_GDL_definition_inside_Archicad: extension_needed
+  recommended_extension:
+    conceptual_name: CreateManagedLibraryPart
+    safety_scope:
+      - managed_namespace_only
+      - approved_subtypes_only
+      - template_based_GDL_generation_preferred_over_unrestricted_script
+      - deterministic_parameter_schema
+      - script_static_validation_before_write
+      - output_unique_id_and_checksum
+      - versioned_write_once_default
+      - no_overwrite_without_explicit_approval
+      - library_inventory_readback_after_save
+      - receipt_with_nonundoable_warning
+    warning: "Do not expose unrestricted arbitrary GDL text generation directly to unattended agent writes until syntax/runtime/static policy is implemented."
+
+detail_documentation_audit:
+  CreateDetails:
+    status: available_upstream
+    semantics: independent_Detail_database
+  source_based_detail_marker:
+    exact_command_found: false
+    exact_DetailMarker_command_found: false
+    status: unresolved_or_extension_candidate
+    project_policy: "Use independent controlled Detail as current safe output. Do not claim source-linked detail regeneration automation until an exact upstream/native workflow is implemented and read-back tested."
+  sections:
+    CreateSections: available_upstream
+    note: "Sections can be generated and can support node documentation/associative dimensions, but are not a replacement for a source-based Detail marker."
+
+attribute_audit:
+  CreateBuildingMaterials:
+    status: available_upstream
+    project_action: wrapper_needed_not_Tapir_fork
+  CreateComposites:
+    status: available_upstream
+    project_action: wrapper_needed_not_Tapir_fork
+  CreateProfiles:
+    status: available_upstream
+    project_action: wrapper_needed_not_Tapir_fork
+  global_risk: "Attribute create/overwrite changes shared project state. Safe wrapper must analyze name/ID collisions and existing usage before overwrite."
+
+library_file_vs_authoring_distinction:
+  AddFilesToEmbeddedLibrary: "Copies/imports a supplied file into embedded library."
+  CreateManagedLibraryPart_extension: "Would author the Library Part itself from controlled scripts/parameters via Archicad C++ API."
+  rule: "Never describe AddFilesToEmbeddedLibrary as GDL authoring."
+
+safe_applier_gap:
+  observed_current_project_applier: "agent-handoff/src/accollab/applier.py"
+  current_primary_apply_semantics: "primary/modify only when modification resolves to MoveElements vector; explicit MoveElements success + readback/checksum."
+  conclusion: "Most IZH automation work is currently blocked by missing project safe wrappers, not by missing Tapir geometry commands."
+
+extension_priority:
+  confirmed_needed_if_feature_required:
+    P1:
+      - managed_modify_opening_geometry_preserving_GUID
+      - managed_new_GDL_library_part_authoring
+  unresolved_candidate:
+    P2:
+      - source_based_detail_marker_creation_and_regeneration
+  explicitly_not_a_reason_to_fork_Tapir:
+    - create_wall_slab_beam_column_roof
+    - create_window_door_opening
+    - create_building_material_composite_profile
+    - SEO_and_trim_relations
+    - MEP_routes_connections
+    - independent_details_worksheets
+    - import_prebuilt_library_files
+
+runtime_policy:
+  - "Pin Tapir commit/release and command schema hash in each mutation receipt."
+  - "Run capability/schema handshake at Archicad startup; current source presence does not prove the locally installed add-on is identical."
+  - "Do not rely on a command name invented from desired semantics."
+  - "Before marking extension_needed, re-run source/schema/live availability audit against the installed version."
+
+sources:
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/commit/654037ee8773a19a30eb4243257ca7537e40aa55"
+  - "https://raw.githubusercontent.com/ENZYME-APD/tapir-archicad-automation/main/docs/archicad-addon/command_definitions.js"
+  - "https://raw.githubusercontent.com/ENZYME-APD/tapir-archicad-automation/main/docs/archicad-addon/common_schema_definitions.js"
+  - "https://graphisoft.github.io/archicad-api-devkit/group___library_part.html"

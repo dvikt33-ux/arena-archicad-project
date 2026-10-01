@@ -1,0 +1,162 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "СПДС для генерального плана 2027+: состав основного комплекта ГП, масштабы, разбивочный план, рельеф, земляные массы, инженерные сети, благоустройство и нормативная графика."
+
+revision_dependencies:
+  - {document: GOST_21_508_2020, status: active, correction: "ИУС 2-2026", correction_effective_from: 2025-11-07}
+  - {document: GOST_21_204_2020, status: active, correction: "ИУС 7-2023", correction_effective_from: 2023-07-12}
+  - {document: GOST_R_21_101_2026, status: active, effective_from: 2026-04-01, correction: "ИУС 11-2026"}
+  - {document: GOST_2_303, role: "line_types"}
+  - {document: GOST_2_302, role: "scales"}
+
+working_set_composition:
+  source: GOST_21_508_2020
+  rules:
+    - id: spds.gp.working_set_composition
+      clause: "4.3"
+      automation: validation_only
+      statement: "Основной комплект рабочих чертежей генерального плана включает общие данные, разбивочный план, план организации рельефа, план земляных масс, сводный план сетей инженерно-технического обеспечения и план благоустройства территории."
+      required_drawings:
+        - general_data
+        - setting_out_plan
+        - relief_organization_plan
+        - earth_masses_plan
+        - utilities_master_plan
+        - site_improvement_plan
+
+    - id: spds.gp.combine_low_density_plans
+      clause: "4.4"
+      automation: conditional
+      statement: "При малой насыщенности изображений допускается совмещать несколько различных планов в один с соответствующим наименованием; такое совмещение не должно скрывать обязательные данные каждого исходного плана."
+
+recommended_scales:
+  source: GOST_21_508_2020
+  clause: "4.21; table 1"
+  automation: validation_only
+  statement: "Масштаб выбирают по насыщенности информацией; таблица задает рекомендуемые основные и допускаемые масштабы."
+  values:
+    situation_plan: {main: ["1:5000","1:10000"], allowed: ["1:25000"]}
+    setting_out_relief_earth_utilities_improvement: {main: ["1:500","1:1000"], allowed: ["1:2000"]}
+    plan_fragments: {main: ["1:200"], allowed: ["1:100"]}
+    sidewalk_path_platform_profiles: {main: ["1:20"], allowed: ["1:10"]}
+    nodes: {main: ["1:10"], allowed: []}
+
+setting_out_plan:
+  source: GOST_21_508_2020
+  rules:
+    - id: spds.gp.setting_out.coordinate_basis_required
+      automation: conditional
+      statement: "Разбивочный план должен иметь однозначную координатную привязку проектируемых объектов к строительной геодезической сетке, разбивочному базису либо иной принятой геодезической основе проекта. Координаты BIM/ГП не должны существовать как несвязанные локальные системы."
+
+    - id: spds.gp.setting_out.building_axes_interface
+      automation: validation_only
+      statement: "Координационные оси здания из АР и его геодезическая привязка на ГП должны ссылаться на одну согласованную систему; изменение посадки здания требует повторной проверки координат и разбивочных данных."
+
+relief_plan:
+  source: GOST_21_508_2020
+  rules:
+    - id: spds.gp.relief.base_from_setting_out
+      clause: "7.1"
+      automation: auto
+      statement: "План организации рельефа выполняют на основе разбивочного плана без нанесения координационных осей зданий/сооружений, координат, размеров и размерных привязок, которые относятся к разбивочному плану."
+
+    - id: spds.gp.relief.required_levels_and_slopes
+      clause: "7.2"
+      automation: validation_only
+      statement: "На плане организации рельефа показывают проектные/фактические отметки в предусмотренных стандартом характерных точках, проектные горизонтали или опорные отметки, направления уклонов, отметки верха/низа откосов, лестниц, подпорных стен и пандусов, а также водоотводные элементы и пониженные точки."
+
+    - id: spds.gp.relief.drainage_low_points
+      clause: "7.2"
+      automation: validation_only
+      statement: "Пониженные точки проектного рельефа и дождеприемные решетки должны быть координированы в модели/чертеже; геометрия благоустройства не должна создавать бессточные понижения без предусмотренного водоотвода."
+
+earth_masses:
+  source: GOST_21_508_2020
+  rules:
+    - id: spds.gp.earth_mass.method
+      clause: "8.1"
+      automation: validation_only
+      statement: "Объемы земляных масс, как правило, считают методом квадратов; допускаются другие методы, при этом содержание и форма плана должны соответствовать выбранному методу и условиям производства работ."
+
+    - id: spds.gp.earth_mass.geodetic_basis
+      clause: "8.2"
+      automation: validation_only
+      statement: "На плане земляных масс показывают строительную геодезическую сетку или заменяющий ее разбивочный базис; при методе квадратов — сетку расчета с проектными, фактическими и рабочими отметками, линией нулевых работ и объемами."
+
+line_graphics:
+  source: GOST_21_204_2020
+  rules:
+    - id: spds.gp.lines.table_scale_dependent
+      clause: "3.2; table 1"
+      automation: conditional
+      statement: "Для элементов генерального плана применяют линии по ГОСТ 2.303 с дополнительными требованиями ГОСТ 21.204; рекомендуемые толщины зависят от масштаба."
+      table_mm:
+        thick_main_s: {"1:5000_or_1:2000": 0.5, "1:1000": 0.7, "1:500": 1.0, "1:200_or_larger": 1.4, "1:5000_allowed": 0.35}
+        thin_s_div_3: {"1:5000_or_1:2000": 0.18, "1:1000": 0.25, "1:500": 0.35, "1:200_or_larger": 0.5, "1:5000_allowed": 0.13}
+        thin_thickened_2s_div_3: {"1:5000_or_1:2000": 0.35, "1:1000": 0.5, "1:500": 0.7, "1:200_or_larger": 1.0, "1:5000_allowed": 0.25}
+        dashed_thin_s_div_2: {"1:5000_or_1:2000": 0.25, "1:1000": 0.35, "1:500": 0.5, "1:200_or_larger": 0.7, "1:5000_allowed": 0.18}
+        dash_dot_thin_s_div_3: {"1:5000_or_1:2000": 0.18, "1:1000": 0.25, "1:500": 0.35, "1:200_or_larger": 0.7, "1:5000_allowed": 0.13}
+        dash_dot_thickened_2s_div_3: {"1:5000_or_1:2000": 0.35, "1:1000": 0.5, "1:500": 0.7, "1:200_or_larger": 1.0, "1:5000_allowed": 0.25}
+        dashed_thick_s: {"1:5000_or_1:2000": 0.5, "1:1000": 0.7, "1:500": 1.0, "1:200_or_larger": 1.4, "1:5000_allowed": 0.35}
+      note: "Значения в колонке 1:5000_allowed являются допускаемыми значениями, приведенными стандартом в скобках; не подменять ими основную рекомендацию для 1:2000."
+
+    - id: spds.gp.lines.projected_aboveground
+      clause: "3.3"
+      automation: auto
+      statement: "Проектируемые наземные/надземные здания, сооружения, инженерные сети и транспортные устройства изображают сплошной толстой основной линией."
+
+    - id: spds.gp.lines.projected_underground
+      clause: "3.3"
+      automation: auto
+      statement: "Проектируемые подземные здания, сооружения, инженерные сети и транспортные устройства изображают штриховой толстой линией толщиной s."
+
+    - id: spds.gp.lines.other_elements
+      clause: "3.3"
+      automation: validation_only
+      statement: "Иные элементы в области п.3.3 изображают сплошной тонкой линией толщиной s/3, если для конкретного элемента стандарт не устанавливает специальное обозначение."
+
+symbol_gate:
+  - id: spds.gp.standard_symbols_required
+    source: {document: GOST_21_204_2020, clause: "scope; section 3"}
+    automation: validation_only
+    statement: "Здания, покрытия, границы, сети, транспортные элементы, элементы озеленения и другие объекты ГП кодируются условными обозначениями стандарта; библиотека Archicad/САПР не должна подменять нормативный знак произвольной иконкой."
+
+model_document_sync:
+  - id: spds.gp.model_relief_and_drawing_sync
+    automation: auto
+    statement: "Проектные отметки, уклоны, контуры покрытий и водоотвод на листах ГП должны быть производными от одной проверенной цифровой модели рельефа/благоустройства либо проходить проверку совпадения с ней; ручной 2D-сдвиг отметок без изменения модели запрещается."
+
+  - id: spds.gp.site_building_origin_transform_recorded
+    automation: validation_only
+    statement: "Трансформация между локальной координатной системой здания (оси 1/А, нулевая отметка) и геодезической системой участка должна храниться как явные параметры проекта, а не определяться визуальным совмещением."
+
+BIM_required_parameters:
+  - site_coordinate_reference_system
+  - geodetic_setting_out_basis
+  - building_local_to_site_transform
+  - setting_out_coordinates
+  - existing_ground_level
+  - design_ground_level
+  - design_slope
+  - surface_breaklines
+  - stormwater_low_points
+  - utility_network_status_above_or_below_ground
+  - demolition_or_reconstruction_status
+  - site_plan_drawing_type
+  - site_plan_scale
+  - site_graphic_line_class
+
+agent_logic:
+  - "Не выпускать разбивочный план и план рельефа как один и тот же набор подписей: их информационный состав различается."
+  - "Толщина линии на ГП зависит от масштаба и смысла элемента; цвет пера в САПР должен лишь реализовывать этот смысл, а не определять его."
+  - "Подземную сеть нельзя отображать как проектируемую наземную сплошной толстой линией."
+  - "Не править проектные отметки только 2D-текстом после изменения цифрового рельефа."
+  - "Посадку здания на участке хранить через геодезическую привязку локальной системы осей здания."
+
+sources:
+  - "https://protect.gost.ru/gost/details/965635d0-c443-4d42-96ee-8ad1fab64986"
+  - "https://protect.gost.ru/gost/changesdetails/3aeddac9-0a6a-4f96-9c9d-1f3ca0b215bb"
+  - "https://base.garant.ru/400235883/"
+  - "https://protect.gost.ru/gost/details/d682ef8f-9ec0-453e-b6ee-eccdf0b7d780"
+  - "https://protect.gost.ru/gost/changesdetails/3f067a44-a7b6-475e-bce5-c31deee12052"
+  - "https://base.garant.ru/400111232/"

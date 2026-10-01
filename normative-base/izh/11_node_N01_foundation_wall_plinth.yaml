@@ -1,0 +1,177 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH
+purpose: "Детальный алгоритм узла фундамент–цоколь–наружная стена для ИЖС. Не задает расчетные размеры фундамента, армирование или толщину теплоизоляции без профильного расчета."
+
+normative_stack:
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_functional_and_safety_scope}
+  - {document: SP_22_13330_2016, changes: [1,2,3,4,5], role: soil_base_and_foundation_design}
+  - {document: SP_20_13330_2016, role: actions}
+  - {document: SP_63_13330_2018, role: RC_if_used}
+  - {document: SP_15_13330_2020, role: masonry_if_used}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_if_used}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_performance}
+  - {document: SP_28_13330_2017, changes: [1,2,3,4], role: corrosion_and_material_exposure}
+  - {document: SP_71_13330_2017, role: execution_of_insulation_finish_layers}
+
+engineering_model:
+  domains:
+    geotechnical:
+      questions:
+        - soil_stratigraphy_and_design_properties
+        - groundwater_and_seasonal_variation
+        - frost_heave_and_special_soils
+        - adjacent_excavations_or_structures
+        - required_settlement_and_bearing_checks
+      owner: KR_geotechnical
+    structural:
+      questions:
+        - load_path_from_wall_to_foundation_to_soil
+        - support_eccentricity_and_local_bearing
+        - foundation_type_and_section
+        - reinforcement_and_anchors
+        - differential_settlement_and_deformation
+      owner: KR
+    water:
+      questions:
+        - precipitation_and_splash_exposure
+        - surface_runoff_and_finished_ground_slope_strategy
+        - groundwater_or_perched_water
+        - capillary_rise
+        - waterproofing_continuity_at_floor_wall_foundation_transitions
+        - drainage_system_if_project_requires
+      owner: AR_KR
+    thermal_air_moisture:
+      questions:
+        - thermal_continuity_at_floor_foundation_wall_edge
+        - local_surface_temperature_and_condensation_risk
+        - air_tightness_transition
+        - vapor_moisture_behavior_of_layers
+        - protection_of_moisture_sensitive_masonry_or_timber
+      owner: AR_thermal
+    durability:
+      questions:
+        - aggressiveness_of_soil_water_atmosphere
+        - concrete_or_metal_protection
+        - freeze_thaw_exposure
+        - material_allowed_in_below_grade_or_plinth_zone
+      owner: KR_AR
+    MEP:
+      questions:
+        - water_sewer_electrical_gas_or_heat_entries
+        - sleeve_location_and_size
+        - settlement_or_movement_allowance
+        - waterproofing_and_air_seal_at_penetration
+      owner: MEP_KR_AR
+
+material_exposure_gates:
+  - id: izh.N01.aac_not_external_basement_or_foundation_wall
+    source: SP_28_13330_2017
+    source_clause: "7.2"
+    automation: forbidden_to_infer
+    condition: "AAC block itself proposed as exterior basement wall or foundation material"
+    statement: "Блоки из ячеистого бетона не применять как материал наружных стен подвалов и фундаментов в области п.7.2 СП 28. Узел должен переходить на допустимую подземную/цокольную конструкцию до этой зоны."
+    result: reject_material_location
+  - id: izh.N01.hollow_ceramic_not_external_basement_or_foundation_wall
+    source: SP_28_13330_2017
+    source_clause: "7.2"
+    automation: forbidden_to_infer
+    condition: "hollow ceramic brick/stone proposed as exterior basement wall or foundation material"
+    statement: "Пустотелые керамические кирпич и камни из перечня п.7.2 не применять для наружных стен подвалов и фундаментов."
+    result: reject_material_location
+  - id: izh.N01.silicate_exception_is_conditional
+    source: SP_28_13330_2017
+    source_clause: "7.2"
+    automation: conditional
+    statement: "Не считать силикатную кладку автоматически допустимой ниже уровня земли. Отдельное исключение СП 28 относится к полнотелым силикатным блокам заданной прочности/морозостойкости и только при перечисленных условиях гидроизоляции, теплоизоляции и неагрессивной среды; применять только после точной проверки материала и всех условий."
+
+required_node_parts:
+  structural:
+    - foundation_host_geometry_from_KR
+    - confirmed_wall_support_zone
+    - leveling_or_bedding_interface_if_projected
+    - anchors_reinforcement_ties_only_from_KR
+  moisture:
+    - horizontal_capillary_control_at_masonry_or_timber_transition_when_required_by_system
+    - vertical_or_other_waterproofing_system_when_required_by_exposure_and_project
+    - waterproofing_transition_to_ground_floor_or_basement_floor_if_present
+    - protected_termination_of_waterproofing
+    - surface_water_shedding_away_from_building
+    - plinth_finish_or_protective_layer_compatible_with_substrate
+  thermal_air:
+    - calculated_thermal_layer_continuity
+    - local_thermal_bridge_treatment_at_foundation_edge
+    - continuous_air_control_transition_to_wall_and_floor
+    - vapor_control_transition_if required by assembly calculation
+  durability:
+    - corrosion_protection_for_embedded_metal_or_RC_as_required
+    - freeze_thaw_exposure_solution
+    - incompatible_material_separation_if required
+  MEP:
+    - preplanned_sleeves_or_openings
+    - water_air_gas_fire_seal_as_applicable
+    - settlement_movement_allowance_as required
+
+algorithm:
+  - step: 1_geotech_gate
+    require: [engineering_geology, topographic_levels, groundwater_data, loads]
+    fail: needs_geotechnical_and_structural_design
+  - step: 2_foundation_KR
+    action: "Получить тип, геометрию, армирование, отметки, расчетную опорную зону стены и допустимые проходки из КР."
+  - step: 3_material_location_gate
+    action: "Проверить, какие материалы фактически находятся в грунте, подвале, цоколе и брызговой зоне; применить СП 28 и материал-специфический pack."
+  - step: 4_water_path
+    action: "Построить непрерывную схему: атмосферная вода -> отвод от фасада; грунтовая/капиллярная влага -> барьер/гидроизоляция/дренаж по проекту; ни один слой не должен заканчиваться в точке, где вода уходит в чувствительный материал."
+  - step: 5_thermal_air_path
+    action: "Проверить непрерывность тепло- и воздухозащитного контуров через край пола/фундамента/стены; локальный узел валидировать расчетом, а не только приведенным сопротивлением плоской стены."
+  - step: 6_MEP
+    action: "До выпуска узла вставить только согласованные гильзы/проходки; не бурить расчетный фундамент постфактум по трассе."
+  - step: 7_constructability
+    action: "Проверить последовательность: фундамент -> подготовка основания -> гидро/теплозащита -> стена/каркас -> защитные/отделочные слои -> обратная засыпка/отмостка/планировка. Скрываемые слои должны иметь контроль до закрытия."
+  - step: 8_BIM_readback
+    action: "Проверить отметки, опорную зону, толщины подтвержденных слоев, места проходок, NODE_ID и отсутствие конфликтов с MEP."
+
+archicad_recipe:
+  hosts:
+    foundation: "Native Slab/Beam/Wall/Column composition selected by actual KR semantics; not one universal foundation object."
+    external_wall: native_Wall
+    ground_floor: native_Slab_if_applicable
+  repeated_nonrectangular_plinth_profile:
+    preferred: Complex_Profile_when_true_repeated_section
+    tapir: [GetProfiles, CreateProfiles]
+  associative_cut_or_recess:
+    preferred: SEO_or_Opening_when_semantically_correct
+    tapir: [CreateSolidElementLinks, GetSolidElementLinks, CreateOpenings]
+  waterproofing_membrane:
+    default_representation: property_plus_detail_2d
+    model_3d_if: "Thickness/position materially affects coordination or quantities required by project."
+  MEP_entry:
+    tapir: [CreateMEPRoutingElements, CreateOpenings, ConnectMEPElements]
+    hard_gate: KR_approved_location
+
+postconditions:
+  - foundation_and_wall_GUIDs_exist_and_types_match
+  - wall_support_relation_matches_KR_reference_geometry
+  - no_unapproved_opening_in_structural_host
+  - material_location_gates_pass
+  - thermal_air_moisture_review_status_is_valid
+  - all_waterproofing_terminations_documented
+  - NODE_ID_and_revision_written
+
+never_auto_assign:
+  - foundation_depth
+  - foundation_width_or_thickness
+  - reinforcement
+  - wall_eccentricity
+  - anchor_type_or_spacing
+  - waterproofing_product_or_number_of_layers
+  - drainage_need_or_geometry_without_project_inputs
+  - insulation_thickness
+  - sleeve_size_or_location
+
+sources:
+  - "SP 22.13330.2016 section 8: low-rise foundations; current consolidated edition with Changes 1-5"
+  - "SP 28.13330.2017 clause 7.2: masonry material exposure restrictions"
+  - "SP 50.13330.2024: thermal protection and air permeability"
+  - "SP 55.13330.2016 Changes 1-2"

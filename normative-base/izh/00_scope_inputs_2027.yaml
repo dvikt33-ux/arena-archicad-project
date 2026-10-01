@@ -1,0 +1,113 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Исходные данные и fail-closed границы для подбора конструктивной системы и архитектурно-конструктивных узлов одноквартирного дома."
+
+primary_functional_code:
+  document: SP_55_13330_2016
+  title: "Дома жилые одноквартирные"
+  verified_changes: [1, 2]
+  change_2_effective_from: 2023-06-18
+  official_status_url: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  change_2_url: "https://protect.gost.ru/sp/changesdetails/c03b2bb8-b87d-4f52-87a0-7ca68372209b"
+  scope_gate: "Применять только после подтверждения, что объект входит в область действия СП 55; специальное назначение/условия могут требовать дополнительных СП."
+
+required_input_groups:
+  site:
+    - cadastral_and_planning_constraints
+    - topographic_survey
+    - finished_and_existing_ground_levels
+    - adjacent_buildings_and_utilities
+    - access_and_drainage_context
+  engineering_geology:
+    - stratigraphy
+    - physical_mechanical_soil_properties
+    - groundwater_levels_and_seasonality
+    - frost_heave_and_special_soil_conditions
+    - aggressiveness_to_concrete_and_metals
+    - engineering_geological_conclusion
+  climate_and_actions:
+    - climate_location_and_subdistrict
+    - snow_actions
+    - wind_actions
+    - seismicity_if_applicable
+    - temperature_humidity_conditions
+  architecture:
+    - levels
+    - spans
+    - loadbearing_grid_or_wall_scheme
+    - openings
+    - room_functions
+    - wet_zones
+    - roof_geometry_and_covering_intent
+  engineering_systems:
+    - water_source
+    - sewerage_solution
+    - heating_source
+    - ventilation_strategy
+    - electrical_supply
+    - gas_supply_if_any
+    - confirmed_shafts_routes_and_equipment
+  project_targets:
+    - durability_and_service_life_category
+    - energy_performance_target
+    - acoustic_requirements
+    - fire_requirements
+    - maintainability_requirements
+    - manufacturer_system_constraints_if_selected
+
+normative_dependencies:
+  structural:
+    - {document: SP_20_13330_2016, topic: loads, revision_gate: revision_watch_2027.yaml}
+    - {document: SP_22_13330_2016, topic: foundations_and_soils, revision_gate: revision_watch_adjacent_2027.yaml}
+    - {document: SP_24_13330_2021, topic: pile_foundations, revision_gate: revision_watch_adjacent_2027.yaml}
+    - {document: SP_63_13330_2018, topic: reinforced_concrete, revision_gate: revision_watch_2027.yaml}
+    - {document: SP_64_13330_2017, topic: timber_structures, revision_gate: revision_watch_2027.yaml}
+    - {document: SP_15_13330_2020, topic: masonry, revision_gate: revision_watch_2027.yaml}
+    - {document: SP_16_13330_2017, topic: steel, revision_gate: revision_watch_adjacent_2027.yaml}
+  envelope_and_finishes:
+    - {document: SP_50_13330_2024, topic: thermal_protection}
+    - {document: SP_17_13330_2017, topic: roofs}
+    - {document: SP_28_13330_2017, topic: corrosion_protection}
+    - {document: SP_29_13330_2011, topic: floors, status_gate: target_2027_and_revision_watch}
+    - {document: SP_71_13330_2017, topic: insulation_and_finishes, revision_gate: revision_watch_2027.yaml}
+  engineering:
+    - {document: SP_30_13330_2020, topic: internal_water_and_sewerage}
+    - {document: SP_60_13330_2020, topic: hvac}
+    - {document: SP_256_1325800_2016, topic: electrical}
+    - {document: SP_402_1325800_2018, topic: residential_gas_if_applicable}
+
+hard_fail_gates:
+  - id: izh.input.no_geotech_no_foundation
+    automation: forbidden_to_infer
+    statement: "Не выбирать тип, отметку заложения, размеры или армирование фундамента без достаточных инженерно-геологических данных и расчета КР."
+    result: needs_geotechnical_and_structural_design
+  - id: izh.input.no_loads_no_structure
+    automation: forbidden_to_infer
+    statement: "Не назначать несущие стены, балки, перемычки, колонны, стропила, перекрытия и их соединения по типовым значениям без расчетной схемы и подтвержденных нагрузок."
+    result: needs_structural_calculation
+  - id: izh.input.no_thermal_calc_no_envelope
+    automation: forbidden_to_infer
+    statement: "Не назначать толщину утеплителя и окончательный пирог наружной ограждающей конструкции только по климатическому региону или каталожному примеру."
+    result: needs_thermal_moisture_calculation
+  - id: izh.input.no_kr_no_bearing_penetration
+    automation: forbidden_to_infer
+    statement: "Не создавать отверстие или подрезку несущей конструкции под инженерную трассу без согласованного КР решения."
+    result: needs_structural_coordination
+  - id: izh.input.no_system_data_no_mep_size
+    automation: forbidden_to_infer
+    statement: "Не назначать диаметры, сечения, мощности и размеры инженерных шахт по типовым коэффициентам при отсутствии профильного расчета."
+    result: needs_engineering_design
+
+agent_sequence:
+  - classify_building_and_scope
+  - load_RU_2027_PLUS_overrides
+  - validate_revision_levels
+  - collect_site_and_geotechnical_inputs
+  - collect_architecture_and_system_inputs
+  - generate_compatible_construction_candidates
+  - run_normative_and_calculation_gates
+  - select_candidate_only_after_project_criteria_are_defined
+  - generate_nodes_as_multicontour_systems
+  - model_in_archicad
+  - read_back_and_validate_geometry_properties_and_relations

@@ -1,4 +1,4 @@
-manifest_version: 58
+manifest_version: 59
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -127,6 +127,8 @@ rule_files:
   - 69_roof_drainage_interfaces.yaml
   - 70_trk_multifunctional_planning_2027.yaml
   - 71_public_special_functions_2027.yaml
+  - 72_precast_stair_products.yaml
+  - 73_deformation_temperature_joints.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

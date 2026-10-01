@@ -1,5 +1,5 @@
-manifest_version: 39
-checked_at: 2026-09-30
+manifest_version: 40
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
 load_order:
@@ -31,6 +31,9 @@ load_order:
     files: rules/*.yaml
     role: verified architectural and BIM rules
   - priority: 10
+    file: izh/manifest.yaml
+    role: detached-house construction-system and node-engineering package; material-specific recipes inherit all global 2027 gates
+  - priority: 11
     file: AUDIT.md
     role: human-readable audit trail
 
@@ -47,6 +50,7 @@ precedence_rules:
   - Manufacturer or product geometry cannot be invented from common market sizes.
   - Draft, accepted-but-not-active, or otherwise unapproved future documents never become active rules.
   - Expired or repealed rules without an applicable official replacement produce blocked or unresolved state.
+  - IZH material packs may specialize global rules but cannot weaken a global hard-fail or bypass KR/thermal/MEP calculation gates.
 
 rule_files:
   - 00_modular_coordination.yaml
@@ -105,6 +109,12 @@ rule_files:
   - 52_garant_stairwell_type_verification.yaml
   - 53_garant_residential_planning_verification.yaml
 
+packages:
+  - id: IZH_NODE_ENGINEERING
+    manifest: izh/manifest.yaml
+    target_profile: RU_2027_PLUS
+    scope: detached_single_family_houses_within_SP55_scope
+
 hard_fail_states:
   - yaml_parse_error
   - duplicate_rule_id
@@ -121,11 +131,12 @@ hard_fail_states:
   - required_manufacturer_data_missing
   - dimension_semantics_unknown
   - object_classification_missing
+  - package_scope_mismatch
 
 release_gate:
   require:
     - all YAML files parse successfully
-    - no duplicate machine rule ids across rules
+    - no duplicate machine rule ids across rules and loaded packages
     - no automatic rule references a superseded clause for target 2027
     - numeric automatic rules have source document and clause or table
     - future transitions have official effective dates
@@ -136,3 +147,4 @@ release_gate:
     - draft and accepted-but-not-active normative documents are never marked active
     - clear dimensions are validated as clear dimensions
     - pending topics remain fail-closed
+    - loaded package target_profile matches RU_2027_PLUS

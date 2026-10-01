@@ -38,7 +38,7 @@ core_documents:
   - {document: SP_54_13330_2022, topic: apartment_buildings, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"}
   - {document: SP_59_13330_2020, topic: accessibility, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"}
   - {document: SP_60_13330_2020, topic: hvac, official_latest_change: 6, status: active, source_url: "https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262"}
-  - {document: SP_63_13330_2018, topic: reinforced_concrete, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c3a58c667"}
+  - {document: SP_63_13330_2018, topic: reinforced_concrete, official_latest_change: 2, status: active, source_url: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c667"}
   - document: SP_70_13330_2012
     topic: construction_of_bearing_and_enclosing_structures
     official_latest_change: 8

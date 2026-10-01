@@ -8,11 +8,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
+IZH = ROOT / "izh"
 EXPECTED_PROFILE = "RU_2027_PLUS"
 
 
 def is_machine_rule(node: dict[str, Any]) -> bool:
-    """Distinguish rule identifiers from repeated document/dependency identifiers."""
+    """Distinguish machine-rule identifiers from repeated document/node catalog IDs."""
     rule_markers = {
         "automation",
         "auto_rule",
@@ -21,6 +22,7 @@ def is_machine_rule(node: dict[str, Any]) -> bool:
         "requires_calculation",
         "requires_manufacturer_data",
         "agent_action",
+        "result",
     }
     return isinstance(node.get("id"), str) and bool(rule_markers.intersection(node))
 
@@ -35,6 +37,17 @@ def walk_rule_ids(node: Any, path: str = ""):
     elif isinstance(node, list):
         for i, value in enumerate(node):
             yield from walk_rule_ids(value, f"{path}[{i}]")
+
+
+def validate_profile_file(file: Path, doc: Any, errors: list[str]) -> None:
+    if not isinstance(doc, dict):
+        errors.append(f"profile file must have mapping root: {file.relative_to(ROOT)}")
+        return
+    profile = doc.get("target_profile")
+    if profile is not None and profile != EXPECTED_PROFILE:
+        errors.append(f"wrong target_profile in {file.relative_to(ROOT)}: {profile!r}")
+    if "checked_at" not in doc:
+        errors.append(f"missing checked_at: {file.relative_to(ROOT)}")
 
 
 def main() -> int:
@@ -53,29 +66,24 @@ def main() -> int:
 
     seen_rule_ids: dict[str, tuple[Path, str]] = {}
     for file, doc in parsed.items():
-        if file.parent == RULES:
-            if not isinstance(doc, dict):
-                errors.append(f"rule file must have mapping root: {file.relative_to(ROOT)}")
-                continue
-            profile = doc.get("target_profile")
-            if profile is not None and profile != EXPECTED_PROFILE:
+        in_rules = file.parent == RULES
+        in_izh = file.parent == IZH
+        if not (in_rules or in_izh):
+            continue
+        validate_profile_file(file, doc, errors)
+        if not isinstance(doc, dict):
+            continue
+        for rule_id, node_path in walk_rule_ids(doc):
+            previous = seen_rule_ids.get(rule_id)
+            if previous:
+                p_file, p_path = previous
                 errors.append(
-                    f"wrong target_profile in {file.relative_to(ROOT)}: {profile!r}"
+                    "duplicate machine rule id "
+                    f"{rule_id!r}: {p_file.relative_to(ROOT)}:{p_path} and "
+                    f"{file.relative_to(ROOT)}:{node_path}"
                 )
-            if "checked_at" not in doc:
-                errors.append(f"missing checked_at: {file.relative_to(ROOT)}")
-
-            for rule_id, node_path in walk_rule_ids(doc):
-                previous = seen_rule_ids.get(rule_id)
-                if previous:
-                    p_file, p_path = previous
-                    errors.append(
-                        "duplicate machine rule id "
-                        f"{rule_id!r}: {p_file.relative_to(ROOT)}:{p_path} and "
-                        f"{file.relative_to(ROOT)}:{node_path}"
-                    )
-                else:
-                    seen_rule_ids[rule_id] = (file, node_path)
+            else:
+                seen_rule_ids[rule_id] = (file, node_path)
 
     manifest = parsed.get(ROOT / "manifest.yaml")
     if isinstance(manifest, dict):
@@ -90,6 +98,21 @@ def main() -> int:
     else:
         errors.append("manifest.yaml missing or invalid")
 
+    izh_manifest = parsed.get(IZH / "manifest.yaml")
+    if isinstance(izh_manifest, dict):
+        listed = set(izh_manifest.get("load_order") or [])
+        actual = {p.name for p in IZH.glob("*.yaml") if p.name != "manifest.yaml"}
+        missing = sorted(actual - listed)
+        stale = sorted(listed - actual)
+        if missing:
+            errors.append(f"IZH manifest missing YAML files: {missing}")
+        if stale:
+            errors.append(f"IZH manifest lists absent YAML files: {stale}")
+        if izh_manifest.get("target_profile") != EXPECTED_PROFILE:
+            errors.append("IZH manifest target_profile mismatch")
+    else:
+        errors.append("izh/manifest.yaml missing or invalid")
+
     if errors:
         print("NORMATIVE BASE VALIDATION FAILED")
         for error in errors:
@@ -98,7 +121,7 @@ def main() -> int:
 
     print(
         f"OK: {len(yaml_files)} YAML files parsed; "
-        f"{len(seen_rule_ids)} unique machine rule ids; manifest synchronized."
+        f"{len(seen_rule_ids)} unique machine rule ids; manifests synchronized."
     )
     return 0
 

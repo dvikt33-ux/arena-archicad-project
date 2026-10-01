@@ -1,0 +1,158 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Пожарная архитектурная координация стоянок автомобилей по СП 551.1311500.2026, действующему с 01.06.2026. Используется совместно, а не вместо геометрического СП 113.13330.2023."
+
+source_document:
+  document: SP_551_1311500_2026
+  title: "Системы противопожарной защиты. Стоянки автомобилей. Требования пожарной безопасности"
+  status: active
+  effective_from: 2026-06-01
+  approving_act: "Приказ МЧС России от 31.03.2026 №226"
+  official_source_url: "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+
+scope:
+  applies_to:
+    - automobile_parking
+    - minibus_parking
+    - electric_vehicle_parking
+    - plug_in_hybrid_parking
+    - motorcycle_parking
+    - personal_mobility_device_storage
+  exclusions_note: "Точные исключения области применения проверять по разделу 1 СП 551; не переносить правила на транспорт и опасные грузы вне области документа."
+
+fire_compartment_router:
+  - id: parking.fire.compartment_parameters_route_to_SP2
+    source: {document: SP_551_1311500_2026, clause: "5.1"}
+    automation: manual_calculation
+    statement: "Степень огнестойкости, класс конструктивной пожарной опасности, допустимые этажность и площадь этажа в пределах пожарного отсека стоянки определяют по СП 2.13130."
+    requires_calculation: true
+    conflict_policy: "Не хранить универсальную площадь пожарного отсека парковки без определения типа стоянки и требований СП 2.13130."
+
+  - id: parking.fire.mixed_above_below_compartment_area
+    source: {document: SP_551_1311500_2026, clause: "5.1"}
+    automation: validation_only
+    statement: "Если один пожарный отсек включает наземные и подземные этажи, максимальную площадь этажа для наземных этажей определяют как для наземной стоянки, для подземных — как для подземной."
+
+  - id: parking.fire.split_level_storey_semantics
+    source: {document: SP_551_1311500_2026, clause: "5.1"}
+    automation: conditional
+    statement: "Для стоянок с полуэтажами общее число этажей определяют как число полуэтажей, деленное на два; площадь этажа — как сумму площадей двух смежных полуэтажей и соединяющих их пандусов."
+    conflict_policy: "Не использовать количество BIM-уровней как этажность без этой нормализации."
+
+  - id: parking.fire.two_level_floor_slab_REI90
+    source: {document: SP_551_1311500_2026, clause: "5.1"}
+    automation: conditional
+    statement: "Предел огнестойкости междуэтажных перекрытий этажа с двухуровневыми парковками предусматривают не менее REI 90."
+    conditions: {parking_floor_type: two_level}
+    values: {min_fire_resistance: "REI 90"}
+
+firefighter_lift:
+  - id: parking.fire.firefighter_lift_trigger
+    source: {document: SP_551_1311500_2026, clause: "5.7"}
+    automation: conditional
+    statement: "Лифт для транспортировки пожарных подразделений требуется в наземной закрытой стоянке высотой более 15 м и в подземной стоянке с тремя и более подземными этажами в каждом пожарном отсеке."
+    any_conditions:
+      - {parking_type: aboveground_closed, building_height_mm: {greater_than: 15000}}
+      - {parking_type: underground, underground_storeys_per_fire_compartment: {min: 3}}
+    conflict_policy: "Оборудование и шахту дополнительно проверять по ГОСТ Р 53296 и rules/30_firefighter_lifts.yaml; обычный пассажирский лифт не считать соответствующим автоматически."
+
+ramp_fire_separation:
+  source: SP_551_1311500_2026
+  clause: "7.16"
+  rules:
+    - id: parking.fire.common_ramp_separation_required
+      automation: conditional
+      statement: "В закрытых стоянках общие для двух и более этажей рампы должны отделяться на каждом этаже от помещений хранения автомобилей противопожарными преградами и противопожарными воротами/дверями/шторами; для подземных этажей требуется также тамбур-шлюз с подпором воздуха, кроме прямо предусмотренного исключения."
+      conditions: {parking_type: closed, ramp_serves_storeys: {min: 2}}
+
+    - id: parking.fire.underground_ramp_barrier
+      automation: conditional
+      statement: "Для подземного этажа ограждающие конструкции общей рампы должны иметь предел огнестойкости не менее REI(EI) 45, ворота/двери/шторы — EI 30."
+      conditions: {storey_type: underground, common_ramp: true}
+      values: {ramp_enclosure_min: "REI(EI) 45", ramp_gate_door_curtain_min: "EI 30"}
+
+    - id: parking.fire.underground_ramp_airlock_depth
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Тамбур-шлюз подземной общей рампы должен иметь глубину, обеспечивающую открывание ворот, но не менее 1,5 м."
+      conditions: {storey_type: underground, common_ramp: true, exception_not_applicable: true}
+      values: {absolute_min_clear_depth_mm: 1500}
+      conflict_policy: "Итоговая глубина = максимум 1500 мм и фактического габарита, необходимого для открывания ворот/дверей; 1500 мм не является достаточным автоматически."
+
+    - id: parking.fire.aboveground_ramp_barrier
+      automation: conditional
+      statement: "Для надземного этажа ограждающие конструкции общей рампы должны иметь предел огнестойкости не менее REI(EI) 15, ворота/двери/шторы — EI 15; тамбур-шлюз по таблице 7.16 не требуется."
+      conditions: {storey_type: aboveground, common_ramp: true}
+      values: {ramp_enclosure_min: "REI(EI) 15", ramp_gate_door_curtain_min: "EI 15", airlock_required_by_7_16: false}
+
+fuel_spread_control:
+  - id: parking.fire.fuel_spread_at_ramp_and_compartment_interfaces
+    source: {document: SP_551_1311500_2026, clause: "7.15"}
+    automation: validation_only
+    statement: "В местах въезда-выезда на рампу или в смежный пожарный отсек закрытой стоянки, а также в других случаях п.7.15 предусматривают меры против растекания топлива, включая пандусы-пороги и лотки."
+    conflict_policy: "Не моделировать порог типовым размером без проектного решения водоотведения/технологии; наличие меры должно быть подтверждено узлом."
+
+fuel_type_restrictions:
+  - id: parking.fire.LPG_underground_forbidden
+    source: {document: SP_551_1311500_2026, clause: "10.4"}
+    automation: auto
+    statement: "В подземных стоянках хранение газобаллонных автомобилей не допускается."
+    conditions: {parking_type: underground, vehicle_fuel_class: gas_cylinder}
+    result: forbidden
+
+  - id: parking.fire.gas_vehicle_closed_parking_separate_building
+    source: {document: SP_551_1311500_2026, clause: "5.8"}
+    automation: conditional
+    statement: "Закрытые стоянки для газобаллонных автомобилей предусматриваются в отдельно стоящих зданиях/сооружениях в области п.5.8; помещения хранения размещают только на наземных этажах, рампы предусматривают изолированными."
+    conditions: {parking_type: closed, vehicle_fuel_class: gas_cylinder}
+
+escape_routes:
+  - id: parking.fire.egress_route_to_SP1
+    source: {document: SP_551_1311500_2026, clause: "11.1"}
+    automation: validation_only
+    statement: "Пути эвакуации и эвакуационные выходы стоянок должны соответствовать СП 1.13130; отдельная геометрия машино-мест и автомобильных проездов не заменяет проверку людских путей эвакуации."
+
+  - id: parking.fire.one_storey_underground_stair_exception
+    source: {document: SP_551_1311500_2026, clause: "11.2"}
+    automation: conditional
+    statement: "В одноэтажной подземной стоянке допускаются обычные лестничные клетки без естественного освещения при выходе непосредственно наружу."
+    conditions: {parking_type: underground, underground_storeys: 1, stair_exit: directly_outside}
+    conflict_policy: "Не переносить исключение на многоэтажную подземную стоянку или лестницу без непосредственного выхода наружу."
+
+fire_distance_router:
+  - id: parking.fire.distance_to_residential_public_by_SP4
+    source: {document: SP_551_1311500_2026, clause: "4.1"}
+    automation: validation_only
+    statement: "Противопожарные расстояния от жилых и общественных зданий до наземных стоянок, включая выступающие части встроенно-пристроенных стоянок, принимают как до складских зданий по СП 4.13130."
+    conflict_policy: "Не использовать градостроительный бытовой разрыв как замену пожарному расстоянию."
+
+BIM_required_parameters:
+  - parking_type
+  - parking_open_closed_status
+  - aboveground_height_mm
+  - underground_storeys
+  - underground_storeys_per_fire_compartment
+  - fire_compartment_id
+  - parking_floor_type
+  - ramp_id
+  - ramp_served_storeys
+  - ramp_enclosure_fire_resistance
+  - ramp_gate_fire_resistance
+  - ramp_airlock_clear_depth_mm
+  - ramp_airlock_pressurization_status
+  - fuel_spread_control_node
+  - vehicle_fuel_class
+  - firefighter_lift_status
+  - egress_stair_type
+
+agent_logic:
+  - "Всегда загружать СП 551 вместе с СП 113 для новой стоянки 2027+: СП 113 задает планировочную геометрию, СП 551 — пожарные ограничения."
+  - "Не оптимизировать или удалять тамбур-шлюз общей подземной рампы только потому, что автомобильная траектория проходит без него."
+  - "Глубина 1500 мм тамбур-шлюза — абсолютный минимум; геометрия открывания ворот может потребовать больше."
+  - "Площадь пожарного отсека и допустимую этажность не брать из памяти: маршрутизировать на действующий СП 2.13130."
+  - "Перед размещением EV/LPG и зарядной инфраструктуры классифицировать вид транспортного средства и применимые специальные требования СП 551."
+
+sources:
+  - "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+  - "https://www.consultant.ru/document/cons_doc_LAW_534132/"
+  - "https://base.garant.ru/414155787/"

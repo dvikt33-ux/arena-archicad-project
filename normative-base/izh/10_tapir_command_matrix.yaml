@@ -1,0 +1,91 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+upstream_source_commit_checked: "654037ee8773a19a30eb4243257ca7537e40aa55"
+purpose: "Source-verified command matrix for IZH node recipes. Presence in upstream does not authorize direct use through safe-applier."
+
+status_semantics:
+  available_upstream: "Exact command name found in current Tapir source/docs/examples."
+  wrapper_needed: "Upstream primitive exists; project safe layer needs typed schema/preconditions/postconditions."
+  unresolved: "Exact required command/semantic has not yet been proven present or absent."
+  extension_needed: "May only be assigned after source + command schema + live availability audit proves absence."
+
+commands:
+  - {command: CreateWalls, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0"}
+  - {command: ModifyWalls, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", note: "Only supplied optional fields are changed; writable geometry is schema-limited."}
+  - {command: CreateSlabs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.0.3"}
+  - {command: CreateRoofs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", note: "Current command supports multi-plane roof creation; exact single-plane behavior/schema must be selected from command schema."}
+  - {command: CreateStairs, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.0"}
+  - {command: CreateWindows, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Floor-plan/database context affects successful creation in documented source issue/comment."}
+  - {command: CreateDoors, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", host: wall, context_hazard: "Treat database/view context as preflight state."}
+  - {command: CreateOpenings, domain: element, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", verified_component_hosts: [wall, slab, beam, mesh], note: "Do not assume every native Archicad Opening host is exposed by this Tapir command without schema/live verification."}
+  - {command: ModifyOpenings, domain: element, upstream: unresolved, project: unresolved}
+  - {command: DeleteElements, domain: element, upstream: available_upstream, project: wrapper_needed, safety: "GUID/type/revision preconditions + explicit authorization + post-delete readback."}
+
+  - {command: CreateSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
+  - {command: RemoveSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
+  - {command: GetSolidElementLinks, domain: relation, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", role: mandatory_SEO_postcondition}
+
+  - {command: CreateProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4", semantics: "Create/overwrite Profile attributes using existing profile geometry plus supported overrides."}
+  - {command: GetProfiles, domain: attribute, upstream: available_upstream, project: wrapper_needed, role: profile_template_and_readback}
+  - {command: ApplyFavoritesToElements, domain: favorite, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.4"}
+
+  - {command: CreateDetails, domain: document, upstream: available_upstream, project: wrapper_needed, verified_version: "1.4.0", semantics: independent_detail_database}
+  - {command: CreateWorksheets, domain: document, upstream: available_upstream, project: wrapper_needed}
+  - {command: CreateSourceBasedDetailMarker, domain: document, upstream: unresolved, project: unresolved, note: "Conceptual command name only; no exact command has been verified. Do not call this name."}
+
+  - {command: CreateMEPRoutingElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28}
+  - {command: ModifyMEPRoutingElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28}
+  - {command: ConnectMEPElements, domain: MEP, upstream: available_upstream, project: wrapper_needed, verified_version: "1.5.6", min_archicad: 28, semantics: "Connect routes/elements; can merge/split/create branch elements as needed."}
+
+node_recipe_mapping:
+  IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH:
+    likely_primitives: [CreateWalls, CreateSlabs, CreateProfiles, CreateSolidElementLinks, GetSolidElementLinks]
+    warning: "Foundation semantics may require a Slab/Beam/Wall/Column composition chosen by actual structural system; command availability does not decide structural representation."
+  IZH_N03_MASONRY_WALL_FLOOR:
+    likely_primitives: [CreateWalls, CreateSlabs, CreateSolidElementLinks, GetSolidElementLinks]
+  IZH_N05_WINDOW_HEAD_JAMB_SILL:
+    likely_primitives: [CreateWalls, CreateWindows, CreateProfiles, ApplyFavoritesToElements, CreateDetails]
+    warning: "Window block/favorite and actual installation joint remain product/project data; independent Detail is documentation, not source of truth."
+  IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES:
+    likely_primitives: [CreateWalls, CreateRoofs, CreateSolidElementLinks, GetSolidElementLinks, CreateProfiles]
+  IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN:
+    likely_primitives: [CreateSlabs, CreateWalls, CreateMEPRoutingElements, ConnectMEPElements, CreateOpenings]
+  IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL:
+    likely_primitives: [CreateMEPRoutingElements, ConnectMEPElements, CreateOpenings]
+    hard_gate: "KR approval before structural Opening create."
+
+project_implementation_order:
+  P0:
+    - runtime_command_schema_handshake
+    - typed_CreateWalls_CreateSlabs_CreateOpenings
+    - typed_DeleteElements_with_preconditions
+    - typed_SEO_create_remove_get
+    - typed_element_detail_readback
+    - node_id_property_write_and_verify
+  P1:
+    - typed_CreateWindows_CreateDoors
+    - typed_CreateRoofs_CreateStairs
+    - typed_GetProfiles_CreateProfiles
+    - typed_ApplyFavoritesToElements
+    - typed_MEP_routes_and_connections
+  P2:
+    - independent_Detail_Worksheet_output
+    - source_based_detail_marker_if_upstream_support_is_proven
+
+extension_policy:
+  confirmed_Tapir_extension_needed: false
+  current_reason: "All currently critical IZH node primitives audited so far are present upstream except several unresolved higher-level/document-edit semantics."
+  fork_gate: "Do not extend Tapir until exact missing semantic is demonstrated absent from source registration, command definitions and live command availability for Archicad 29."
+
+source_paths:
+  - archicad-addon/Sources/AddOnMain.cpp
+  - archicad-addon/Sources/ExtendedElementCommands.cpp
+  - archicad-addon/Sources/ElementCreationCommands.cpp
+  - archicad-addon/Sources/SolidElementOperationCommands.cpp
+  - archicad-addon/Sources/AttributeCommands.cpp
+  - archicad-addon/Sources/DocumentCreationCommands.cpp
+  - archicad-addon/Sources/MEPCommands.cpp
+  - archicad-addon/Sources/FavoritesCommands.cpp
+  - docs/archicad-addon/command_definitions.js
+  - docs/archicad-addon/common_schema_definitions.js

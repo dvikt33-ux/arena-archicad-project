@@ -1,11 +1,13 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
-purpose: "Контроль официальных ревизий смежных КР/ПОС/инженерных СП, которые архитектурный агент не рассчитывает самостоятельно, но обязан учитывать при координации модели 2027+."
+purpose: "Контроль официальных ревизий смежных КР/ПОС/инженерных/пожарных СП, которые архитектурный агент не рассчитывает самостоятельно, но обязан учитывать при координации модели 2027+."
 
 policy:
   - "Этот файл не дает архитектурному агенту права рассчитывать конструкции или инженерные системы."
   - "Если смежный раздел проекта использует revision_level ниже указанного, соответствующая координация BIM блокируется до актуализации профильным специалистом."
   - "Отложенные части изменений, официально вводимые 01.03.2027, считаются применимыми для целевого профиля 2027+."
+  - "Если новый СП заменил прежний документ, совпадение номера изменения старого СП не считается достаточным: проверяется document identity."
+  - "Поправка без нового номера изменения может быть обязательной частью текущего текста и должна храниться отдельно от revision_level."
 
 structural_and_execution:
   - document: SP_14_13330_2018
@@ -60,6 +62,86 @@ structural_and_execution:
     status: active
     source_url: "https://protect.gost.ru/sp/changesdetails/a7603f31-681d-4100-9494-b6fce1fb661b"
 
+engineering_design:
+  - document: SP_60_13330_2020
+    topic: heating_ventilation_air_conditioning
+    official_latest_change: 6
+    change_6_effective_from: 2026-07-07
+    status: active
+    required_revision_label: "changes_1_2_3_4_5_6"
+    source_url: "https://protect.gost.ru/sp/changesdetails/25d65837-dfb6-408b-948f-e7f254851ded"
+
+  - document: SP_30_13330_2020
+    topic: internal_water_supply_and_sewerage
+    official_latest_change: 5
+    change_5_effective_from: 2025-02-25
+    status: active
+    required_revision_label: "changes_1_2_3_4_5"
+    source_url: "https://protect.gost.ru/sp/changesdetails/5c93cef4-e7dd-472f-9cb4-99bca869186d"
+
+  - document: SP_256_1325800_2016
+    topic: electrical_installations_residential_public
+    official_latest_change: 9
+    change_9_effective_from: 2026-01-26
+    status: active
+    required_revision_label: "changes_1_through_9_with_official_corrections"
+    source_url: "https://protect.gost.ru/sp/changesdetails/d438f64b-92ac-4527-8548-9b68adacfc66"
+
+fire_system_design:
+  - document: SP_6_13130_2025
+    topic: low_voltage_electrical_fire_safety
+    official_latest_change: 0
+    effective_from: 2026-06-29
+    status: active
+    replaces: SP_6_13130_2021
+    required_correction:
+      approval_date: 2026-06-05
+      effective_from: 2026-06-25
+      affected_clause: "6.4 first paragraph"
+      required: true
+    source_url: "https://protect.gost.ru/sp/details/40528e45-0061-4e4f-816d-8789a254389f"
+    correction_source_url: "https://base.garant.ru/414473191/"
+    applicability_note: >-
+      Статус отдельных фрагментов в перечне документов 123-ФЗ проверять отдельно; document identity
+      и техническая редакция СП не подменяют юридическую применимость конкретного требования.
+
+  - document: SP_7_13130_2013
+    topic: smoke_control_and_fire_ventilation
+    official_latest_change: 3
+    change_3_effective_from: 2025-07-01
+    status: active
+    future_change_4_status: draft_do_not_apply
+    source_url: "https://protect.gost.ru/sp/changesdetails/0072e4d1-29d1-4339-af53-48ba9e3103f8"
+
+  - document: SP_10_13130_2020
+    topic: internal_fire_water_supply
+    official_latest_change: 1
+    change_1_effective_from: 2026-09-01
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/2a55b7f6-0322-4573-9aa0-6a2979e7a130"
+
+  - document: SP_484_1311500_2020
+    topic: fire_alarm_and_fire_system_automation
+    official_latest_change: 1
+    change_1_effective_from: 2025-09-01
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/85ff7ee2-fa84-47bf-905d-b3bb517b65dd"
+
+  - document: SP_485_1311500_2020
+    topic: automatic_fire_suppression
+    official_latest_change: 2
+    change_1_effective_from: 2026-01-01
+    change_2_effective_from: 2026-07-09
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/39182225-d192-4485-9ea1-9bef76aa40db"
+
+  - document: SP_486_1311500_2020
+    topic: objects_requiring_AUPT_and_fire_alarm
+    official_latest_change: 1
+    change_1_effective_from: 2025-06-16
+    status: active
+    source_url: "https://protect.gost.ru/sp/changesdetails/57a66e5e-af70-413f-866f-ec0448fa23d4"
+
 engineering_and_fire_execution:
   - document: SP_73_13330_2016
     topic: internal_sanitary_systems_execution
@@ -99,7 +181,7 @@ engineering_and_fire_execution:
     source_url: "https://protect.gost.ru/sp/changesdetails/de4e053a-ffd5-4d82-8ba3-0d7583f0460c"
 
 cross_check_2027_reference_levels:
-  note: "Уровни ниже дополнительно подтверждаются свежими изменениями 2026 года, которые уже ссылаются на эти редакции."
+  note: "Уровни ниже подтверждены официальными карточками изменений и свежими ссылочными обновлениями 2025-2026 гг."
   values:
     SP_14_13330_2018: 4
     SP_16_13330_2017: 6
@@ -107,9 +189,19 @@ cross_check_2027_reference_levels:
     SP_24_13330_2021: 2
     SP_28_13330_2017: 4
     SP_48_13330_2019: 2
+    SP_60_13330_2020: 6
+    SP_30_13330_2020: 5
+    SP_256_1325800_2016: 9
+    SP_7_13130_2013: 3
+    SP_10_13130_2020: 1
+    SP_484_1311500_2020: 1
+    SP_485_1311500_2020: 2
+    SP_486_1311500_2020: 1
 
 agent_gate:
   - "Перед согласованием отверстий, фундаментов, свай, стальных элементов, огнезащиты и инженерных проходок проверить revision_level профильного задания."
+  - "Перед координацией ОВ, ВК, ЭОМ, ПДВ, ВПВ, АУПТ и СПС проверить document identity и revision_level по engineering_design/fire_system_design."
+  - "Для СП 6.13130.2025 дополнительно требовать применение поправки 2026 к п.6.4, даже при revision_level=0."
   - "Для участков в районах вечной мерзлоты дополнительно проверять актуальность СП 445 и отложенного на 01.03.2027 пункта 13.3."
   - "При несовпадении revision_level вернуть needs_discipline_reaudit, а не подгонять архитектуру под устаревшее решение."
   - "Не переносить числовые требования этих СП в архитектурный auto-rule без отдельной постатейной проверки их области применения."

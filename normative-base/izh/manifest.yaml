@@ -1,4 +1,4 @@
-package_manifest_version: 4
+package_manifest_version: 5
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 package: IZH_NODE_ENGINEERING
@@ -18,6 +18,9 @@ load_order:
   - 11_node_N01_foundation_wall_plinth.yaml
   - 12_node_N05_window_connection.yaml
   - 13_node_N07_roof_wall_eaves.yaml
+  - 14_node_N11_mep_penetration.yaml
+  - 15_node_N10_wet_room_floor_wall_drain.yaml
+  - 16_node_N03_wall_floor_connection.yaml
 
 release_gate:
   require:
@@ -41,11 +44,16 @@ completed_audits:
   - detailed_N01_foundation_wall_plinth
   - detailed_N05_window_connection
   - detailed_N07_roof_wall_eaves
-
-next_cycles:
-  - exact_Tapir_per_command_schema_and_context_audit
   - detailed_N11_MEP_penetration
   - detailed_N10_wet_room_floor_wall_drain
   - detailed_N03_wall_floor_connection
+  - SP29_change4_effective_date_reaudit
+
+next_cycles:
+  - exact_Tapir_per_command_schema_and_context_audit
   - thermal_moisture_interface_schema
   - safe_bridge_typed_operation_contract
+  - detailed_N04_wall_corner_T_junction
+  - detailed_N08_roof_ridge
+  - detailed_N09_roof_penetration
+  - detailed_N13_terrace_porch_wall

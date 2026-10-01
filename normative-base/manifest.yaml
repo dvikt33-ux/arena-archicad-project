@@ -1,4 +1,4 @@
-manifest_version: 73
+manifest_version: 74
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -145,6 +145,7 @@ rule_files:
   - 87_trk_children_foodservice_2027.yaml
   - 88_food_retail_sanitary_2027.yaml
   - 89_trk_loading_logistics_2027.yaml
+  - 90_northern_snow_storage_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

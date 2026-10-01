@@ -1,0 +1,101 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Специальные условия п.5.16 СП 118.13330.2022, которые нельзя превращать в общие размеры лифтовых холлов или общую допустимую дистанцию до лифта."
+
+revision_dependencies:
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {file: rules/17_vertical_transport.yaml, role: "base vertical transport rules"}
+  - {file: rules/10_accessibility.yaml, role: "MGN route and rest-place requirements"}
+  - {file: rules/28_functional_code_router.yaml, role: "functional classification"}
+
+base_context:
+  source: SP_118_13330_2022
+  clause: "5.16"
+  statement: "Базовое расстояние от дверей наиболее удаленного помещения с постоянным пребыванием людей до двери ближайшего пассажирского лифта — не более 60 м; базовые ширины лифтового холла определяются схемой расположения и глубиной кабин."
+
+extended_distance_exception:
+  - id: vertical.public.lift_distance_120m_exception
+    source: {document: SP_118_13330_2022, clause: "5.16 примечание", amendment: 3}
+    automation: manual_calculation
+    dimension_semantics: actual
+    statement: "Увеличение расстояния до ближайшего пассажирского лифта с 60 до 120 м допускается только при одновременном выполнении всех условий примечания к п.5.16."
+    values:
+      base_max_distance_m: 60
+      exceptional_max_distance_m: 120
+      max_average_lift_waiting_time_s: 30
+      rest_place_max_spacing_from_room_and_lift_m: 60
+    all_conditions:
+      - fire_risk_calculation_justifies_longer_corridor_distance: true
+      - vertical_transport_calculation_confirms_average_waiting_time_s: {max: 30}
+      - MGN_rest_places_are_provided_within_60m_from_room_and_lift: true
+    requires_calculation: true
+    conflict_policy: "Если хотя бы одно условие не подтверждено расчетом/проектом, применять базовые 60 м."
+
+  - id: vertical.public.lift_distance_is_not_egress_distance
+    automation: validation_only
+    statement: "Расстояние до пассажирского лифта по п.5.16 не является допустимой длиной пути эвакуации. Эвакуационные расстояния проверять отдельно по СП 1.13130.2020 и специальным нормам функционального класса."
+    conflict_policy: "Никогда не использовать 60/120 м как замену пожарному расчету длины пути эвакуации."
+
+apart_hotel_lobby_exception:
+  source: SP_118_13330_2022
+  clause: "5.16"
+  amendment: 4
+  rules:
+    - id: vertical.public.aparthotel_lobby_reduction
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для апарт-отелей и комплексов апартаментов допускается принимать ширину лифтового холла меньше обычных значений п.5.16, но не менее 1,6 м, только при одновременном выполнении всех перечисленных условий."
+      values: {absolute_min_clear_lobby_width_mm: 1600}
+      all_conditions:
+        - building_function: [apart_hotel, apartment_complex]
+        - lobby_area_at_least_twice_lift_cabin_area: true
+        - stretcher_transport_and_waiting_is_possible: true
+        - referenced_accessibility_requirement_is_met: true
+        - lobby_geometry_accounts_for_peak_waiting_population: true
+      requires_object_classification: true
+      requires_calculation: true
+      conflict_policy: "Не применять к гостиницам, офисам, ТРК, больницам и иным общественным зданиям по аналогии."
+
+    - id: vertical.public.aparthotel_lobby_area_check
+      automation: validation_only
+      statement: "Для специального уменьшения ширины площадь площадки перед лифтами должна превышать площадь кабины лифта не менее чем в 2 раза."
+      formula: "lobby_area >= 2 * cabin_area"
+      requires_manufacturer_data: true
+
+stretcher_and_peak_flow:
+  - id: vertical.public.stretcher_geometry_no_typical_rectangle
+    automation: forbidden_to_infer
+    statement: "Условие возможности транспортирования и ожидания больного на носилках нельзя подтверждать только номинальной шириной холла 1,6 м. Требуется проверка фактической геометрии, дверей, зон ожидания, траектории носилок и другого оборудования."
+    requires_calculation: true
+
+  - id: vertical.public.peak_waiting_population_required
+    automation: manual_calculation
+    statement: "При применении специального условия апарт-отеля/комплекса апартаментов размеры лифтового холла определяются с учетом максимально возможного числа людей, ожидающих лифт в час пик."
+    requires_calculation: true
+
+BIM_required_parameters:
+  - building_function
+  - permanent_occupancy_room_doors
+  - nearest_passenger_lift_door
+  - actual_route_distance_to_lift_m
+  - fire_risk_calculation_reference
+  - vertical_transport_calculation_reference
+  - average_waiting_time_s
+  - MGN_rest_place_locations
+  - lift_lobby_clear_width_mm
+  - lift_lobby_clear_area_m2
+  - cabin_clear_area_m2
+  - peak_waiting_population
+  - stretcher_manoeuvre_envelope
+
+agent_logic:
+  - "60 м — базовое значение; 120 м — расчетное исключение с тремя одновременными условиями, а не новый общий предел."
+  - "Исключение 1,6 м для апарт-отелей/комплексов апартаментов не распространять на другие общественные функции."
+  - "Размер лифтового холла проверять в свету и по реальной геометрии после выбора оборудования."
+  - "Носилки и зоны ожидания моделировать как проверочные габаритные конверты, а не текстовую галочку."
+
+sources:
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://protect.gost.ru/sp/changesdetails/bc2fdc34-2d5c-4c9c-9fdb-d07ebd44435f"
+  - "https://protect.gost.ru/sp/changesdetails/70cbc497-8c04-4adf-80b7-e6d0770b63fa"
+  - "https://base.garant.ru/404976079/"

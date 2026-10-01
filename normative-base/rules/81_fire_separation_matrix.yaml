@@ -1,0 +1,139 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_4_13130_2013
+verified_changes: [1, 2, 3, 4]
+purpose: >-
+  Машинная матрица минимальных противопожарных расстояний между жилыми и общественными
+  зданиями по таблице 1 СП 4.13130.2013, плюс правила измерения и fail-closed условия
+  для уменьшения расстояний.
+
+source_status:
+  document_status: active
+  official_card: https://protect.gost.ru/sp/details/fe915813-95ec-43a6-ab1c-91027e06bf1c
+  latest_official_change: 4
+  latest_change_effective_from: 2023-12-01
+  notes:
+    - "Проекты последующих изменений не считаются действующими до официального утверждения и даты введения."
+
+classification_groups:
+  RP_A:
+    fire_resistance_degree: [I, II, III]
+    structural_fire_hazard_class: [C0]
+  RP_B:
+    fire_resistance_degree: [II, III]
+    structural_fire_hazard_class: [C1]
+  RP_C:
+    fire_resistance_degree: [IV]
+    structural_fire_hazard_class: [C0, C1]
+  RP_D:
+    fire_resistance_degree: [IV, V]
+    structural_fire_hazard_class: [C2, C3]
+
+residential_public_separation_matrix_m:
+  source_clause: "4.3, Table 1"
+  dimension_type: clear_fire_separation_distance
+  automation: conditional
+  symmetric: true
+  values:
+    RP_A: {RP_A: 6, RP_B: 8, RP_C: 8, RP_D: 10}
+    RP_B: {RP_A: 8, RP_B: 10, RP_C: 10, RP_D: 12}
+    RP_C: {RP_A: 8, RP_B: 10, RP_C: 10, RP_D: 12}
+    RP_D: {RP_A: 10, RP_B: 12, RP_C: 12, RP_D: 15}
+  hard_gate:
+    required_inputs:
+      - building_a_fire_resistance_degree
+      - building_a_structural_fire_hazard_class
+      - building_b_fire_resistance_degree
+      - building_b_structural_fire_hazard_class
+    if_missing: fire_classification_required
+  prohibited_shortcuts:
+    - "Не выбирать 6/8/10/12/15 м только по функциональному назначению."
+    - "Не округлять противопожарный разрыв по координационному модулю вниз."
+
+production_storage_to_residential_public_matrix_m:
+  source_clause: "4.3, Table 1"
+  automation: conditional
+  scope_note: >-
+    Эти строки применяются только в случаях, которые п. 4.3 действительно направляет к таблице 1.
+    Специальные объекты и случаи раздела 6 проверяются отдельно и имеют приоритет.
+  row_groups:
+    PS_A: {fire_resistance_degree: [I, II, III], structural_fire_hazard_class: [C0]}
+    PS_B: {fire_resistance_degree: [II, III], structural_fire_hazard_class: [C1]}
+    PS_C: {fire_resistance_degree: [IV], structural_fire_hazard_class: [C0, C1]}
+    PS_D: {fire_resistance_degree: [IV, V], structural_fire_hazard_class: [C2, C3]}
+  column_groups: [RP_A, RP_B, RP_C, RP_D]
+  values:
+    PS_A: {RP_A: 10, RP_B: 12, RP_C: 12, RP_D: 12}
+    PS_B: {RP_A: 12, RP_B: 12, RP_C: 12, RP_D: 12}
+    PS_C: {RP_A: 12, RP_B: 12, RP_C: 12, RP_D: 15}
+    PS_D: {RP_A: 15, RP_B: 15, RP_C: 15, RP_D: 18}
+
+measurement_rules:
+  - id: fire.separation.measure_outer_structures
+    source_clause: "4.4"
+    automation: true
+    statement: >-
+      Противопожарное расстояние определять между наружными стенами или другими наружными
+      конструкциями зданий и сооружений.
+
+  - id: fire.separation.combustible_projection_over_1m
+    source_clause: "4.4"
+    automation: conditional
+    condition: "projection_over_1m AND projection_material_is_combustible"
+    statement: >-
+      При выступающих более чем на 1 м конструкциях из горючих материалов расстояние измерять
+      между этими выступающими конструкциями, а не между основными плоскостями стен.
+
+reduction_gate:
+  - id: fire.separation.reduction_not_automatic
+    source_clause: "4.3"
+    automation: validation_only
+    statement: >-
+      Уменьшение расстояния между жилыми/общественными зданиями допускается только при выполнении
+      предусмотренного СП способа подтверждения предотвращения распространения пожара и всех
+      сопутствующих условий. Сам факт стены без проемов, спринклеров или удобной планировки не
+      дает агенту права автоматически уменьшать таблицу 1.
+    if_not_verified: keep_table_1_distance
+
+special_scope_gates:
+  - id: fire.separation.special_object_precedence
+    automation: mandatory_validation
+    statement: >-
+      Перед применением таблицы 1 проверить, не относится ли объект к случаю, для которого СП 4
+      или специальный пожарный СП задает отдельное расстояние: производственные территории,
+      АЗС, опасные производственные объекты, газоснабжение, нефтегазовые и энергетические объекты,
+      автостоянки грузовых автомобилей и другие специальные случаи.
+    if_special_scope_detected: route_to_special_fire_rule
+
+  - id: fire.separation.sp4_height_scope
+    automation: mandatory_validation
+    statement: >-
+      Общую область применения СП 4 проверять до автоматизации: документ не распространяется
+      на Ф1.3 высотой более 75 м и на здания других функциональных классов высотой более 50 м,
+      за исключением прямо указанных случаев. Для таких объектов требуется специальный маршрут.
+    if_out_of_scope: route_to_highrise_or_special_code
+
+model_requirements:
+  required_properties:
+    - fire_resistance_degree
+    - structural_fire_hazard_class
+    - functional_fire_class
+    - fire_height_m
+    - exterior_projection_depth_m
+    - exterior_projection_combustibility_group
+  geometry_objects:
+    - fire_separation_clearance_zone
+    - exterior_wall_reference_surface
+    - combustible_projection_reference_surface
+
+agent_logic:
+  - "1. Определить область применения СП 4 и отсутствие специального маршрута."
+  - "2. Получить степень огнестойкости и класс конструктивной пожарной опасности обоих объектов."
+  - "3. Выбрать строку/столбец матрицы; если классификация отсутствует — не угадывать."
+  - "4. Определить правильные геометрические поверхности измерения по п. 4.4."
+  - "5. Проверить результат как clear distance в модели."
+  - "6. Любое уменьшение матричного значения разрешать только после отдельного подтверждения условий нормы."
+
+sources:
+  - https://protect.gost.ru/sp/details/fe915813-95ec-43a6-ab1c-91027e06bf1c
+  - https://base.garant.ru/70398302/

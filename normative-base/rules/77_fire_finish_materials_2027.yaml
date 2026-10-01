@@ -1,0 +1,143 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Пожарная допустимость декоративно-отделочных, облицовочных материалов и покрытий полов: маршрутизация по таблицам 28-29 Федерального закона №123-ФЗ и подтвержденным показателям материала."
+
+legal_source:
+  document: FZ_123_2008
+  title: "Технический регламент о требованиях пожарной безопасности"
+  current_revision_checked: 2026-08-04
+  target_2027_action: "apply_current_tables_28_29_unless_official_future_amendment_is_published"
+  recheck_before_issue: true
+
+material_classification_gate:
+  - id: fire_finish.no_visual_inference
+    automation: forbidden_to_infer
+    statement: "Показатели пожарной опасности отделочного/облицовочного материала или покрытия пола нельзя выводить из его названия, состава в BIM, внешнего вида или маркетингового описания. Требуется подтвержденная документация/испытания конкретного материала или системы."
+    requires_manufacturer_data: true
+
+  - id: fire_finish.store_full_indicator_set
+    automation: validation_only
+    statement: "Для проверки области применения хранить применимые показатели: группа горючести Г, воспламеняемость В, дымообразующая способность Д, токсичность Т, а для покрытий пола также распространение пламени РП. Для НГ хранить статус негорючести отдельным полем."
+
+  - id: fire_finish.combustibility_test_reference
+    source: {document: GOST_30244_94, clause: "scope", url: "https://protect.gost.ru/gost/details/0f7d90a1-0933-47e4-a058-5efc1325efa4"}
+    automation: validation_only
+    statement: "ГОСТ 30244-94 действует и устанавливает методы испытаний строительных материалов на горючесть и классификацию по группам горючести."
+
+  - id: fire_finish.ignitability_test_reference
+    source: {document: GOST_30402_96, clause: "scope", url: "https://protect.gost.ru/gost/details/b2e3ccb7-cb48-4d47-9e2b-1c3900580f2d"}
+    automation: validation_only
+    statement: "ГОСТ 30402-96 действует и устанавливает метод испытания и классификацию строительных материалов по воспламеняемости."
+
+  - id: fire_finish.flame_spread_floor_reference
+    source: {document: GOST_R_51032_97, clause: "scope", url: "https://protect.gost.ru/gost/details/ad7242d5-3e9e-43cd-b62e-fd7330f73a31"}
+    automation: validation_only
+    statement: "Для поверхностных слоев полов и кровель показатель распространения пламени подтверждают по действующему ГОСТ Р 51032-97/эквивалентному действующему стандарту в его области."
+
+evacuation_routes_table_28:
+  source: {document: FZ_123_2008, table: 28, revision: "2026-08-04"}
+  dimension_semantics: not_applicable
+  groups:
+    group_A:
+      functional_classes: [F1.2,F1.3,F2.3,F2.4,F3.1,F3.2,F3.6,F4.2,F4.3,F4.4,F5.1,F5.2,F5.3]
+      rows:
+        - condition: "storeys <= 9 OR height <= 28 m"
+          vestibule_stair_lift_lobby_walls_ceiling: [G1,V2,D2,T2]
+          common_corridor_hall_foyer_walls_ceiling: [G2,V2,D3,T2]
+          vestibule_stair_lift_lobby_floor: [V2,D3,T2,RP2]
+          common_corridor_hall_foyer_floor: [V2,D3,T3,RP2]
+        - condition: "9 < storeys <= 17 OR 28 m < height <= 50 m"
+          vestibule_stair_lift_lobby_walls_ceiling: [G1,V1,D2,T2]
+          common_corridor_hall_foyer_walls_ceiling: [G1,V2,D2,T2]
+          vestibule_stair_lift_lobby_floor: [V2,D3,T2,RP2]
+          common_corridor_hall_foyer_floor: [V2,D3,T2,RP2]
+        - condition: "storeys > 17 OR height > 50 m"
+          vestibule_stair_lift_lobby_walls_ceiling: [NG]
+          common_corridor_hall_foyer_walls_ceiling: [G1,V1,D2,T2]
+          vestibule_stair_lift_lobby_floor: [V2,D3,T2,RP2]
+          common_corridor_hall_foyer_floor: [V2,D3,T2,RP2]
+    group_B:
+      functional_classes: [F1.1,F2.1,F2.2,F3.3,F3.4,F3.5,F3.7,F4.1]
+      condition: "independent of storeys and height"
+      vestibule_stair_lift_lobby_walls_ceiling: [NG]
+      common_corridor_hall_foyer_walls_ceiling: [G1,V1,D2,T2]
+      vestibule_stair_lift_lobby_floor: [V2,D3,T2,RP2]
+      common_corridor_hall_foyer_floor: [V2,D3,T2,RP2]
+
+  rules:
+    - id: fire_finish.egress_table28_route
+      automation: conditional
+      statement: "Для отделки путей эвакуации сначала определить функциональный класс здания, этажность/высоту и тип пространства (вестибюль/лестничная клетка/лифтовой холл либо общий коридор/холл/фойе), затем проверить все требуемые показатели материала по соответствующей ячейке таблицы 28."
+      requires_object_classification: true
+
+    - id: fire_finish.egress_no_partial_certificate
+      automation: forbidden_to_infer
+      statement: "Материал нельзя считать допустимым на пути эвакуации, если подтвержден только один показатель (например Г1), а остальные требуемые таблицей показатели В/Д/Т/РП отсутствуют или превышают предел."
+      requires_manufacturer_data: true
+
+assembly_rooms_table_29:
+  source: {document: FZ_123_2008, table: 29, revision: "2026-08-04"}
+  exclusions: "floor coverings of sports arenas and dance hall floors"
+  groups:
+    group_A:
+      functional_classes: [F1.2,F2.3,F2.4,F3.1,F3.2,F3.6,F4.2,F4.3,F4.4,F5.1]
+      rows:
+        - {capacity: ">800", walls_ceiling: [NG], floor: [V2,D2,T2,RP1]}
+        - {capacity: ">300 and <=800", walls_ceiling: [G1,V1,D2,T2], floor: [V2,D2,T2,RP1]}
+        - {capacity: ">50 and <=300", walls_ceiling: [G1,V2,D2,T2], floor: [V2,D3,T2,RP2]}
+        - {capacity: "<=50", walls_ceiling: [G2,V2,D3,T2], floor: [V2,D3,T3,RP2]}
+    group_B:
+      functional_classes: [F1.1,F2.1,F2.2,F3.3,F3.4,F3.5,F3.7,F4.1]
+      rows:
+        - {capacity: ">300", walls_ceiling: [NG], floor: [V2,D2,T2,RP1]}
+        - {capacity: ">15 and <=300", walls_ceiling: [G1,V1,D2,T2], floor: [V2,D2,T2,RP1]}
+        - {capacity: "<=15", walls_ceiling: [G2,V2,D3,T2], floor: [V2,D3,T3,RP2]}
+  rules:
+    - id: fire_finish.hall_table29_route
+      automation: conditional
+      statement: "Для зального помещения в области таблицы 29 определить функциональный класс и расчетную вместимость и проверить отделку стен/потолка и покрытие пола по соответствующей строке."
+      requires_object_classification: true
+
+    - id: fire_finish.acoustic_panels_hall_cap
+      automation: conditional
+      statement: "В зальных помещениях облицовочные материалы, используемые как акустические панели на стенах/потолках, не допускаются с показателями пожарной опасности выше Г1, В1, Д2, Т2, даже если менее строгая строка таблицы 29 могла бы допустить иной материал."
+      values: {max: [G1,V1,D2,T2]}
+
+special_route_gates:
+  - id: fire_finish.sports_dance_floor_exception
+    automation: validation_only
+    statement: "Таблица 29 не распространяет нормирование покрытий пола на спортивные арены спортивных сооружений и полы танцевальных залов; их требования следует получать из специальной нормы, а не применять таблицу 29 автоматически."
+
+  - id: fire_finish.facade_not_table28_29
+    automation: validation_only
+    statement: "Таблицы 28-29 не заменяют требования пожарной безопасности фасадных систем, утеплителей, кровель и конструкций. Для них использовать профильные СП/ГОСТ и rules/68_facade_systems_2027.yaml."
+
+BIM_required_parameters:
+  - space_functional_fire_class
+  - space_fire_usage_type
+  - building_fire_height_m
+  - building_storey_count_for_table28
+  - hall_calculated_capacity
+  - finish_surface_type
+  - finish_product_id
+  - combustibility_group_G_or_NG
+  - ignitability_group_V
+  - smoke_group_D
+  - toxicity_group_T
+  - flame_spread_group_RP_if_floor
+  - fire_test_or_certificate_reference
+  - certificate_validity_and_scope
+
+agent_logic:
+  - "Материал выбирать после классификации пространства, а не до нее."
+  - "Одинаковый декоративный материал может быть допустим в обычном помещении и недопустим в лестничной клетке/лифтовом холле/зале другой вместимости."
+  - "Не подменять проверку конкретного продукта общим классом материала в каталоге BIM."
+  - "Если сертификат относится к системе/композиту, не переносить его показатели на отдельный слой или продукт другой толщины/подложки без подтверждения области сертификата."
+  - "Перед выпуском проекта повторно проверить актуальную редакцию 123-ФЗ и таблиц 28-29 для целевой даты."
+
+sources:
+  - "https://www.consultant.ru/document/cons_doc_LAW_78699/e7be96e2a5b8d111a5ff10056472440806a7e6b2/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_78699/a72db4a9c92546231498801208b8865f75b983ca/"
+  - "https://protect.gost.ru/gost/details/0f7d90a1-0933-47e4-a058-5efc1325efa4"
+  - "https://protect.gost.ru/gost/details/b2e3ccb7-cb48-4d47-9e2b-1c3900580f2d"
+  - "https://protect.gost.ru/gost/details/ad7242d5-3e9e-43cd-b62e-fd7330f73a31"

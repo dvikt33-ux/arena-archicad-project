@@ -1,4 +1,4 @@
-manifest_version: 56
+manifest_version: 57
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -124,6 +124,8 @@ rule_files:
   - 66_suspended_ceiling_systems.yaml
   - 67_communication_shafts_electrical_boxes.yaml
   - 68_facade_systems_2027.yaml
+  - 69_roof_drainage_interfaces.yaml
+  - 70_trk_multifunctional_planning_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

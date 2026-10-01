@@ -1,4 +1,4 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 purpose: "Независимый аудит уровней редакций специальных СП по функциональному назначению. Имеет приоритет над старой метаинформацией rule-файлов при обнаружении неоднозначного статуса."
 
@@ -12,6 +12,7 @@ verified_active:
   - {document: SP_332_1325800_2017, topic: sports, latest_change: 4, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/37a85293-e2cf-4732-a6e1-8e0d7965c164"}
   - {document: SP_257_1325800_2020, topic: hotels, latest_change: 1, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"}
   - {document: SP_309_1325800_2017, topic: theatres_cinemas_concert, latest_change: 1, effective_from: 2024-01-29, source_url: "https://protect.gost.ru/sp/changesdetails/4eaa2215-cc20-4965-a05d-2912766bdbeb"}
+  - {document: SP_549_1311500_2026, topic: timber_apartment_buildings_fire_safety, latest_change: null, effective_from: 2026-04-01, status: active, source_url: "https://protect.gost.ru/sp/details/77625f5e-6bb0-40dc-82e2-7a15b15fa861"}
 
 ambiguous_effective_status:
   - document: SP_267_1325800_2016
@@ -29,6 +30,7 @@ cross_reference_findings:
   - "СП 310 Изм. №3 уже ссылается на СП 42.13330.2026, СП 60 с Изм. №1-6, СП 59 с Изм. №1-4, СП 118 с Изм. №1-5 и СП 256 с Изм. №1-9; это дополнительный контроль актуальности общих слоев базы."
   - "СП 158 Изм. №7 подтверждает СП 60 Изм. №1-6 и СП 256 Изм. №1-9 для медицинского профиля."
   - "СП 251 Изм. №7 подтверждает СП 1 Изм. №1-3, СП 17 Изм. №1-5, СП 59 Изм. №1-4 и СП 118 Изм. №1-5 для школьного профиля."
+  - "СП 549.1311500.2026 действует с 01.04.2026 и включен Росстандартом в перечень документов добровольного применения к требованиям пожарной безопасности; на дату аудита в официальной карточке отдельные изменения не зарегистрированы."
 
 agent_gate:
   - "До загрузки специального функционального rule-set сверять его claimed_revision с verified_active."

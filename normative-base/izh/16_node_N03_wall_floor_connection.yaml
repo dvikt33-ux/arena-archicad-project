@@ -1,0 +1,167 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N03_MASONRY_WALL_FLOOR
+purpose: "Детальный алгоритм узла несущая/самонесущая стена–межэтажное перекрытие для кладочных и AAC стен с ЖБ перекрытиями, а также контрольная ветка деревянного перекрытия. Опирание и несущая схема всегда принадлежат КР."
+
+normative_stack:
+  - {document: SP_15_13330_2020, change: 1, role: masonry_structural_calculation}
+  - {document: SP_70_13330_2012, change: 8, target_2027: true, role: masonry_and_structural_execution}
+  - {document: SP_63_13330_2018, changes: [1,2], role: reinforced_concrete_design}
+  - {document: GOST_26434_2025, role: precast_floor_slab_types_and_coordination_for_residential_buildings}
+  - {document: GOST_9561_2025, role: hollow_core_slab_technical_requirements_if_applicable}
+  - {document: SP_50_13330_2024, role: exterior_edge_thermal_bridge}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_floor_if_applicable}
+
+connection_classes:
+  - precast_RC_on_masonry
+  - monolithic_RC_at_masonry
+  - timber_floor_on_masonry
+  - floor_edge_at_external_wall
+  - internal_wall_floor_support
+  - nonbearing_wall_to_floor_interface
+
+machine_rules:
+  - id: izh.N03.bearing_is_KR_owned
+    automation: forbidden_to_infer
+    statement: "Длину/ширину опирания плиты, балки или деревянного элемента, локальную несущую способность кладки, необходимость распределительного элемента и анкеровку определяет КР; архитектурный агент не назначает их универсальными числами."
+    result: needs_structural_calculation
+  - id: izh.N03.precast_slab_coordination_not_bearing
+    source: GOST_26434_2025
+    source_clause: "4.4-4.5"
+    automation: validation_only
+    statement: "Координационный размер плиты и шаг несущих конструкций согласовываются по ГОСТ, но координационная длина не является длиной фактического опирания. Хранить эти размерные семантики отдельно."
+  - id: izh.N03.PB_length_manufacturer
+    source: GOST_26434_2025
+    source_clause: "table 1 note 4, 4.7"
+    automation: conditional
+    statement: "Для плит ПБ координационная ширина стандартизована рядом 1000/1200/1500 мм, а длина устанавливается параметрами формовочного оборудования изготовителя; не генерировать произвольный универсальный ряд длин ПБ по шагу 300 мм."
+  - id: izh.N03.SP70_support_course_gate
+    source: SP_70_13330_2012_change_8
+    source_clause: "9.2.1"
+    automation: conditional
+    applies_when: "multirow masonry bonding and support of beams/girders/slabs/balconies/mauerlats or other precast structures in the clause scope"
+    statement: "В многорядной перевязке под опорными частями перечисленных сборных конструкций предусматриваются тычковые ряды по актуальному п.9.2.1; при однорядной цепной перевязке допускается опирание на ложковые ряды. Применять только после определения вида кладки/перевязки."
+  - id: izh.N03.no_auto_ring_beam
+    automation: forbidden_to_infer
+    statement: "Армопояс/монолитный пояс не является универсальным обязательным компонентом любого узла кладочной или AAC стены с перекрытием. Его необходимость, геометрия и армирование определяются расчетной схемой/КР."
+    result: needs_structural_design
+  - id: izh.N03.external_edge_thermal_gate
+    automation: validation_only
+    statement: "Если узел расположен в наружном тепловом контуре, геометрия торца перекрытия, пояса, кладки и утепления должна проходить локальную теплотехническую проверку; маскирование ЖБ отделочным слоем в BIM не устраняет мост холода."
+
+material_variants:
+  ceramic_or_silicate_masonry:
+    structural:
+      - exact_unit_and_bonding_system
+      - KR_confirmed_bearing_zone
+      - local_masonry_strength_check
+      - KR_confirmed_ties_anchors_or_distribution_element_if_needed
+    execution:
+      - support_course_configuration_per_applicable_SP70_rule
+      - slab_end_joint_and_grouting_per_product_project
+    prohibitions:
+      - bearing_from_number_of_bricks
+      - support_on_unverified_hollow_zone
+  AAC:
+    structural:
+      - KR_confirmed_local_bearing
+      - load_distribution_or_RC_element_only_if_calculated
+      - protection_of_AAC_from_local_crushing_and_moisture_as project_requires
+    prohibitions:
+      - copying_brick_support_course_detail
+      - universal_RC_ring_beam
+      - direct_concentrated_support_without_check
+  timber_floor_on_masonry:
+    structural:
+      - calculated_beam_or_engineered_member
+      - support_or_hanger_system_from_KR
+      - moisture_separation_at_timber_masonry_interface_if required
+      - lateral_and_diaphragm_connection_from_KR
+    prohibitions:
+      - universal_beam_pocket_depth
+      - sealing_timber_end_in_masonry_without moisture/drying design
+      - notches_or_bores_without structural approval
+
+precast_RC_algorithm:
+  - step: 1_grid_and_span
+    action: "Use structural axes and actual support scheme; select only a slab family/type whose standard scope and manufacturer data match the building/use."
+  - step: 2_product_geometry
+    action: "Resolve coordination dimensions, constructive product dimensions, mark, support-side type and actual manufacturer documentation."
+  - step: 3_KR_bearing
+    action: "Obtain bearing length/zone, local masonry check, ties/anchors and any ring/distribution element from KR."
+  - step: 4_openings
+    action: "Coordinate shafts/penetrations before slab finalization. No cutting/notching hollow/prestressed slab from clash detection."
+  - step: 5_external_edge
+    action: "At exterior wall, resolve thermal bridge and facade/air/moisture continuity around slab edge."
+  - step: 6_execution
+    action: "Define joints/grouting/temporary support/erection sequence from product and structural documentation where applicable."
+  - step: 7_readback
+    action: "Validate slab mark/dimensions/orientation, support hosts, clear/coordination dimensions, openings and node metadata."
+
+monolithic_RC_algorithm:
+  - step: 1_KR_geometry
+    action: "Use KR-confirmed slab/beam/ring geometry and reinforcement references; architecture supplies opening/level/finish constraints but does not synthesize reinforcement."
+  - step: 2_wall_interface
+    action: "Classify whether wall supports slab, slab frames wall, or wall is nonbearing infill; the same visual junction cannot share one structural recipe across classes."
+  - step: 3_deformation_and_cracking
+    action: "Record differential deformation/shrinkage/movement strategy and facade/internal finish consequences."
+  - step: 4_envelope
+    action: "At exterior edge, restore thermal/air/moisture continuity and check local thermal calculation."
+
+archicad_tapir_recipe:
+  masonry_wall: native_Wall
+  RC_slab: native_Slab
+  RC_beam_or_ring_if_real_KR_element: native_Beam_or_other_semantically_correct_element
+  timber_members_if_coordinated_LOD: native_Beam_or_Column_or_verified_object
+  precast_slab_product:
+    representation: "Native Slab or verified object according to scheduling/product workflow; must store exact product mark and coordination-vs-constructive dimensions."
+  cuts_recesses:
+    preferred: native_Opening_or_SEO_only_after_KR_approval
+    tapir: [CreateOpenings, CreateSolidElementLinks, GetSolidElementLinks]
+  repeated_edge_profile:
+    tapir: [GetProfiles, CreateProfiles]
+  create_primitives:
+    tapir: [CreateWalls, CreateSlabs]
+
+BIM_parameters_required:
+  - NODE_ID
+  - wall_GUID
+  - floor_GUID
+  - structural_connection_class
+  - wall_material_pack
+  - floor_system
+  - slab_standard_and_mark_if_precast
+  - coordination_span
+  - constructive_product_length_if_precast
+  - bearing_left_KR_ref
+  - bearing_right_KR_ref
+  - local_masonry_check_ref
+  - ring_or_distribution_element_KR_ref_if_any
+  - penetration_ids
+  - thermal_edge_calc_ref_if_external
+  - node_revision
+
+postconditions:
+  - support_hosts_match_KR
+  - coordination_dimension_not_confused_with_bearing
+  - exact_precast_product_geometry_resolved_if_used
+  - no_unapproved_cut_in_structural_floor
+  - ring_beam_not_created_without_KR_ref
+  - external_edge_thermal_status_current_when_applicable
+  - NODE_ID_revision_current
+
+never_auto_assign:
+  - slab_bearing_length
+  - slab_mark_from_clear_span_only
+  - ring_beam_presence_or_size
+  - local_reinforcement
+  - tie_anchor_type_or_spacing
+  - precast_slab_cut
+  - timber_beam_pocket_depth
+  - thermal_insulation_thickness_at_edge
+
+sources:
+  - "GOST 26434-2025 clauses 4.4-4.8"
+  - "SP 70.13330.2012 Change 8 clause 9.2.1"
+  - "SP 15.13330.2020 structural masonry calculation"

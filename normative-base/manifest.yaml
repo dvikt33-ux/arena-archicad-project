@@ -1,4 +1,4 @@
-manifest_version: 76
+manifest_version: 77
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -148,6 +148,7 @@ rule_files:
   - 90_northern_snow_storage_2027.yaml
   - 91_engineering_architectural_interfaces_2027.yaml
   - 92_ventilation_exhaust_facade_roof_2027.yaml
+  - 93_smoke_control_architectural_interfaces_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

@@ -1,0 +1,104 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+node_id: IZH_N08_PITCHED_ROOF_RIDGE
+purpose: "Детальный алгоритм конькового узла скатной кровли. Сначала определяется расчетная схема крыши и режим кровельного пирога, затем геометрия конька."
+
+normative_stack:
+  - {document: SP_55_13330_2016, changes: [1,2], role: detached_house_scope}
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], role: roofing_design}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structure_if_used}
+  - {document: SP_260_1325800_2023, role: LSTK_if_used}
+  - {document: SP_50_13330_2024, role: thermal_air_moisture_performance}
+  - {document: SP_20_13330_2016, role: actions_including_snow_wind}
+
+structural_variants:
+  - id: nonstructural_ridge_board
+    meaning: "Коньковая доска не принимается как несущая балка; путь передачи усилий должен быть подтвержден расчетной схемой стропил/затяжек/опор."
+  - id: structural_ridge_beam
+    meaning: "Несущая коньковая балка имеет собственные опоры, расчетное сечение и соединения; это отдельный KR элемент."
+  - id: truss_apex
+    meaning: "Конек является зоной узла фермы; геометрия и соединители принадлежат расчетной ферме/изделию."
+  - id: LSTK_roof_apex
+    meaning: "Соединение холодногнутых профилей и раскрепление проектируются по СП 260 и КР."
+  - id: panel_or_CLT_ridge
+    meaning: "Стык несущих панелей/плит требует расчетного соединения и отдельного воздух-/влагозащитного решения."
+
+roof_build_up_variants:
+  - ventilated_roof
+  - unventilated_calculated_roof
+  - cold_attic_roof
+  - manufacturer_system_with_verified_ridge_solution
+
+mandatory_components:
+  structural:
+    - calculated_primary_members_or_truss
+    - confirmed_ridge_connection_or_support
+    - lateral_and_uplift_restraint_from_KR
+  thermal_air_moisture:
+    - thermal_continuity_where_envelope_crosses_ridge
+    - interior_air_control_continuity
+    - vapor_control_continuity_according_to_hygrothermal_design
+    - underroof_water_control_transition
+    - drying_or_ventilation_route_if_system_requires
+  exterior:
+    - roof_cover_termination
+    - ridge_cover_or_verified_manufacturer_component
+    - water_shedding_against_wind_driven_precipitation
+    - insect_bird_screen_if_open_vent_path_requires_it
+
+algorithm:
+  - step: 1_structural_scheme
+    action: "Классифицировать конек: доска, несущая балка, ферма, ЛСТК или панель. Без этого запрещено генерировать сечения и соединения."
+    fail: needs_structural_roof_design
+  - step: 2_covering_system
+    action: "Определить кровельное покрытие, допустимый уклон, подкладочные слои и фирменный/проектный коньковый элемент по СП 17 и документации системы."
+  - step: 3_envelope_mode
+    action: "Определить, проходит ли тепловой контур по скатам или по перекрытию холодного чердака; не тянуть утепление к коньку автоматически."
+  - step: 4_ventilation_or_drying
+    action: "Если проект предусматривает вентилируемый подкровельный канал, обеспечить непрерывный выход в зоне конька и не перекрыть его утеплителем/мембраной. Площадь/зазор не назначать без расчетного/нормативного основания."
+  - step: 5_air_vapor
+    action: "Соединить внутренний воздухонепроницаемый/парорегулирующий контур без разрыва в вершине; форма элемента не подтверждает герметичность шва."
+  - step: 6_water
+    action: "Проверить нахлесты/герметизацию/коньковый элемент и путь воды наружу для выбранного покрытия."
+  - step: 7_constructability
+    action: "Проверить доступность монтажа соединителей, мембран и конькового элемента до закрытия покрытия."
+  - step: 8_BIM_readback
+    action: "Проверить уклоны обоих скатов, отметку/линию конька, тип расчетного элемента и отсутствие непредусмотренных разрывов слоев."
+
+archicad_recipe:
+  roof_planes: "Native Roof; multi-plane roof допустим, если он соответствует реальной связанной геометрии."
+  structural_ridge_beam: "Native Beam only when KR confirms a structural ridge beam."
+  truss_or_manufacturer_assembly: "Verified library/hotlink/product representation where appropriate; do not synthesize a proprietary connector."
+  ridge_cover: "Library Object/Complex Profile only for verified repeatable geometry; otherwise Detail 2D + metadata."
+  micro_membranes: "Detail 2D + node contours by default; 3D only when coordination/quantity requires."
+  tapir_primitives:
+    - CreateRoofs
+    - CreateBeams
+    - TrimElements
+    - GetElementTrims
+    - CreateProfiles
+    - CreateObjects
+    - CreateDetails
+
+postconditions:
+  - structural_ridge_variant_classified
+  - roof_covering_system_identified
+  - thermal_envelope_path_recorded
+  - ventilation_or_drying_strategy_recorded
+  - air_vapor_contours_continuous_or_blocked_for_review
+  - no_unverified_structural_member_or_fastener_generated
+  - NODE_ID_and_revision_written
+
+never_auto_assign:
+  - ridge_beam_section
+  - rafter_or_truss_section
+  - connector_type_or_fastener_pattern
+  - ridge_vent_area_or_gap
+  - membrane_opening_width
+  - ridge_cover_product
+  - insulation_thickness
+
+sources:
+  - "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  - "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"

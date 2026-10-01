@@ -1,0 +1,243 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Архитектурная планировка ТРК и многофункциональных зданий 2027+: потоки, загрузка, вертикальный транспорт, детские функции, атриумы и границы специальных норм."
+
+revision_dependencies:
+  - {document: SP_464_1325800_2019, verified_changes: [1], status: active}
+  - {document: SP_160_1325800_2014, verified_changes: [1,2,3], status: active}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5]}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3]}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4]}
+
+scope_router:
+  - id: trk.sp464.scope_gate
+    automation: validation_only
+    statement: "СП 464.1325800.2019 применяется к новым, реконструируемым и капитально ремонтируемым ТРК высотой до 50 м с заглублением подземной части до 15 м. За пределами этой области нельзя автоматически переносить его требования без проверки специального СП."
+    values: {max_height_m: 50, max_underground_depth_m: 15}
+
+  - id: multifunctional.sp160.scope_gate
+    automation: validation_only
+    statement: "СП 160.1325800.2014 применять только после классификации объекта как многофункционального здания/комплекса в его области применения. Наличие нескольких арендаторов само по себе не доказывает применимость СП 160."
+
+site_and_flow_separation:
+  source: SP_464_1325800_2019
+  rules:
+    - id: trk.site.separate_customer_goods_flows
+      clause: "5.6"
+      automation: validation_only
+      statement: "Схема участка ТРК должна предусматривать функциональное зонирование с разделением потоков покупателей/посетителей и товаров, а также пешеходных и транспортных потоков, включая зону подвоза и разгрузки."
+
+    - id: trk.site.vehicle_access_intersections_minimized
+      clause: "5.6"
+      automation: validation_only
+      statement: "Подъезды такси, легкового транспорта к стоянкам/погрузке купленных товаров и грузового транспорта к разгрузке следует организовывать, по возможности исключая их пересечения."
+
+loading_and_service:
+  source: SP_464_1325800_2019
+  rules:
+    - id: trk.loading.count_by_enterprise
+      clause: "6.20"
+      automation: manual_calculation
+      statement: "Общее число разгрузочных помещений ТРК принимают как сумму расчетных значений по каждому предприятию/учреждению с учетом приложения В; нельзя назначать одну общую разгрузочную по площади комплекса без расчета."
+      requires_calculation: true
+
+    - id: trk.loading.platform_geometry_by_brief
+      clause: "6.20"
+      automation: forbidden_to_infer
+      statement: "Высоту, габариты и количество разгрузочных платформ определяют заданием на проектирование с учетом приложения В и расчетного транспорта."
+      requires_calculation: true
+
+    - id: trk.loading.closed_dock_trade_food
+      clause: "6.21"
+      automation: conditional
+      statement: "Для загрузки предприятий торговли и общественного питания в ТРК предусматривают закрытые дебаркадеры."
+
+    - id: trk.loading.no_heavy_truck_optional_geometry
+      source_clause: "Appendix B"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Если заданием на проектирование не предусматривается использование большегрузных автомобилей, допускается высота разгрузочного помещения 3,6 м и ширина/высота въездных ворот не менее 3,6 м. Эти значения не являются универсальным минимумом для любого логистического сценария."
+      conditions: {heavy_trucks_planned: false}
+      values: {allowed_loading_room_height_mm: 3600, min_gate_width_mm: 3600, min_gate_height_mm: 3600}
+
+    - id: trk.storage_corridor_width
+      source_clause: "Appendix B, B.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимальная ширина коридоров в группе хранения/подготовки товаров зависит от площади обслуживаемого торгового зала и применяемого транспорта."
+      cases:
+        - {condition: "served sales area <= 250 m2 and no electric transport", min_clear_width_mm: 1600}
+        - {condition: "served sales area > 250 m2 and no electric transport", min_clear_width_mm: 1800}
+        - {condition: "electric transport used", min_clear_width_mm: 2300}
+
+    - id: trk.storage_door_geometry
+      source_clause: "Appendix B, B.4"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для помещений хранения товаров и кладовых более 10 м² двери должны быть двустворчатыми не менее 1,3 м шириной и 2,3 м высотой; при площади до 10 м² допускаются одностворчатые двери не менее 0,9 м шириной и 2,3 м высотой."
+      cases:
+        - {condition: "storage_area > 10 m2", leaf_configuration: double, min_clear_width_mm: 1300, min_clear_height_mm: 2300}
+        - {condition: "storage_area <= 10 m2", leaf_configuration: single_allowed, min_clear_width_mm: 900, min_clear_height_mm: 2300}
+
+internal_public_routes:
+  source: SP_464_1325800_2019
+  rules:
+    - id: trk.sales_routes.no_thresholds
+      clause: "8.6 as amended by change 1"
+      amendment: 1
+      automation: auto
+      statement: "Пути эвакуации из торговых залов в зонах перемещения товаров и покупателей/посетителей, включая тележки, выполняют без порогов."
+      values: {threshold_allowed: false}
+
+    - id: trk.vertical_transport.multilevel_accessible_lifts
+      clause: "6.10"
+      automation: manual_calculation
+      statement: "В ТРК с торговыми залами в двух и более уровнях предусматривают расчетное число пассажирских лифтов для МГН по СП 59."
+      requires_calculation: true
+
+    - id: trk.vertical_transport.freight_lifts
+      clause: "6.18"
+      automation: manual_calculation
+      statement: "Грузоподъемность и габариты кабин грузовых лифтов задаются с учетом средств механизации, а минимальное число грузовых лифтов определяют расчетом грузопотоков."
+      requires_calculation: true
+      requires_manufacturer_data: true
+
+fire_function_router:
+  source: SP_464_1325800_2019
+  rules:
+    - id: trk.fire.base_class
+      clause: "9.1"
+      automation: validation_only
+      statement: "ТРК в области СП 464 по пожарной безопасности относится к общественным зданиям многофункционального назначения класса Ф3.1; отдельные специальные функции дополнительно классифицируются по своим требованиям."
+
+    - id: trk.fire.special_functions_separate_compartment_route
+      clause: "9.3"
+      automation: validation_only
+      statement: "Кинотеатры, концертные залы, фитнес-центры и иные специальные функции при выделении в самостоятельные пожарные отсеки проектируют по требованиям соответствующего класса функциональной пожарной опасности; нельзя проверять их только как Ф3.1."
+      requires_object_classification: true
+
+    - id: trk.fire.common_communications_strictest_applicable
+      clause: "9.4"
+      automation: validation_only
+      statement: "Для общих коммуникационных пространств, объединяющих торговлю, зрелищные/выставочные функции и общественное питание, применяют соответствующие требования к путям эвакуации и системам противопожарной защиты; общий молл не наследует автоматически только норму торговли."
+      requires_object_classification: true
+
+    - id: trk.parking.independent_fire_compartment_egress
+      clause: "9.8"
+      automation: validation_only
+      statement: "Помещения встроенных стоянок автомобилей выделяют в пожарные отсеки с самостоятельными путями эвакуации."
+
+multifunctional_components:
+  source: SP_160_1325800_2014
+  rules:
+    - id: multifunctional.components.separated_but_connected
+      clause: "6.1.4 as amended by change 2"
+      amendment: 2
+      automation: validation_only
+      statement: "Функционально-планировочные компоненты многофункционального здания должны быть функционально и планировочно обособлены, при этом допускается их связь общими вертикальными и горизонтальными внутренними коммуникационными пространствами, включая холлы, вестибюли, переходы и галереи."
+
+    - id: multifunctional.floor_height.special_codes_first
+      clause: "6.1.6 as amended by change 2"
+      amendment: 2
+      automation: conditional
+      statement: "Высоты этажей и помещений задаются заданием на проектирование, но не ниже минимумов профильных СП для соответствующей функции; универсальную высоту многофункционального здания не применять."
+
+children_in_multifunctional:
+  source: SP_160_1325800_2014
+  rules:
+    - id: multifunctional.children.shops_cinemas_max_floor
+      clause: "7.13 as amended by change 2"
+      amendment: 2
+      automation: conditional
+      statement: "Магазины детских товаров и детские кинозалы в многофункциональных зданиях размещают не выше третьего этажа."
+      values: {max_floor_number: 3}
+
+    - id: multifunctional.children.two_separated_egress_destinations
+      clause: "7.13 as amended by change 2"
+      amendment: 2
+      automation: conditional
+      statement: "Для помещений временного пребывания/досуга детей, детских кафе, магазинов детских товаров и детских кинозалов предусматривают пути эвакуации к двум рассредоточенным лестничным клеткам Л1 или Н2 либо к двум выходам непосредственно наружу."
+      requires_object_classification: true
+
+atrium:
+  source: SP_160_1325800_2014
+  rules:
+    - id: multifunctional.atrium.gallery_egress_width
+      clause: "7.31 as amended by change 2"
+      amendment: 2
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Если эвакуационные выходы помещений предусматривают на галерею атриума, галерея должна соответствовать эвакуационному коридору, вести к выходам в обе стороны, а ширина эвакуационного прохода с учетом МГН на кресле-коляске должна быть не менее 1,5 м."
+      values: {min_clear_egress_width_mm: 1500}
+
+    - id: multifunctional.atrium.open_transport_only_atrium_floors
+      clause: "7.32 as amended by change 2"
+      amendment: 2
+      automation: validation_only
+      statement: "Открытые лестницы, эскалаторы, траволаторы и панорамные лифты в атриуме допускается применять для связи только этажей атриума."
+
+    - id: multifunctional.atrium.open_stair_geometry
+      clause: "7.33 as amended by change 2"
+      amendment: 2
+      automation: validation_only
+      statement: "Уклон, ширину проступи и высоту ступеней открытых лестниц атриума выполняют по требованиям к эвакуационным лестницам; декоративная лестница не освобождается от проверки геометрии."
+
+    - id: multifunctional.atrium.panorama_lift_shaft
+      clause: "7.34 as amended by change 2"
+      amendment: 2
+      automation: validation_only
+      statement: "При наличии ограждающих конструкций шахт панорамных лифтов в атриуме их выполняют из негорючих материалов; в области данного пункта требования по огнестойкости/заполнению проемов не предъявляются и подпор воздуха в шахту не предусматривается."
+      conflict_policy: "Применять только к панорамным лифтам атриума в точной области СП 160; специальные требования пожарного лифта или другого типа шахты имеют приоритет."
+
+special_function_routing:
+  - id: trk.cinema.route_to_theatre_code
+    automation: validation_only
+    statement: "Кинотеатры/кинозалы и иные зрелищные функции маршрутизировать в профильный СП 309 и специальные пожарные требования; СП 464 задает интеграцию в ТРК, но не полный набор размеров зрительного зала."
+
+  - id: trk.sport.route_to_sport_code
+    automation: validation_only
+    statement: "Спортивные и физкультурно-досуговые функции маршрутизировать в актуальный профильный СП спортивных сооружений и санитарные требования; не использовать торговую геометрию для спортзалов/раздевальных."
+
+  - id: trk.foodservice.route_to_appendix_and_sanitary
+    automation: validation_only
+    statement: "Предприятия общественного питания в ТРК проверять по приложению Е СП 464 (добавлено Изм. №1), СП 118 и действующим санитарным требованиям; планировочные решения кухни/складов/санузлов не выводить только из площади посадочного зала."
+
+BIM_required_parameters:
+  - building_functional_classification
+  - trk_scope_height_m
+  - underground_depth_m
+  - functional_component_id
+  - functional_component_type
+  - fire_compartment_id
+  - customer_flow_geometry
+  - goods_flow_geometry
+  - pedestrian_flow_geometry
+  - vehicle_flow_geometry
+  - loading_room_id
+  - loading_vehicle_class
+  - storage_served_sales_area_m2
+  - storage_transport_type
+  - sales_floor_level_count
+  - accessible_vertical_transport_count_calculated
+  - atrium_status
+  - atrium_gallery_clear_width_mm
+  - child_function_type
+  - child_function_floor_number
+
+agent_logic:
+  - "Сначала классифицировать каждую функциональную компоненту ТРК; только затем применять специальный СП к ее помещениям."
+  - "Не считать общий молл, эскалаторный узел или атриум самостоятельным эвакуационным решением без проверки СП 1/СП 160."
+  - "Не смешивать покупательские и логистические маршруты в одной геометрической линии, если проект не прошел отдельную проверку разделения потоков."
+  - "Разгрузочный док и грузовой лифт рассчитывать от реального грузопотока и транспортных средств, а не от типового размера библиотеки."
+  - "Для детских функций применять специальные ограничения размещения и эвакуации до оптимизации коммерческой площади."
+  - "Ссылочные версии СП внутри старшего СП не должны понижать уровень revision_watch_2027: для недатированных ссылок использовать действующую в целевом профиле редакцию."
+
+sources:
+  - "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+  - "https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a"
+  - "https://base.garant.ru/73866956/"
+  - "https://base.garant.ru/408556999/"
+  - "https://protect.gost.ru/TrList/85"
+  - "https://protect.gost.ru/sp/changesdetails/46f65958-25ce-4650-91e1-b7fb0800ab61"
+  - "https://protect.gost.ru/sp/changesdetails/e804f047-0719-4407-8ab5-88c7e5485bc5"
+  - "https://base.garant.ru/400535929/"

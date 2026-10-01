@@ -1,0 +1,192 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Первый каталог семейств узлов ИЖС. Содержит состав и алгоритмические границы, но намеренно не выдумывает расчетные размеры."
+
+canonical_nodes:
+  - id: IZH_N01_FOUNDATION_EXTERNAL_WALL_PLINTH
+    hosts: [foundation, external_wall, ground_floor_or_slab]
+    mandatory_components:
+      - calculated_foundation_host
+      - wall_support_zone
+      - horizontal_capillary_break_or_other_verified_moisture_strategy
+      - below_grade_waterproofing_when_required
+      - thermal_protection_according_to_calculation
+      - plinth_weather_protection
+      - exterior_water_shedding_and_site_drainage_interface
+      - interior_floor_interface
+      - confirmed_anchors_reinforcement_or_connection_from_KR
+      - confirmed_service_sleeves_if_present
+    mandatory_checks:
+      - load_path_and_bearing
+      - settlement_compatibility
+      - groundwater_and_surface_water_protection
+      - capillary_moisture_control
+      - thermal_bridge
+      - freeze_thaw_and_aggressiveness
+      - air_tightness_transition
+      - pest_insect_closure_where_relevant
+    never_infer: [foundation_dimensions, reinforcement, wall_bearing_eccentricity, waterproofing_product, insulation_thickness]
+    archicad_strategy: "Native slab/wall/beam/column/foundation-like hosts as appropriate; composite/profile only where semantically stable; 2D detail for membranes and micro-layers."
+
+  - id: IZH_N02_GROUND_FLOOR_EXTERNAL_WALL
+    hosts: [ground_floor, external_wall]
+    mandatory_components:
+      - structural_floor_solution
+      - subbase_or_ground_build_up_from_project
+      - thermal_layer
+      - moisture_or_waterproof_layer_as_required
+      - floor_finish_build_up
+      - perimeter_transition_to_wall
+      - service_routes_or_sleeves_if_present
+    mandatory_checks: [settlement_or_subgrade_behavior, thermal_bridge, moisture_continuity, floor_level_and_drainage, radon_or_soil_gas_only_if_required_by_project_basis]
+    never_infer: [subbase_thickness, slab_thickness, reinforcement, insulation_thickness]
+
+  - id: IZH_N03_MASONRY_WALL_FLOOR
+    hosts: [loadbearing_masonry_wall, floor_structure]
+    variants: [precast_RC, monolithic_RC, timber_floor]
+    mandatory_components:
+      - calculated_bearing_or_connection_zone
+      - wall_local_strength_solution
+      - floor_edge_or_end_detail
+      - ties_or_anchors_if_required_by_KR
+      - envelope_thermal_continuity_at_external_wall
+      - air_and_moisture_layers
+    never_infer: [slab_bearing_length, ring_beam, reinforcement, anchorage, masonry_pier_capacity]
+    archicad_strategy: "Keep floor and wall as native separate hosts; represent connection using priority junction/SEO/explicit product elements only when approved."
+
+  - id: IZH_N04_EXTERNAL_WALL_CORNER_T_JUNCTION
+    hosts: [wall, wall]
+    mandatory_components:
+      - material_specific_bond_or_connection
+      - structural_tie_if_required
+      - continuous_thermal_layer
+      - continuous_air_and_weather_layers
+      - movement_strategy_for_dissimilar_materials
+    never_infer: [masonry_bond_pattern_for_unknown_unit, connector_spacing, movement_joint_need]
+
+  - id: IZH_N05_WINDOW_HEAD_JAMB_SILL
+    hosts: [external_wall, window]
+    standards: [GOST_23166_2024, GOST_30971_2012, GOST_34378_2018, GOST_R_59495_2021, GOST_R_70266_2022]
+    mandatory_components:
+      - verified_window_block
+      - structural_opening
+      - installation_joint
+      - fastening_system
+      - thermal_insulation_of_joint
+      - interior_air_vapor_control_layer
+      - exterior_weather_water_control_layer
+      - sill_or_flashing_with_water_shedding
+      - reveal_finish
+      - lintel_or_head_structure_confirmed_by_KR
+    mandatory_checks: [opening_vs_block_dimensions, fixing_to_actual_base_material, joint_deformation, water_shedding, thermal_bridge, air_tightness, condensation_risk]
+    never_infer: [mounting_gap_as_one_universal_number, fastener_type_or_spacing, lintel_selection, sill_projection]
+    archicad_strategy: "Native Wall + Window; separate Opening dimensions from block dimensions; parametric reveal/sill if supported; micro joint layers in detail plus node properties."
+
+  - id: IZH_N06_ENTRANCE_DOOR_THRESHOLD
+    hosts: [external_wall, door, floor_or_porches]
+    mandatory_components:
+      - verified_door_block
+      - opening_and_fastening
+      - threshold_or_level_transition
+      - thermal_and_air_seal
+      - weather_water_shedding
+      - exterior_platform_or_porch_interface
+    mandatory_checks: [clear_opening_if_accessibility_applies, water_entry_risk, thermal_bridge, exterior_level_and_drainage, step_or_threshold_safety]
+    never_infer: [threshold_height_without_applicability_check, porch_foundation_connection, fastener_spacing]
+
+  - id: IZH_N07_PITCHED_TIMBER_ROOF_EXTERNAL_WALL_EAVES
+    hosts: [external_wall, roof_structure]
+    mandatory_components:
+      - calculated_rafter_or_truss_support
+      - confirmed_hold_down_and_lateral_connection
+      - thermal_layer_and_eaves_transition
+      - air_vapor_control_continuity
+      - underroof_water_management
+      - ventilation_path_if roof_system_requires
+      - eaves_flashing_drip_gutter_interface
+      - insect_bird_protection_for_ventilated_openings
+    mandatory_checks: [load_path, wind_uplift, moisture_drying, ventilation_continuity, thermal_bridge, fire_requirements_if_applicable]
+    never_infer: [rafter_section, rafter_spacing, mauerlat, anchor_spacing, ventilation_gap_dimension, eaves_overhang]
+
+  - id: IZH_N08_PITCHED_ROOF_RIDGE
+    hosts: [roof_plane, roof_plane]
+    mandatory_components:
+      - structural_ridge_solution
+      - underroof_water_control
+      - ventilation_outlet_if_system_ventilated
+      - roof_cover_ridge_product_or_detail
+      - air_vapor_thermal_continuity_below
+    never_infer: [ridge_beam_section, ventilation_area, manufacturer_ridge_component]
+
+  - id: IZH_N09_ROOF_PENETRATION_CHIMNEY_VENT
+    hosts: [roof, penetration_or_chimney]
+    mandatory_components:
+      - confirmed_penetrating_system
+      - structural_opening_or_trimmer_if_required
+      - water_diversion_and_flashing
+      - underroof_membrane_transition
+      - thermal_air_vapor_transition
+      - fire_separation_if_applicable
+    mandatory_checks: [roof_cover_system, slope, water_path, combustible_clearances_if_applicable, structural_cut_approval]
+    never_infer: [opening_size_in_structural_members, fire_clearance, flashing_dimensions]
+
+  - id: IZH_N10_WET_ROOM_FLOOR_WALL_DRAIN
+    hosts: [floor, wall, drain_or_plumbing_fixture]
+    mandatory_components:
+      - floor_build_up
+      - waterproofing_system
+      - wall_upturn_or_system_transition
+      - drain_flange_or_verified_interface
+      - slope_to_drain_where required
+      - threshold_or adjacent_floor_transition
+      - penetration_seals
+    mandatory_checks: [waterproofing_continuity, drain_compatibility, finished_levels, serviceability, accessible_threshold_if_applicable]
+    never_infer: [waterproofing_product, slope_when_not_verified_for_context, screed_thickness]
+
+  - id: IZH_N11_MEP_PENETRATION_FOUNDATION_OR_WALL
+    hosts: [wall_or_foundation, MEP_system]
+    mandatory_components:
+      - approved_opening_or_sleeve
+      - service_clearance
+      - structural_reinforcement_or_local_detail_if_required
+      - water_gas_air_fire_seal_as_applicable
+      - corrosion_or_material_compatibility
+      - movement_allowance_if_required
+    mandatory_checks: [KR_approval, system_slope_and_route, waterproofing_continuity, maintainability]
+    never_infer: [hole_location_in_structural_element, sleeve_size, reinforcement, seal_system]
+    archicad_strategy: "Native Opening where supported; store owner discipline/request ID/approval; MEP connection via Tapir only after typed relation and readback support."
+
+  - id: IZH_N12_INTERNAL_WALL_FLOOR_AND_FINISH_TRANSITION
+    hosts: [partition_or_loadbearing_wall, floor, finish]
+    mandatory_components:
+      - support_or_fixing_strategy
+      - acoustic_or_movement_separation_if required
+      - floor_finish_termination
+      - wet_dry_zone_transition_if applicable
+    mandatory_checks: [loadbearing_classification, acoustic_bridge, floor_heating_or_service_conflict, finish_sequence]
+    never_infer: [fixing_type_for_unknown_wall_system, acoustic_strip_requirement_without_scope_check]
+
+  - id: IZH_N13_TERRACE_PORCH_EXTERNAL_WALL
+    hosts: [external_wall, exterior_platform]
+    mandatory_components:
+      - independent_or_structurally_confirmed_support
+      - door_threshold_interface_if present
+      - drainage_away_from_building
+      - waterproofing_and_flashing
+      - thermal_bridge_strategy
+      - movement_joint_if systems move differently
+    never_infer: [structural_connection, exterior_level, drain_slope]
+
+  - id: IZH_N14_INTERNAL_LOADBEARING_WALL_FOUNDATION
+    hosts: [internal_loadbearing_wall, foundation_or_slab]
+    mandatory_components:
+      - calculated_support_zone
+      - moisture_break_if required by material/system
+      - reinforcement_or_connection_from_KR
+      - floor_build_up_interface
+    mandatory_checks: [load_path, differential_settlement, local_bearing, service_penetrations]
+    never_infer: [support_width, reinforcement, slab_thickening]
+
+system_pack_rule:
+  statement: "Каждый canonical node является абстрактным семейством. Перед автоматической генерацией требуется материал-специфический pack: например masonry_RC, AAC_RC, timber_frame. Компоненты и соединения между pack'ами не взаимозаменяемы."

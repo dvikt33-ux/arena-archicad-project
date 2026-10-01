@@ -1,0 +1,135 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+archicad_version: 29
+upstream_tapir_release_checked: "1.5.9"
+upstream_release_date: 2026-09-09
+purpose: "Разделить возможности upstream Tapir, generic connector и безопасного journal/applier слоя проекта."
+
+three_layers:
+  upstream_tapir:
+    description: "Add-On exposes additional JSON commands on top of Graphisoft API."
+    source: "https://github.com/ENZYME-APD/tapir-archicad-automation/releases"
+  project_connector:
+    file: "src/accollab/connector.py"
+    branch: agent-handoff
+    capability: "Generic tapir(name, parameters) can invoke an existing Tapir command if its schema is known."
+  safe_applier:
+    file: "src/accollab/applier.py"
+    branch: agent-handoff
+    current_scope: "primary modify by move vector plus lock/unlock/comment orchestration; create/delete and non-move geometry modification are intentionally unsupported in safe apply path."
+
+verified_upstream_capability_groups:
+  element_creation_and_editing:
+    status: available_in_upstream
+    examples:
+      - walls
+      - beams
+      - columns
+      - slabs
+      - zones
+      - objects_and_lamps
+      - meshes
+      - morphs
+      - roofs_single_and_multi_plane
+      - stairs
+      - windows_and_doors
+      - openings
+      - text_and_2d_drafting
+      - sections_and_interior_elevations
+    action_for_project: wrapper_and_schema_validation_not_fork
+  mep:
+    status: available_in_upstream_since_1_5_6_for_supported_archicad_versions
+    examples: [create, modify, connect, query]
+    action_for_project: "Add typed wrappers + discipline ownership gates + safe relation readback."
+  element_relations:
+    status: partial_to_broad_upstream_support
+    examples:
+      - GetRelationsOfElements
+      - solid_element_operations_available_in_current_upstream_family
+    action_for_project: "Use relationship receipts; never infer success only from command return."
+  favorites_and_library:
+    status: available_in_upstream
+    examples:
+      - get_available_library_parts
+      - import_export_favorites
+      - apply_update_rename_delete_favorites
+      - GDL_parameter_get_set_including_arrays
+    action_for_project: "Use Favorites for verified construction/product templates; store library/favorite version in operation payload."
+  attributes:
+    status: broad_upstream_support
+    note: "Current releases include extended get/set/create/delete attribute operations; exact per-attribute schemas must be verified before enabling automatic writes."
+    action_for_project: schema_verification_required
+
+safe_bridge_missing_for_node_generation:
+  - id: bridge.typed_create
+    priority: P0
+    need: "Safe typed create operations for wall/slab/beam/column/roof/opening/object/window/door/stair with idempotency key."
+    current_gap: "applier rejects create in journal path"
+  - id: bridge.typed_modify_geometry
+    priority: P0
+    need: "Safe geometry/property changes beyond MoveElements: dimensions, polygon, layer/structure/favorite/GDL parameters where explicitly allowed."
+    current_gap: "applier handles move vector only"
+  - id: bridge.delete_with_preconditions
+    priority: P0
+    need: "Delete with exact GUID/type/revision preconditions, backup/receipt and explicit authorization."
+  - id: bridge.relationship_ops
+    priority: P0
+    need: "Create/remove SEO and other exposed relations with target/operator role, relation type and post-read validation."
+  - id: bridge.opening_ownership
+    priority: P0
+    need: "Opening must store host, owner discipline, requested-by system, clearance/shape, approval status and KR gate."
+  - id: bridge.batch_transaction
+    priority: P0
+    need: "Node generation as a batch with Archicad undo scope where API permits, deterministic ordering and compensating rollback plan."
+  - id: bridge.postcondition_engine
+    priority: P0
+    need: "Validate GUID existence, type, critical geometry, properties, host relations, SEO relations, counts and node revision after write."
+  - id: bridge.runtime_handshake
+    priority: P0
+    need: "Require Archicad version + Tapir version + command availability before executing node recipe."
+  - id: bridge.favorite_library_pin
+    priority: P1
+    need: "Pin favorite/library-part identity/version so generated nodes do not silently change after library updates."
+  - id: bridge.detail_output
+    priority: P1
+    need: "Automated detail/worksheet production and linked markers if exact upstream command support is verified; otherwise separate Tapir extension or another Archicad Add-On API wrapper may be required."
+  - id: bridge.complex_profile_authoring
+    priority: P1
+    need: "Programmatic creation/editing of Complex Profile attributes only after exact current Tapir schema is verified. If not exposed, implement an Add-On extension; do not fake profiles using Morphs."
+
+fork_tapir_only_when:
+  - "Required Archicad API function is genuinely absent from current Tapir command set after schema/source verification."
+  - "The missing operation cannot be composed safely from existing native element/attribute/relationship commands."
+  - "A stable upstream issue/PR is insufficient for project timing and local extension can be maintained/tested per Archicad version."
+
+prefer_orchestrator_not_fork_when:
+  - "Tapir already exposes the primitive but project lacks typed wrapper, validation or journal support."
+  - "The requirement is semantic (node recipe, normative gate, approvals, ownership) rather than an Archicad API primitive."
+  - "The requirement is multi-step workflow orchestration with readback."
+
+required_safe_operation_envelope:
+  fields:
+    - operation_id
+    - idempotency_key
+    - node_id
+    - element_type
+    - command_name
+    - command_schema_version
+    - preconditions
+    - payload
+    - expected_postconditions
+    - rollback_or_compensation
+    - source_rule_ids
+    - authorizer
+    - target_profile
+  rules:
+    - "No blind success: read back every created/modified element and relationship."
+    - "No type-agnostic arbitrary JSON writes from an LLM to Archicad."
+    - "No create/delete/structural-opening operation without explicit allowlist and validation schema."
+    - "Failure in one critical node component leaves the node blocked/incomplete, not silently partially approved."
+
+sources:
+  - "https://github.com/ENZYME-APD/tapir-archicad-automation/releases"
+  - "repo:agent-handoff/src/accollab/connector.py"
+  - "repo:agent-handoff/src/accollab/applier.py"

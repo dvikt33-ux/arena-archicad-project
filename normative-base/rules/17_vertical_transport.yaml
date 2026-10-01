@@ -1,4 +1,4 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 purpose: "Архитектурные правила вертикального транспорта для профиля 2027+: лифты, доступность, лифтовые холлы и границы автоматизации."
 
@@ -48,7 +48,8 @@ public_buildings:
         - {layout: "single_row", cabin_depth_condition: "<=1.5 m", min_lobby_width_mm: 2000}
         - {layout: "single_row", cabin_depth_condition: ">1.5 and <=2.0 m", min_lobby_width_mm: 2500}
         - {layout: "single_row", cabin_depth_condition: ">2.0 m", formula: "min_lobby_width >= 1.3 * cabin_depth"}
-        - {layout: "double_row", formula: "min_lobby_width >= 2 * smaller_cabin_depth"}
+        - {layout: "double_row", formula: "min_lobby_width >= max(2 * smaller_cabin_depth, 1600 mm)", absolute_min_lobby_width_mm: 1600}
+      audit_note: "Повторно сверено 2026-10-01 по действующей редакции СП 118.13330.2022: для двухрядного расположения действует не только удвоенная глубина меньшей кабины, но и абсолютный минимум 1,6 м."
 
 accessibility:
   source: SP_59_13330_2020
@@ -66,7 +67,7 @@ accessibility:
       dimension_semantics: clear
       statement: "Пассажирский лифт для МГН должен обеспечивать размещение пользователя кресла-коляски с сопровождающим лицом; размер кабины должен быть не менее 1100×1400 мм (ширина×глубина)."
       values: {min_cabin_width_mm: 1100, min_cabin_depth_mm: 1400}
-      correction_note: "Повторный аудит 2026-09-30: Изменение №3 к СП 59.13330.2020 не отменяло и не заменяло числовое требование п. 6.2.14; прежняя запись об отсутствии минимума была ошибочной и удалена."
+      correction_note: "Повторный аудит: Изменение №3 к СП 59.13330.2020 не отменяло и не заменяло числовое требование п. 6.2.14."
 
     - id: vertical.residential.recommended_cabins
       clause: "6.2.15"
@@ -136,7 +137,8 @@ source_quality:
 
 sources:
   - "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"
-  - "https://protect.gost.ru/sp/changesdetails/7c9a7038-5d31-4756-8634-0f28d758b873"
+  - "https://protect.gost.ru/sp/changesdetails/070b0f9b-69ba-40a0-837d-eb0d504dbb06"
   - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://base.garant.ru/404976079/"
   - "https://protect.gost.ru/gost/details/cc63967a-4b16-4f7d-bcc3-db74dd0decff"
   - "https://protect.gost.ru/gost/details/c476d6a7-a6bb-4dc5-8c2c-e2183e9df95f"

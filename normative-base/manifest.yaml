@@ -1,4 +1,4 @@
-manifest_version: 69
+manifest_version: 70
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -141,6 +141,7 @@ rule_files:
   - 83_residential_site_open_space_2027.yaml
   - 84_plot_boundaries_red_lines_2027.yaml
   - 85_quarter_drives_pedestrian_routes_2027.yaml
+  - 86_fire_compartment_base_matrices_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

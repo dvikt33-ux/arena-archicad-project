@@ -1,0 +1,110 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Подтвержденный переход графического ядра ЕСКД на национальные ГОСТ Р 2.301-2.307:2026 с 01.10.2027 и правом досрочного применения. Для целевого профиля 2027+ новые редакции применяются заранее."
+
+policy:
+  apply_future_confirmed_now: true
+  effective_from: 2027-10-01
+  early_application_allowed: true
+  statement: "Поскольку проекты базы рассчитаны на реализацию в 2027+ и пользователь требует заранее учитывать официально утвержденные изменения 2027 года, новые ГОСТ Р 2026 используются как target standards уже на стадии настройки шаблона."
+
+confirmed_transitions:
+  - id: eskd2027.sheet_formats
+    automation: validation_only
+    legacy_document: GOST_2_301_68
+    target_document: GOST_R_2_301_2026
+    title: "Форматы листов"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/ca4c6e2d-fcde-4d46-b851-b0cbd10a7e53"
+
+  - id: eskd2027.scales
+    automation: validation_only
+    legacy_document: GOST_2_302_68
+    target_document: GOST_R_2_302_2026
+    title: "Масштабы"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/c8a1ab70-2670-4e27-b74e-59b7c3f7e060"
+
+  - id: eskd2027.lines
+    automation: validation_only
+    legacy_document: GOST_2_303_68
+    target_document: GOST_R_2_303_2026
+    title: "Линии"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/74a6410b-9422-4c9c-b9ee-2798a92f2d6a"
+
+  - id: eskd2027.fonts
+    automation: validation_only
+    legacy_document: GOST_2_304_81
+    target_document: GOST_R_2_304_2026
+    title: "Шрифты"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/f744cc7d-56c7-4930-98c0-afeedd135827"
+
+  - id: eskd2027.views_sections
+    automation: validation_only
+    legacy_document: GOST_2_305_2008
+    target_document: GOST_R_2_305_2026
+    title: "Изображения — виды, разрезы, сечения"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/1922e193-7fd8-4e15-8e2b-93912a456452"
+
+  - id: eskd2027.material_graphics
+    automation: validation_only
+    legacy_document: GOST_2_306_68
+    target_document: GOST_R_2_306_2026
+    title: "Обозначения материалов графические"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    scope_note: "Новый стандарт прямо распространяется на графические обозначения материалов и электронные геометрические модели."
+    source_url: "https://protect.gost.ru/gost/details/298e1ad4-7fd2-4399-a2db-790bd52dd2eb"
+
+  - id: eskd2027.dimensions
+    automation: validation_only
+    legacy_document: GOST_2_307_2011
+    target_document: GOST_R_2_307_2026
+    title: "Указание размеров и предельных отклонений"
+    effective_from: 2027-10-01
+    early_application: true
+    target_status: adopted_future
+    source_url: "https://protect.gost.ru/gost/details/eddb3107-58be-4811-b237-5ab1d0d4c4d5"
+
+legacy_gate:
+  - id: eskd2027.legacy_numeric_rules_block
+    automation: forbidden_to_infer
+    statement: "Числовые параметры линий, штриховок, шрифтов, масштабов и нанесения размеров из старых ГОСТ нельзя автоматически переносить в target 2027, если соответствующее положение нового ГОСТ Р 2026 еще не сверено по официальному полному тексту. Статус замены подтверждает смену источника, но не доказывает тождество конкретного числа."
+
+  - id: eskd2027.spds_specific_rules_preserved
+    automation: validation_only
+    statement: "Прямые специальные требования ГОСТ Р 21.101-2026, ГОСТ 21.501-2018, ГОСТ 21.508-2020, ГОСТ 21.204-2020 и других СПДС сохраняются как самостоятельные правила. Общий переход ЕСКД не отменяет специальную строительную норму, если она прямо задает тип линии, размер, масштаб или обозначение."
+
+  - id: eskd2027.current_text_required_for_template_constants
+    automation: forbidden_to_infer
+    statement: "До получения полного официального текста каждого ГОСТ Р 2.301-2.307:2026 не фиксировать в Archicad-шаблоне как нормативные те числовые константы, которые берутся только из заменяемого ЕСКД. Разрешены лишь значения, независимо подтвержденные специальным СПДС или новым официальным текстом."
+    requires_manufacturer_data: false
+
+agent_logic:
+  - "При конфликте старого ЕСКД и подтвержденного target ГОСТ Р 2026 использовать target ГОСТ Р."
+  - "Не считать право досрочного применения необязательным для нашей базы: target profile сознательно выбирает раннее применение, чтобы проект не устарел к реализации."
+  - "Специальные строительные СПДС имеют приоритет в своей области; ЕСКД используется там и так, как на него ссылается СПДС."
+  - "После появления официального полного текста новых ГОСТ Р выполнить постатейный аудит и только затем разрешить новые числовые auto-rules."
+
+sources:
+  - "https://protect.gost.ru/gost/details/ca4c6e2d-fcde-4d46-b851-b0cbd10a7e53"
+  - "https://protect.gost.ru/gost/details/c8a1ab70-2670-4e27-b74e-59b7c3f7e060"
+  - "https://protect.gost.ru/gost/details/74a6410b-9422-4c9c-b9ee-2798a92f2d6a"
+  - "https://protect.gost.ru/gost/details/f744cc7d-56c7-4930-98c0-afeedd135827"
+  - "https://protect.gost.ru/gost/details/1922e193-7fd8-4e15-8e2b-93912a456452"
+  - "https://protect.gost.ru/gost/details/298e1ad4-7fd2-4399-a2db-790bd52dd2eb"
+  - "https://protect.gost.ru/gost/details/eddb3107-58be-4811-b237-5ab1d0d4c4d5"

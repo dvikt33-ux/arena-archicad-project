@@ -1,0 +1,192 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_485_1311500_2020
+verified_changes: [1,2]
+purpose: >-
+  Архитектурные интерфейсы автоматических установок пожаротушения: насосная станция, сервисные
+  проходы, противопожарное отделение, наружные присоединительные патрубки и ограничения помещений
+  газового/порошкового/аэрозольного пожаротушения. Гидравлический расчет и подбор оборудования не выполняются.
+
+revision_state:
+  status: active
+  change_1_effective_from: 2026-01-01
+  change_2_effective_from: 2026-07-09
+  legacy_removed_clause:
+    clause: "former 6.10.10"
+    removed_by_change: 1
+    statement: >-
+      Старое требование проектировать для насосной станции отдельный выход наружу/на лестничную
+      клетку исключено с 01.01.2026. Не использовать старые редакции, судебные цитаты или учебные
+      материалы как основание автоматически требовать такой выход в профиле 2027.
+
+pump_station_enclosure:
+  source_clause: "6.10.11"
+  rules:
+    - id: fire.aipt.pump_room_fire_separation
+      automation: conditional
+      requirement:
+        walls_or_partitions: "fire_wall_type_1 OR fire_partition_type_1"
+        floor: fire_floor_type_2
+      statement: >-
+        Насосную станцию отделять от других помещений противопожарными стенами 1-го типа либо
+        противопожарными перегородками 1-го типа и противопожарными перекрытиями 2-го типа.
+      conflict_policy: >-
+        Конкретные конструкции и пределы огнестойкости подтверждать пожарным/конструктивным решением;
+        архитектурный агент хранит требуемый тип преграды и не синтезирует состав стены по толщине.
+
+pump_station_environment:
+  source_clause: "6.10.12"
+  rules:
+    - id: fire.aipt.pump_room_environment
+      automation: engineering_validation
+      min_air_temperature_c: 5
+      max_air_temperature_c: 35
+      max_relative_humidity_percent_at_25c: 80
+      statement: >-
+        Помещение насосной должно обеспечивать установленный температурно-влажностный режим.
+        Эти параметры являются заданием ОВ, а не основанием архитектурно назначать толщину ограждений.
+
+pump_station_service_clearances:
+  source_clause: "6.10.16"
+  rules:
+    - id: fire.aipt.pump_room_control_units_clearance
+      automation: conditional
+      dimension_semantics: clear_service_passage
+      min_clearance_m: 0.5
+      applies_between:
+        - control_unit_and_control_unit
+        - control_unit_and_wall
+
+    - id: fire.aipt.pump_room_pump_to_wall_clearance
+      automation: conditional
+      dimension_semantics: clear_service_passage
+      cases:
+        - {pump_room_location: recessed_below_grade, min_clearance_m: 0.7}
+        - {pump_room_location: other, min_clearance_m: 1.0}
+      additional_requirement: >-
+        Со стороны электродвигателя проход должен дополнительно обеспечивать демонтаж ротора;
+        если паспортная зона больше числового минимума, применять паспортную.
+      requires_manufacturer_data: true
+
+    - id: fire.aipt.pump_room_modular_unit_to_wall
+      automation: conditional
+      dimension_semantics: clear_service_passage
+      min_clearance_m: 1.0
+      applies_between: modular_or_block_pump_unit_and_wall
+
+    - id: fire.aipt.pump_room_other_equipment_clearance
+      automation: conditional
+      dimension_semantics: clear_service_passage
+      min_clearance_m: 0.7
+      applies_between: fixed_projecting_parts_of_other_equipment
+
+    - id: fire.aipt.pump_room_electrical_panel_front_clearance
+      automation: conditional
+      dimension_semantics: clear_service_passage
+      min_clearance_m: 2.0
+      applies_in_front_of: distribution_electrical_panel
+
+    - id: fire.aipt.pump_room_manufacturer_clearance_priority
+      automation: hard_gate
+      statement: >-
+        Если изготовитель оборудования задает больший проход/сервисную зону, применять паспортные
+        данные. Нормативные 0,5/0,7/1,0/2,0 м являются минимумами соответствующих случаев, а не
+        универсальной сеткой помещения.
+      requires_manufacturer_data: true
+
+    - id: fire.aipt.small_pumps_pairing_exception
+      automation: conditional_exception
+      condition: "pump_discharge_nozzle <= DN100 AND two_pumps_on_one_foundation"
+      min_between_projecting_parts_m: 0.25
+      min_passage_around_paired_unit_m: 0.7
+      statement: >-
+        Для насосных агрегатов с нагнетательным патрубком до DN100 включительно допускается
+        предусмотренная СП компоновка двух агрегатов на одном фундаменте только при сохранении
+        указанных минимальных расстояний и эксплуатационной доступности.
+
+mobile_firefighting_connection:
+  source_clause: "6.10.17, current revision after Change 1"
+  rules:
+    - id: fire.aipt.external_mobile_connection_min_count
+      automation: conditional
+      min_external_connection_count: 2
+      nominal_connection_size: DN80
+      statement: >-
+        Насосная станция должна иметь не менее двух выведенных наружу патрубков с соединительными
+        головками DN80 для подключения мобильных средств пожаротушения.
+      conflict_policy: >-
+        Общее количество патрубков должно обеспечивать расчетный расход и определяется профильным
+        проектом; два — только нижний предел.
+      requires_engineering_calculation: true
+
+    - id: fire.aipt.external_mobile_connection_architecture
+      automation: validation_only
+      statement: >-
+        Архитектура должна зарезервировать наружное доступное положение присоединительных головок,
+        либо ниши с металлическими дверцами, не перекрывая их фасадным декором, благоустройством,
+        парковкой или недоступной зоной.
+      requires_engineering_input: true
+
+legacy_exit_gate:
+  - id: fire.aipt.no_legacy_separate_exit_rule
+    automation: forbidden_to_infer
+    legacy_source_clause: "former 6.10.10"
+    statement: >-
+      Не требовать автоматически отдельный выход насосной станции наружу или на лестничную клетку
+      по бывшему п.6.10.10 СП 485: он утратил силу с 01.01.2026. Эвакуацию и выходы помещения
+      проверять по действующим общим и специальным пожарным нормам без восстановления исключенного пункта.
+
+special_extinguishing_rooms:
+  source_clause: "5.11, Change 2"
+  rules:
+    - id: fire.aipt.gas_powder_aerosol_no_permanent_occupancy
+      automation: hard_gate
+      systems:
+        - gas
+        - powder
+        - gas_powder
+        - aerosol
+      required_room_occupancy: no_permanent_occupancy
+      statement: >-
+        Автоматические установки газового, порошкового, газопорошкового и/или аэрозольного
+        пожаротушения применять для защиты помещений без постоянного пребывания людей в области п.5.11.
+
+    - id: fire.aipt.gas_powder_aerosol_visitor_access_control
+      automation: validation_only
+      systems: [gas, powder, gas_powder, aerosol]
+      requirement: prevent_unauthorized_visitor_access
+      entrance_sign_required: true
+      statement: >-
+        Для таких защищаемых помещений предусматривать организационные/технические меры против
+        несанкционированного доступа посетителей и указатель у входа о запрете доступа и наличии АУПТ.
+
+BIM_required_parameters:
+  - fire_suppression_system_type
+  - pump_room_id
+  - pump_room_location_type
+  - pump_equipment_id
+  - pump_discharge_nominal_size
+  - equipment_service_envelope
+  - rotor_dismantling_envelope
+  - control_unit_geometry
+  - distribution_panel_geometry
+  - manufacturer_clearance_reference
+  - pump_room_fire_separation_type
+  - external_mobile_connection_ids
+  - external_mobile_connection_geometry
+  - protected_room_occupancy_type
+  - visitor_access_control_status
+
+agent_logic:
+  - "Площадь насосной получать из реальной компоновки оборудования плюс нормативные и паспортные service envelopes, а не из площади здания."
+  - "Не восстанавливать исключенный п.6.10.10 из старых шаблонов."
+  - "Не считать два DN80 достаточными без проверки расчетного расхода — это только минимум количества."
+  - "Не размещать фасадные патрубки в недоступной или перекрываемой зоне."
+  - "Подбор насосов, резервуаров, диаметров и расхода остается расчетом АУПТ."
+
+sources:
+  - "https://protect.gost.ru/sp/details/ec6c8087-0ec1-4460-a4a3-971261233a28"
+  - "https://protect.gost.ru/sp/changesdetails/e4904f4f-c14a-416b-9ab6-8184a1859ae5"
+  - "https://protect.gost.ru/sp/changesdetails/39182225-d192-4485-9ea1-9bef76aa40db"
+  - "https://www.consultant.ru/document/cons_doc_LAW_363050/6a390342ede9070694a33b23840193d8e95b8ab0/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_540477/"

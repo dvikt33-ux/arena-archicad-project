@@ -1,4 +1,4 @@
-manifest_version: 51
+manifest_version: 52
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -119,6 +119,7 @@ rule_files:
   - 62_sp3_2026_evacuation_signs_arch_coordination.yaml
   - 63_door_blocks_2026.yaml
   - 64_parking_fire_safety_2026.yaml
+  - 65_drywall_partitions_linings.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

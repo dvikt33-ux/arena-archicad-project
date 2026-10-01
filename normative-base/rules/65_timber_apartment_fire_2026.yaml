@@ -1,0 +1,300 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Архитектурные и BIM-ограничения СП 549.1311500.2026 для секционных МКД Ф1.3 с конструкциями из древесины и древесных материалов. Применять только в точной области документа и совместно с СП 1, СП 2, СП 3, СП 4 и СП 54."
+
+source_document:
+  document: SP_549_1311500_2026
+  title: "Многоквартирные жилые дома с применением конструкций из древесины и древесных материалов. Требования пожарной безопасности"
+  status: active
+  effective_from: 2026-04-01
+  approving_act: "Приказ МЧС России от 26.02.2026 №136"
+  official_source_url: "https://protect.gost.ru/sp/details/77625f5e-6bb0-40dc-82e2-7a15b15fa861"
+
+scope_gate:
+  source: SP_549_1311500_2026
+  clause: "1.1-1.3"
+  rules:
+    - id: timber_mkd.scope.sectional_F1_3_height_5_15m
+      automation: validation_only
+      statement: "СП 549 применяется к секционным многоквартирным жилым домам класса Ф1.3 пожарной высотой от 5 до 15 м, определяемой по СП 1.13130, при применении предусмотренных документом деревянных конструкций."
+      conditions:
+        functional_fire_class: F1.3
+        building_type: sectional_apartment_building
+        building_fire_height_mm: {min_inclusive: 5000, max_inclusive: 15000}
+      conflict_policy: "За пределами этой области не экстраполировать числовые требования СП 549 по аналогии."
+
+    - id: timber_mkd.scope.approved_wood_systems
+      automation: conditional
+      statement: "В область СП входят CLT по ГОСТ Р 56706, клееные деревянные конструкции по ГОСТ 20850, LVL по ГОСТ 33124 и стеновые панели с деревянным каркасом по ГОСТ Р 55658; допускаются также несущие элементы из негорючих материалов и иные конструкции при соблюдении СП."
+      product_standards: [GOST_R_56706, GOST_20850, GOST_33124, GOST_R_55658]
+
+    - id: timber_mkd.scope.hollow_combustible_frame_forbidden
+      automation: auto
+      statement: "Применение деревянных конструкций каркасного типа с внутренними пустотами и (или) горючим утеплителем в области СП 549 не допускается."
+      result: forbidden
+
+site_fire_access:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.site.open_parking_distance
+      clause: "5.3"
+      automation: auto
+      dimension_semantics: actual
+      statement: "Противопожарное расстояние от деревянного МКД в области СП 549 до открытой стоянки временного хранения легковых автомобилей — не менее 10 м."
+      values: {min_distance_mm: 10000}
+
+    - id: timber_mkd.site.neighbouring_quarter_distance
+      clause: "5.6"
+      automation: conditional
+      dimension_semantics: actual
+      statement: "Между такими МКД, расположенными в соседних кварталах, предусматривается противопожарное расстояние не менее 30 м."
+      conditions: {buildings_location: neighbouring_quarters}
+      values: {min_distance_mm: 30000}
+
+    - id: timber_mkd.fire_access.all_sides
+      clause: "6.2"
+      automation: auto
+      statement: "Подъезд пожарных автомобилей должен быть обеспечен со всех сторон здания."
+
+    - id: timber_mkd.fire_access.edge_distance
+      clause: "6.3"
+      automation: auto
+      dimension_semantics: actual
+      statement: "Расстояние от внутреннего края подъезда пожарных автомобилей до наружной стены или иной наружной ограждающей конструкции — 8-10 м."
+      values: {min_mm: 8000, max_mm: 10000}
+
+    - id: timber_mkd.fire_access.road_width
+      clause: "6.4"
+      automation: auto
+      dimension_semantics: clear
+      statement: "Ширина проезда для пожарных автомобилей — не менее 6 м."
+      values: {min_clear_width_mm: 6000}
+
+    - id: timber_mkd.fire_access.dead_end_turnaround
+      clause: "6.5"
+      automation: conditional
+      statement: "Тупиковый пожарный проезд заканчивается площадкой разворота не менее 15×15 м; максимальная длина тупикового проезда — 100 м."
+      conditions: {fire_access_type: dead_end}
+      values: {turnaround_min_mm: [15000,15000], dead_end_max_length_mm: 100000}
+
+    - id: timber_mkd.fire_access.aerial_platforms_over_12m
+      clause: "6.6"
+      automation: conditional
+      statement: "У каждой стороны здания пожарной высотой более 12 м предусматриваются площадки для пожарной техники/подъемных механизмов не менее 15×15 м, с расстоянием между площадками по периметру не более 100 м и не менее двух площадок у противоположных продольных сторон."
+      conditions: {building_fire_height_mm: {greater_than: 12000}}
+      values: {platform_min_mm: [15000,15000], max_spacing_along_perimeter_mm: 100000, min_platform_count: 2}
+
+constructive_system_router:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.system_A_up_to_12m
+      clause: "8.2 а"
+      automation: conditional
+      statement: "Система с отдельными деревянными несущими конструкциями без огнезащиты допускается для здания высотой не более 12 м и не выше 4 этажей; площадь этажа в пределах пожарного отсека — не более 500 м², с пожарно-техническими характеристиками по таблице 1."
+      conditions: {wood_fire_protection_system: partial_or_exposed, building_fire_height_mm: {max: 12000}, storeys: {max: 4}}
+      values: {max_fire_compartment_floor_area_m2: 500}
+      conflict_policy: "Степень огнестойкости и классы конструкций валидировать по таблице 1 и КР; архитектурный агент не рассчитывает огнестойкость деревянной конструкции."
+
+    - id: timber_mkd.system_B_over_12m_to_15m
+      clause: "8.2 б"
+      automation: conditional
+      statement: "Для здания выше 12 м в области СП 549 применяется система с огнезащитой всех деревянных конструкций; этажность — не выше 5, площадь этажа в пределах пожарного отсека — не более 1800 м², с характеристиками по таблице 1."
+      conditions: {building_fire_height_mm: {greater_than: 12000, max: 15000}, storeys: {max: 5}, all_wood_structures_fire_protected: true}
+      values: {max_fire_compartment_floor_area_m2: 1800}
+      requires_structural_fire_design: true
+
+    - id: timber_mkd.over_12m_noncombustible_core_elements
+      clause: "8.2"
+      automation: conditional
+      statement: "Для зданий высотой более 12 м противопожарные преграды, лестничные клетки, лифтовые шахты и лестнично-лифтовые узлы выполняются из негорючих материалов."
+      conditions: {building_fire_height_mm: {greater_than: 12000}}
+      required_material_combustibility: noncombustible
+
+    - id: timber_mkd.system_B_apartment_area_per_section_floor
+      clause: "8.3"
+      automation: conditional
+      statement: "Для системы подпункта 8.2 б общая площадь квартир на этаже одной секции не должна превышать 500 м²; секции разделяются противопожарными стенами 2-го типа из негорючих материалов."
+      conditions: {constructive_system: system_B_8_2_b}
+      values: {max_total_apartment_area_per_section_floor_m2: 500, section_fire_wall_type: 2, section_fire_wall_material: noncombustible}
+
+stair_and_facade_interfaces:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.common_area_partition_external_wall_interface
+      clause: "8.9"
+      automation: conditional
+      statement: "Противопожарные перегородки 1-го типа, отделяющие жилые помещения от общих коридоров, холлов, вестибюлей и лестничных клеток, должны пересекать деревянные наружные стены либо примыкать к глухим участкам наружной стены с нормируемым пределом огнестойкости шириной не менее 1,2 м."
+      values: {min_solid_external_wall_interface_width_mm: 1200}
+
+    - id: timber_mkd.stairwall_roof_projection
+      clause: "8.10"
+      automation: auto
+      statement: "Стены лестничных клеток должны пересекать покрытие и возвышаться над ним не менее чем на 300 мм; покрытие над лестничной клеткой — не менее REI 60, К0; люк в покрытии — не менее EI 30."
+      values: {stairwall_min_projection_above_roof_mm: 300, roof_over_stairwell_min: "REI 60 K0", roof_hatch_min: "EI 30"}
+
+    - id: timber_mkd.stairwell_facade_pier
+      clause: "8.10"
+      automation: conditional
+      dimension_semantics: actual
+      statement: "В месте примыкания внутренней стены лестничной клетки к наружной стене расстояние по горизонтали между проемом лестничной клетки и проемом наружной стены здания допускается не менее 1,4 м при узле примыкания с пределом огнестойкости не менее EI 60."
+      values: {min_horizontal_pier_mm: 1400, interface_joint_min: "EI 60"}
+      conflict_policy: "Проверять совместно с более общими правилами фасадных проемов; применить более строгое применимое требование."
+
+    - id: timber_mkd.facade_system_class_K0
+      clause: "8.11"
+      automation: auto
+      statement: "Применяемые СФТК и НФС должны иметь класс пожарной опасности К0."
+      values: {facade_system_fire_hazard_class: K0}
+
+    - id: timber_mkd.facade_noncombustible_layers_on_wood_base
+      clause: "8.11"
+      automation: conditional
+      statement: "При монтаже фасадной системы на деревянное основание материалы облицовки, отделки и теплоизоляции наружной стены с внешней стороны должны быть негорючими; для НФС предусматривается негорючая теплоизоляция толщиной не менее 50 мм."
+      conditions: {facade_system_on_wood_substrate: true}
+      values: {NFS_min_noncombustible_insulation_mm: 50}
+
+    - id: timber_mkd.facade_opening_fire_stops
+      clause: "8.11"
+      automation: conditional
+      statement: "На деревянном основании фасадной системы откосы оконных и наружных дверных проемов выполняются из негорючих материалов; для НФС противопожарные отсечки из негорючих материалов предусматриваются в уровне всех междуэтажных перекрытий и по периметру оконных/дверных проемов."
+      conditions: {facade_system_on_wood_substrate: true}
+
+    - id: timber_mkd.combustible_plinth_insulation_limit
+      clause: "8.12"
+      automation: conditional
+      statement: "Горючая теплоизоляция цоколя и надземной части фундамента допускается до высоты 0,8 м от уровня земли/отмостки при наружной защите негорючим материалом толщиной не менее 30 мм и устройстве сверху противопожарной рассечки высотой не менее 300 мм на всю толщину утеплителя, а для НФС также вентиляционного зазора."
+      values: {max_combustible_insulation_height_above_ground_mm: 800, min_noncombustible_protection_thickness_mm: 30, min_fire_break_height_mm: 300}
+
+    - id: timber_mkd.roof_materials
+      clause: "8.16"
+      automation: conditional
+      statement: "Кровлю бесчердачных и чердачных покрытий выполняют из негорючих материалов; горючая кровля допускается на сплошном негорючем основании. Стропильные конструкции чердачного покрытия должны быть негорючими."
+
+    - id: timber_mkd.wood_stairwell_wall_cladding
+      clause: "8.17"
+      automation: conditional
+      statement: "При устройстве внутренних стен лестничных клеток из древесины их отделка/облицовка выполняется с обеих сторон негорючими материалами."
+      conditions: {stairwell_internal_wall_material: wood}
+
+    - id: timber_mkd.H2_doors_type2
+      clause: "8.18"
+      automation: conditional
+      statement: "Двери незадымляемых лестничных клеток Н2 должны быть противопожарными 2-го типа, кроме дверей выходов непосредственно наружу."
+      conditions: {stairwell_type: H2, door_exit_directly_outside: false}
+      values: {fire_door_type: 2}
+
+planning_restrictions:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.prohibited_uses
+      clause: "9.2"
+      automation: auto
+      statement: "В здании не допускаются мусоропроводы, мусоросборные камеры, камины и бани/сауны, а также помещения иных классов функциональной пожарной опасности, кроме помещений общего пользования и прямо разрешенных п.9.3."
+
+    - id: timber_mkd.storage_room_area
+      clause: "9.4"
+      automation: conditional
+      statement: "Внеквартирная хозяйственная кладовая в подвальном/цокольном этаже предусматривается площадью не более 10 м² и только с выполнением полного набора противопожарных условий п.9.4."
+      conditions: {space_type: non_apartment_storage, storey_type: [basement,semi_basement]}
+      values: {max_storage_room_area_m2: 10}
+      conflict_policy: "Число 10 м² само по себе не разрешает кладовую: обязательны противопожарные перегородки/двери, АУП, СПС, СОУЭ, ВПВ и противодымная вентиляция по п.9.4."
+
+residential_egress:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.egress.H2_per_section
+      clause: "10.2"
+      automation: auto
+      statement: "Для эвакуации с жилых этажей каждой секции предусматривается одна незадымляемая лестничная клетка Н2 с шириной лестничных маршей не менее 1,05 м."
+      values: {required_stairwell_type: H2, min_clear_flight_width_mm: 1050, stairwells_per_section: 1}
+      conflict_policy: "Ширину дополнительно проверять по СП 1; при более строгом применимом требовании увеличивать."
+
+    - id: timber_mkd.egress.noncombustible_finishes
+      clause: "10.3"
+      automation: auto
+      statement: "Отделка/облицовка стен, потолков и полов на путях эвакуации за пределами квартир должна быть выполнена из негорючих материалов."
+
+    - id: timber_mkd.egress.emergency_exits_above_12m
+      clause: "10.4"
+      automation: conditional
+      statement: "Для всех квартир, расположенных выше 12 м, предусматриваются аварийные выходы по СП 1.13130."
+      conditions: {apartment_location_height_mm: {greater_than: 12000}}
+      conflict_policy: "Тип и геометрию аварийного выхода получать из действующего СП 1, не из старых типовых схем."
+
+    - id: timber_mkd.egress.no_direct_apartment_to_stairwell
+      clause: "10.5"
+      automation: auto
+      statement: "Эвакуационный выход из квартиры непосредственно в лестничную клетку не допускается."
+      result: forbidden
+
+    - id: timber_mkd.egress.corridor_apartment_fire_separation
+      clause: "10.7"
+      automation: auto
+      statement: "Эвакуационный коридор отделяется от квартир конструкциями по таблице 1 СП 549; заполнение проемов — противопожарные двери 2-го типа."
+      values: {apartment_corridor_door_fire_type: 2}
+
+    - id: timber_mkd.egress.max_distance_from_apartment
+      clause: "10.8"
+      automation: auto
+      dimension_semantics: actual_route
+      statement: "Расстояние от двери наиболее удаленной квартиры до выхода непосредственно наружу, в вестибюль или на лестничную клетку — не более 12 м."
+      values: {max_route_distance_mm: 12000}
+
+    - id: timber_mkd.MGN.safe_zones_all_floors_except_first
+      clause: "10.9"
+      automation: conditional
+      statement: "Для защиты МГН пожаробезопасные зоны предусматриваются на всех этажах, кроме первого: 1-го типа в холле лифта для пожарных подразделений либо 4-го типа на площадках Н2; нормативная геометрия эвакуации должна сохраняться с учетом размещения МГН."
+      conditions: {storey_number: {min: 2}}
+      conflict_policy: "Параметры ПБЗ и площади МГН проверять по СП 59 и профильным пожарным правилам; не уменьшать чистый марш/площадку размещением зоны."
+
+SOUE_transition:
+  source: SP_549_1311500_2026
+  rules:
+    - id: timber_mkd.SOUE_legacy_type3_translate_via_SP3_2026
+      clause: "12.1-12.2"
+      automation: validation_only
+      statement: "СП 549 требует СОУЭ не ниже исторического 3-го типа. Поскольку СП 3.13130.2009 заменен СП 3.13130.2026, требование переводится через обязательное приложение А действующего СП 3.13130.2026, а дальнейшее проектирование выполняется по новому СП 3."
+      conflict_policy: "Не открывать старую таблицу СП 3.13130.2009 как действующий источник. Использовать rules/62_sp3_2026_evacuation_signs_arch_coordination.yaml и профильный проект СОУЭ."
+
+project_documentation_fire_evidence:
+  - id: timber_mkd.fire_resistance_evidence_required
+    source: {document: SP_549_1311500_2026, clause: "8.19"}
+    automation: validation_only
+    statement: "В проектной документации должны быть представлены подтверждения огнестойкости/пожарной опасности деревянных конструкций, узлов их примыканий, пересечений инженерными коммуникациями и зон размещения противопожарных дверей; штробы должны учитываться в оценке огнестойкости."
+    requires_structural_fire_evidence: true
+
+BIM_required_parameters:
+  - functional_fire_class
+  - building_type
+  - building_fire_height_mm
+  - storeys
+  - constructive_system_SP549
+  - timber_product_standard
+  - wood_fire_protection_system
+  - fire_compartment_floor_area_m2
+  - total_apartment_area_per_section_floor_m2
+  - stairwell_type
+  - stair_flight_clear_width_mm
+  - facade_system_type
+  - facade_fire_hazard_class
+  - facade_fire_stop_geometry
+  - stairwell_facade_pier_mm
+  - fire_access_all_sides_status
+  - fire_access_clear_width_mm
+  - fire_access_edge_distance_mm
+  - aerial_platform_locations
+  - apartment_to_egress_route_distance_mm
+  - safe_zone_type_and_location
+  - fire_resistance_evidence_reference
+
+agent_logic:
+  - "Не применять СП 549 ко всем деревянным зданиям: сначала проверить Ф1.3, секционный МКД, пожарную высоту 5-15 м и применяемую деревянную систему."
+  - "Для высоты >12 м не моделировать деревянный лестнично-лифтовой узел: соответствующие конструкции должны быть негорючими."
+  - "Не использовать обычные правила СП 54 как достаточные: СП 549 добавляет специальные пожарные ограничения по секции, фасаду, Н2, расстояниям и пожарным подъездам."
+  - "Не считать 1,05 м универсальной лестницей МКД: это минимум специального СП 549 и он может быть увеличен общими/специальными требованиями СП 1."
+  - "Любое пересечение деревянной конструкции инженерной коммуникацией должно иметь подтвержденный огнестойкий узел; автоматический вырез отверстия запрещен."
+
+sources:
+  - "https://protect.gost.ru/sp/details/77625f5e-6bb0-40dc-82e2-7a15b15fa861"
+  - "https://base.garant.ru/414207431/"
+  - "https://www.consultant.ru/law/hotdocs/94093.html"

@@ -1,0 +1,178 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_8_13130_2020
+verified_changes: [1]
+purpose: >-
+  Архитектурно-генплановая координация наружного противопожарного водоснабжения: положение
+  пожарных гидрантов относительно проездов и зданий, расчетная доступность рукавных линий,
+  ограничения тупиковых линий и доступ пожарной техники. Расходы, диаметры, гидравлика и
+  количество гидрантов определяются профильным расчетом НВК/ПБ.
+
+revision_state:
+  status: active
+  change_1_effective_from: 2024-03-01
+  current_reference_network_standard:
+    document: SP_31_13330_2021
+    verified_changes: [1,2]
+
+hydrant_site_geometry:
+  source_clause: "8.8, Change 1"
+  rules:
+    - id: fire.external_water.hydrant_to_carriageway_edge
+      automation: conditional
+      dimension_semantics: clear_horizontal
+      max_distance_m: 2.5
+      measure_from: fire_hydrant_axis_or_access_point
+      measure_to: carriageway_edge
+      applicable_adjacent_routes:
+        - automobile_road
+        - driveway
+        - fire_appliance_access
+      statement: >-
+        Пожарные гидранты размещать вдоль автомобильных дорог, проездов и подъездов пожарной
+        техники на расстоянии не более 2,5 м от края проезжей части.
+      note: "СП допускает расположение гидранта непосредственно на проезжей части."
+
+    - id: fire.external_water.hydrant_to_building_wall
+      automation: conditional
+      dimension_semantics: clear_horizontal
+      min_distance_m: 5
+      measure_to: building_or_structure_wall
+      statement: >-
+        Пожарный гидрант располагать не ближе 5 м от стен зданий или сооружений.
+
+    - id: fire.external_water.hydrant_access_zone_no_obstruction
+      automation: hard_gate
+      statement: >-
+        Зона доступа к гидранту и установки пожарной колонки не должна блокироваться парковочным
+        местом, МАФ, ограждением, озеленением, снежным складированием или иным элементом генплана.
+        Точный эксплуатационный envelope задается проектом наружного водоснабжения и пожарным разделом.
+      requires_engineering_input: true
+
+network_topology:
+  source_clauses: ["8.5", "8.8"]
+  rules:
+    - id: fire.external_water.ring_network_default
+      automation: engineering_validation
+      default_network_type: ring
+      statement: >-
+        Пожарные гидранты по базовому правилу устанавливаются на кольцевых участках водопроводных линий.
+        Архитектурный агент не выбирает топологию сети, но должен хранить статус участка сети.
+
+    - id: fire.external_water.dead_end_hydrant_limit
+      automation: conditional
+      condition: network_segment_type == dead_end
+      max_hydrants_on_dead_end: 2
+      additional_conditions:
+        - dead_end_length_and_SP8_8_5_compliance
+        - anti_freezing_measures
+      statement: >-
+        На тупиковой линии допускается не более двух пожарных гидрантов только при соблюдении
+        условий п.8.5 и мер против замерзания.
+      requires_engineering_input: true
+
+    - id: fire.external_water.no_hydrant_on_dead_end_branch_or_building_entry
+      automation: hard_gate
+      prohibited_locations:
+        - branch_from_dead_end_water_line
+        - building_or_structure_water_service_entry
+      statement: >-
+        Не устанавливать пожарный гидрант на ответвлении от тупиковой линии водопровода или на
+        водопроводном вводе в здание/сооружение.
+
+coverage:
+  source_clauses: ["8.9", "8.10"]
+  rules:
+    - id: fire.external_water.coverage_hydrant_count_by_flow
+      automation: engineering_validation
+      cases:
+        - {external_fire_flow_l_s: ">=15", min_hydrants_serving_any_point: 2}
+        - {external_fire_flow_l_s: "<15", min_hydrants_serving_any_point: 1}
+      max_hose_route_length_m: 200
+      hose_route_surface: hard_surface_road
+      additional_allowed_routes:
+        - driveway
+        - fire_appliance_access
+      statement: >-
+        Расстановка должна обеспечивать расчетный наружный расход к любой точке здания на уровне
+        планировочной отметки земли от требуемого числа гидрантов с рукавными линиями длиной не более 200 м.
+      requires_engineering_calculation: true
+
+    - id: fire.external_water.no_uniform_hydrant_spacing
+      automation: forbidden_to_infer
+      statement: >-
+        Количество гидрантов и расстояние между ними определяются расчетом по суммарному расходу и
+        пропускной способности выбранного типа гидранта. Не расставлять гидранты равномерным
+        архитектурным шагом и не считать 200 м расстоянием между гидрантами.
+      requires_engineering_calculation: true
+
+water_takeoff_height:
+  source_clause: "8.15, Change 1"
+  rules:
+    - id: fire.external_water.aboveground_takeoff_max_height
+      automation: conditional
+      condition: "water_takeoff_device_on_aboveground_water_line_or_fire_reservoir"
+      dimension_semantics: vertical_from_fire_access_surface
+      max_height_m: 1.5
+      statement: >-
+        Устройства для отбора воды пожарными автомобилями/мотопомпами от наземной/надземной сети
+        и резервуаров размещать не выше 1,5 м от отметки поверхности проезда пожарной техники.
+
+well_coordination:
+  source_clause: "8.14, Change 1"
+  rules:
+    - id: fire.external_water.hydrant_well_fire_column_fit
+      automation: engineering_validation
+      statement: >-
+        Размер колодца должен обеспечивать возможность установки пожарной колонки. Архитектурный
+        агент не назначает типоразмер колодца без задания НВК, но резервирует его фактический envelope.
+      requires_engineering_input: true
+
+    - id: fire.external_water.no_motorized_valve_same_well
+      automation: hard_gate
+      statement: >-
+        Не размещать пожарный гидрант в одном колодце с запорной арматурой, имеющей электропривод.
+
+site_generation_order:
+  - "1. Получить расчетный наружный расход, схему сети и предварительные гидранты от НВК/ПБ."
+  - "2. Для каждого гидранта наложить одновременно зону <=2,5 м до края допустимого проезда и >=5 м от стен."
+  - "3. Построить фактические рукавные маршруты по твердым дорогам/допустимым пожарным проездам, а не радиусы 200 м по воздуху."
+  - "4. Проверить доступ колонки и пожарной техники; исключить парковку, МАФ, деревья, ограждения и снег из operational envelope."
+  - "5. Согласовать гидранты с rules/13_fire_site_access.yaml и rules/85_quarter_drives_pedestrian_routes_2027.yaml."
+  - "6. После изменения дорог или здания повторно пересчитать coverage профильным разделом."
+
+BIM_required_parameters:
+  - external_fire_water_required_status
+  - external_fire_flow_l_s
+  - fire_hydrant_id
+  - fire_hydrant_geometry
+  - water_network_segment_id
+  - water_network_segment_type
+  - hydrant_to_carriageway_edge_m
+  - hydrant_to_nearest_building_wall_m
+  - fire_hydrant_operational_envelope
+  - hose_route_ids
+  - hose_route_lengths_m
+  - hose_route_surface_type
+  - hydrant_well_id
+  - hydrant_well_equipment_envelope
+  - NVK_calculation_reference
+
+hard_fail_conditions:
+  - "hydrant farther than 2.5m from applicable carriageway edge"
+  - "hydrant closer than 5m to building or structure wall"
+  - "hydrant placed on prohibited branch from dead-end line or building service entry"
+  - "hydrant operational envelope blocked by site element"
+  - "200m hose condition checked as circular radius instead of route along permitted surfaces"
+  - "uniform hydrant spacing generated without hydraulic/fire-water calculation"
+
+agent_logic:
+  - "Гидрант — объект инженерной сети с жесткой генплановой зоной, а не точка благоустройства."
+  - "2,5 м и 5 м проверяются одновременно и от разных геометрических объектов."
+  - "200 м — длина рукавной линии по допустимому маршруту, не радиус обслуживания."
+  - "После любого изменения проезда, здания или ограждения перепроверять доступность гидранта и coverage."
+
+sources:
+  - "https://protect.gost.ru/sp/details/d1901f3f-07ed-46c2-8d81-65b601772eaa"
+  - "https://protect.gost.ru/sp/changesdetails/cd1042f9-4e68-4a57-9289-85c8ebae571c"
+  - "https://www.consultant.ru/document/cons_doc_LAW_351212/bf4bfaaae9c791ece06807d9ef36fd75942cb871/"

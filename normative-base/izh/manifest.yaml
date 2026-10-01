@@ -1,0 +1,30 @@
+package_manifest_version: 1
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+
+load_order:
+  - 00_scope_inputs_2027.yaml
+  - 01_construction_selection.yaml
+  - 02_node_ontology.yaml
+  - 03_archicad_node_implementation.yaml
+  - 04_tapir_capability_gap.yaml
+  - 05_node_generation_algorithm.yaml
+  - 06_canonical_nodes_v1.yaml
+
+release_gate:
+  require:
+    - all_package_yaml_parse
+    - target_profile_is_RU_2027_PLUS
+    - no_duplicate_machine_rule_ids_with_global_rules
+    - no_calculation_required_value_is_replaced_by_typical_default
+    - no_draft_normative_source_is_active
+    - no_material_specific_connection_is_reused_across_systems_without_pack_validation
+    - no_structural_penetration_without_KR_gate
+    - tapir_command_availability_verified_before_write
+    - write_operations_have_readback_and_postconditions
+
+next_material_packs:
+  - masonry_reinforced_concrete
+  - AAC_reinforced_concrete
+  - timber_frame_and_timber_structures

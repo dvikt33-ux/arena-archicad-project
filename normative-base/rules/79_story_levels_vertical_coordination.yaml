@@ -1,0 +1,114 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Вертикальная координация BIM-модели: чистые отметки, высота помещения, конструктив перекрытия, инженерные зоны, лестницы, проемы и модульная координация без универсальной высоты этажа."
+
+source_dependencies:
+  - {document: GOST_28984_2011, role: "modular coordination"}
+  - {document: SP_54_13330_2022, verified_changes: [1,2], role: "residential clear-height requirements"}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5], role: "public-building clear-height requirements"}
+  - {document: SP_1_13130_2020, verified_changes: [1,2,3], role: "egress clear heights and stairs"}
+  - {document: SP_59_13330_2020, verified_changes: [1,2,3,4], role: "accessible-route clear heights and thresholds"}
+
+semantics:
+  - id: vertical.story_level.separate_semantics
+    automation: auto
+    statement: "В BIM раздельно хранить отметку чистого пола, отметку несущего перекрытия, толщину конструктивного перекрытия, толщину пола, подвесной потолок/инженерную зону и чистую высоту помещения. Высота этажа и чистая высота помещения не являются одним параметром."
+
+  - id: vertical.story_level.no_universal_floor_height
+    automation: forbidden_to_infer
+    statement: "Запрещено назначать универсальную высоту этажа (например 3000 мм) как нормативную. Сначала определить назначение помещений, нормативную чистую высоту, конструктивную систему перекрытия, инженерную зону и требования лестнично-лифтового узла."
+    requires_object_classification: true
+
+residential_clear_height_interface:
+  source: SP_54_13330_2022
+  rules:
+    - id: vertical.residential.room_clear_height
+      clause: "5.12"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для жилых комнат и кухни применять подтвержденные минимальные чистые высоты СП 54 по климатическому подрайону; высота измеряется от пола до потолка, а не между конструктивными уровнями перекрытий."
+      cases:
+        - {climatic_subdistricts: ["IA","IБ","IГ","IД","IVА"], min_clear_height_mm: 2700}
+        - {climatic_subdistricts: "other", min_clear_height_mm: 2500}
+      conflict_policy: "Специальные помещения и случаи наклонных ограждений проверять по полному пункту и не распространять эти значения автоматически на все помещения квартиры."
+
+public_clear_height_interface:
+  source: SP_118_13330_2022
+  rules:
+    - id: vertical.public.mass_occupancy_clear_height
+      clause: "4.26"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Для вновь проектируемых общественных зданий помещения с постоянным и/или массовым пребыванием людей в общем случае требуют не менее 3000 мм в чистоте с учетом предусмотренных самим пунктом исключений."
+      values: {general_min_clear_height_mm: 3000}
+      requires_object_classification: true
+      conflict_policy: "Не применять 3000 мм к помещению до проверки исключений и специального СП функционального назначения."
+
+floor_to_floor_solver:
+  - id: vertical.story_level.floor_to_floor_formula
+    automation: conditional
+    derived: true
+    statement: "Минимально допустимую высоту между чистыми полами формировать как сумму требуемой чистой высоты нижнего помещения и всех реально присутствующих вертикальных зон между чистым потолком и чистым полом следующего этажа. Эти зоны должны происходить из конструктивного/инженерного решения, а не из скрытого запаса."
+    formula: "floor_to_floor = required_clear_height + suspended_ceiling_or_service_zone + structural_slab_and_floor_build_up_adjustments according to model level semantics"
+    conflict_policy: "Формула является координационной логикой, а не самостоятельной нормативной цифрой."
+
+  - id: vertical.story_level.rounding_after_constraints
+    automation: auto
+    statement: "Модульное округление высоты этажа допускается только после выполнения нормативной чистой высоты, лестничной геометрии, выбранного перекрытия и подтвержденной инженерной зоны. Модульная сетка не может уменьшать обязательный просвет."
+
+stairs_interface:
+  - id: vertical.story_level.stair_uses_finished_floor_levels
+    automation: auto
+    statement: "Расчет количества и высоты подъемов лестницы выполнять между чистыми отметками полов, а не между условными уровнями этажей. Все подступенки одного марша должны соответствовать применимым правилам геометрии лестницы; нельзя компенсировать ошибку этажной отметки одной отличающейся ступенью."
+    conflict_policy: "Применять совместно с rules/16_stair_geometry.yaml и специальными пожарными требованиями."
+
+openings_interface:
+  - id: vertical.story_level.opening_head_sill_absolute_levels
+    automation: auto
+    statement: "Подоконные, дверные и верхние отметки проемов хранить как координаты относительно чистого пола помещения и/или абсолютной проектной отметки. Изменение толщины пола или перекрытия не должно автоматически изменять требуемый размер в свету двери/пути эвакуации."
+
+  - id: vertical.story_level.door_clear_height_preserved
+    automation: validation_only
+    statement: "После изменения этажных отметок, пола или потолка повторно проверять фактическую высоту эвакуационных и доступных дверных проемов в свету; номинальная высота библиотечного объекта не является достаточной проверкой."
+
+mep_interface:
+  - id: vertical.story_level.mep_zone_not_typical_constant
+    automation: forbidden_to_infer
+    statement: "Высоту межпотолочного инженерного пространства нельзя назначать универсальной величиной. Она определяется составом трасс, пересечениями, огнезаделками, обслуживанием и профильными инженерными решениями."
+    requires_calculation: true
+
+  - id: vertical.story_level.no_structure_cut_to_recover_height
+    automation: forbidden_to_infer
+    statement: "Недостаток чистой высоты запрещено устранять автоматическим уменьшением несущего перекрытия, вырезом балки/плиты или переносом отверстия без решения КР."
+    requires_calculation: true
+
+BIM_required_parameters:
+  - finished_floor_level
+  - structural_slab_top_level
+  - structural_slab_bottom_level
+  - floor_build_up_thickness
+  - suspended_ceiling_level_if_any
+  - service_zone_top_and_bottom_levels
+  - required_clear_room_height
+  - actual_clear_room_height
+  - floor_to_floor_height
+  - room_function
+  - climatic_subdistrict_if_residential
+  - stair_connected_finished_levels
+  - door_clear_head_level
+  - window_sill_and_head_levels
+
+agent_sequence:
+  - "1. Классифицировать помещение и получить нормативную чистую высоту из общего и специального СП."
+  - "2. Выбрать/получить подтвержденный конструктив перекрытия и толщины пола."
+  - "3. Получить инженерную зону из профильной координации; при отсутствии данных вернуть unresolved вместо выдуманной высоты."
+  - "4. Вычислить минимальную этажную высоту и проверить лестницу между чистыми полами."
+  - "5. Только затем оптимизировать высоту по модульной координации/унификации проекта."
+  - "6. После изменения этажной высоты повторно валидировать двери, окна, лестницы, лифтовые шахты, МГН и пожарные просветы."
+
+sources:
+  - "https://protect.gost.ru/gost/details/1c17643f-bf43-456f-a27c-dab6875a1514"
+  - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  - "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+  - "https://protect.gost.ru/sp/details/9fdcb635-708c-4c67-81a7-83e6baad9ab3"
+  - "https://protect.gost.ru/sp/details/9a314146-2e12-458d-a3dc-914eaa364d51"

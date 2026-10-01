@@ -1,4 +1,4 @@
-manifest_version: 53
+manifest_version: 54
 checked_at: 2026-10-01
 target_profile: RU_2027_PLUS
 
@@ -121,6 +121,7 @@ rule_files:
   - 64_parking_fire_safety_2026.yaml
   - 65_drywall_partitions_linings.yaml
   - 66_suspended_ceiling_systems.yaml
+  - 67_communication_shafts_electrical_boxes.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

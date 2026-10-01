@@ -1,0 +1,174 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+primary_document: SP_10_13130_2020
+verified_changes: [1]
+purpose: >-
+  Архитектурная координация внутреннего противопожарного водопровода: допустимые зоны пожарных
+  кранов, пожарные шкафы, связь с эвакуационными проходами и стояками. Гидравлический расчет,
+  количество расчетных струй, диаметры и давление выполняются профильным разделом ВПВ.
+
+revision_state:
+  status: active
+  change_1_effective_from: 2026-09-01
+  legacy_removed_rules:
+    - clause: "former 6.2.5"
+      removed_by_change: 1
+      old_value: "fire valve axis 1.20 +/- 0.15 m above floor"
+      statement: >-
+        Пункт исключен с 01.09.2026. Не использовать высоту 1,20 +/- 0,15 м как универсальное
+        нормативное положение пожарного запорного клапана для профиля 2027.
+    - clause: "former 6.2.10"
+      removed_by_change: 1
+    - clause: "former 6.2.12"
+      removed_by_change: 1
+
+fire_hydrant_location:
+  source_clause: "6.2.1, Change 1"
+  rules:
+    - id: fire.vpv.hydrant_on_accessible_egress_route
+      automation: validation_only
+      preferred_locations:
+        - near_exits
+        - heated_stair_landing
+        - vestibule
+        - corridor
+        - passage
+        - other_most_accessible_place
+      statement: >-
+        В зданиях и частях зданий, где требуется ВПВ, пожарные краны размещать на путях эвакуации,
+        преимущественно у выходов, на площадках отапливаемых лестничных клеток, в вестибюлях,
+        коридорах, проходах и других наиболее доступных местах.
+
+    - id: fire.vpv.hydrant_no_egress_obstruction
+      automation: hard_gate
+      statement: >-
+        Размещение пожарного крана/шкафа не должно препятствовать безопасной эвакуации. После
+        установки шкафа повторно проверять фактическую ширину пути в свету по СП 1 и специальным нормам.
+      route_to: rules/29_corridor_clearances.yaml
+
+    - id: fire.vpv.hydrant_no_smokeproof_stairwell_or_safe_zone
+      automation: hard_gate
+      prohibited_locations:
+        - smokeproof_stairwell
+        - fire_safe_zone_per_SP59
+      statement: >-
+        Не размещать пожарные краны в незадымляемых лестничных клетках и безопасных зонах по СП 59.
+
+    - id: fire.vpv.technical_space_combustible_load_gate
+      automation: conditional
+      locations:
+        - attic
+        - technical_floor
+        - technical_crawl_space
+        - basement_floor
+      required_condition: combustible_substances_or_materials_G1_to_G4_present_or_stored
+      statement: >-
+        В перечисленных технических пространствах пожарные краны предусматриваются при наличии
+        обращения и/или хранения горючих веществ и материалов Г1-Г4 в области примечания к п.6.2.1.
+
+    - id: fire.vpv.unheated_technical_floor_dry_riser_segment
+      automation: engineering_coordination
+      condition: "fire_riser_passes_unheated_technical_floor"
+      requirement: section_in_unheated_technical_floor_not_filled_with_water
+      separation_valve_location: heated_room
+      statement: >-
+        При прохождении стояка через неотапливаемый технический этаж разделительное запорное
+        устройство размещать в отапливаемом помещении; архитектура должна зарезервировать доступ к нему.
+
+fire_cabinets:
+  source_clause: "6.2.3, current revision"
+  rules:
+    - id: fire.vpv.hydrant_in_fire_cabinet
+      automation: conditional
+      general_requirement: fire_cabinet_required
+      cabinet_standard: GOST_R_51844
+      statement: >-
+        Пожарные краны размещать в пожарных шкафах, исполнение шкафов ПК-с принимать по ГОСТ Р 51844.
+
+    - id: fire.vpv.technical_personnel_no_cabinet_exception
+      automation: conditional_exception
+      all_conditions:
+        - room_access_limited_to_technical_personnel
+        - fire_valve_sealed
+      statement: >-
+        В помещении с ограниченным контингентом технического персонала допускается ПК без шкафа
+        только при выполнении условий примечания к п.6.2.3; не распространять исключение на общедоступные зоны.
+
+    - id: fire.vpv.cabinet_no_universal_mounting_height
+      automation: forbidden_to_infer
+      statement: >-
+        После исключения п.6.2.5 СП 10 не использовать старую высоту оси клапана 1,20 +/- 0,15 м
+        как универсальную нормативную привязку шкафа. Положение конкретного шкафа задавать проектом,
+        изделием, доступностью и действующими специальными требованиями.
+      requires_manufacturer_data: true
+
+coverage_and_standers:
+  source_clause: "6.2.2, Change 1"
+  rules:
+    - id: fire.vpv.coverage_requires_engineering_layout
+      automation: requires_calculation
+      statement: >-
+        Количество пожарных кранов, стояков и опусков и их взаимное положение определять с учетом
+        функционального пожарного класса, длины коридора, расчетного количества ПК и требуемого
+        орошения каждой точки. Архитектурный агент не расставляет шкафы равномерным типовым шагом.
+
+    - id: fire.vpv.corridor_10m_branching_semantics
+      automation: validation_only
+      threshold_corridor_length_m: 10
+      statement: >-
+        Порог 10 м в п.6.2.2 используется для выбора расчетной схемы размещения ПК/стояков, а не как
+        шаг между пожарными шкафами. Длину коридора определять по правилам самого пункта.
+
+    - id: fire.vpv.combustible_load_above_6m
+      automation: engineering_validation
+      condition: "combustible_load_height_m > 6"
+      requirement: every_point_of_combustible_load_must_be_irrigable
+      statement: >-
+        При горючей нагрузке выше 6 м профильный расчет ВПВ должен дополнительно обеспечить орошение
+        каждой точки этой нагрузки; архитектура передает высоту/геометрию стеллажей или иных нагрузок.
+
+marking:
+  source_clause: "6.1.28, Change 1"
+  rules:
+    - id: fire.vpv.technical_means_fire_safety_signs
+      automation: validation_only
+      statement: >-
+        Места расположения технических средств ВПВ обозначать знаками пожарной безопасности по
+        ГОСТ 12.4.026; BIM-объект должен иметь параметр требуемого знака для выпуска документации.
+
+BIM_required_parameters:
+  - VPV_required_status
+  - fire_hydrant_id
+  - fire_hydrant_type
+  - fire_cabinet_product_id
+  - fire_cabinet_geometry
+  - fire_hydrant_location_zone_type
+  - egress_clear_width_before_cabinet_mm
+  - egress_clear_width_after_cabinet_mm
+  - stairwell_type
+  - fire_safe_zone_status
+  - technical_space_combustible_load_class
+  - fire_riser_id
+  - heated_room_for_separation_valve_id
+  - corridor_calculation_length_m
+  - combustible_load_max_height_m
+  - VPV_hydraulic_layout_reference
+  - fire_safety_sign_reference
+
+hard_fail_conditions:
+  - "fire cabinet reduces required egress clear width"
+  - "fire hydrant placed in smokeproof stairwell or fire-safe zone"
+  - "former 1.20 +/- 0.15 m valve height is asserted as current universal norm"
+  - "fire hydrants are placed by uniform architectural spacing without VPV calculation"
+
+agent_logic:
+  - "Сначала получить расчетную схему ВПВ, затем оптимизировать шкафы в доступных архитектурных зонах."
+  - "Не компенсировать неудобную трассу ВПВ сужением эвакуационного коридора."
+  - "Не ставить шкаф внутрь безопасной зоны или незадымляемой лестничной клетки."
+  - "Не использовать исключенные числовые привязки старой редакции."
+
+sources:
+  - "https://protect.gost.ru/sp/details/d048b9cd-eff7-49de-bab0-4aa54eb6b173"
+  - "https://protect.gost.ru/sp/changesdetails/2a55b7f6-0322-4573-9aa0-6a2979e7a130"
+  - "https://base.garant.ru/414736365/"
+  - "https://www.consultant.ru/law/hotdocs/95632.html"

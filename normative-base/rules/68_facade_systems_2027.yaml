@@ -1,0 +1,161 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "Фасадные системы 2027+: НФС с воздушным зазором и СФТК с наружными штукатурными слоями. Только проверяемая геометрия и границы автоматизации."
+
+revision_dependencies:
+  - {document: SP_522_1325800_2023, verified_changes: [1]}
+  - {document: SP_518_1311500_2022, verified_changes: []}
+  - {document: SP_293_1325800_2017, verified_changes: [1,2]}
+  - {document: GOST_R_56707_2023, status: active}
+  - {document: GOST_35343_2026, status: active, effective_from: 2026-10-01}
+
+ventilated_facades:
+  source: SP_522_1325800_2023
+  rules:
+    - id: facade.nfs.air_gap.minimum
+      clause: "13.9"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимально допустимый воздушный зазор между наружной поверхностью утеплителя/защитного материала и внутренней поверхностью облицовки НФС — 40 мм."
+      values: {min_air_gap_mm: 40}
+
+    - id: facade.nfs.insulation_to_guide.minimum
+      clause: "13.9"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Минимальный зазор между поверхностью утеплителя и направляющими НФС — 20 мм."
+      values: {min_insulation_to_guide_gap_mm: 20}
+
+    - id: facade.nfs.frame_thermal_gap
+      clause: "5.5.1; table 5.1"
+      automation: validation_only
+      statement: "Температурный зазор между смежными стержневыми элементами каркаса определяют расчетом; при отсутствии расчета допускается использовать минимумы таблицы 5.1."
+      values:
+        carbon_or_stainless_steel:
+          - {element_length_mm: 3000, min_gap_mm: 5}
+          - {element_length_mm: 6000, min_gap_mm: 10}
+          - {element_length_mm: 12000, min_gap_mm: 15}
+        aluminium_alloys:
+          - {element_length_mm: 3000, min_gap_mm: 10}
+          - {element_length_mm: 6000, min_gap_mm: 15}
+          - {element_length_mm: 12000, min_gap_mm: 20}
+      conflict_policy: "Расчетное значение имеет приоритет; таблица не используется для интерполяции произвольной длины без проверки СП."
+
+    - id: facade.nfs.open_cladding_uv_gate
+      clause: "13.9"
+      automation: validation_only
+      statement: "Если суммарная площадь открытых участков минераловатного утеплителя через зазоры облицовки превышает 20% поверхности фасада, требуется защитный материал с повышенной стойкостью к УФ-излучению не менее 5000 ч."
+      values: {open_area_threshold_percent: 20, min_uv_resistance_hours: 5000}
+      requires_manufacturer_data: true
+
+    - id: facade.nfs.fire_separate_check
+      automation: validation_only
+      statement: "Пожарную безопасность НФС проверять отдельно по СП 518.1311500.2022 и применимым требованиям СП 2/СП 4; выполнение геометрии СП 522 само по себе не доказывает пожарную допустимость фасадной системы."
+
+sftk:
+  source: SP_293_1325800_2017
+  rules:
+    - id: facade.sftk.insulation_thickness_calculated
+      clause: "7.7"
+      automation: forbidden_to_infer
+      statement: "Тип теплоизоляционного материала задается проектной документацией, а толщину теплоизоляционного слоя определяют теплотехническим расчетом по СП 50.13330 с учетом теплотехнических неоднородностей."
+      requires_calculation: true
+      requires_manufacturer_data: true
+
+    - id: facade.sftk.expansion_joint_ng_mw_strips
+      clause: "7.20"
+      automation: conditional
+      dimension_semantics: constructive_product
+      statement: "В местах деформационных швов по обе стороны шва вдоль всей длины предусматривают полосы негорючих минераловатных плит шириной не менее 150 мм с каждой стороны."
+      values: {min_ng_mw_strip_each_side_mm: 150}
+
+    - id: facade.sftk.interface_ng_mw_strip
+      clause: "7.21"
+      automation: conditional
+      statement: "По контуру сопряжения СФТК с фасадной системой иного типа или неутепленным участком фасада предусматривают вертикальную рассечку из негорючих минераловатных плит шириной не менее 150 мм и толщиной, равной теплоизоляционному слою СФТК."
+      values: {min_vertical_strip_width_mm: 150}
+
+    - id: facade.sftk.opening_corner_diagonal_reinforcement
+      clause: "7.22"
+      automation: conditional
+      statement: "У вершин углов оконных и дверных проемов и углов их откосов предусматривают диагональные элементы фасадной стеклосетки размером не менее 200x400 мм под углом 45 градусов."
+      values: {min_reinforcement_width_mm: 200, min_reinforcement_length_mm: 400, angle_deg: 45}
+
+    - id: facade.sftk.system_expansion_joint_min
+      clause: "7.23"
+      automation: conditional
+      dimension_semantics: clear
+      statement: "Деформационный шов СФТК на протяженных участках стен выполняют шириной не менее 6 мм; для деформационного шва здания ширина шва в штукатурном слое соответствует проектному значению."
+      values: {min_system_joint_mm: 6}
+      conflict_policy: "Для конструкционного деформационного шва здания использовать расчетное/проектное значение, а не 6 мм."
+
+    - id: facade.sftk.insulation_plate_joint_max
+      clause: "8.2; table 8.2"
+      automation: validation_only
+      dimension_semantics: actual
+      statement: "Ширина швов между теплоизоляционными плитами СФТК при устройстве слоя — не более 2 мм."
+      values: {max_joint_width_mm: 2}
+
+    - id: facade.sftk.vertical_joint_bond
+      clause: "8.2.3.4"
+      automation: validation_only
+      statement: "Теплоизоляционные плиты устанавливают горизонтальными рядами с перевязкой вертикальных швов не менее 100 мм."
+      values: {min_vertical_joint_offset_mm: 100}
+
+    - id: facade.sftk.opening_corner_plate_joint_offset
+      clause: "8.2.3.5"
+      automation: validation_only
+      statement: "На углах оконных и дверных проемов плиты выполняют с угловым вырезом так, чтобы стыки с соседними плитами находились не ближе 150 мм от угла проема."
+      values: {min_joint_distance_from_opening_corner_mm: 150}
+
+    - id: facade.sftk.window_frame_overlap_if_in_base_plane
+      clause: "8.2.3.5"
+      automation: conditional
+      statement: "Если оконный или дверной блок расположен в плоскости основания, теплоизоляционные плиты устанавливают с напуском на коробку блока не менее 20 мм с применением предусмотренного узла примыкания."
+      values: {min_overlap_on_frame_mm: 20}
+      requires_manufacturer_data: true
+
+system_product_gates:
+  - id: facade.systemholder_documentation_required
+    automation: forbidden_to_infer
+    statement: "Состав слоев, конкретные материалы, анкеры, крепеж, облицовку и предельные геометрические параметры фасадной системы нельзя собирать из произвольных совместимых на вид материалов. Использовать проектное решение и техническую документацию системодержателя/изготовителя в пределах действующих СП и ГОСТ."
+    requires_manufacturer_data: true
+
+  - id: facade.anchor_test_standard_2026
+    automation: validation_only
+    statement: "С 01.10.2026 методы испытаний тарельчатых анкеров для СФТК и НФС проверять по ГОСТ 35343-2026 в области его применения."
+    source: {document: GOST_35343_2026, clause: "scope/status", url: "https://protect.gost.ru/gost/details/c0a2c4c3-8950-4ce5-9585-c7c0848c6fd7"}
+
+BIM_required_parameters:
+  - facade_system_type
+  - facade_systemholder_or_manufacturer
+  - base_wall_material
+  - insulation_material
+  - insulation_thickness_calculated_mm
+  - air_gap_clear_mm
+  - guide_material
+  - guide_segment_length_mm
+  - guide_joint_gap_mm
+  - cladding_type
+  - open_cladding_area_percent
+  - expansion_joint_type
+  - expansion_joint_width_mm
+  - opening_corner_reinforcement_geometry
+  - fire_cut_geometry
+
+agent_logic:
+  - "Не уменьшать воздушный зазор НФС ради выравнивания фасадной плоскости или модульной сетки."
+  - "Не считать 40 мм проектным оптимумом: это минимально допустимое значение; фактический зазор задается проектом системы."
+  - "Не назначать толщину утеплителя по каталогу без теплотехнического расчета."
+  - "Деформационные швы конструкции здания проходят через фасадную систему как отдельное проектное условие; фасадный шов 6 мм не заменяет конструкционный шов."
+  - "Проемы моделировать совместно с фасадным узлом: усиление, примыкание и положение стыков теплоизоляции являются частью проверяемой модели."
+
+sources:
+  - "https://protect.gost.ru/sp/details/dbc01349-d0b9-4fe7-a2f6-e4534ff53704"
+  - "https://protect.gost.ru/sp/changesdetails/39d4cbb9-8fc3-4a03-8360-c32b372785ac"
+  - "https://base.garant.ru/407037002/"
+  - "https://protect.gost.ru/sp/details/8bcea61b-6982-4201-9f1e-7caa08553ad4"
+  - "https://protect.gost.ru/sp/details/e3c03181-6652-4850-a0df-12957b9c3038"
+  - "https://base.garant.ru/71750544/"
+  - "https://protect.gost.ru/gost/details/9eae6fd4-556b-4fc1-9d45-fe3f554f0683"
+  - "https://protect.gost.ru/gost/details/c0a2c4c3-8950-4ce5-9585-c7c0848c6fd7"

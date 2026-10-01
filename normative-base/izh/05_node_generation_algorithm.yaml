@@ -1,0 +1,140 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+package: IZH_NODE_ENGINEERING
+purpose: "Детерминированный алгоритм генерации, проверки и выпуска строительного узла в Archicad."
+
+algorithm:
+  - step: classify
+    actions:
+      - classify_node_family
+      - identify_host_elements_and_material_systems
+      - identify_exposure_conditions
+      - identify_structural_and_mep_ownership
+    fail_if: [unknown_host, unknown_material_system, unknown_project_condition]
+
+  - step: collect_sources
+    actions:
+      - load_target_2027_overrides
+      - resolve_current_document_revisions
+      - load_functional_and_material_specific_rules
+      - load_manufacturer_system_only_if_product_selected
+    fail_if: [superseded_rule, draft_used_as_active, unresolved_2027_transition]
+
+  - step: collect_calculations
+    actions:
+      - require_structural_calculation_where_load_path_changes
+      - require_thermal_moisture_calculation_at_envelope_node
+      - require_engineering_design_for_penetrations_and_equipment
+      - require_fire_or_acoustic_verification_when_applicable
+    fail_if: [required_calculation_missing]
+
+  - step: build_contour_graph
+    actions:
+      - build_load_path
+      - build_thermal_continuity
+      - build_air_tightness_continuity
+      - build_vapor_control_continuity
+      - build_bulk_water_path_and_drainage
+      - build_fire_and_acoustic_contours_when_applicable
+      - build_mep_penetration_and_seal_relationships
+      - build_movement_and_tolerance_zones
+    fail_if: [broken_required_contour]
+
+  - step: choose_archicad_representation
+    actions:
+      - map_major_parts_to_native_elements
+      - map_repeated_layers_to_composites
+      - map_repeated_section_to_complex_profile_if_semantically_valid
+      - map_discrete_product_to_library_part_or_native_window_door
+      - map_penetration_to_opening_when_host_supported
+      - map_associative_cut_or_trim_to_relation
+      - keep_micro_components_as_properties_or_2d_detail_when_3d_not_required
+    fail_if: [morph_used_as_unjustified_substitute_for_native_semantics]
+
+  - step: preflight
+    actions:
+      - command_availability_check
+      - archicad_and_tapir_version_handshake
+      - library_and_favorite_resolution
+      - host_guid_and_type_check
+      - precondition_checksum
+      - permission_and_lock_check
+    fail_if: [runtime_mismatch, missing_favorite, host_changed, locked]
+
+  - step: execute_batch
+    order:
+      - create_or_confirm_hosts
+      - create_primary_layers_and_products
+      - create_openings
+      - place_discrete_products
+      - create_relationships_SEO_or_other_verified_connections
+      - apply_properties_classifications_node_ids
+      - create_2d_detail_output_if_supported
+    safety:
+      - deterministic_order
+      - idempotency_keys
+      - per_operation_receipt
+      - compensating_rollback_plan
+      - no_untyped_freeform_write
+
+  - step: geometric_readback
+    actions:
+      - read_created_guids
+      - verify_element_types
+      - verify_critical_dimensions
+      - verify_host_and_opening_relations
+      - verify_connection_relations
+      - verify_node_properties
+    fail_if: [requested_vs_actual_diff]
+
+  - step: engineering_audit
+    checks:
+      - load_path_not_interrupted
+      - bearing_zones_match_KR
+      - thermal_contour_continuous
+      - air_vapor_layers_continuous_as_designed
+      - water_has_outward_or_designed_drain_path
+      - no_unapproved_structural_penetration
+      - maintenance_access_preserved
+      - construction_sequence_possible
+    fail_if: [engineering_check_failed]
+
+  - step: drawing_output
+    actions:
+      - generate_or_refresh_source_views
+      - produce_detail_or_worksheet
+      - add_managed_2d_microcomponents_and_annotations
+      - place_dimensions_using_semantically_correct_reference_points
+      - attach_node_revision_and_source_set
+    note: "2D detail is an output view, not the semantic source of truth."
+
+  - step: release_gate
+    status_if_success: approved_for_model
+    required:
+      - all_critical_contours_pass
+      - no_unresolved_calculation
+      - no_unverified_product_dimension
+      - no_stale_normative_revision
+      - readback_matches_expected_state
+      - detail_revision_matches_node_revision
+
+change_management:
+  triggers_for_node_invalidation:
+    - host_geometry_changed
+    - host_material_or_composite_changed
+    - opening_moved_or_resized
+    - product_or_favorite_version_changed
+    - KR_calculation_revision_changed
+    - thermal_calculation_revision_changed
+    - MEP_route_or_penetration_changed
+    - source_standard_or_amendment_changed
+    - target_profile_changed
+  response: "Mark node needs_reaudit; never silently preserve approved status."
+
+anti_patterns:
+  - "Draw a good-looking 2D detail first and assume the model is correct."
+  - "Use SEO without storing target/operator relationship and postcondition."
+  - "Stretch a manufacturer/library component outside its verified parameter domain."
+  - "Cut a structural element because an MEP route intersects it."
+  - "Encode all waterproofing/tapes/sealants as tiny 3D solids regardless of coordination value."
+  - "Use one universal node for brick, AAC and timber frame walls."

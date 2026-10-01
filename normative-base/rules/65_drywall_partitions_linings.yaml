@@ -38,11 +38,17 @@ wet_and_moist_rooms:
     statement: "В помещениях с влажным и мокрым режимами перегородки проектировать с металлическим каркасом и влагостойкой/влагостойко-огнестойкой обшивкой из типов, допускаемых СП 163, с защитой лицевой поверхности гидроизоляционными/водостойкими покрытиями или облицовкой."
     conflict_policy: "Конкретный тип плиты и отделочного слоя выбирать по фактическому режиму помещения, требованиям производителя и проекту гидроизоляции; обычную сухую ГКЛ-систему не применять автоматически."
 
+  - id: drywall.partition.wet_cleaning_waterproof_strip
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.16", amendment: 1}
+    automation: validation_only
+    statement: "В помещениях, где регулярно выполняют мокрую уборку пола, для защиты нижней части перегородки рекомендуется предусматривать под нижней направляющей полосу рулонной гидроизоляции с заводкой на обшивку на 100 мм."
+    values: {waterproofing_upturn_mm: 100}
+
 movement_and_joints:
   - id: drywall.partition.sliding_top_if_floor_deflection_gt_10
     source: {document: SP_163_1325800_2014, clause: "7.1.5.8"}
     automation: conditional
-    statement: "При прогибе перекрытия от временных нагрузок более 10 мм для независимости деформаций каркаса перегородки рекомендуется предусматривать подвижное/скользящее верхнее присоединение согласно СП 163."
+    statement: "При прогибе перекрытия от временных нагрузок более 10 мм для независимости деформаций каркаса перегородки от перекрытия рекомендуется предусматривать крепление стоек к верхним направляющим методом подсечки или скользящую верхнюю направляющую."
     values: {deflection_trigger_mm_exclusive: 10}
     requires_calculation: true
     conflict_policy: "Значение прогиба должно поступать из КР; архитектурный агент не рассчитывает прогиб перекрытия самостоятельно."
@@ -53,11 +59,27 @@ movement_and_joints:
     statement: "В местах деформационных швов здания и в перегородках длиной более 15 м предусматривать температурные/деформационные швы; расстояние между ними и от края перегородки — не более 15 м."
     values: {partition_length_trigger_mm_exclusive: 15000, max_joint_spacing_mm: 15000}
 
+  - id: drywall.partition.separation_tape_and_fire_junction
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.18", amendment: 1}
+    automation: validation_only
+    statement: "В сопряжении торцов обшивки с потолком и стенами предусматривать разделительную ленту; предел огнестойкости узла сопряжения должен быть не ниже предела огнестойкости сопрягаемой конструкции."
+    conflict_policy: "Для нормируемого огнестойкого узла использовать подтвержденную системную конструкцию; одной геометрии примыкания в BIM недостаточно."
+
 openings_and_intersections:
   - id: drywall.partition.door_jamb_studs_rigid_connection
     source: {document: SP_163_1325800_2014, clause: "7.1.5.6", amendment: 1}
     automation: validation_only
     statement: "Стоечные профили, ограждающие дверной проем, должны быть жестко прикреплены к направляющим; свободностоящее соединение без механической фиксации на стойки дверного проема не распространяется."
+
+  - id: drywall.partition.door_jamb_reinforcement_by_mass
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.19", amendment: 1}
+    automation: conditional
+    statement: "В местах установки дверной коробки стойки металлического каркаса рекомендуется усиливать: для двери массой до 30 кг — деревянными брусками; при массе двери более 30 кг — дополнительным металлическим профилем толщиной не менее 2 мм."
+    values:
+      timber_reinforcement_door_mass_kg_max: 30
+      metal_reinforcement_door_mass_kg_exclusive_min: 30
+      metal_profile_min_thickness_mm: 2
+    conflict_policy: "Это минимальная рекомендация узла СП 163, а не универсальная сертификация дверного проема. Для противопожарной, акустической, тяжелой или системной двери применять более строгий сертифицированный узел/требования изготовителя."
 
   - id: drywall.partition.intersection_inserts
     source: {document: SP_163_1325800_2014, clause: "7.1.5.7", amendment: 1}
@@ -73,6 +95,31 @@ openings_and_intersections:
     source: {document: SP_163_1325800_2014, clause: "7.1.5.11", amendment: 1}
     automation: validation_only
     statement: "В местах прохода трубопроводов через обшивку предусматривать упругое закрепление/прокладки и герметизацию сопряжения; обычный геометрический BIM-проем не является завершенным узлом."
+
+sheathing_geometry_and_fixing:
+  - id: drywall.partition.screw_spacing
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.12", amendment: 1}
+    automation: validation_only
+    statement: "ГКЛ/ГВЛ/применимые гипсовые плиты крепить к каркасу самонарезающими винтами с шагом не более 250 мм вразбежку на смежных листах; глубина захода винта — не менее 10 мм через полку стального профиля и не менее 20 мм в деревянный брусок."
+    values: {max_screw_spacing_mm: 250, min_penetration_steel_frame_mm: 10, min_penetration_timber_mm: 20}
+
+  - id: drywall.partition.sheet_joint_gap_and_offset
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.13", amendment: 1}
+    automation: validation_only
+    statement: "Стыки листов/плит с утоненной, полукруглой, круглой или фальцевой кромкой выполняют без зазора; с прямой кромкой — с зазором 5-7 мм. Торцевые горизонтальные стыки смещают по вертикали не менее чем на 400 мм; при двухслойной обшивке торцевые стыки первого и второго слоев также смещают не менее чем на 400 мм."
+    values: {straight_edge_joint_gap_mm: [5,7], min_end_joint_vertical_offset_mm: 400, min_layer_to_layer_end_joint_offset_mm: 400}
+
+  - id: drywall.partition.sheathing_floor_ceiling_gaps
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.14", amendment: 1}
+    automation: auto
+    statement: "Между обшивкой и потолком оставлять зазор не менее 5 мм, между обшивкой и полом — не менее 10 мм."
+    values: {min_ceiling_gap_mm: 5, min_floor_gap_mm: 10}
+
+  - id: drywall.partition.tile_finish_system
+    source: {document: SP_163_1325800_2014, clause: "7.1.5.15", amendment: 1}
+    automation: conditional
+    statement: "При облицовке каркасно-обшивной перегородки керамической плиткой шаг стоек каркаса принимать не более 400 мм, а обшивку предусматривать двухслойной."
+    values: {max_stud_spacing_mm: 400, minimum_sheathing_layers: 2}
 
 fire_partitions:
   - id: drywall.fire_partition.pipe_gt_60_gate
@@ -114,23 +161,30 @@ BIM_required_parameters:
   - floor_deflection_from_KR_mm
   - top_connection_type
   - deformation_joint_status
+  - door_leaf_mass_kg
   - door_opening_reinforcement_status
   - service_penetration_status
+  - sheet_edge_type
+  - sheet_joint_offset_mm
+  - finish_type
 
 hard_fail_conditions:
   - "partition height accepted by extrapolating a table to an unlisted board thickness or system"
   - "wet-room partition uses dry-room board/system without verified applicability"
   - "door opening created without reinforced/rigidly connected jamb framing where required by the selected system"
+  - "door mass is unknown when opening reinforcement must be selected"
   - "partition crosses a building deformation joint without its own corresponding joint"
   - "fire partition penetration treated as an ordinary unsealed BIM opening"
   - "structural floor deflection required for joint design is unknown"
+  - "ceramic tile finish is assigned while stud spacing exceeds 400 mm or sheathing is single-layer"
 
 agent_logic:
   - "Перегородка — это система, а не только суммарная толщина стены."
   - "Не назначать высоту перегородки из общей фразы 'до 9 м'; выбирать точную строку/систему таблиц 2, 3 или 3а либо выполнять расчет."
   - "Не заменять акустический, пожарный и влагостойкий подбор количеством слоев по памяти; требование к характеристикам сначала получить из профильной нормы помещения/преграды."
   - "Для инженерных трасс в толще перегородки резервировать пространство и обрамление по выбранной системе; не вырезать стойки постфактум без проверки."
-  - "При изменении шага стоек, типа профиля, числа слоев или высоты повторно валидировать систему целиком."
+  - "Массу дверного полотна хранить как входной параметр узла; тяжелую дверь не считать допустимой только потому, что коробка геометрически помещается в проем."
+  - "При изменении шага стоек, типа профиля, числа слоев, отделки или высоты повторно валидировать систему целиком."
 
 sources:
   - "https://protect.gost.ru/sp/details/92439dea-05ad-4cfe-9dc4-c1bddcdb8c55"

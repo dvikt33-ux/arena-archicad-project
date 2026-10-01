@@ -1,0 +1,225 @@
+checked_at: 2026-10-01
+target_profile: RU_2027_PLUS
+purpose: "СПДС для АР/рабочих чертежей 2027+: координационные оси, единицы размеров, отметки, планы, разрезы, фасады, проемы, марки и связь 3D BIM-модели с рабочей документацией."
+
+revision_dependencies:
+  - {document: GOST_R_21_101_2026, status: active, effective_from: 2026-04-01, correction: "ИУС 11-2026"}
+  - {document: GOST_21_501_2018, status: active, effective_from: 2019-06-01}
+  - {document: GOST_21_201_2011, status: active, role: "graphical_symbols_building_elements"}
+  - {document: GOST_2_303, role: "line_types"}
+  - {document: GOST_2_304, role: "fonts"}
+  - {document: GOST_2_302, role: "scales"}
+
+spds_source_gate:
+  - id: spds.arch.current_base_standard
+    automation: validation_only
+    statement: "Для проектов 2027+ использовать ГОСТ Р 21.101-2026 вместо ГОСТ Р 21.101-2020 и учитывать опубликованную поправку ИУС 11-2026 при чтении консолидированного текста."
+    source: {document: GOST_R_21_101_2026, clause: "status", url: "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"}
+
+coordinate_axes:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.axes.independent_per_building
+      clause: "5.3.2"
+      automation: auto
+      statement: "Каждому отдельному зданию или сооружению присваивают самостоятельную систему обозначений координационных осей."
+
+    - id: spds.axes.graphic_type
+      clause: "5.3.2"
+      automation: auto
+      statement: "Координационные оси наносят тонкими штрихпунктирными линиями с длинными штрихами."
+      source_line_standard: GOST_2_303
+
+    - id: spds.axes.bubble_diameter
+      clause: "5.3.2"
+      automation: conditional
+      dimension_semantics: not_applicable
+      statement: "Обозначения координационных осей размещают в кружках диаметром 6-12 мм."
+      values: {min_diameter_mm: 6, max_diameter_mm: 12}
+
+    - id: spds.axes.allowed_labels
+      clause: "5.3.2"
+      automation: validation_only
+      statement: "Цифровые оси обозначают арабскими цифрами; буквенные — прописными буквами русского алфавита, исключая Е, З, Й, О, Х, Ц, Ч, Щ, Ъ, Ы, Ь. При необходимости допускается латинский алфавит, исключая I и O. Пропуски в последовательности обозначений запрещены."
+
+    - id: spds.axes.numeric_on_side_with_more_axes
+      clause: "5.3.2"
+      automation: conditional
+      statement: "Цифрами обозначают координационные оси по стороне здания с большим количеством осей."
+
+    - id: spds.axes.sequence
+      clause: "5.3.3"
+      automation: auto
+      statement: "Последовательность цифровых осей принимают слева направо, буквенных — снизу вверх, если план не использует предусмотренный стандартом альтернативный вариант."
+
+    - id: spds.axes.default_sides
+      clause: "5.3.4"
+      automation: conditional
+      statement: "Обозначения координационных осей, как правило, наносят по левой и нижней сторонам плана; при несовпадении осей противоположных сторон дополнительные обозначения наносят сверху и/или справа."
+
+    - id: spds.axes.additional_axis_fraction
+      clause: "5.3.5"
+      automation: conditional
+      statement: "Дополнительную ось элемента между основными осями обозначают дробью: в числителе — предшествующая основная ось, в знаменателе — дополнительный порядковый номер внутри участка между смежными осями."
+
+bim_coordinate_system:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.bim.single_plan_height_coordinate_system
+      clause: "5.3.8"
+      automation: auto
+      statement: "Трехмерную BIM-модель здания/сооружения выполняют в единой планово-высотной системе координат."
+
+    - id: spds.bim.origin_1A_zero
+      clause: "5.3.8"
+      automation: conditional
+      dimension_semantics: axis
+      statement: "Начало локальной координатной системы модели располагают в точке пересечения осей 1 и А на нулевой отметке здания/сооружения."
+
+    - id: spds.bim.xyz_direction
+      clause: "5.3.8"
+      automation: conditional
+      statement: "Для прямоугольного в плане здания положительное направление X — в сторону увеличения цифровых осей, Y — в сторону увеличения буквенных осей, Z — вертикально вверх от условной нулевой отметки."
+
+units_dimensions_levels:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.dimension.vector_drawings_mm
+      clause: "5.4.1"
+      automation: auto
+      dimension_semantics: not_applicable
+      statement: "При разработке документации в цифровом виде с использованием векторных программ линейные размеры на всех видах чертежей указывают без обозначения единиц длины в миллиметрах."
+
+    - id: spds.dimension.nonvector_general_rule
+      clause: "5.4.1"
+      automation: validation_only
+      statement: "В общем случае размеры на генеральных планах, наружных сетях и транспорте указывают в метрах с двумя десятичными знаками, а на остальных чертежах — в миллиметрах; для цифровой векторной документации действует отдельное правило миллиметров на всех видах."
+
+    - id: spds.level.meters_three_decimals
+      clause: "5.4.3"
+      automation: auto
+      dimension_semantics: level
+      statement: "Высотные отметки указывают в метрах без обозначения единицы с тремя десятичными знаками."
+
+    - id: spds.level.plan_rectangle
+      clause: "5.4.3"
+      automation: auto
+      statement: "На планах отметки уровней помещают в прямоугольнике; на фасадах, разрезах и сечениях применяют установленный стандартом знак отметки на выносной линии/контуре."
+
+    - id: spds.text.axis_mark_font_ratio
+      clause: "5.4.7"
+      automation: validation_only
+      statement: "Размер шрифта обозначений координационных осей, позиций/марок и наименований/обозначений изображений принимают в 1,5-2 раза больше размера цифр размерных чисел в том же графическом документе."
+      values: {ratio_min: 1.5, ratio_max: 2.0}
+
+lines_fonts_scales:
+  source: GOST_R_21_101_2026
+  rules:
+    - id: spds.graphics.line_standard
+      clause: "5.1.3"
+      automation: validation_only
+      statement: "Изображения и условные обозначения в графических документах выполняют линиями по ГОСТ 2.303; тип линии в шаблоне должен быть связан с назначением элемента, а не только с экранным цветом."
+
+    - id: spds.graphics.font_standard
+      clause: "5.1.5"
+      automation: validation_only
+      statement: "Применяют шрифты по ГОСТ 2.304; допускаются иные компьютерные шрифты при обеспечении их доступности пользователям документа."
+
+    - id: spds.graphics.scale_policy
+      clause: "5.1.6"
+      automation: validation_only
+      statement: "Изображения выполняют в оптимальных масштабах по ГОСТ 2.302. Масштаб на чертежах обычно не указывают, кроме чертежей изделий и случаев, прямо предусмотренных стандартами СПДС."
+
+architecture_document_composition:
+  source: GOST_21_501_2018
+  rules:
+    - id: spds.ar.working_set_composition
+      clause: "5.1-5.2"
+      automation: validation_only
+      statement: "Основной комплект рабочих чертежей АР формируют по фактическому составу проекта: общие данные, планы этажей, разрезы, фасады, планы полов при необходимости, план кровли, схемы расположения перегородок/заполнения проемов, планы подвесных потолков при необходимости, узлы и фрагменты."
+
+    - id: spds.ar.openings_and_recesses_on_working_drawings
+      clause: "4.8"
+      automation: validation_only
+      statement: "Проемы, борозды, ниши, гнезда и отверстия, необходимые для строительства и монтажа, показывают на рабочих чертежах с необходимыми размерами и привязками; не оставляют их только как скрытую 3D-геометрию."
+
+floor_plans:
+  source: GOST_21_501_2018
+  rules:
+    - id: spds.ar.floor_plan_cut_plane
+      clause: "5.3.1"
+      automation: conditional
+      statement: "Положение мнимой горизонтальной секущей плоскости плана этажа принимают на уровне оконных проемов или на 1/3 высоты изображаемого этажа. Если оконные проемы выше секущей плоскости, по периметру плана показывают сечения соответствующих стен на уровне окон."
+
+    - id: spds.ar.floor_plan.axes_and_dimensions
+      clause: "5.3.2 a-b"
+      automation: validation_only
+      statement: "На плане этажа показывают координационные оси, расстояния между ними и общий размер между крайними осями; толщины стен/перегородок и их привязки; проемы с необходимыми размерами и привязками; отметки участков разных уровней и другие необходимые размеры."
+
+    - id: spds.ar.floor_plan.section_lines
+      clause: "5.3.2 c"
+      automation: validation_only
+      statement: "На плане наносят линии и обозначения разрезов; линии разрезов проводят так, чтобы в разрез, как правило, попадали проемы окон/ворот/дверей, лестничные клетки, шахты лифтов, балконы, лоджии и другие характерные элементы."
+
+    - id: spds.ar.floor_plan.element_marks
+      clause: "5.3.2 d"
+      automation: validation_only
+      statement: "На планах указывают позиции/марки необходимых элементов здания, включая перемычки, лестницы, заполнение ворот и дверей и другие предусмотренные стандартом элементы."
+
+sections_and_facades:
+  source: GOST_21_501_2018
+  rules:
+    - id: spds.ar.section_required_geometry
+      clause: "5.4"
+      automation: validation_only
+      statement: "Разрез должен содержать необходимые координационные оси и расстояния, высотные отметки, размеры и привязки проемов, толщины/привязки стен и ссылки на узлы; видимая за секущей плоскостью геометрия не должна подменять элементы, попавшие в сечение."
+
+    - id: spds.ar.facade_required_information
+      clause: "5.4.2"
+      automation: validation_only
+      statement: "На фасадах показывают характерные координационные оси, необходимые высотные отметки, типы заполнения проемов и обозначения отделки; размеры проемов наносят, если они не приведены на других чертежах."
+
+recommended_scales:
+  source: GOST_21_501_2018
+  automation: validation_only
+  statement: "Масштаб выбирают по читаемости/насыщенности; рекомендуемые ряды применяют как шаблонные варианты, а не как запрет иных допустимых масштабов."
+  values:
+    floor_plans_sections_facades: ["1:50","1:100","1:200","1:400","1:500"]
+    roof_floor_technical_floor_plans: ["1:200","1:500"]
+    fragments: ["1:50","1:100"]
+    nodes: ["1:10","1:20"]
+
+symbols:
+  - id: spds.ar.standard_graphic_symbols
+    source: {document: GOST_21_201_2011, clause: "scope"}
+    automation: validation_only
+    statement: "Для элементов зданий и сооружений использовать стандартные условные графические изображения/обозначения СПДС. Дополнительное нестандартное обозначение допускается только при наличии однозначного пояснения/легенды и отсутствии конфликта со стандартным знаком."
+
+BIM_required_parameters:
+  - building_coordinate_system_id
+  - local_origin_axis_1A_zero
+  - axis_label
+  - axis_type_main_or_additional
+  - axis_graphic_line_type
+  - drawing_dimension_unit
+  - level_unit_and_precision
+  - floor_plan_cut_plane_rule
+  - opening_dimension_and_binding_status
+  - element_mark
+  - section_reference
+  - detail_reference
+  - drawing_scale
+  - graphic_symbol_standard
+
+agent_logic:
+  - "Геометрия BIM и документация должны использовать одну и ту же систему осей; нельзя выпускать чертеж с переименованными осями без обновления модели/ссылок."
+  - "Не выводить размер строительного проема как размер в свету: семантика размера должна сохраняться и в чертеже."
+  - "Не скрывать отверстия/ниши, влияющие на строительство, только внутри 3D-модели — они должны быть вынесены в рабочие чертежи с привязками."
+  - "Не менять тип линии ради визуальной красоты листа, если этим меняется его нормативный смысл."
+  - "Масштаб вида не должен менять реальную толщину/тип модельного элемента; масштаб влияет на документальное представление, аннотации и графику."
+
+sources:
+  - "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f"
+  - "https://base.garant.ru/413848474/"
+  - "https://protect.gost.ru/gost/details/a241e289-aac3-4ee2-ad44-3259f9774799"
+  - "https://base.garant.ru/72284674/"

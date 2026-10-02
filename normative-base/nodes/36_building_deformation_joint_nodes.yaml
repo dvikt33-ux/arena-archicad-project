@@ -1,0 +1,71 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: DEFORMATION_JOINT_NODE_ENGINEERING
+purpose: "Machine-executable deformation-joint nodes through structural, envelope, roof and floor layers with fail-closed movement and fire/water gates."
+
+nodes:
+  - node_id: JNT_001_STRUCTURAL_DEFORMATION_JOINT_VERTICAL
+    family: structural_deformation_joint
+    hosts: [foundation_or_substructure, walls, columns_or_frames, floors]
+    applies_if:
+      joint_scope: vertical_through_structure
+    required_inputs: [KR_joint_axis, KR_joint_width_and_movement_range, KR_separation_extent, adjacent_element_geometry]
+    blockers: [KR_joint_axis_missing, KR_joint_width_or_movement_missing, adjacent_geometry_unresolved]
+    never_infer: [joint_width, movement_range, dowels, sliding_bearings, reinforcement_termination]
+    contours: [movement_and_tolerance, load_path, connection_and_fasteners]
+    geometry_actions: [preserve_structural_separation, trim_hosts_to_verified_joint_limits, attach_joint_identity]
+    archicad_representation: [Wall, Slab, Beam, Column, Opening, Detail]
+    postconditions: [no_unintended_rigid_bridge_across_joint, clear_joint_geometry_matches_KR]
+
+  - node_id: JNT_002_FLOOR_FINISH_JOINT_OVER_STRUCTURAL_JOINT
+    family: floor_joint_overlay
+    hosts: [structural_floor_joint, screed_or_finish_layers]
+    applies_if:
+      finish_crosses_structural_joint: true
+    required_inputs: [AR_finish_build_up, verified_joint_profile_or_detail, expected_movement_range]
+    blockers: [finish_build_up_missing, joint_profile_or_detail_missing, movement_range_missing]
+    never_infer: [profile_type, profile_width, fixing_pattern, sealant_product]
+    contours: [movement_and_tolerance, acoustic, fire, bulk_water_and_waterproofing]
+    geometry_actions: [align_finish_joint_to_structural_joint, place_verified_profile_only_if_geometry_available]
+    archicad_representation: [Profile, Object, Detail, Properties]
+    postconditions: [finish_joint_axis_matches_structural_joint, no_finish_layer_rigidly_bridges_joint]
+
+  - node_id: JNT_003_FACADE_DEFORMATION_JOINT
+    family: facade_joint_overlay
+    hosts: [structural_joint, external_wall_or_facade]
+    applies_if:
+      envelope_crosses_structural_joint: true
+    required_inputs: [facade_system, verified_movement_joint_detail, thermal_strategy, air_water_seal_strategy, fire_strategy_if_required]
+    blockers: [facade_joint_detail_missing, air_water_seal_unresolved, thermal_strategy_unresolved]
+    never_infer: [sealant_type, backer_geometry, cover_profile, anchors, fire_stop_product]
+    contours: [movement_and_tolerance, thermal_continuity, air_tightness, bulk_water_and_waterproofing, fire]
+    geometry_actions: [align_facade_joint_with_structural_joint, record_verified_seal_and_cover_system, preserve_movement_clearance]
+    archicad_representation: [Wall, CurtainWall, Profile, Detail, Properties]
+    postconditions: [envelope_joint_tracks_structural_joint, movement_clearance_preserved, required_contours_resolved]
+
+  - node_id: JNT_004_ROOF_DEFORMATION_JOINT
+    family: roof_joint_overlay
+    hosts: [structural_joint, roof_slab_or_deck, roofing_system]
+    applies_if:
+      roof_crosses_structural_joint: true
+    required_inputs: [roof_build_up, verified_roof_joint_detail, movement_range, drainage_strategy, fire_strategy_if_required]
+    blockers: [roof_joint_detail_missing, movement_range_missing, drainage_strategy_missing]
+    never_infer: [upstand_height, membrane_product, cover_profile, fastener_layout, fire_stop_product]
+    contours: [movement_and_tolerance, bulk_water_and_waterproofing, drainage_and_drying, thermal_continuity, air_tightness, fire]
+    geometry_actions: [align_roof_joint_to_structural_joint, create_verified_upstands_only_from_project_detail, record membrane_termination_strategy]
+    archicad_representation: [Slab, Roof, Wall, Profile, Detail]
+    postconditions: [roof_joint_axis_matches_structure, waterproofing_continuity_resolved_without_blocking_movement]
+
+  - node_id: JNT_005_BELOW_GRADE_DEFORMATION_JOINT_WATERSTOP
+    family: below_grade_joint_overlay
+    hosts: [foundation_or_basement_joint, waterproofing_system]
+    applies_if:
+      joint_below_grade: true
+    required_inputs: [KR_joint_geometry, waterproofing_project_detail, verified_waterstop_or_joint_system, groundwater_state]
+    blockers: [KR_joint_geometry_missing, waterproofing_detail_missing, product_system_unverified, groundwater_state_unknown]
+    never_infer: [waterstop_type, waterstop_size, embedment, joint_width, sealant_or_injection_system]
+    contours: [movement_and_tolerance, bulk_water_and_waterproofing, drainage_and_drying, inspection_and_maintenance]
+    geometry_actions: [preserve_joint_geometry, place_verified_waterstop_only_if_exact_geometry_available, record_access_and_repair_strategy]
+    archicad_representation: [Slab, Wall, Object, Detail, Properties]
+    postconditions: [joint_movement_not_blocked, waterproofing_system_reference_verified]

@@ -1,0 +1,63 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: ENTRANCE_NODE_ENGINEERING
+purpose: "Machine-executable entrance platform, porch and external stair node families with independent settlement, drainage, accessibility and freeze-thaw gates."
+
+nodes:
+  - node_id: ENT_001_ENTRANCE_PLATFORM_AT_EXTERNAL_DOOR
+    family: entrance_platform
+    hosts: [building_threshold, exterior_platform, external_wall]
+    applies_if:
+      entrance_type: external_platform
+    required_inputs:
+      - AR_threshold_and_finished_levels
+      - KR_platform_support_geometry
+      - drainage_strategy
+      - accessibility_check_if_required
+      - waterproofing_interface_strategy
+    blockers: [KR_platform_support_missing, level_relation_unresolved, drainage_strategy_missing]
+    never_infer: [platform_thickness, slope, support_depth, reinforcement, threshold_height]
+    contours: [load_path, bulk_water_and_waterproofing, drainage_and_drying, movement_and_tolerance, accessibility_interface]
+    geometry_actions: [create_or_verify_platform_from_KR, bind_to_threshold_reference, record_drainage_direction]
+    archicad_representation: [Slab, Detail]
+    postconditions: [platform_geometry_matches_KR, threshold_relation_matches_AR, drainage_path_resolved]
+
+  - node_id: ENT_002_PORCH_FOUNDATION_SEPARATED_FROM_MAIN_BUILDING
+    family: porch_foundation
+    hosts: [porch_platform_or_stair, porch_foundation, main_building_foundation_or_wall]
+    applies_if:
+      support_scheme: independent_external_foundation
+    required_inputs: [engineering_geology_revision, KR_porch_foundation_geometry, movement_joint_strategy, frost_and_water_exposure_strategy]
+    blockers: [geotech_missing, KR_porch_foundation_missing, movement_joint_strategy_missing]
+    never_infer: [foundation_type, foundation_depth, reinforcement, joint_width, insulation_thickness]
+    contours: [load_path, movement_and_tolerance, bulk_water_and_waterproofing, drainage_and_drying, thermal_continuity]
+    geometry_actions: [create_foundation_only_from_KR, preserve_independent_movement_relation, record_external_exposure]
+    archicad_representation: [Slab, Beam, Wall, Detail]
+    postconditions: [porch_foundation_matches_KR, unintended_rigid_tie_absent_unless_KR_requires]
+
+  - node_id: ENT_003_EXTERNAL_RC_STAIR_TO_PLATFORM
+    family: external_stair
+    hosts: [external_stair, exterior_platform]
+    applies_if:
+      stair_material: reinforced_concrete
+    required_inputs: [KR_stair_geometry, KR_support_and_joint_definition, AR_egress_or_accessibility_check, drainage_and_icing_strategy, guard_strategy_if_required]
+    blockers: [KR_stair_geometry_missing, KR_joint_definition_missing, AR_route_check_missing, drainage_or_icing_strategy_missing]
+    never_infer: [riser_tread_geometry, reinforcement, bearing_length, slope, guard_anchor_design]
+    contours: [load_path, movement_and_tolerance, drainage_and_drying, bulk_water_and_waterproofing, corrosion_and_biological, accessibility_interface]
+    geometry_actions: [create_stair_only_from_verified_geometry, create_or_verify_platform, bind_support_relations]
+    archicad_representation: [Stair, Slab, Detail]
+    postconditions: [stair_geometry_matches_KR_and_AR, water_path_resolved, guard_interface_resolved_if_required]
+
+  - node_id: ENT_004_CANOPY_SUPPORT_AT_ENTRANCE
+    family: entrance_canopy_support
+    hosts: [canopy, wall_or_frame_support, entrance_zone]
+    applies_if:
+      canopy_present: true
+    required_inputs: [KR_canopy_structure, verified_fastener_or_support_design, drainage_strategy]
+    blockers: [KR_canopy_structure_missing, fastener_or_support_design_missing]
+    never_infer: [cantilever_length, member_size, fastener_type, anchor_spacing, load_capacity]
+    contours: [load_path, connection_and_fasteners, drainage_and_drying, corrosion_and_biological]
+    geometry_actions: [create_support_members_only_from_KR, place_fasteners_only_from_verified_design, record_drainage_strategy]
+    archicad_representation: [Beam, Column, Roof, Object, Detail]
+    postconditions: [canopy_support_matches_KR, no_unverified_fasteners_created]

@@ -1,0 +1,172 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: WALL_ROOF_ASSEMBLY_PACKAGES
+purpose: "Machine-selectable combined wall + facade + pitched-roof edge packages. Packages coordinate structural support with thermal, air, vapor, water and ventilation contours without inventing KR geometry or product details."
+
+source_dependencies:
+  - 45_rafter_wall_connection_variants.yaml
+  - 48_wall_material_system_registry.yaml
+  - 49_roof_wall_material_adapters.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/68_facade_systems_2027.yaml
+
+packages:
+  - package_id: PKG_TC_440_ETICS_WARM_ROOF
+    wall_system_family: warm_ceramic_large_format
+    nominal_wall_thickness_mm: 440
+    verified_product_geometry_required: true
+    facade_family: plaster_or_ETICS
+    roof_thermal_boundary_mode: insulated_slope
+    roof_edge_condition: eaves
+    compose:
+      structural_support: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+      wall_material_adapter: warm_ceramic
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+      roof_edge_node: eaves
+    required_inputs:
+      - exact_wall_product_id
+      - exact_wall_product_geometry
+      - facade_system_id
+      - thermal_calculation_reference
+      - KR_roof_wall_support_detail
+      - verified_roof_covering_system
+      - ventilation_mode
+    contour_requirements:
+      thermal: continuous_wall_to_roof_insulation_path
+      air: continuous_air_control_layer
+      vapor: continuous_vapor_control_layer_from_warm_side
+      water: roof_water_shedding_to_exterior
+      ventilation: eaves_intake_path_if_vented
+    blockers:
+      - exact_wall_product_geometry_missing
+      - KR_roof_wall_support_detail_missing
+      - thermal_calculation_missing
+      - facade_system_unverified
+      - roof_covering_system_missing
+
+  - package_id: PKG_TC_380_BRICK_VENEER_WARM_ROOF
+    wall_system_family: warm_ceramic_large_format
+    nominal_wall_thickness_mm: 380
+    verified_product_geometry_required: true
+    facade_family: brick_veneer_or_facing_masonry
+    roof_thermal_boundary_mode: insulated_slope
+    roof_edge_condition: eaves
+    compose:
+      structural_support: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+      wall_material_adapter: warm_ceramic
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+      roof_edge_node: eaves
+    required_inputs:
+      - exact_wall_product_id
+      - exact_wall_product_geometry
+      - facing_masonry_system
+      - wall_tie_system_reference
+      - thermal_calculation_reference
+      - KR_roof_wall_support_detail
+      - cavity_termination_strategy
+    contour_requirements:
+      thermal: continuous_primary_thermal_layer
+      air: continuous_air_control_layer
+      vapor: continuous_vapor_control_layer_where_required
+      water: drained_or_shed_facade_cavity_to_exterior
+      ventilation: preserve_roof_vent_path_separate_from_facade_cavity
+    never_infer:
+      - cavity_width
+      - tie_type_or_spacing
+      - insulation_thickness
+      - closure_profile
+
+  - package_id: PKG_TC_510_RENDER_WARM_ROOF
+    wall_system_family: warm_ceramic_large_format
+    nominal_wall_thickness_mm: 510
+    verified_product_geometry_required: true
+    facade_family: render_or_thin_coat
+    roof_thermal_boundary_mode: insulated_slope
+    roof_edge_condition: eaves
+    compose:
+      structural_support: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+      wall_material_adapter: warm_ceramic
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+      roof_edge_node: eaves
+    required_inputs:
+      - exact_wall_product_id
+      - exact_wall_product_geometry
+      - verified_render_system
+      - thermal_calculation_reference
+      - KR_roof_wall_support_detail
+    rule: "Do not substitute 380 or 440 package geometry for a 510 wall."
+
+  - package_id: PKG_AAC_VENTFACADE_WARM_ROOF
+    wall_system_family: AAC
+    facade_family: ventilated_facade
+    roof_thermal_boundary_mode: insulated_slope
+    roof_edge_condition: eaves_or_gable
+    compose:
+      structural_support: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+      wall_material_adapter: AAC
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+      facade_transition: WALL_004_FACADE_SYSTEM_TRANSITION_AT_CORNER_OR_RETURN
+    required_inputs:
+      - exact_AAC_product_and_density_class
+      - KR_local_bearing_or_reinforced_belt_detail
+      - verified_anchor_or_bearing_system
+      - ventilated_facade_system_id
+      - subframe_top_termination_detail
+      - fire_interface_review
+      - thermal_calculation_reference
+    blockers:
+      - verified_AAC_support_strategy_missing
+      - facade_subframe_top_detail_missing
+      - fire_interface_unresolved
+    never_infer:
+      - reinforced_belt_geometry
+      - anchor_type_or_spacing
+      - subframe_bracket_geometry
+
+  - package_id: PKG_RC_VENTFACADE_WARM_ROOF
+    wall_system_family: reinforced_concrete
+    facade_family: ventilated_facade
+    roof_thermal_boundary_mode: insulated_slope
+    compose:
+      structural_support: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+      wall_material_adapter: reinforced_concrete
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+    required_inputs:
+      - KR_embedded_or_anchor_connection_detail
+      - verified_facade_system
+      - thermal_calculation_reference
+      - roof_support_detail
+    never_infer:
+      - embedded_plate_geometry
+      - anchor_layout
+      - insulation_thickness
+
+  - package_id: PKG_TIMBER_FRAME_VENTED_WARM_ROOF
+    wall_system_family: timber_frame
+    facade_family: ventilated_or_rainscreen
+    roof_thermal_boundary_mode: insulated_slope
+    compose:
+      structural_support: ROOF_SUPPORT_004_PANEL_ENGINEERED_TIMBER_TO_WALL
+      wall_material_adapter: timber_frame
+      wall_top_interface: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+    required_inputs:
+      - KR_top_plate_and_rafter_connection_detail
+      - wall_air_vapor_layer_definition
+      - roof_air_vapor_layer_definition
+      - rainscreen_top_termination_detail
+      - moisture_design_reference
+    contour_requirements:
+      air: explicit_wall_to_roof_membrane_connection
+      vapor: explicit_warm_side_connection
+      water: drained_rainscreen_and_roof_paths_remain_separate
+      ventilation: wall_rainscreen_and_roof_cavity_not_silently_interconnected
+
+selection_policy:
+  - exact_wall_system_family_match_required
+  - exact_product_geometry_required_for_masonry_products
+  - facade_family_must_match_verified_project_system
+  - roof_thermal_boundary_mode_must_match_project
+  - structural_support_is_never_selected_from_architecture_alone
+  - multiple_matching_packages_without_more_specific_product_match_return_blocked_ambiguous_package

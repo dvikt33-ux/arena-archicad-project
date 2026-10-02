@@ -1,0 +1,97 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+intent_contract:
+  supported_intents:
+    - build_foundation_system
+    - build_foundation_wall_connection
+    - build_floor_system
+    - build_floor_support_nodes
+    - rebuild_invalidated_nodes
+    - validate_construction_nodes
+
+pipeline:
+  - parse_high_level_intent
+  - resolve_project_context
+  - load_RU_2027_PLUS_normative_stack
+  - run_structural_boundary_gate
+  - run_foundation_or_floor_selector
+  - require_KR_finalization_for_structural_choice
+  - resolve_node_family
+  - instantiate_assembly_template
+  - compile_archicad_element_graph
+  - preflight_runtime_and_host_state
+  - execute_deterministic_operations
+  - readback_geometry_and_relationships
+  - run_node_contour_validation
+  - emit_receipt_and_revision
+
+command_example_schema:
+  intent: build_foundation_wall_connection
+  targets:
+    wall_ids: []
+  context:
+    foundation_system: null
+    wall_system: null
+    basement_state: null
+    groundwater_state: null
+    KR_revision: null
+  behavior:
+    create_missing_hosts: false
+    allow_coordination_placeholder: true
+    fail_closed: true
+
+selector_result_schema:
+  selected_node_family: null
+  candidate_assemblies: []
+  missing_required_inputs: []
+  blocked_reasons: []
+  normative_sources: []
+  structural_approval_required: true
+
+compiled_element_graph_schema:
+  hosts: []
+  products: []
+  relations: []
+  openings: []
+  property_writes: []
+  detail_2d_outputs: []
+  external_calculation_refs: []
+
+operation_contract:
+  every_operation_requires:
+    - typed_operation
+    - target_semantic_class
+    - preconditions
+    - idempotency_key
+    - expected_postcondition
+  structural_host_modification_requires:
+    - KR_revision
+    - approved_geometry_or_opening
+  prohibited:
+    - untyped_freeform_geometry_write
+    - reinforcement_generation_without_KR
+    - automatic_structural_dimension_guess
+    - automatic_bearing_length_guess
+    - silent_fallback_to_morph
+
+readback:
+  require:
+    - created_or_modified_GUIDs
+    - element_types
+    - critical_dimensions_from_approved_inputs
+    - support_relations
+    - opening_relations
+    - NODE_ID
+    - NODE_REVISION
+    - source_set
+  on_mismatch: rollback_or_mark_failed
+
+future_chat_template_target:
+  user_command_style: "high_level_only"
+  examples:
+    - "Собери фундаментную плиту по утвержденному КР и узлы наружных стен."
+    - "Разложи ПК/ПБ по утвержденной схеме и создай узлы опирания."
+    - "Проверь все узлы фундамент–стена после изменения геологии/КР."
+  policy: "Chat command never contains guessed reinforcement, bearing length or foundation dimensions; engine resolves verified project data and blocks if absent."

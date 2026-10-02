@@ -1,0 +1,265 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: SUSPENDED_CEILING_NODE_ENGINEERING
+purpose: "Machine-selectable suspended ceiling nodes with verified system/load geometry, perimeter interfaces, access and MEP coordination."
+
+source_dependencies:
+  - ../rules/66_suspended_ceiling_systems.yaml
+  - ../rules/09_engineering_coordination.yaml
+  - ../rules/67_communication_shafts_electrical_boxes.yaml
+  - ../rules/73_deformation_temperature_joints.yaml
+
+nodes:
+  - node_id: CLG_001_SUSPENDED_GYPSUM_CEILING_SYSTEM
+    family: suspended_gypsum_ceiling_system
+    hosts: [structural_soffit, room_zone, suspended_ceiling]
+    applies_if:
+      suspended_ceiling_type: gypsum_board_system
+    required_inputs:
+      - verified_ceiling_system_id
+      - table13_or_system_construction_type
+      - calculated_or_verified_design_load
+      - frame_level_count
+      - frame_material
+      - main_profile_spacing
+      - bearing_profile_spacing
+      - suspension_spacing
+      - sheet_product_and_layering
+      - sheet_orientation
+      - structural_soffit_level
+      - finished_ceiling_level
+    blockers:
+      - ceiling_system_unverified
+      - ceiling_design_load_unresolved
+      - profile_or_suspension_spacing_unresolved
+      - finished_ceiling_level_unresolved
+      - system_geometry_outside_verified_range
+    never_infer:
+      - universal_suspension_spacing
+      - main_profile_spacing
+      - bearing_profile_spacing
+      - suspension_capacity
+      - sheet_layer_count
+      - sheet_thickness
+      - anchor_product
+    normative_checks:
+      sheet_orientation_reference:
+        transverse_max_bearing_profile_spacing_mm: 500
+        longitudinal_max_bearing_profile_spacing_mm: 400
+        note: "Only within applicable SP163/system conditions; a verified system/load may require stricter spacing."
+      edge_reference:
+        bearing_profile_to_wall_max_mm: 100
+        two_level_main_profile_to_wall_max_mm: 150
+        two_level_suspension_to_wall_max_mm: 250
+        one_level_metal_main_profile_to_wall_max_mm: 1170
+        one_level_metal_suspension_to_wall_max_mm: 900
+    contours:
+      - support_and_load_path
+      - movement_and_tolerance
+      - fire_if_required
+      - acoustic_if_required
+      - service_zone_coordination
+      - construction_sequence
+    geometry_actions:
+      - create_ceiling_finish_plane_only_after_system_geometry_is_resolved
+      - store_frame_and_suspension_grid_as_verified_system_data
+      - create_explicit_coordination_zone_between_structure_and_finished_ceiling
+      - model_frame_members_only_when_coordination_or_project_LOD_requires
+    archicad_representation:
+      ceiling_finish_plane: separate_Slab_or_verified_ceiling_representation
+      frame_and_suspensions: metadata_and_detail_2d_by_default
+      coordination_zone: reserved_volume_or_properties
+    postconditions:
+      - finished_ceiling_level_matches_AR_reference
+      - spacing_values_trace_to_verified_system_or_calculation
+      - service_zone_is_not_hidden_by_finish_plane
+
+  - node_id: CLG_002_CEILING_PERIMETER_TO_WALL
+    family: suspended_ceiling_wall_perimeter_interface
+    hosts: [suspended_ceiling, wall_or_partition]
+    applies_if:
+      ceiling_meets_wall: true
+    required_inputs:
+      - verified_ceiling_system_id
+      - wall_or_partition_system
+      - perimeter_detail
+      - movement_strategy
+      - fire_or_acoustic_requirement_if_applicable
+    blockers:
+      - perimeter_detail_missing
+      - movement_strategy_unresolved
+      - fire_or_acoustic_interface_unresolved_when_required
+    never_infer:
+      - perimeter_profile
+      - fastener_spacing
+      - sealant_product
+      - firestop_product
+    contours:
+      - movement_and_tolerance
+      - acoustic_if_required
+      - fire_if_required
+      - finish_continuity
+    geometry_actions:
+      - preserve_verified_perimeter_clearance_or_profile
+      - coordinate_ceiling_plane_with_wall_finish
+      - attach_system_detail_reference
+    archicad_representation:
+      main_finish: Slab_or_2d_finish_boundary
+      perimeter_profile: verified_Profile_or_detail_2d
+    postconditions:
+      - perimeter_interface_matches_ceiling_system
+      - no_unverified_rigid_bridge_across_required_movement_joint
+
+  - node_id: CLG_003_CEILING_MEP_DEVICE_INTERFACE
+    family: suspended_ceiling_MEP_device_interface
+    hosts: [suspended_ceiling, MEP_or_electrical_device]
+    applies_if:
+      device_intersects_or_mounts_in_ceiling: true
+    required_inputs:
+      - device_id
+      - engineering_owner
+      - device_geometry_and_weight
+      - support_strategy
+      - ceiling_system_capacity_confirmation_if_ceiling_supported
+      - access_and_service_requirements
+      - fire_or_acoustic_sealing_if_applicable
+    blockers:
+      - engineering_owner_missing
+      - device_geometry_or_weight_missing
+      - support_strategy_unresolved
+      - ceiling_capacity_unverified_when_device_loads_ceiling
+      - service_access_unresolved
+    never_infer:
+      - support_from_ceiling_by_default
+      - hanger_or_anchor_type
+      - extra_profile_layout
+      - device_weight
+      - fire_seal_product
+    contours:
+      - support_and_load_path
+      - service_access
+      - fire_if_required
+      - acoustic_if_required
+      - coordination_clearance
+    geometry_actions:
+      - reserve_verified_device_cutout_or_interface_geometry
+      - create_separate_support_reference_when_device_is_not_ceiling_supported
+      - coordinate_device_with_frame_grid_without_automatic_grid_rewrite
+    archicad_representation:
+      device: existing_verified_MEP_or_library_element
+      ceiling_cutout: Opening_or_finish_boundary_only_when_geometry_is_approved
+      support: relation_metadata_plus_engineering_reference
+    postconditions:
+      - every_device_has_explicit_support_owner
+      - ceiling_frame_capacity_is_not_assumed
+      - device_remains_serviceable
+
+  - node_id: CLG_004_CEILING_ACCESS_PANEL
+    family: suspended_ceiling_access_panel
+    hosts: [suspended_ceiling, service_zone]
+    applies_if:
+      access_panel_required: true
+    required_inputs:
+      - service_target
+      - required_clear_opening
+      - verified_access_panel_product_or_project_detail
+      - ceiling_system_integration_detail
+      - fire_or_acoustic_performance_if_applicable
+    blockers:
+      - service_target_missing
+      - access_geometry_unresolved
+      - access_panel_unverified
+      - fire_or_acoustic_performance_unverified_when_required
+    never_infer:
+      - panel_size
+      - fire_rating
+      - acoustic_rating
+      - frame_reinforcement
+      - hinge_or_lock_system
+    contours:
+      - service_access
+      - ceiling_support_continuity
+      - fire_if_required
+      - acoustic_if_required
+    geometry_actions:
+      - place_access_opening_from_verified_geometry
+      - coordinate_frame_reinforcement_only_from_system_detail
+      - preserve_service_clearance_to_target
+    archicad_representation:
+      panel: verified_library_part_or_opening_plus_detail
+      frame_reinforcement: metadata_or_modeled_only_when_verified
+    postconditions:
+      - service_target_is_reachable
+      - ceiling_performance_not_reduced_below_required_classification
+
+  - node_id: CLG_005_WET_ROOM_SUSPENDED_CEILING
+    family: wet_or_humid_room_suspended_ceiling
+    hosts: [structural_soffit, wet_room, suspended_ceiling]
+    applies_if:
+      room_moisture_regime: humid_or_wet
+    required_inputs:
+      - verified_wet_room_ceiling_system
+      - metal_frame_system
+      - moisture_resistant_board_or_finish_system
+      - design_load
+      - ventilation_and_service_zone_coordination
+    blockers:
+      - wet_room_ceiling_system_unverified
+      - metal_frame_not_verified
+      - moisture_resistant_finish_unresolved
+      - service_zone_moisture_strategy_unresolved
+    never_infer:
+      - wooden_frame_as_default
+      - board_product
+      - corrosion_protection_system
+      - ventilation_opening_geometry
+    contours:
+      - moisture_resistance
+      - corrosion_and_durability
+      - support_and_load_path
+      - service_zone_coordination
+    geometry_actions:
+      - force_verified_metal_frame_path
+      - coordinate_finish_and_service_zone_with_room_moisture_regime
+    archicad_representation:
+      finish_plane: separate_Slab_or_verified_ceiling_representation
+      system_layers: properties_plus_detail_2d_by_default
+    postconditions:
+      - no_unverified_wood_frame_in_humid_or_wet_room
+      - selected_system_is_compatible_with_moisture_regime
+
+  - node_id: CLG_006_CEILING_AT_DEFORMATION_JOINT
+    family: suspended_ceiling_at_building_deformation_joint
+    hosts: [suspended_ceiling_A, suspended_ceiling_B, structural_deformation_joint]
+    applies_if:
+      building_joint_crosses_ceiling: true
+    required_inputs:
+      - structural_joint_node_reference
+      - KR_joint_width_and_movement_range
+      - verified_ceiling_joint_detail
+      - ceiling_systems_each_side
+    blockers:
+      - structural_joint_reference_missing
+      - movement_range_missing
+      - ceiling_joint_detail_unverified
+    never_infer:
+      - joint_width
+      - cover_profile
+      - suspension_bridge_across_joint
+      - sealant_or_firestop_product
+    contours:
+      - movement_and_tolerance
+      - support_independence
+      - fire_if_required
+      - acoustic_if_required
+    geometry_actions:
+      - split_ceiling_support_system_across_structural_joint
+      - align_finish_joint_with_structural_joint_axis
+      - compose_with_verified_fire_or_acoustic_joint_if_required
+    archicad_representation:
+      ceiling_split: separate_finish_elements_or_control_boundary
+      joint_product: verified_Profile_or_detail_2d
+    postconditions:
+      - no_rigid_ceiling_support_bridge_across_structural_joint
+      - ceiling_joint_revision_matches_structural_joint

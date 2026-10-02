@@ -1,4 +1,4 @@
-manifest_version: 94
+manifest_version: 95
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
@@ -31,9 +31,12 @@ load_order:
     files: rules/*.yaml
     role: verified architectural and BIM rules
   - priority: 10
+    file: nodes/manifest.yaml
+    role: general construction node selector and executable assembly engine for foundations and floor systems
+  - priority: 11
     file: izh/manifest.yaml
     role: detached-house construction-system and node-engineering package; material-specific recipes inherit all global 2027 gates
-  - priority: 11
+  - priority: 12
     file: AUDIT.md
     role: human-readable audit trail
 
@@ -50,6 +53,7 @@ precedence_rules:
   - Manufacturer or product geometry cannot be invented from common market sizes.
   - Draft, accepted-but-not-active, or otherwise unapproved future documents never become active rules.
   - Expired or repealed rules without an applicable official replacement produce blocked or unresolved state.
+  - CONSTRUCTION_NODE_ENGINE may select candidate assemblies and compile Archicad element graphs but may not finalize structural systems or structural dimensions without approved KR/geotechnical input.
   - IZH material packs may specialize global rules but cannot weaken a global hard-fail or bypass KR/thermal/MEP calculation gates.
 
 rule_files:
@@ -168,6 +172,10 @@ rule_files:
   - 110_drainage_sumps_underground_rooms_2027.yaml
 
 packages:
+  - id: CONSTRUCTION_NODE_ENGINE
+    manifest: nodes/manifest.yaml
+    target_profile: RU_2027_PLUS
+    scope: general_buildings
   - id: IZH_NODE_ENGINEERING
     manifest: izh/manifest.yaml
     target_profile: RU_2027_PLUS
@@ -191,6 +199,8 @@ hard_fail_states:
   - dimension_semantics_unknown
   - object_classification_missing
   - package_scope_mismatch
+  - engineering_geology_missing_for_foundation_selection
+  - KR_structural_approval_missing_for_node_execution
 
 release_gate:
   require:
@@ -207,3 +217,4 @@ release_gate:
     - clear dimensions are validated as clear dimensions
     - pending topics remain fail-closed
     - loaded package target_profile matches RU_2027_PLUS
+    - structural node execution uses approved KR and geotechnical revisions where required

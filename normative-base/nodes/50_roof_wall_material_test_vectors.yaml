@@ -1,0 +1,81 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+suite_id: ROOF_WALL_MATERIAL_SELECTOR_TESTS_V1
+
+tests:
+  - test_id: ceramic_380_requires_KR_support_detail
+    inputs:
+      wall_material_family: porous_ceramic_large_format
+      wall_actual_thickness_mm: 380
+      verified_wall_product_or_KR_system: BRAER_Ceramic_Thermo_10_7_NF
+      roof_structural_variant_id: rafter_pair
+      KR_roof_wall_support_detail: null
+    expected:
+      adapter_id: CERAMIC_LARGE_FORMAT_ROOF_SUPPORT
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [mauerlat_section, ring_beam_geometry, anchor_type, anchor_spacing, rafter_notch]
+
+  - test_id: ceramic_440_keeps_product_geometry
+    inputs:
+      wall_material_family: porous_ceramic_large_format
+      wall_actual_thickness_mm: 440
+      nominal_product_geometry_mm: [440, 250, 219]
+      verified_wall_product_or_KR_system: BRAER_Ceramic_Thermo_12_4_NF
+      KR_roof_wall_support_detail: KR_ROOF_WALL_440_01
+      KR_local_bearing_check_or_detail: KR_BEAR_440_01
+      KR_uplift_and_lateral_restraint_reference: KR_RESTRAINT_440_01
+    expected:
+      adapter_id: CERAMIC_LARGE_FORMAT_ROOF_SUPPORT
+      preserve_wall_actual_thickness_mm: 440
+      permit_structural_write_only_from: KR_ROOF_WALL_440_01
+
+  - test_id: ceramic_510_does_not_reuse_380_geometry
+    inputs:
+      wall_material_family: porous_ceramic_large_format
+      wall_actual_thickness_mm: 510
+      nominal_product_geometry_mm: [510, 250, 219]
+      verified_wall_product_or_KR_system: BRAER_Ceramic_Thermo_14_3_NF
+      KR_roof_wall_support_detail: KR_ROOF_WALL_510_01
+      candidate_detail_from_other_thickness: KR_ROOF_WALL_380_01
+    expected:
+      adapter_id: CERAMIC_LARGE_FORMAT_ROOF_SUPPORT
+      status: reject_incompatible_detail
+      forbidden_outputs: [reuse_380_wall_detail]
+
+  - test_id: aac_without_verified_anchor_blocks_direct_anchor
+    inputs:
+      wall_material_family: AAC_autoclaved
+      verified_wall_product_or_KR_system: AAC_PRODUCT_01
+      KR_roof_wall_support_detail: KR_AAC_ROOF_01
+      connection_strategy: direct_anchor_into_AAC
+      verified_anchor_system: null
+    expected:
+      adapter_id: AAC_ROOF_SUPPORT
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [anchor_type, embedment, anchor_spacing]
+
+  - test_id: monolithic_RC_requires_exact_connection_detail
+    inputs:
+      wall_material_family: reinforced_concrete_monolithic
+      KR_wall_geometry: KR_RC_WALL_01
+      KR_connection_detail: null
+    expected:
+      adapter_id: RC_MONOLITHIC_ROOF_SUPPORT
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [post_installed_anchor, embedment, edge_distance]
+
+  - test_id: timber_frame_requires_top_plate_detail
+    inputs:
+      wall_material_family: framed_wall_timber
+      verified_wall_frame_schedule: TIMBER_WALL_01
+      KR_top_plate_and_roof_connection_detail: null
+    expected:
+      adapter_id: TIMBER_FRAME_ROOF_SUPPORT
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [top_plate_section, nail_pattern, hold_down_type]
+
+validation_policy:
+  - tests_must_not_convert_example_product_dimensions_into_universal_normative_dimensions
+  - every_structural_connection_output_requires_KR_or_verified_system_reference
+  - material_family_match_never_overrides_blockers

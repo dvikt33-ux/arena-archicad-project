@@ -1,0 +1,83 @@
+contract_version: 1
+branch: rd-working-docs-v1
+role: working_documentation_and_archicad_execution
+baseline:
+  branch: normative-base-v1
+  commit: b99fba7449d4338924c5ef0761a2b59eb3890592
+  policy: "Normative rules and NODE_ID definitions are inherited from the baseline; RD may specialize execution but must not weaken common gates."
+
+allowed_scope:
+  - Archicad_execution_maps
+  - model_to_drawing_generation
+  - SPDS_working_drawings
+  - plans_sections_facades_nodes_fragments
+  - schedules_and_specifications
+  - opening_lintel_floor_roof_foundation_and_facade_detailing
+  - sheet_and_view_generation
+  - construction_coordination_outputs
+  - RD_release_package
+
+forbidden_scope:
+  - changing_PD_design_intent_without_PD_revision_reference
+  - reinforcement_or_structural_dimension_guessing
+  - unverified_product_geometry
+  - silent_fallback_to_morph_for_structural_or_regulated_elements
+  - publishing_stale_drawings_from_newer_model
+  - branch_specific_rewrite_of_common_normative_rules_without_sync_to_normative-base-v1
+
+required_inputs_for_release:
+  - current_normative_baseline_revision
+  - PD_revision_reference
+  - current_AR_model_revision
+  - approved_KR_revision_for_structural_nodes
+  - current_engineering_interface_revisions
+  - verified_product_and_system_references
+  - SPDS_validation_result
+  - model_drawing_revision_match
+  - unresolved_issue_register
+
+release_states:
+  - draft
+  - model_coordinated
+  - drawing_generation_complete
+  - RD_preflight_passed
+  - ready_for_issue
+  - issued_for_construction_or_review
+
+hard_fail:
+  - normative_baseline_stale
+  - PD_revision_missing_or_stale
+  - model_and_drawing_revision_mismatch
+  - unresolved_structural_or_engineering_interface
+  - unresolved_required_NODE_ID
+  - unverified_product_or_system
+  - SPDS_gate_failed
+  - undocumented_manual_override
+
+sync_policy:
+  normative_source_of_truth: normative-base-v1
+  PD_source_of_truth: pd-expertise-v1
+  pull_normative_changes_before_release: true
+  pull_released_PD_revision_before_release: true
+  breaking_NODE_ID_change_requires_explicit_migration: true
+  RD_execution_improvement_may_remain_branch_local_if_normative_semantics_unchanged: true
+
+PD_change_control:
+  if_RD_requires_design_change:
+    action: block_and_return_change_request_to_PD
+    prohibited: modify_PD_intent_silently
+  required_change_request_fields:
+    - affected_elements_or_NODE_IDs
+    - reason
+    - normative_or_coordination_basis
+    - proposed_PD_revision
+
+release_outputs:
+  - model_revision_id
+  - drawing_set_revision_id
+  - source_PD_revision_id
+  - source_normative_baseline_commit
+  - issued_sheets
+  - node_detail_register
+  - schedules_and_specifications
+  - unresolved_nonblocking_items

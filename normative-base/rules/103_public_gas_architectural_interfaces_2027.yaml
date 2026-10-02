@@ -1,0 +1,200 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы газоиспользующего оборудования общественных зданий, включая ТРК,
+  предприятия общественного питания и индивидуальные газовые теплогенераторы. Не переносит
+  жилые правила СП 402 на отдельное общественное здание и не выполняет газовый/тепловой расчет.
+
+revision_dependencies:
+  - {document: SP_62_13330_2011, verified_changes: [1,2,3,4], status: active}
+  - {document: SP_282_1325800_2023, status: active, effective_from: 2024-01-19, replaces: SP_282_1325800_2016}
+  - {document: GOST_R_58095_0_2024, status: active, effective_from: 2024-12-01, replaces: GOST_R_58095_0_2018}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SP_4_13130_2013, status: active}
+
+scope:
+  - id: gas.public.max_internal_pressure_route
+    source: {document: GOST_R_58095_0_2024, clause: "1.2"}
+    automation: validation_only
+    max_internal_gas_pressure_mpa: 0.005
+    applies_to: public_building_internal_gas_network
+
+  - id: gas.public.no_residential_sp402_inheritance
+    automation: auto
+    statement: >-
+      Для отдельно стоящего общественного здания/ТРК не использовать нормы кухни жилого дома
+      из СП 402 как прямой источник. Маршрут определяется СП 62, ГОСТ Р 58095.0-2024,
+      СП 282 для теплогенераторов и функциональными СП конкретного общественного здания.
+
+public_foodservice_gas_equipment:
+  source: GOST_R_58095_0_2024
+  rules:
+    - id: gas.public.foodservice_equipment_allowed_classes_gate
+      clause: "5.9.4.1"
+      automation: hard_gate
+      applies_to: gas_foodservice_equipment
+      prohibited_functional_fire_classes: [F1_1, F2_1, F4_1]
+      statement: >-
+        Газовое технологическое оборудование предприятий питания допускается в общественных
+        зданиях, но не в кухнях объектов Ф1.1, Ф2.1 и Ф4.1. В многофункциональном здании
+        классифицировать конкретный функциональный блок, а не весь объект одним классом.
+
+    - id: gas.public.foodservice_equipment_types
+      clause: "5.9.4.1"
+      automation: validation_only
+      examples:
+        - stationary_cooking_kettle
+        - kitchen_range
+        - cooking_or_frying_apparatus
+        - brazier
+        - fryer
+        - liquid_heating_equipment
+        - bain_marie
+      statement: "Допустимость типа оборудования не отменяет технологические, вентиляционные и пожарные требования помещения."
+
+    - id: gas.public.foodservice_combustion_products_route
+      clause: "5.10.3.4"
+      automation: engineering_coordination_gate
+      applies_to: [restaurant_range, stationary_cooking_kettle, similar_gas_foodservice_equipment]
+      permitted_routes:
+        - separate_flue_for_each_equipment
+        - common_flue_when_free_combustion_product_discharge_is_ensured_for_adjacent_equipment
+      discipline_boundary: [GSV, OV, TX]
+      statement: >-
+        Архитектура должна резервировать подтвержденный дымовой маршрут; обычный кухонный
+        вентиляционный зонт не считается автоматически дымовым каналом продуктов сгорания.
+
+public_heat_generators_up_to_100kw:
+  source: SP_282_1325800_2023
+  rules:
+    - id: gas.public.boiler_up_to_100_separate_heat_generator_room
+      clause: "5.3"
+      automation: hard_gate
+      condition: "public_building_gas_heat_generator_total_output_kw <= 100"
+      requirement: dedicated_heat_generator_room
+      statement: >-
+        В общественном здании индивидуальные газовые теплогенераторы до 100 кВт включительно
+        размещать в специально выделенной теплогенераторной независимо от мощности отдельного агрегата.
+
+    - id: gas.public.heat_generator_room_external_wall
+      clause: "5.3"
+      automation: hard_gate
+      condition: "public_building_gas_heat_generator_total_output_kw <= 100"
+      requirement: heat_generators_at_external_building_wall
+
+    - id: gas.public.heat_generator_room_min_volume
+      clause: "5.3; 5.6"
+      automation: conditional
+      dimension_semantics: internal_room_volume
+      min_room_volume_m3: 15
+      statement: "Объем дополнительно должен обеспечивать монтаж, эксплуатацию и ремонт оборудования."
+
+    - id: gas.public.heat_generator_room_min_height
+      clause: "5.3"
+      automation: conditional
+      dimension_semantics: clear_room_height
+      min_clear_height_m: 2.2
+
+    - id: gas.public.heat_generator_room_window_glazing
+      clause: "5.3"
+      automation: conditional
+      dimension_semantics: glazing_area_to_room_volume
+      min_glazing_area_m2_per_m3: 0.03
+      required_airing_device: true
+      airing_device_location: upper_part_of_window
+      statement: >-
+        Теплогенераторная должна иметь окно с остеклением 0,03 м² на 1 м³ объема и форточкой
+        либо иным устройством для проветривания в верхней части окна.
+
+    - id: gas.public.heat_generator_room_ventilation_gate
+      clause: "5.3; 5.12"
+      automation: engineering_coordination_gate
+      requirement: individual_natural_exhaust_ventilation
+      discipline_boundary: OV
+      statement: >-
+        Требуемый воздухообмен зависит от типа теплогенератора; архитектура резервирует каналы
+        по заданию ОВ и не вычисляет их сечение из площади помещения.
+
+    - id: gas.public.no_heat_generator_over_under_residential_room_floor
+      clause: "5.5"
+      automation: hard_gate
+      prohibited_relation: directly_on_or_under_floor_enclosing_residential_room
+      statement: "Теплогенераторную не размещать непосредственно на/под перекрытием, ограждающим жилую комнату."
+
+    - id: gas.public.boiler_over_100_route_to_SP281
+      clause: "5.4"
+      automation: mandatory_router
+      condition: "public_building_gas_heat_generator_total_output_kw > 100"
+      route_to: SP_281_1325800
+      note: "ГОСТ Р 58095.0-2024 рассматривает общественные автономные теплогенераторные до 360 кВт включительно через СП 281."
+
+common_public_gas_room:
+  source: GOST_R_58095_0_2024
+  rules:
+    - id: gas.public.gas_detection_and_safety_automation
+      clause: "5.9.1.2"
+      automation: engineering_coordination_gate
+      requirement: gas_detection_and_automatic_gas_shutoff_per_applicable_rules
+      discipline_boundary: GSV
+      statement: >-
+        Для помещений с газоиспользующим оборудованием предусматривать места систем контроля
+        загазованности/автоматики безопасности по применимым требованиям; положение клапана —
+        по документации изготовителя, не по универсальной отметке.
+
+    - id: gas.public.lightweight_relief_construction
+      clause: "5.9.1.3"
+      automation: mandatory_validation
+      requirement: lightweight_explosion_relief_construction_per_GOST_R_56288
+      statement: >-
+        Помещение для газоиспользующего оборудования должно иметь предусмотренную стандартом
+        легкосбрасываемую конструкцию; тип/изделие подтверждается проектом и документацией.
+
+    - id: gas.public.room_multi_document_router
+      clause: "5.9.4.5"
+      automation: mandatory_router
+      downstream_documents:
+        - SP_118_13330_2022
+        - SP_281_1325800
+        - SP_282_1325800_2023
+        - SP_62_13330_2011
+        - SP_4_13130_2013
+      statement: >-
+        Помещение общественного здания с газовым оборудованием не проверяется по одному ГОСТ:
+        требуется совместная применимость функциональных, газовых и пожарных норм.
+
+BIM_required_parameters:
+  - building_function
+  - functional_fire_class_of_gas_room_block
+  - gas_equipment_type
+  - gas_equipment_total_output_kw
+  - internal_gas_pressure_mpa
+  - heat_generator_room_id
+  - heat_generator_room_volume_m3
+  - heat_generator_room_clear_height_m
+  - exterior_wall_relation
+  - glazing_area_m2
+  - airing_device_id
+  - gas_detection_system_status
+  - gas_shutoff_valve_reference
+  - lightweight_relief_solution_reference
+  - combustion_product_route_id
+
+hard_fail_conditions:
+  - "SP 402 residential kitchen geometry used as direct rule for standalone public building"
+  - "gas foodservice equipment placed in prohibited F1.1/F2.1/F4.1 kitchen"
+  - "public gas boiler <=100 kW placed outside dedicated heat generator room"
+  - "heat generator room below 15 m3 or 2.2 m where SP 282 route applies"
+  - "public boiler output >100 kW kept on <=100 kW SP 282 room route instead of SP 281"
+
+agent_logic:
+  - "В ТРК классифицировать газифицируемый функциональный блок отдельно: ресторан Ф3.2 и кинотеатр Ф2.1 не равнозначны."
+  - "Газовая кухня и газовая теплогенераторная — разные маршруты; не смешивать технологическое оборудование с котлами."
+  - "До 100 кВт использовать выделенную теплогенераторную по СП 282; свыше 100 кВт маршрутизировать на СП 281."
+  - "Дымовые каналы, вентиляция, газовый расход, диаметры и автоматика остаются профильными расчетами."
+
+sources:
+  - "https://protect.gost.ru/sp/details/654b2dfa-77c9-45fc-9e63-af102fd21f57"
+  - "https://www.consultant.ru/document/cons_doc_LAW_470632/"
+  - "https://protect.gost.ru/gost/details/722041fa-b68e-4b9c-87f3-3fe8a42cf368"
+  - "https://base.garant.ru/411052884/"
+  - "https://base.garant.ru/57425626/"

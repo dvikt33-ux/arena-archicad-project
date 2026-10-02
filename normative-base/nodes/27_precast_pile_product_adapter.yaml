@@ -1,0 +1,59 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+sources:
+  - {document: SP_24_13330_2021, changes: [1,2], role: pile_foundation_design}
+  - {document: GOST_19804_2021, correction: IUS_6_2022, role: factory_made_reinforced_concrete_piles}
+
+adapter_id: PRECAST_RC_PILE_PRODUCT_ADAPTER_V1
+
+applicability:
+  require:
+    - "pile_system=precast_reinforced_concrete"
+    - verified_pile_product_documentation
+    - KR_pile_design_revision
+  reject_if:
+    - pile_type_not_within_selected_product_scope
+    - manufacturer_geometry_missing
+
+product_inputs:
+  required:
+    - pile_mark
+    - pile_geometry
+    - pile_head_geometry
+    - material_and_product_reference
+    - manufacturer_or_standard_source
+  KR_required:
+    - pile_coordinates
+    - pile_length_or_cutoff_data
+    - design_capacity_reference
+    - pile_head_level
+    - pile_to_cap_or_raft_connection
+
+archicad_mapping:
+  preferred_representation: native_Column_or_verified_Library_Object
+  rule: "Representation choice must preserve pile identity, coordinates, head elevation and product mark; it must not imply that Archicad geometry is the structural calculation."
+  operations:
+    - place_pile_instances_from_KR_coordinates
+    - assign_verified_product_mark
+    - assign_KR_revision
+    - connect_to_pile_cap_or_raft_node_metadata
+    - readback_coordinates_and_head_levels
+
+never_infer:
+  - pile_type
+  - pile_length
+  - pile_cross_section
+  - reinforcement
+  - design_capacity
+  - pile_spacing
+  - pile_count
+  - pile_head_embedment
+  - pile_cutoff_level
+
+hard_fail:
+  - KR_pile_design_missing
+  - pile_product_geometry_unverified
+  - pile_head_connection_missing
+  - actual_instance_coordinate_differs_from_KR

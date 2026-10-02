@@ -1,0 +1,59 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+product_standards:
+  multistory_civil_industrial:
+    document: GOST_R_71020_2023
+    status: active
+    scope: precast_reinforced_concrete_socket_foundations_for_frame_columns_multistory_civil_and_industrial
+  agricultural_single_storey:
+    document: GOST_R_71151_2023
+    status: active
+    scope: precast_reinforced_concrete_socket_foundations_for_columns_agricultural_single_storey
+  historical_still_active_reference:
+    document: GOST_24476_80
+    policy: "Do not assume replacement or preferred use. Accept only when actual selected product/project documentation identifies this standard and all current project gates pass."
+
+nodes:
+  - node_id: FDN_020_PRECAST_SOCKET_FOUNDATION_TO_PRECAST_COLUMN
+    family: isolated_socket_foundation
+    hosts: [precast_socket_foundation, precast_column]
+    applies_if:
+      - "foundation_system=precast_socket_foundation"
+      - "column_system=precast_reinforced_concrete"
+    require:
+      - engineering_geology_revision
+      - KR_approved_foundation_mark
+      - verified_foundation_product_standard
+      - verified_column_product
+      - KR_column_socket_connection_definition
+      - KR_base_preparation_definition
+    geometry_actions:
+      - place_foundation_using_verified_product_geometry
+      - place_column_using_verified_product_geometry
+      - align_column_axis_and_socket_reference_from_KR
+      - preserve_project_defined_connection_gap_and_embedment
+      - attach_product_marks_and_KR_revision
+    never_infer:
+      - socket_dimensions
+      - column_embedment
+      - grout_or_concrete_fill_class
+      - erection_gap
+      - reinforcement
+      - foundation_mark
+    blockers: [product_mark_missing, KR_connection_definition_missing, geotech_missing]
+
+  - node_id: FDN_021_SOCKET_FOUNDATION_BASE_PREPARATION
+    family: socket_foundation_preparation
+    hosts: [subgrade, precast_socket_foundation]
+    applies_if:
+      - "foundation_system=precast_socket_foundation"
+    require: [RD_base_preparation_definition, accepted_subgrade_status]
+    compose_with: FDN_019_FOUNDATION_BASE_ACCEPTANCE_GATE
+    never_infer: [preparation_thickness, material, leveling_method]
+
+execution_policy:
+  - product_standard_scope_must_match_building_and_product
+  - product_geometry_is_never_reconstructed_from_typical_catalog_memory
+  - structural_selection_and_socket_connection_are_KR_owned

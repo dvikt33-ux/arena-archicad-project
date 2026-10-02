@@ -1,0 +1,109 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+suite_id: CONSTRUCTION_NODE_SELECTOR_TESTS_V1
+
+tests:
+  - test_id: foundation_missing_geotech_blocks
+    intent: build_foundation_system
+    inputs:
+      structural_scheme: wall_bearing
+      loads_revision: KR_LOADS_01
+      engineering_geology_revision: null
+    expected:
+      status: blocked_waiting_for_geotech_or_KR
+
+  - test_id: strip_masonry_selects_FDN001
+    intent: build_foundation_wall_connection
+    inputs:
+      foundation_system: shallow_strip_rc
+      wall_structural_material: masonry
+      KR_support_zone_verified: true
+      moisture_strategy_present: true
+    expected:
+      node_id: FDN_001_STRIP_RC_TO_MASONRY
+
+  - test_id: raft_aac_selects_FDN004
+    intent: build_foundation_wall_connection
+    inputs:
+      foundation_system: raft_rc
+      wall_structural_material: AAC
+      below_grade_AAC: false
+      KR_support_zone_verified: true
+      AAC_product_present: true
+      moisture_separation_present: true
+    expected:
+      node_id: FDN_004_RAFT_TO_AAC_EXTERNAL_WALL
+
+  - test_id: below_grade_aac_rejected
+    intent: build_foundation_wall_connection
+    inputs:
+      foundation_system: raft_rc
+      wall_structural_material: AAC
+      below_grade_AAC: true
+    expected:
+      status: blocked_no_verified_node
+
+  - test_id: pile_raft_without_pile_design_blocks
+    intent: build_foundation_wall_connection
+    inputs:
+      foundation_system: pile_raft_rc
+      pile_design_revision: null
+    expected:
+      status: blocked_waiting_for_KR
+
+  - test_id: pc_masonry_selects_support_and_bearing_nodes
+    intent: build_floor_support_nodes
+    inputs:
+      floor_system: precast_hollow_core_PC
+      support_material: masonry
+      verified_PC_mark: true
+      KR_bearing_length: 1
+      KR_support_check: true
+    expected:
+      node_ids: [FLR_003_PC_TO_MASONRY_WALL, BRG_PC_END_ON_MASONRY]
+
+  - test_id: pb_missing_manufacturer_geometry_blocks
+    intent: build_floor_support_nodes
+    inputs:
+      floor_system: precast_hollow_core_PB
+      support_material: masonry
+      manufacturer_PB_geometry: null
+      KR_bearing_length: 1
+    expected:
+      status: blocked_waiting_for_product_data
+
+  - test_id: precast_missing_bearing_length_blocks
+    intent: build_floor_support_nodes
+    inputs:
+      floor_system: precast_hollow_core_PC
+      support_material: reinforced_concrete_wall
+      verified_product: true
+      KR_bearing_length: null
+    expected:
+      status: blocked_waiting_for_KR
+
+  - test_id: mep_opening_without_KR_blocks
+    intent: build_floor_support_nodes
+    inputs:
+      floor_system: monolithic_rc_flat_slab
+      MEP_penetration_requested: true
+      KR_opening_approval: false
+    expected:
+      status: blocked_waiting_for_KR
+
+  - test_id: no_structural_dimensions_guessed
+    intent: build_foundation_system
+    inputs:
+      engineering_geology_revision: GEO_01
+      loads_revision: LOADS_01
+      approved_foundation_system: raft_rc
+      KR_raft_geometry: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [foundation_thickness, reinforcement, concrete_class]
+
+validation_policy:
+  - referenced_expected_node_ids_must_exist
+  - blocked_tests_must_not_require_generated_structural_dimensions
+  - all_tests_must_target_RU_2027_PLUS

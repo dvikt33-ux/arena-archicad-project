@@ -1,0 +1,105 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ARCHICAD_ROOF_EDGE_PENETRATION_EXECUTION_MAP
+purpose: "Map support-belt, mauerlat, eaves, gable, chimney and roof-window nodes to native Archicad operations with mandatory readback."
+
+source_dependencies:
+  - 18_archicad_roof_execution_map.yaml
+  - 55_archicad_wall_roof_package_execution_map.yaml
+  - 56_roof_wall_support_belt_nodes.yaml
+  - 57_mauerlat_support_nodes.yaml
+  - 58_eaves_insulated_and_cold_attic_nodes.yaml
+  - 59_gable_verge_material_nodes.yaml
+  - 60_chimney_roof_penetration_nodes.yaml
+  - 61_roof_window_nodes.yaml
+
+execution_maps:
+  support_belt:
+    node_families: [RWSB_001_WARM_CERAMIC_TO_KR_SUPPORT_BELT, RWSB_002_AAC_TO_KR_SUPPORT_BELT, RWSB_003_RC_WALL_DIRECT_KR_SUPPORT_ZONE]
+    archicad_operations:
+      - create_or_update_wall_top_support_component_from_KR_geometry
+      - assign_property_NodeFamily_ROOF_SUPPORT_BELT
+      - assign_property_KRReference
+      - preserve_external_wall_composite_or_profile_reference
+      - generate_detail_marker_for_support_interface
+    forbidden_operations:
+      - auto_size_belt
+      - auto_generate_reinforcement
+      - auto_generate_anchors
+
+  mauerlat:
+    node_families: [MAU_001_TIMBER_MAUERLAT_ON_KR_SUPPORT_ZONE, MAU_002_STEEL_OR_ENGINEERED_BEARING_RAIL]
+    archicad_operations:
+      - create_beam_or_profile_member_from_exact_KR_geometry
+      - assign_property_NodeFamily_MAUERLAT_SUPPORT
+      - bind_member_to_support_and_rafter_reference
+      - generate_connection_detail_marker
+    forbidden_operations:
+      - auto_size_member
+      - auto_select_connector
+
+  eaves:
+    node_families: [EAVES_101_INSULATED_SLOPE_AT_MASONRY_WALL, EAVES_102_COLD_ATTIC_AT_MASONRY_WALL]
+    archicad_operations:
+      - update_roof_edge_geometry_from_verified_package
+      - create_or_update_soffit_and_edge_components_from_verified_detail
+      - map_thermal_air_vapor_water_ventilation_contours_to_properties
+      - generate_eaves_detail_marker
+    forbidden_operations:
+      - convert_cold_attic_to_insulated_slope
+      - guess_ventilation_gap
+      - guess_overhang
+
+  gable_verge:
+    node_families: [GABLE_101_WARM_CERAMIC_GABLE, GABLE_102_AAC_GABLE, GABLE_103_RC_OR_FRAME_GABLE]
+    archicad_operations:
+      - trim_wall_or_frame_to_verified_roof_geometry
+      - preserve_exact_wall_product_thickness
+      - create_verge_finish_from_verified_detail
+      - generate_gable_verge_detail_marker
+    forbidden_operations:
+      - stretch_product_thickness
+      - synthesize_wall_restraint
+
+  chimney_penetration:
+    node_families: [CHIM_001_FACTORY_CHIMNEY_THROUGH_INSULATED_SLOPE, CHIM_002_FACTORY_CHIMNEY_THROUGH_COLD_ATTIC_ROOF]
+    archicad_operations:
+      - create_opening_from_approved_structural_geometry
+      - place_verified_chimney_object_or_morph_proxy_without_scaling
+      - create_fire_separation_zone_annotation_from_verified_detail
+      - create_weather_and_membrane_connection_components_from_verified_system
+      - generate_penetration_detail_marker
+    forbidden_operations:
+      - auto_cut_structural_members_without_KR
+      - guess_fire_clearance
+      - guess_firestop
+
+  roof_window:
+    node_families: [RWIN_001_ROOF_WINDOW_IN_INSULATED_SLOPE]
+    archicad_operations:
+      - place_verified_roof_window_library_part_without_scaling
+      - create_opening_from_product_plus_KR_geometry
+      - place_verified_flashing_adapter
+      - attach_thermal_air_vapor_underroof_connection_metadata
+      - generate_roof_window_detail_marker
+    forbidden_operations:
+      - scale_verified_product
+      - guess_rough_opening
+      - guess_structural_trimmers
+
+readback:
+  required_for_every_execution: true
+  checks:
+    - node_id_property_equals_selected_node
+    - geometry_reference_equals_KR_or_verified_product_source
+    - host_relationships_resolved
+    - no_forbidden_operation_recorded
+    - contour_status_properties_are_not_unresolved
+    - detail_marker_points_to_current_model_revision
+
+rules:
+  - id: roof.archicad.edge_penetration.readback_required
+    automation: true
+    statement: "Исполнение узлов края крыши и проходок считается завершенным только после чтения модели обратно и проверки свойств, геометрии и ссылок на КР/изделие."
+    result_on_missing: model_and_drawing_revision_mismatch

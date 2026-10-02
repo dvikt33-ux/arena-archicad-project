@@ -1,0 +1,268 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: INTERIOR_FLOOR_WET_ZONE_NODE_ENGINEERING
+purpose: "Machine-selectable room-floor and wet-zone nodes preserving structural floor, finish build-up, waterproofing, finished levels, drainage and accessibility as separate verified responsibilities."
+
+source_dependencies:
+  - ../rules/12_floors_wet_zones.yaml
+  - ../rules/09_engineering_coordination.yaml
+  - ../rules/73_deformation_temperature_joints.yaml
+  - ../rules/80_geometric_accuracy_tolerances.yaml
+  - ../izh/15_node_N10_wet_room_floor_wall_drain.yaml
+  - ../izh/14_node_N11_mep_penetration.yaml
+
+nodes:
+  - node_id: FNSH_FLR_001_ROOM_FLOOR_BUILDUP
+    family: interior_room_floor_build_up
+    hosts: [structural_floor, room_zone, finish_floor_system]
+    applies_if:
+      room_floor_finish_required: true
+    required_inputs:
+      - room_zone_id
+      - structural_floor_reference
+      - finished_floor_level
+      - verified_floor_specification_or_project_build_up
+      - load_and_service_requirements
+      - acoustic_or_thermal_requirements_if_applicable
+    blockers:
+      - floor_build_up_unverified
+      - finished_floor_level_unresolved
+      - structural_floor_reference_missing
+    never_infer:
+      - screed_thickness
+      - finish_thickness
+      - insulation_thickness
+      - adhesive_thickness
+      - acoustic_layer_product
+      - floor_heating_build_up
+    contours:
+      - finished_level
+      - load_and_serviceability_interface
+      - acoustic_if_required
+      - thermal_if_required
+      - movement_and_tolerance
+    geometry_actions:
+      - preserve_structural_floor_as_KR_owned_host
+      - create_finish_or_slope_forming_geometry_only_from_verified_build_up
+      - keep_each_project_significant_layer_traceable_to_specification
+    archicad_representation:
+      structural_host: existing_native_Slab
+      major_finish_geometry: separate_Slab_when_required_for_coordination_or_documentation
+      minor_layers: composite_or_properties_by_project_LOD
+    postconditions:
+      - finished_floor_level_matches_approved_AR_reference
+      - structural_floor_geometry_not_modified_by_finish_selector
+      - build_up_source_reference_written
+
+  - node_id: FNSH_FLR_002_WET_ROOM_FLOOR_WITH_WATERPROOFING
+    family: wet_room_floor_waterproofing
+    hosts: [structural_floor, finish_floor_system, waterproofing_system]
+    applies_if:
+      wet_zone: true
+    required_inputs:
+      - room_function
+      - liquid_exposure_classification
+      - SP30_17_10_applicability_status
+      - SP29_section7_applicability_status
+      - finished_floor_level
+      - verified_waterproofing_system_or_project_detail
+      - floor_finish_system
+    blockers:
+      - wet_zone_exposure_unresolved
+      - waterproofing_requirement_unresolved
+      - waterproofing_system_unverified_when_required
+    never_infer:
+      - waterproofing_product
+      - waterproofing_layer_count
+      - screed_thickness
+      - universal_floor_slope
+      - universal_200mm_upturn_without_SP29_scope_check
+    contours:
+      - bulk_water_and_waterproofing
+      - drainage_and_drying
+      - finished_level
+      - construction_sequence
+      - inspection_and_hidden_work
+    geometry_actions:
+      - preserve_waterproofing_as_continuous_node_contour
+      - model_waterproofing_in_3d_only_when_project_LOD_or_coordination_requires
+      - attach_waterproofing_system_reference_to_floor_and_perimeter_nodes
+    archicad_representation:
+      floor_geometry: native_Slab_or_separate_finish_Slab
+      waterproofing_default: properties_plus_detail_2d
+      waterproofing_3d: optional_only_if_required_by_project_LOD
+    postconditions:
+      - waterproofing_requirement_has_explicit_normative_or_project_basis
+      - waterproofing_contour_has_no_unowned_termination
+      - floor_finish_and_waterproofing_revision_match
+
+  - node_id: FNSH_FLR_003_WET_ROOM_FLOOR_TO_WALL_UPTURN
+    family: wet_room_floor_wall_waterproofing_transition
+    hosts: [wet_room_floor, wall_or_partition, waterproofing_system]
+    applies_if:
+      waterproofing_required: true
+      floor_adjoins_projecting_construction: true
+    required_inputs:
+      - SP29_section7_applicability_status
+      - wall_or_partition_system
+      - verified_waterproofing_transition_detail
+      - water_jet_exposure_status
+      - finished_floor_level
+    blockers:
+      - SP29_section7_scope_unresolved
+      - waterproofing_transition_detail_missing
+      - wall_substrate_compatibility_unresolved
+    never_infer:
+      - 200mm_upturn_when_SP29_section7_not_applicable
+      - waterproofing_product
+      - corner_tape_product
+      - wall_wetting_height
+    normative_geometry:
+      if_SP29_section7_applies:
+        min_upturn_above_floor_covering_mm: 200
+        water_jet_case: full_wetting_height_from_project_input
+    contours:
+      - waterproofing_continuity
+      - substrate_compatibility
+      - movement_and_tolerance
+      - construction_sequence
+    geometry_actions:
+      - connect_floor_waterproofing_to_verified_wall_transition
+      - verify_required_upturn_height_from_applicable_case
+      - coordinate_with_partition_bottom_detail_and_finish
+    archicad_representation:
+      membrane: properties_plus_detail_2d_by_default
+      upturn_control_geometry: validation_reference_or_3d_if_required
+    postconditions:
+      - no_waterproofing_break_at_floor_wall_corner
+      - applicable_upturn_height_check_passes
+
+  - node_id: FNSH_FLR_004_FLOOR_DRAIN_INTERFACE
+    family: wet_room_floor_drain_interface
+    hosts: [wet_room_floor, drain_or_channel, waterproofing_system]
+    applies_if:
+      floor_drain_or_channel_present: true
+    required_inputs:
+      - explicit_drain_design_intent
+      - verified_drain_or_channel_product
+      - VK_design_reference
+      - drain_position
+      - drain_top_finished_level
+      - outlet_and_route_reference
+      - waterproofing_flange_or_bonding_interface
+      - service_access_strategy
+    blockers:
+      - drain_added_without_design_basis
+      - drain_product_unverified
+      - VK_design_reference_missing
+      - waterproofing_drain_interface_unresolved
+      - structural_penetration_approval_missing_when_required
+    never_infer:
+      - drain_in_every_bathroom
+      - drain_body_geometry
+      - outlet_diameter
+      - trap_configuration
+      - flange_geometry
+      - structural_opening_geometry
+    contours:
+      - bulk_water_and_waterproofing
+      - drainage
+      - MEP_connection
+      - service_access
+      - structural_penetration_if_applicable
+    geometry_actions:
+      - place_or_reference_verified_drain_product
+      - connect_waterproofing_contour_to_verified_drain_interface
+      - delegate_structural_penetration_to_approved_MEP_penetration_node
+      - coordinate_drain_top_with_finished_floor_geometry
+    archicad_representation:
+      drain: verified_MEP_element_or_verified_library_part
+      structural_opening: Opening_only_after_KR_approval
+      waterproofing_interface: properties_plus_detail_2d
+    postconditions:
+      - drain_has_VK_owner_and_product_reference
+      - drain_top_level_matches_finish_geometry
+      - waterproofing_reaches_verified_drain_interface
+      - any_structural_opening_has_KR_reference
+
+  - node_id: FNSH_FLR_005_WET_ROOM_THRESHOLD_OR_LEVEL_DROP
+    family: wet_room_door_floor_level_transition
+    hosts: [wet_room_floor, adjacent_floor, door_opening]
+    applies_if:
+      wet_room_boundary_at_door: true
+    required_inputs:
+      - wet_room_finished_floor_level
+      - adjacent_finished_floor_level
+      - accessible_route_status
+      - threshold_strategy
+      - door_clearance_and_product_reference
+      - waterproofing_transition_detail
+    blockers:
+      - finished_level_relation_unresolved
+      - accessibility_status_missing
+      - threshold_strategy_unresolved
+      - accessibility_threshold_conflict
+    normative_geometry:
+      general_non_accessible_case:
+        lower_wet_room_floor_mm: {min: 15, max: 20}
+        alternative_threshold_max_mm: 20
+      accessible_route_case:
+        preferred: no_threshold_or_level_drop
+        threshold_max_mm_if_permitted_and_required: 14
+    never_infer:
+      - 20mm_threshold_as_default
+      - threshold_product
+      - door_leaf_clearance
+      - waterproofing_termination
+    contours:
+      - accessibility
+      - finished_level
+      - waterproofing_continuity
+      - door_operation
+    geometry_actions:
+      - compare_finished_floor_levels_not_structural_slab_levels
+      - apply_more_specific_accessibility_gate_when_applicable
+      - coordinate_threshold_with_door_and_waterproofing
+    archicad_representation:
+      level_difference: separate_finish_Slabs_or_verified_floor_geometry
+      threshold: verified_Profile_or_product_when_used
+      waterproofing: detail_2d_plus_properties
+    postconditions:
+      - accessible_route_does_not_receive_generic_20mm_threshold
+      - finished_level_relation_is_documented
+
+  - node_id: FNSH_FLR_006_FLOOR_FINISH_AT_BUILDING_DEFORMATION_JOINT
+    family: finish_floor_at_structural_deformation_joint
+    hosts: [floor_finish_A, floor_finish_B, structural_deformation_joint]
+    applies_if:
+      structural_joint_crosses_floor_finish: true
+    required_inputs:
+      - structural_joint_node_reference
+      - KR_joint_width_and_movement_range
+      - verified_floor_joint_cover_or_finish_detail
+      - finish_systems_each_side
+    blockers:
+      - structural_joint_reference_missing
+      - movement_range_missing
+      - finish_joint_detail_unverified
+    never_infer:
+      - joint_width
+      - cover_profile
+      - sealant_product
+      - anchorage
+    contours:
+      - movement_and_tolerance
+      - finish_continuity_by_design
+      - waterproofing_if_wet_zone
+      - fire_or_acoustic_if_applicable
+    geometry_actions:
+      - keep_finish_joint_coincident_with_structural_joint_axis
+      - preserve_required_movement_capacity
+      - compose_with_waterproofing_joint_node_if_wet_zone
+    archicad_representation:
+      finish_split: separate_Slab_boundaries_or_detail_control
+      joint_product: verified_Profile_or_detail_2d
+    postconditions:
+      - finish_does_not_bridge_structural_joint_rigidly
+      - joint_axis_and_revision_match_structural_node

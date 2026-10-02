@@ -1,0 +1,249 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные ограничения внутренних систем газопотребления жилых зданий. Файл резервирует
+  нормативно значимые объемы, высоты, проемы, двери и вентиляционные интерфейсы, но не рассчитывает
+  расход газа, диаметры газопроводов, гидравлику, дымовые каналы или подбор оборудования.
+
+scope_gate:
+  primary_document: SP_402_1325800_2018
+  verified_change: 1
+  status: active
+  effective_revision_from: 2023-01-20
+  applies_to:
+    - detached_single_family_residential
+    - blocked_residential
+    - multifamily_residential
+  fuel: natural_gas_GOST_5542
+  max_internal_gas_pressure_mpa: 0.005
+  non_applicable_without_separate_route:
+    - standalone_public_building
+    - TRK
+    - industrial_building
+  statement: >-
+    СП 402 не переносить на ТРК или отдельное общественное здание только потому, что там есть
+    газовое оборудование. Для них требуется профильный маршрут СП 62/технологических и иных норм.
+
+revision_dependencies:
+  - {document: SP_402_1325800_2018, verified_changes: [1], status: active}
+  - {document: SP_62_13330_2011, verified_changes: [1,2,3,4], status: active}
+  - {document: SP_7_13130_2013, verified_changes: [1,2,3], status: active}
+
+single_family_and_blocked_gas_stove:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.residential.stove_room_height
+      clause: "5.1"
+      automation: conditional
+      applies_to: gas_stove
+      dimension_semantics: clear_room_height
+      min_clear_height_m: 2.2
+      statement: "Кухня/кухня-столовая с бытовой газовой плитой должна иметь высоту не менее 2,2 м."
+
+    - id: gas.residential.stove_room_ventilation_interfaces
+      clause: "5.1"
+      automation: mandatory_validation
+      applies_to: gas_stove
+      required:
+        - exhaust_ventilation_channel
+        - operable_window_or_other_approved_airing_device_in_window_or_wall
+      statement: >-
+        Помещение с газовой плитой должно иметь вытяжной вентиляционный канал и возможность
+        проветривания через окно/предусмотренное устройством решение. Наличие механической вытяжки
+        не используется как автоматическая замена этих архитектурных требований.
+
+    - id: gas.residential.stove_door_air_inlet
+      clause: "5.1"
+      automation: conditional
+      dimension_semantics: free_air_area
+      min_free_air_area_m2: 0.02
+      location: lower_part_of_door_or_gap_between_door_and_floor
+      statement: >-
+        Для притока воздуха в нижней части двери предусмотреть расчетное свободное сечение,
+        но не менее 0,02 м².
+
+    - id: gas.residential.stove_min_room_volume_by_burners
+      clause: "5.1"
+      automation: conditional
+      dimension_semantics: internal_room_volume
+      values_m3:
+        burners_2: 8
+        burners_3: 12
+        burners_4: 15
+      fail_if_burner_count_unknown: true
+      statement: >-
+        Минимальный внутренний объем помещения зависит от числа горелок газовой плиты:
+        8 м³ для двух, 12 м³ для трех и 15 м³ для четырех горелок.
+
+multifamily_residential:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.mkd.stove_no_kitchen_niche
+      clause: "5.16"
+      automation: hard_gate
+      applies_to: gas_stove
+      kitchen_niche_allowed: false
+      statement: "Установка бытовой газовой плиты в кухне-нише многоквартирного жилого здания не допускается."
+
+    - id: gas.mkd.stove_room_routes_to_current_requirements
+      clause: "5.16"
+      automation: mandatory_router
+      downstream:
+        - SP_7_13130_2013_current_revision
+        - gas.residential.stove_room_ventilation_interfaces
+        - gas.residential.stove_door_air_inlet
+      statement: >-
+        Размещение газовой плиты в МКД проверять совместно с действующим СП 7 и применимыми
+        требованиями СП 402; не использовать устаревшие пересказы редакций до Изменения №1.
+
+combined_equipment_volume:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.residential.sp402_5_5_instantaneous_water_heater_ambiguity
+      clause: "5.5, Change 1"
+      automation: ambiguity_gate
+      condition: "gas_stove AND instantaneous_gas_water_heater"
+      state: blocked_pending_official_clarification
+      statement: >-
+        В официальном тексте Изменения №1 сочетание газовой плиты и проточного водонагревателя
+        одновременно присутствует в двух соседних предложениях п.5.5 с различной логикой объема.
+        До официального исправления/разъяснения агент не выбирает значение автоматически.
+
+    - id: gas.residential.stove_plus_storage_water_heater_volume
+      clause: "5.5, Change 1"
+      automation: conditional
+      condition: "gas_stove AND storage_gas_water_heater"
+      required_additional_volume_m3: 6
+      base_volume_route: gas.residential.stove_min_room_volume_by_burners
+      statement: "К базовому объему по числу горелок добавлять 6 м³."
+
+    - id: gas.residential.stove_plus_open_chamber_boiler_volume
+      clause: "5.5, Change 1"
+      automation: conditional
+      condition: "gas_stove AND open_combustion_chamber_heating_boiler"
+      required_additional_volume_m3: 6
+      base_volume_route: gas.residential.stove_min_room_volume_by_burners
+      statement: "К базовому объему по числу горелок добавлять 6 м³."
+
+    - id: gas.residential.closed_chamber_combination_requires_text_gate
+      clause: "5.5, Change 1"
+      automation: ambiguity_gate
+      condition: "gas_stove AND closed_combustion_chamber_heating_boiler"
+      state: manual_text_interpretation_required
+      statement: >-
+        Формулировка первого предложения п.5.5 после Изменения №1 не преобразуется в отдельное
+        автоматическое правило для сочетания плиты с закрытым котлом без явного подтверждения
+        применимой синтаксической трактовки.
+
+separate_heat_generator_room:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.residential.open_chamber_boiler_separate_room
+      clause: "5.5, Change 1"
+      automation: conditional
+      condition: "separate_heat_generator_room AND open_combustion_chamber_heating_boiler"
+      min_room_volume_m3: 15
+      min_clear_height_m: 2.5
+      statement: >-
+        Для отопительного котла с открытой камерой сгорания в отдельной теплогенераторной
+        принимать объем не менее 15 м³ и высоту не менее 2,5 м; площадь дополнительно определяется
+        условиями монтажа и обслуживания оборудования.
+
+ventilation_and_explosion_relief:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.residential.natural_ventilation_required
+      clause: "5.9, Change 1"
+      automation: mandatory_validation
+      condition: "room_has_domestic_gas_using_equipment"
+      ventilation_type: natural
+      statement: >-
+        Вентиляция помещения с бытовым газоиспользующим оборудованием должна быть естественной.
+        Воздухообмен и размеры приточных/вытяжных устройств определяются профильным расчетом/таблицей,
+        а архитектура резервирует подтвержденные сечения.
+
+    - id: gas.residential.lightweight_relief_glazing_area
+      clause: "5.10, Change 1"
+      automation: conditional
+      condition: "lightweight_explosion_relief_is_implemented_by_ordinary_window_glazing"
+      dimension_semantics: glass_area_to_room_volume
+      min_glass_area_per_room_volume_m2_per_m3: 0.03
+      statement: >-
+        При реализации легкосбрасываемой конструкции обычным остеклением оконного проема
+        площадь стекла принимать из расчета 0,03 м² на 1 м³ объема помещения.
+      alternative: "оконная конструкция со стеклопакетом по применимому ГОСТ Р 56288"
+
+    - id: gas.residential.lightweight_relief_forbidden_material_assumption
+      clause: "5.10, Change 1"
+      automation: material_property_validation
+      not_accepted_as_ordinary_lightweight_relief_glazing:
+        - reinforced_glass
+        - unverified_insulating_glass_unit
+        - triplex
+        - tempered_glass
+        - polycarbonate
+      statement: >-
+        Не считать перечисленные материалы/изделия легкосбрасываемой конструкцией без
+        подтвержденного нормативного системного решения.
+
+access_and_service:
+  source: SP_402_1325800_2018
+  rules:
+    - id: gas.residential.gas_equipment_room_door_outward
+      clause: "5.11, Change 1"
+      automation: conditional
+      condition: "room_has_domestic_gas_using_equipment AND room_has_door"
+      door_swing: outward_from_room
+      statement: "Дверь из помещения с бытовым газоиспользующим оборудованием должна открываться наружу."
+
+    - id: gas.residential.equipment_clearance_by_manufacturer
+      clause: "5.12, Change 1"
+      automation: forbidden_to_infer
+      statement: >-
+        Расстояния от строительных конструкций до отопительного газоиспользующего оборудования
+        принимать по инструкции изготовителя; при отсутствии требований обеспечивать монтаж,
+        эксплуатацию и ремонт по условиям пункта, а не универсальным BIM-отступом.
+      requires_manufacturer_data: true
+
+BIM_required_parameters:
+  - building_function
+  - residential_building_type
+  - gas_pressure_mpa
+  - gas_equipment_type
+  - burner_count
+  - combustion_chamber_type
+  - room_function
+  - room_internal_volume_m3
+  - room_clear_height_m
+  - kitchen_niche_status
+  - exhaust_ventilation_channel_id
+  - operable_airing_device_id
+  - door_free_air_area_m2
+  - door_swing_direction
+  - lightweight_relief_solution_type
+  - lightweight_relief_glass_area_m2
+  - glazing_product_type
+  - manufacturer_installation_manual_reference
+
+hard_fail_conditions:
+  - "SP 402 used for a non-residential standalone public/industrial object without separate applicability route"
+  - "gas stove room below confirmed minimum clear height"
+  - "gas stove room below applicable minimum volume for known burner count"
+  - "required door air inlet area below 0.02 m2"
+  - "gas stove placed in MKD kitchen niche"
+  - "instantaneous water heater combination auto-resolved despite SP 402 clause 5.5 ambiguity"
+  - "gas equipment service clearance invented without manufacturer/project input"
+
+agent_logic:
+  - "Сначала определить тип жилого здания и область СП 402; не переносить жилую газовую норму на ТРК."
+  - "Для п.5.5 хранить исходный тип комбинации оборудования; не схлопывать все котлы/водонагреватели в одну категорию."
+  - "Коллизию плита + проточный водонагреватель возвращать как blocked_pending_official_clarification."
+  - "Площадь легкосбрасываемой конструкции не заменяет проверку типа конкретного окна/стеклопакета."
+  - "Вентиляционный расчет, дымоудаление продуктов сгорания, газовый расход и диаметры остаются за профильным проектом."
+
+sources:
+  - "https://protect.gost.ru/sp/changesdetails/aa38119a-eff7-4154-a8de-8dc4b07c43e2"
+  - "https://protect.gost.ru/sp/details/bc64f5bd-bec7-40ff-a25e-739b41fd3189"
+  - "https://base.garant.ru/406404961/"
+  - "https://base.garant.ru/72154274/"
+  - "https://www.consultant.ru/law/review/fed/fd2026-04-22.html"

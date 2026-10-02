@@ -1,4 +1,4 @@
-manifest_version: 16
+manifest_version: 17
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -57,6 +57,9 @@ load_order:
   - 45_working_documentation_test_vectors.yaml
   - 46_roof_structural_joint_catalog.yaml
   - 47_roof_execution_decision_graph.yaml
+  - 48_wall_material_system_registry.yaml
+  - 49_roof_wall_material_adapters.yaml
+  - 50_roof_wall_material_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -68,6 +71,8 @@ modules:
   deformation_joint: DEFORMATION_JOINT_NODE_ENGINEERING
   external_wall: EXTERNAL_WALL_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
+  roof_wall_material_registry: WALL_MATERIAL_SYSTEM_REGISTRY
+  roof_wall_material_adapters: ROOF_WALL_MATERIAL_ADAPTERS
   working_documentation: WORKING_DOCUMENTATION_RELEASE_GATE
   external_review_readiness: EXPERTISE_READINESS_CONTRACT
 
@@ -131,6 +136,9 @@ hard_fail:
   - roof_structural_scheme_missing
   - roof_KR_input_missing
   - roof_structural_joint_unresolved
+  - roof_wall_material_adapter_missing
+  - roof_wall_product_geometry_missing
+  - roof_wall_support_strategy_ambiguous
   - roof_required_manufacturer_detail_missing
   - roof_ventilation_mode_unresolved
   - roof_ventilation_input_outside_verified_matrix
@@ -169,5 +177,7 @@ execution_policy:
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only
   roof_structural_joint_generation: exact_KR_or_verified_product_only
+  roof_wall_material_geometry_generation: verified_product_or_KR_only
+  roof_wall_support_family_selection: verified_material_adapter_plus_KR_only
   working_documentation_release_requires_zero_blockers: true
   external_review_ready_may_not_claim_expertise_approval: true

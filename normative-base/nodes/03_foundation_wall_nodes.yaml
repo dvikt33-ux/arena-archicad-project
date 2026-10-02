@@ -1,0 +1,67 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+node_families:
+  rc_foundation_to_rc_wall:
+    hosts: [rc_foundation, rc_wall]
+    require: [KR_joint_type, KR_reinforcement_reference, joint_surface_definition]
+    contours: [load_path, waterproofing_if_below_grade, durability]
+    result: executable_after_KR
+
+  rc_foundation_to_masonry_wall:
+    hosts: [rc_foundation_or_raft, masonry_wall]
+    require:
+      - KR_support_zone
+      - masonry_material_system
+      - horizontal_moisture_control_strategy
+      - plinth_and_splash_zone_strategy_if_external
+    contours: [load_path, capillary_control, thermal_if_external, air_if_external, waterproofing_if_exposed]
+    reject_if: [masonry_material_not_allowed_in_below_grade_location]
+    never_infer: [bearing_width, wall_eccentricity, reinforcement]
+
+  rc_foundation_to_aac_wall:
+    hosts: [rc_foundation_or_raft, AAC_wall]
+    require: [KR_support_zone, AAC_product_family, moisture_separation_strategy, thermal_bridge_review]
+    reject_if: [AAC_used_as_external_foundation_or_external_basement_wall]
+    contours: [capillary_control, thermal, air, splash_protection]
+    never_infer: [first_course_product, bearing_width, insulation_thickness]
+
+  rc_foundation_to_multilayer_wall:
+    hosts: [rc_foundation_or_basement_wall, structural_wall, facade_layers]
+    require:
+      - structural_support_relation
+      - facade_support_or_tie_system
+      - plinth_transition_system
+      - waterproofing_termination
+      - thermal_continuity_review
+    contours: [load_path, thermal, air, bulk_water, drainage, movement]
+    never_infer: [facade_anchor_type, anchor_spacing, insulation_thickness]
+
+  basement_wall_to_raft_joint:
+    hosts: [rc_raft, rc_basement_wall]
+    require: [KR_joint_type, waterproofing_joint_strategy, waterstop_if_designed]
+    contours: [load_path, bulk_water, durability, movement]
+    hard_fail: [joint_type_missing, waterproofing_joint_unresolved]
+
+  pile_raft_to_wall_or_column:
+    hosts: [pile_raft, wall_or_column]
+    require: [KR_support_graph, approved_geometry]
+    contours: [load_path, movement, durability]
+    hard_fail: [KR_support_graph_missing]
+
+selection_keys:
+  - foundation_system
+  - wall_structural_material
+  - below_grade_state
+  - basement_state
+  - groundwater_exposure
+  - external_envelope_state
+  - facade_system
+  - KR_joint_type
+
+execution_output:
+  create_or_confirm_hosts: true
+  create_connections_only_from_verified_input: true
+  attach_node_id_revision_sources: true
+  generate_2d_detail_from_same_semantic_node: true

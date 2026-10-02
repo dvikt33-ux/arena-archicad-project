@@ -1,4 +1,4 @@
-checked_at: 2026-10-01
+checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 purpose: "Контроль официальных ревизий смежных КР/ПОС/инженерных/пожарных СП, которые архитектурный агент не рассчитывает самостоятельно, но обязан учитывать при координации модели 2027+."
 
@@ -88,6 +88,14 @@ engineering_design:
     required_revision_label: "changes_1_2"
     source_url: "https://protect.gost.ru/sp/changesdetails/9ed7ccb7-f39d-4a5e-8bff-226a9f07a403"
 
+  - document: SP_62_13330_2011
+    topic: gas_distribution_systems
+    official_latest_change: 4
+    change_4_effective_from: 2022-01-28
+    status: active
+    required_revision_label: "changes_1_2_3_4"
+    source_url: "https://protect.gost.ru/sp/details/bc64f5bd-bec7-40ff-a25e-739b41fd3189"
+
   - document: SP_124_13330_2012
     topic: heat_networks
     official_latest_change: 5
@@ -103,6 +111,16 @@ engineering_design:
     status: active
     required_revision_label: "changes_1_through_9_with_official_corrections"
     source_url: "https://protect.gost.ru/sp/changesdetails/d438f64b-92ac-4527-8548-9b68adacfc66"
+
+  - document: SP_402_1325800_2018
+    topic: residential_gas_consumption_systems
+    official_latest_change: 1
+    change_1_effective_from: 2023-01-20
+    status: active
+    required_revision_label: "change_1"
+    scope_note: "Применять только в собственной области СП 402; для отдельного ТРК/общественного здания требуется иной профильный маршрут."
+    ambiguity_note: "Комбинация газовой плиты и проточного водонагревателя в п.5.5 после Изм. №1 остается fail-closed до официального разъяснения/исправления."
+    source_url: "https://protect.gost.ru/sp/changesdetails/aa38119a-eff7-4154-a8de-8dc4b07c43e2"
 
   - document: SP_510_1325800_2022
     topic: heat_points_and_internal_heat_supply
@@ -224,8 +242,10 @@ cross_check_2027_reference_levels:
     SP_60_13330_2020: 6
     SP_30_13330_2020: 5
     SP_31_13330_2021: 2
+    SP_62_13330_2011: 4
     SP_124_13330_2012: 5
     SP_256_1325800_2016: 9
+    SP_402_1325800_2018: 1
     SP_510_1325800_2022: 1
     SP_7_13130_2013: 3
     SP_8_13130_2020: 1
@@ -236,8 +256,9 @@ cross_check_2027_reference_levels:
 
 agent_gate:
   - "Перед согласованием отверстий, фундаментов, свай, стальных элементов, огнезащиты и инженерных проходок проверить revision_level профильного задания."
-  - "Перед координацией ОВ, ВК, НВК, теплоснабжения/ИТП, ЭОМ, ПДВ, ВПВ, АУПТ и СПС проверить document identity и revision_level по engineering_design/fire_system_design."
+  - "Перед координацией ОВ, ВК, НВК, газоснабжения, теплоснабжения/ИТП, ЭОМ, ПДВ, ВПВ, АУПТ и СПС проверить document identity и revision_level по engineering_design/fire_system_design."
   - "Для СП 6.13130.2025 дополнительно требовать применение поправки 2026 к п.6.4, даже при revision_level=0."
+  - "Для СП 402 п.5.5 не разрешать коллизию плита + проточный водонагреватель выбором одной из двух цифр без официального основания."
   - "Для участков в районах вечной мерзлоты дополнительно проверять актуальность СП 445 и отложенного на 01.03.2027 пункта 13.3."
   - "При несовпадении revision_level вернуть needs_discipline_reaudit, а не подгонять архитектуру под устаревшее решение."
   - "Не переносить числовые требования этих СП в архитектурный auto-rule без отдельной постатейной проверки их области применения."

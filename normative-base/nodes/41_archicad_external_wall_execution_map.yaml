@@ -1,0 +1,86 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+purpose: "Compile verified external-wall opening and continuity node selections into safe Archicad operation graphs."
+
+representation_policy:
+  walls: native_Wall
+  openings: native_Opening_or_hosted_Window_Door_opening
+  windows: native_Window_from_verified_library_or_system
+  doors: native_Door_from_verified_library_or_system
+  lintels: Beam_or_verified_Library_Object_by_actual_semantics
+  sill_and_flashing_profiles: verified_Profile_or_Object_when_geometry_is_required
+  facade_returns_and_corner_profiles: verified_Profile_Object_or_detail_2d
+  membranes_tapes_sealants_firecuts: properties_plus_detail_2d_by_default
+
+operation_DSL:
+  build_external_window_node:
+    preconditions: [selected_OPN_001, verified_window_product, structural_opening_geometry, mounting_joint_resolved]
+    operations: [CreateOpenings, CreateWindows, SetDetailsOfElements, CreateDetails]
+    postcondition: opening_block_gap_and_node_metadata_readback_match_expected
+
+  build_external_door_node:
+    preconditions: [selected_OPN_002, verified_door_product, structural_opening_geometry]
+    operations: [CreateOpenings, CreateDoors, SetDetailsOfElements, CreateDetails]
+    postcondition: opening_box_leaf_clearance_and_swing_readback_match_expected
+
+  build_opening_lintel_node:
+    preconditions: [selected_OPN_HEAD_node, KR_lintel_reference_resolved]
+    operations: [CreateBeams, ApplyFavoritesToElements, SetDetailsOfElements, CreateDetails]
+    postcondition: lintel_geometry_and_support_relation_match_KR
+
+  build_opening_reveal_sill_node:
+    preconditions: [selected_OPN_REVEAL_or_OPN_SILL_node, verified_interface_detail]
+    operations: [CreateProfiles, GetProfiles, SetDetailsOfElements, CreateDetails]
+    postcondition: interface_geometry_or_detail_reference_and_contours_verified
+
+  build_wall_plinth_node:
+    preconditions: [selected_WALL_001, foundation_wall_node_resolved, waterproofing_termination_resolved]
+    operations: [CreateWalls, CreateProfiles, SetDetailsOfElements, CreateDetails]
+    postcondition: plinth_hosts_and_contour_metadata_verified
+
+  build_external_corner_node:
+    preconditions: [selected_WALL_002_or_WALL_004, verified_corner_or_transition_detail]
+    operations: [CreateWalls, CreateProfiles, SetDetailsOfElements, CreateDetails]
+    postcondition: wall_intersection_and_facade_transition_readback_verified
+
+  build_wall_top_cornice_node:
+    preconditions: [selected_WALL_003, roof_wall_interface_resolved]
+    operations: [CreateWalls, CreateRoofs, CreateProfiles, SetDetailsOfElements, CreateDetails]
+    postcondition: wall_roof_relation_water_path_and_node_metadata_verified
+
+write_gate:
+  - id: external_wall.no_window_stretch_beyond_verified_system
+    automation: true
+    statement: "Оконный блок не растягивается до произвольного строительного проема; габарит и конфигурация должны быть подтверждены системой/изготовителем."
+  - id: external_wall.no_lintel_selection_by_span_only
+    automation: true
+    statement: "Перемычка не выбирается по одной ширине проема; требуется КР и подтвержденная марка/геометрия или проектное решение."
+  - id: external_wall.no_universal_mounting_gap
+    automation: true
+    statement: "Монтажный зазор окна/двери не генерируется универсальным числом; применяется подтвержденный монтажный узел."
+  - id: external_wall.no_facade_fastener_inference
+    automation: true
+    statement: "Анкеры, кронштейны, крепеж, герметики и системные профили фасада не генерируются без проверенной системы или проектного решения."
+  - id: external_wall.readback_required
+    automation: true
+    statement: "После записи перечитываются GUID, тип, геометрия проема/изделия, положение в стене, NODE_ID и ссылки на продукт/КР; успешный API-вызов без readback не считается исполнением."
+
+node_instance_properties:
+  - CONSTRUCTION_NODE_ID
+  - CONSTRUCTION_NODE_FAMILY
+  - CONSTRUCTION_NODE_REVISION
+  - CONSTRUCTION_NODE_STATUS
+  - KR_REFERENCE
+  - PRODUCT_SYSTEM_REFERENCE
+  - MOUNTING_JOINT_REFERENCE
+  - FACADE_SYSTEM_REFERENCE
+  - UNRESOLVED_GATES
+
+postconditions:
+  - all_created_or_modified_hosts_exist
+  - product_and_opening_geometry_are_distinct_where_required
+  - no_structural_lintel_dimension_was_inferred
+  - no_unverified_window_or_door_product_was_created
+  - no_unverified_facade_fastener_or_sealant_was_created
+  - required_thermal_air_water_fire_contours_pass_or_node_remains_blocked

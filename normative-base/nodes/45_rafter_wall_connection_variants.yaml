@@ -1,0 +1,179 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: RAFTER_WALL_CONNECTION_VARIANTS
+purpose: "Machine-selectable roof-to-wall structural interface variants. Select topology and architecture/envelope operations; never invent structural dimensions, bearing or fasteners."
+
+source_dependencies:
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - 11_rafter_system_topology.yaml
+  - 12_roof_wall_support_node.yaml
+  - 17_covering_system_adapters.yaml
+
+selection_inputs:
+  - structural_variant_id
+  - wall_material_family
+  - wall_structural_role
+  - support_line_and_level
+  - KR_support_detail_reference
+  - KR_bearing_element_type
+  - KR_connector_schedule_reference
+  - uplift_restraint_reference
+  - lateral_restraint_reference
+  - roof_thermal_boundary_mode
+  - wall_envelope_system
+
+nodes:
+  - node_id: ROOF_SUPPORT_001_RAFTER_ON_KR_BEARING_ELEMENT
+    family: roof_wall_support
+    hosts: [rafter, supporting_wall, KR_bearing_element]
+    applies_if:
+      structural_variant_id: [rafter_pair, structural_ridge_beam, purlin_post, hip_valley_rafter]
+      KR_bearing_element_type: present
+    required_inputs:
+      - KR_support_detail_reference
+      - exact_bearing_element_geometry
+      - exact_rafter_geometry
+      - KR_connector_schedule_reference
+      - uplift_restraint_reference
+      - lateral_restraint_reference
+    blockers:
+      - KR_support_detail_missing
+      - bearing_element_geometry_missing
+      - connector_schedule_missing
+      - uplift_or_lateral_restraint_missing
+    never_infer:
+      - mauerlat_presence
+      - mauerlat_section
+      - bearing_length
+      - notch_geometry
+      - anchor_type
+      - anchor_spacing
+      - screw_nail_bolt_count
+    geometry_actions:
+      - place_bearing_element_from_exact_KR_geometry
+      - place_rafter_from_exact_KR_geometry
+      - bind_structural_connection_metadata_to_KR_detail
+      - preserve_air_vapor_thermal_contours_around_support
+      - preserve_underroof_water_and_ventilation_paths
+    postconditions:
+      - structural_geometry_equals_KR_reference
+      - no_unapproved_rafter_cut
+      - connector_schedule_reference_present
+      - load_path_reference_present
+      - envelope_contours_resolved_or_blocked
+
+  - node_id: ROOF_SUPPORT_002_TRUSS_BEARING_ON_WALL
+    family: roof_wall_support
+    hosts: [prefabricated_truss, supporting_wall]
+    applies_if:
+      structural_variant_id: prefabricated_truss
+    required_inputs:
+      - verified_truss_product_or_calculation
+      - KR_truss_bearing_detail
+      - truss_spacing_from_KR
+      - hold_down_schedule
+      - bracing_reference
+      - wall_local_reinforcement_if_required
+    blockers:
+      - truss_product_or_calculation_missing
+      - truss_bearing_detail_missing
+      - hold_down_schedule_missing
+      - bracing_reference_missing
+    never_infer:
+      - truss_seat_geometry
+      - bearing_length
+      - hold_down_type
+      - wall_anchor_pattern
+      - local_reinforcement
+    geometry_actions:
+      - place_truss_instances_from_approved_geometry
+      - bind_each_bearing_instance_to_KR_detail
+      - preserve_roof_wall_envelope_continuity
+    postconditions:
+      - every_truss_bearing_has_KR_reference
+      - no_product_geometry_stretched_outside_verified_limits
+
+  - node_id: ROOF_SUPPORT_003_LSTK_ROOF_TO_WALL
+    family: roof_wall_support
+    hosts: [LSTK_roof_member, supporting_wall]
+    applies_if:
+      structural_variant_id: LSTK
+    required_inputs:
+      - verified_profile_schedule
+      - KR_support_detail_reference
+      - connector_schedule
+      - corrosion_class_reference
+      - thermal_bridge_interface_review
+    blockers:
+      - profile_schedule_missing
+      - support_detail_missing
+      - connector_schedule_missing
+      - thermal_bridge_review_missing
+    never_infer:
+      - profile_section
+      - screw_pattern
+      - bracket_type
+      - anchor_type
+      - thermal_break_product
+    geometry_actions:
+      - place_profiles_from_verified_schedule
+      - bind_support_connection_to_KR_detail
+      - coordinate_thermal_air_vapor_layers_around_metal_support
+    postconditions:
+      - profile_and_connection_sources_traceable
+      - thermal_bridge_interface_not_silently_ignored
+
+  - node_id: ROOF_SUPPORT_004_PANEL_ENGINEERED_TIMBER_TO_WALL
+    family: roof_wall_support
+    hosts: [roof_panel_or_engineered_timber, supporting_wall]
+    applies_if:
+      structural_variant_id: panel_or_engineered_timber
+    required_inputs:
+      - verified_panel_geometry
+      - KR_support_joint
+      - connector_schedule
+      - moisture_design_reference
+      - fire_design_reference_if_applicable
+    blockers:
+      - panel_geometry_missing
+      - KR_support_joint_missing
+      - connector_schedule_missing
+    never_infer:
+      - panel_thickness
+      - spline_or_joint_type
+      - fastener_pattern
+      - bearing_length
+    geometry_actions:
+      - place_panel_from_approved_geometry
+      - bind_support_joint_reference
+      - close_envelope_contours_at_panel_wall_interface
+    postconditions:
+      - panel_joint_matches_KR
+      - envelope_continuity_checked
+
+wall_material_gates:
+  masonry:
+    require: [KR_local_bearing_check_or_detail]
+    forbid_generic_direct_anchor: true
+  AAC:
+    require: [KR_local_reinforcement_or_bearing_detail, verified_anchor_or_bearing_system]
+    forbid_generic_direct_anchor: true
+  reinforced_concrete:
+    require: [KR_embedded_anchor_or_connection_detail]
+  timber:
+    require: [KR_timber_connection_detail]
+  steel_or_other_KR_confirmed:
+    require: [KR_connection_detail]
+
+rules:
+  - id: roof.support.variant_from_KR_only
+    automation: true
+    statement: "Вариант опирания крыши на стену выбирается только из подтвержденной схемы КР; материал стены сам по себе не определяет мауэрлат, анкер, врубку или крепеж."
+    result_on_missing: roof_KR_input_missing
+  - id: roof.support.no_architectural_fastener_synthesis
+    automation: true
+    statement: "Архитектурный узел может разместить и промаркировать подтвержденный КР соединитель, но не синтезирует его тип, количество, шаг или несущую способность."
+    result_on_missing: needs_structural_connection

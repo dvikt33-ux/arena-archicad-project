@@ -1,0 +1,84 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: DORMER_ROOF_NODES
+purpose: "Executable dormer-node families for pitched roofs, separating envelope geometry from structural framing and product systems."
+
+source_dependencies:
+  - 13_eaves_node.yaml
+  - 15_valley_node.yaml
+  - 16_wall_abutment_node.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 52_wall_roof_contour_router.yaml
+  - 64_complex_roof_topology_nodes.yaml
+
+selection_inputs:
+  - dormer_type
+  - dormer_host_roof_plane
+  - dormer_front_wall_system
+  - dormer_side_wall_system
+  - dormer_roof_covering_system
+  - dormer_thermal_boundary_mode
+  - KR_dormer_opening_reference
+  - KR_dormer_framing_reference
+  - KR_dormer_support_reference
+  - manufacturer_flashing_system_if_applicable
+
+node_families:
+  - node_id: DORMER_001_GABLE_DORMER
+    applies_if:
+      dormer_type: gable_dormer
+    required_nodes:
+      - dormer_front_wall_to_host_roof
+      - dormer_side_cheek_to_host_roof
+      - dormer_valley_left
+      - dormer_valley_right
+      - dormer_ridge
+      - dormer_eaves
+      - trimmed_opening_frame
+    required_inputs:
+      - KR_dormer_opening_reference
+      - KR_dormer_framing_reference
+      - KR_dormer_support_reference
+      - verified_covering_transition_detail
+    geometry_actions:
+      - create_dormer_roof_planes_from_project_geometry
+      - create_opening_only_from_KR_reference
+      - instantiate_valley_and_abutment_nodes
+      - reconnect_water_air_vapor_thermal_contours
+
+  - node_id: DORMER_002_SHED_DORMER
+    applies_if:
+      dormer_type: shed_dormer
+    required_nodes:
+      - dormer_front_wall_to_roof
+      - dormer_side_cheek_left
+      - dormer_side_cheek_right
+      - upper_abutment_to_host_slope
+      - dormer_eaves
+      - trimmed_opening_frame
+    required_inputs:
+      - KR_dormer_opening_reference
+      - KR_dormer_framing_reference
+      - verified_upper_abutment_detail
+
+rules:
+  - id: roof.dormer.opening_from_KR_only
+    automation: true
+    statement: "Dormer opening dimensions and trimmed framing are never derived from visual dormer dimensions; they require KR geometry."
+    result_on_missing: roof_KR_input_missing
+  - id: roof.dormer.cheek_is_envelope_node
+    automation: true
+    statement: "Dormer cheek nodes must resolve wall/roof water, air-vapor and thermal continuity independently from structural framing."
+  - id: roof.dormer.no_generic_valley_detail
+    automation: true
+    statement: "Dormer valleys use the verified roof-covering adapter and may not receive a generic valley geometry without product/system compatibility."
+    result_on_missing: roof_required_manufacturer_detail_missing
+
+never_infer:
+  - doubled_rafter_count
+  - header_or_trimmer_section
+  - support_post_requirement
+  - dormer_wall_stud_section
+  - valley_flashing_width
+  - fastener_pattern

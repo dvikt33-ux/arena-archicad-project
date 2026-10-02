@@ -7,112 +7,136 @@ nodes:
   - node_id: FDN_001_STRIP_RC_TO_MASONRY
     family: foundation_wall
     hosts: [shallow_strip_rc, masonry_wall]
-    applies_if: [foundation_system=shallow_strip_rc, wall_material=masonry, KR_support_zone_verified=true]
+    applies_if:
+      - "foundation_system=shallow_strip_rc"
+      - "wall_material=masonry"
+      - "KR_support_zone_verified=true"
     recipe: 03_foundation_wall_nodes.rc_foundation_to_masonry_wall
     blockers: [geotech_missing, KR_support_zone_missing, moisture_strategy_missing]
 
   - node_id: FDN_002_STRIP_RC_TO_RC_WALL
     family: foundation_wall
     hosts: [shallow_strip_rc, rc_wall]
-    applies_if: [foundation_system=shallow_strip_rc, wall_material=reinforced_concrete]
+    applies_if:
+      - "foundation_system=shallow_strip_rc"
+      - "wall_material=reinforced_concrete"
     recipe: 03_foundation_wall_nodes.rc_foundation_to_rc_wall
     blockers: [KR_joint_type_missing, KR_reinforcement_reference_missing]
 
   - node_id: FDN_003_RAFT_TO_EXTERNAL_MASONRY_WALL
     family: foundation_wall
     hosts: [raft_rc, masonry_external_wall]
-    applies_if: [foundation_system=raft_rc, external_envelope=true]
+    applies_if:
+      - "foundation_system=raft_rc"
+      - "external_envelope=true"
     recipe: 03_foundation_wall_nodes.rc_foundation_to_masonry_wall
     blockers: [KR_support_zone_missing, thermal_review_missing, waterproofing_strategy_missing]
 
   - node_id: FDN_004_RAFT_TO_AAC_EXTERNAL_WALL
     family: foundation_wall
     hosts: [raft_rc, AAC_external_wall]
-    applies_if: [foundation_system=raft_rc, wall_material=AAC, below_grade_AAC=false]
+    applies_if:
+      - "foundation_system=raft_rc"
+      - "wall_material=AAC"
+      - "below_grade_AAC=false"
     recipe: 03_foundation_wall_nodes.rc_foundation_to_aac_wall
     blockers: [AAC_product_missing, moisture_separation_missing, KR_support_zone_missing]
 
   - node_id: FDN_005_RAFT_TO_BASEMENT_RC_WALL
     family: basement_box
     hosts: [raft_rc, basement_rc_wall]
-    applies_if: [basement_state=present, foundation_system in [raft_rc, basement_box_rc]]
+    applies_if:
+      - "basement_state=present"
+      - "foundation_system in {raft_rc,basement_box_rc}"
     recipe: 03_foundation_wall_nodes.basement_wall_to_raft_joint
     blockers: [KR_joint_type_missing, waterproofing_joint_unresolved]
 
   - node_id: FDN_006_PILE_RAFT_TO_RC_WALL_OR_COLUMN
     family: pile_foundation_superstructure
     hosts: [pile_raft_rc, wall_or_column]
-    applies_if: [foundation_system=pile_raft_rc]
+    applies_if:
+      - "foundation_system=pile_raft_rc"
     recipe: 03_foundation_wall_nodes.pile_raft_to_wall_or_column
     blockers: [pile_design_missing, KR_support_graph_missing]
 
   - node_id: FDN_007_ISOLATED_PAD_TO_COLUMN
     family: isolated_foundation
     hosts: [isolated_pad_rc, column]
-    applies_if: [foundation_system=isolated_pad_rc, load_path=point]
+    applies_if:
+      - "foundation_system=isolated_pad_rc"
+      - "load_path=point"
     recipe: 02_foundation_assemblies.isolated_pad_rc
     blockers: [KR_column_base_detail_missing, KR_pad_geometry_missing]
 
   - node_id: FDN_008_PRECAST_FL_FBS_TO_WALL
     family: precast_foundation_wall
     hosts: [precast_strip_FBS_FL, wall]
-    applies_if: [foundation_system=precast_strip_FBS_FL]
+    applies_if:
+      - "foundation_system=precast_strip_FBS_FL"
     recipe: 02_foundation_assemblies.precast_strip_FBS_FL
     blockers: [verified_product_marks_missing, KR_layout_missing]
 
   - node_id: FLR_001_MONOLITHIC_SLAB_TO_RC_WALL
     family: floor_support
     hosts: [monolithic_rc_slab, rc_wall]
-    applies_if: [floor_system=monolithic_rc_flat_slab]
+    applies_if:
+      - "floor_system=monolithic_rc_flat_slab"
     recipe: 05_floor_connection_nodes.monolithic_slab_to_rc_wall
     blockers: [KR_joint_definition_missing]
 
   - node_id: FLR_002_MONOLITHIC_SLAB_TO_RC_BEAM
     family: floor_support
     hosts: [monolithic_rc_slab, rc_beam]
-    applies_if: [floor_system=monolithic_rc_beam_slab]
+    applies_if:
+      - "floor_system=monolithic_rc_beam_slab"
     recipe: 05_floor_connection_nodes.monolithic_slab_to_rc_beam
     blockers: [KR_beam_slab_geometry_missing]
 
   - node_id: FLR_003_PC_TO_MASONRY_WALL
     family: precast_floor_support
     hosts: [PC_slab, masonry_wall]
-    applies_if: [floor_system=precast_hollow_core_PC]
+    applies_if:
+      - "floor_system=precast_hollow_core_PC"
     recipe: 05_floor_connection_nodes.precast_PC_to_masonry_wall
     blockers: [slab_mark_missing, KR_bearing_length_missing, KR_support_check_missing]
 
   - node_id: FLR_004_PB_TO_MASONRY_WALL
     family: precast_floor_support
     hosts: [PB_slab, masonry_wall]
-    applies_if: [floor_system=precast_hollow_core_PB]
+    applies_if:
+      - "floor_system=precast_hollow_core_PB"
     recipe: 05_floor_connection_nodes.precast_PB_to_masonry_wall
     blockers: [manufacturer_geometry_missing, KR_bearing_length_missing]
 
   - node_id: FLR_005_PRECAST_TO_RC_SUPPORT
     family: precast_floor_support
     hosts: [precast_slab, rc_wall_or_beam]
-    applies_if: [floor_system in [precast_hollow_core_PC, precast_hollow_core_PB, precast_solid_or_ribbed]]
+    applies_if:
+      - "floor_system in {precast_hollow_core_PC,precast_hollow_core_PB,precast_solid_or_ribbed}"
     recipe: 05_floor_connection_nodes.precast_slab_to_rc_wall_or_beam
     blockers: [verified_product_missing, KR_connection_definition_missing]
 
   - node_id: FLR_006_SLAB_EDGE_EXTERNAL_WALL
     family: envelope_floor_edge
     hosts: [floor_slab_edge, external_wall]
-    applies_if: [external_envelope=true]
+    applies_if:
+      - "external_envelope=true"
     recipe: 05_floor_connection_nodes.monolithic_slab_edge_to_external_wall
     blockers: [thermal_review_missing, KR_edge_geometry_missing]
 
   - node_id: FLR_007_STRUCTURAL_FLOOR_OPENING
     family: structural_opening
     hosts: [floor_slab, opening]
-    applies_if: [MEP_penetration_requested=true]
+    applies_if:
+      - "MEP_penetration_requested=true"
     recipe: 05_floor_connection_nodes.floor_opening_structural_host
     blockers: [KR_opening_approval_missing]
 
   - node_id: FLR_008_FLOOR_DEFORMATION_JOINT
     family: deformation_joint
     hosts: [slab_segment_A, slab_segment_B]
-    applies_if: [project_joint_present=true]
+    applies_if:
+      - "project_joint_present=true"
     recipe: 05_floor_connection_nodes.floor_slab_deformation_joint
     blockers: [KR_joint_width_missing, project_joint_system_missing]
 

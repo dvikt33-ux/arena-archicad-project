@@ -1,0 +1,108 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: ARCHICAD_INTERNAL_EXECUTION
+purpose: "Compile verified internal-wall, partition, shaft and penetration NODE_IDs into deterministic Archicad operations with mandatory readback."
+
+execution_primitives:
+  create_internal_wall:
+    command: CreateWalls
+    allowed_for: [INT_WALL_001_MASONRY_INTERNAL_WALL_TO_FLOOR_AND_SLAB, INT_PART_001_DRYWALL_PARTITION_BASE]
+  create_internal_door:
+    command: CreateDoors
+    allowed_for: [INT_PART_003_DRYWALL_DOOR_OPENING]
+  create_service_opening:
+    command: CreateOpenings
+    allowed_for: [SHAFT_002_ACCESS_HATCH, PEN_001_ENGINEERING_PENETRATION_THROUGH_PARTITION_OR_SHAFT]
+  create_verified_object:
+    command: AddFilesToEmbeddedLibrary
+    allowed_for: [SHAFT_002_ACCESS_HATCH, ELEC_001_OPPOSITE_SIDE_CONCEALED_BOX_COORDINATION]
+  set_properties:
+    command: SetDetailsOfElements
+    allowed_for: [all_internal_nodes]
+  create_detail:
+    command: CreateDetails
+    allowed_for: [all_internal_nodes]
+  dimension_detail:
+    command: CreateAssociativeDimensionsOnSection
+    allowed_for: [all_internal_nodes]
+
+write_gates:
+  - no_internal_wall_write_without_verified_system_or_approved_geometry
+  - no_structural_internal_wall_change_without_KR_revision
+  - no_door_opening_without_verified_door_and_opening_geometry
+  - no_service_penetration_without_engineering_owner_and_approved_geometry
+  - no_firestop_or_certified_performance_invention
+  - no_shaft_reduction_below_service_access_envelope
+
+node_sequences:
+  INT_WALL_001_MASONRY_INTERNAL_WALL_TO_FLOOR_AND_SLAB:
+    - verify_structural_role_and_KR_if_load_bearing
+    - create_internal_wall
+    - attach_support_and_top_interface_metadata
+    - create_detail_if_joint_not_fully_represented_in_3d
+    - readback
+
+  INT_PART_001_DRYWALL_PARTITION_BASE:
+    - verify_partition_system
+    - create_internal_wall
+    - attach_system_and_performance_metadata
+    - compose_top_joint_node_if_required
+    - readback
+
+  INT_PART_002_DRYWALL_PARTITION_SLIDING_TOP:
+    - verify_KR_deflection_reference
+    - attach_verified_sliding_head_detail
+    - create_detail
+    - readback
+
+  INT_PART_003_DRYWALL_DOOR_OPENING:
+    - verify_door_product_and_jamb_reinforcement
+    - create_internal_door
+    - attach_opening_performance_metadata
+    - create_detail_if_required
+    - readback
+
+  INT_PART_004_PARTITION_INTERSECTION:
+    - verify_intersection_detail
+    - resolve_native_wall_intersection
+    - create_detail_if_required
+    - readback
+
+  SHAFT_001_GYPSUM_SERVICE_SHAFT_ENCLOSURE:
+    - verify_engineering_service_volume
+    - create_internal_wall
+    - attach_shaft_identity_and_performance_metadata
+    - readback
+
+  SHAFT_002_ACCESS_HATCH:
+    - verify_hatch_product_and_service_clearance
+    - create_service_opening
+    - place_verified_hatch_product
+    - readback
+
+  PEN_001_ENGINEERING_PENETRATION_THROUGH_PARTITION_OR_SHAFT:
+    - verify_engineering_owner_and_revision
+    - verify_approved_penetration_geometry
+    - create_service_opening
+    - attach_sealing_or_firestop_reference
+    - create_detail_if_required
+    - readback
+
+  ELEC_001_OPPOSITE_SIDE_CONCEALED_BOX_COORDINATION:
+    - read_both_partition_faces
+    - calculate_edge_to_edge_offset
+    - block_if_below_150_mm
+    - attach_validation_result
+
+readback_required:
+  - GUID
+  - element_type
+  - host_relation
+  - approved_geometry_reference
+  - NODE_ID
+  - NODE_REVISION
+  - source_revision_set
+  - fire_acoustic_engineering_status_if_applicable
+
+on_readback_mismatch: rollback_or_mark_failed

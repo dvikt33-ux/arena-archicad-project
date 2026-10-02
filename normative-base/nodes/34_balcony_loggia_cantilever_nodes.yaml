@@ -1,0 +1,81 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: EXTERNAL_CANTILEVER_NODE_ENGINEERING
+purpose: "Machine-executable balcony, loggia and external cantilever node families with structural, thermal and water-path gates."
+
+nodes:
+  - node_id: BAL_001_MONOLITHIC_CANTILEVER_SLAB_AT_FACADE
+    family: balcony_cantilever
+    hosts: [interior_floor_slab, exterior_cantilever_slab, facade_edge]
+    applies_if:
+      structural_system: monolithic_rc
+      projection_type: cantilever
+    required_inputs:
+      - KR_cantilever_geometry
+      - KR_reinforcement_and_anchorage_reference
+      - AR_finished_level_relation
+      - water_drainage_strategy
+      - thermal_bridge_strategy
+      - railing_support_strategy_if_present
+    blockers:
+      - KR_cantilever_geometry_missing
+      - KR_reinforcement_or_anchorage_missing
+      - water_path_unresolved
+      - thermal_bridge_strategy_unresolved
+    never_infer:
+      - cantilever_length
+      - slab_thickness
+      - reinforcement
+      - anchorage_length
+      - thermal_break_product
+      - slope
+      - railing_anchor_type_or_spacing
+    contours: [load_path, thermal_continuity, bulk_water_and_waterproofing, drainage_and_drying, air_tightness, movement_and_tolerance, corrosion_and_biological]
+    geometry_actions: [create_or_verify_cantilever_slab_from_KR, bind_to_interior_slab_relation, attach_edge_contour_metadata]
+    archicad_representation: [Slab, Detail]
+    postconditions: [cantilever_geometry_matches_KR, water_path_resolved, thermal_bridge_strategy_recorded]
+
+  - node_id: BAL_002_LOGGIA_SLAB_BETWEEN_SIDE_WALLS
+    family: loggia_slab
+    hosts: [loggia_slab, side_wall_or_frame_support, facade_edge]
+    applies_if:
+      projection_type: recessed_loggia
+    required_inputs:
+      - KR_loggia_slab_geometry
+      - KR_support_definition
+      - AR_finished_level_relation
+      - water_drainage_strategy
+      - thermal_edge_review
+    blockers: [KR_support_definition_missing, water_path_unresolved, thermal_edge_review_missing]
+    never_infer: [bearing_length, slab_thickness, reinforcement, slope, waterproofing_product]
+    contours: [load_path, thermal_continuity, bulk_water_and_waterproofing, drainage_and_drying, movement_and_tolerance]
+    geometry_actions: [create_or_verify_loggia_slab_from_KR, verify_side_supports, attach_edge_contour_metadata]
+    archicad_representation: [Slab, Wall, Detail]
+    postconditions: [support_relations_match_KR, external_water_path_resolved]
+
+  - node_id: BAL_003_THERMAL_BREAK_CANTILEVER_INTERFACE
+    family: balcony_thermal_break_overlay
+    hosts: [interior_slab_edge, exterior_cantilever_slab]
+    applies_if:
+      thermal_break_required: true
+    required_inputs: [verified_thermal_break_system, manufacturer_geometry, KR_acceptance_reference, thermal_calculation_reference]
+    blockers: [product_system_unverified, manufacturer_geometry_missing, KR_acceptance_missing]
+    never_infer: [product_type, module_spacing, reinforcement_configuration, load_capacity]
+    contours: [load_path, thermal_continuity, air_tightness, fire, corrosion_and_biological]
+    geometry_actions: [place_verified_product_only_if_exact_geometry_required, otherwise_write_system_reference]
+    archicad_representation: [LibraryObject, Detail, Properties]
+    postconditions: [product_reference_verified, no_generic_thermal_break_generated]
+
+  - node_id: BAL_004_BALCONY_EDGE_RAILING_SUPPORT
+    family: balcony_railing_support
+    hosts: [balcony_or_loggia_slab_edge, railing]
+    applies_if:
+      guard_required: true
+    required_inputs: [AR_guard_geometry, KR_or_verified_product_anchor_design, waterproofing_penetration_strategy]
+    blockers: [guard_geometry_missing, anchor_design_missing, waterproofing_penetration_unresolved]
+    never_infer: [guard_height, anchor_type, anchor_spacing, embedment, edge_distance]
+    contours: [connection_and_fasteners, bulk_water_and_waterproofing, corrosion_and_biological, inspection_and_maintenance]
+    geometry_actions: [create_railing_host_relation, place_anchors_only_from_verified_design, record_penetration_seal_strategy]
+    archicad_representation: [Railing, Detail, Properties]
+    postconditions: [railing_support_matches_verified_design, waterproofing_penetration_resolved]

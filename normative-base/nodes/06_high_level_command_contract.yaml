@@ -20,6 +20,11 @@ intent_contract:
     - build_external_wall_system
     - build_window_door_opening_nodes
     - build_wall_continuity_nodes
+    - build_internal_walls_and_partitions
+    - build_internal_door_openings
+    - build_service_shafts
+    - build_engineering_penetrations
+    - validate_concealed_electrical_boxes
     - build_pitched_roof
     - rebuild_roof_nodes
     - validate_roof_nodes
@@ -80,6 +85,21 @@ external_wall_pipeline:
   - execute_only_resolved_geometry
   - readback
   - validate_load_thermal_air_vapor_water_fire_movement_contours
+
+internal_partition_pipeline:
+  - resolve_structural_role_and_partition_system
+  - resolve_fire_acoustic_moisture_requirements
+  - instantiate_base_wall_or_partition_node
+  - instantiate_sliding_top_or_intersection_nodes_if_required
+  - resolve_each_internal_door_product_and_jamb_detail
+  - resolve_service_shafts_from_engineering_service_volumes
+  - resolve_access_hatches_and_service_clearances
+  - resolve_engineering_penetrations_from_approved_engineering_geometry
+  - validate_concealed_boxes_on_both_partition_faces
+  - compile_archicad_element_graph
+  - execute_only_resolved_geometry
+  - readback
+  - validate_fire_acoustic_movement_service_access_contours
 
 working_documentation_pipeline:
   - require_released_model_revision_candidate
@@ -170,6 +190,8 @@ operation_contract:
     - automatic_rafter_section_or_spacing_guess
     - automatic_roof_fastener_schedule_guess
     - automatic_product_certification_or_fire_class_guess
+    - automatic_partition_system_or_fire_rating_guess
+    - automatic_service_penetration_or_shaft_size_guess
     - silent_fallback_to_morph
     - marking_unresolved_placeholder_as_final
     - marking_project_as_expertise_approved
@@ -208,6 +230,8 @@ future_chat_template_target:
     - "Собери двускатную крышу с выбранной металлочерепицей по утвержденной схеме КР."
     - "Перестрой узлы карнизов, конька, ендов и примыканий после изменения формы крыши."
     - "Собери наружные стены с окнами, дверями, перемычками, цоколем и фасадными узлами."
+    - "Собери внутренние перегородки, двери и шахты по текущим АР/КР/инженерным решениям."
+    - "Создай согласованные инженерные проходки и покажи все неразрешенные огнезаделки."
     - "Обнови рабочие чертежи по текущей модели и покажи все блокирующие несоответствия."
     - "Подготовь комплект к внешней проверке и выдай матрицу соответствия и незакрытых вопросов."
   policy: "Chat command содержит намерение и выбранную систему; engine разрешает нормативные и проектные данные, а при отсутствии КР, инженерного решения, расчета или проверенного продуктового узла блокирует исполнение вместо подстановки типового решения."

@@ -1,0 +1,129 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+catalog_version: 2
+
+nodes:
+  - node_id: FDN_009_RAFT_EDGE_EXTERNAL_WALL_NO_BASEMENT
+    family: raft_edge_envelope
+    hosts: [raft_edge, external_wall, ground_floor]
+    applies_if:
+      - "foundation_system=raft_rc"
+      - "basement_state=absent"
+      - "wall_position=external"
+    compose:
+      structural: 03_foundation_wall_nodes.rc_foundation_to_masonry_wall_or_material_specific_equivalent
+      moisture: WPF_001_RAFT_EDGE_NO_BASEMENT
+    require: [KR_support_zone, wall_system, finished_ground_levels, waterproofing_strategy, thermal_edge_review]
+    blockers: [KR_support_zone_missing, finished_ground_levels_missing, thermal_review_missing]
+
+  - node_id: FDN_010_RAFT_INTERNAL_WALL_SUPPORT
+    family: raft_internal_support
+    hosts: [raft, internal_loadbearing_wall]
+    applies_if:
+      - "foundation_system=raft_rc"
+      - "wall_position=internal"
+    require: [KR_wall_line, KR_support_zone, KR_raft_geometry]
+    contours: [load_path, movement]
+    blockers: [KR_support_zone_missing]
+    never_infer: [local_thickening, reinforcement, wall_eccentricity]
+
+  - node_id: FDN_011_RAFT_COLUMN_SUPPORT
+    family: raft_point_support
+    hosts: [raft, column]
+    applies_if:
+      - "foundation_system=raft_rc"
+      - "superstructure_support=column"
+    require: [KR_column_axis, KR_column_base_geometry, KR_punching_design_reference, KR_raft_geometry]
+    contours: [load_path, movement]
+    blockers: [KR_punching_design_reference_missing, KR_column_base_geometry_missing]
+    never_infer: [drop_panel, capital, local_thickening, punching_reinforcement]
+
+  - node_id: FDN_012_BASEMENT_EXTERNAL_WALL_RAFT_WATERPROOFED
+    family: basement_box_waterproofing
+    hosts: [raft, external_basement_wall, external_ground]
+    applies_if:
+      - "basement_state=present"
+      - "wall_is_external_below_grade=true"
+    compose:
+      structural: 03_foundation_wall_nodes.basement_wall_to_raft_joint
+      moisture: WPF_002_BASEMENT_WALL_RAFT_EXTERNAL
+    require: [KR_joint_type, groundwater_state, waterproofing_joint_strategy, plinth_termination]
+    blockers: [groundwater_state_unknown, waterproofing_joint_unresolved]
+
+  - node_id: FDN_013_FOUNDATION_DEFORMATION_JOINT
+    family: foundation_movement_joint
+    hosts: [foundation_segment_A, foundation_segment_B]
+    applies_if:
+      - "project_joint_present=true"
+    compose:
+      movement_water: WPF_003_FOUNDATION_DEFORMATION_JOINT
+    require: [KR_joint_width, approved_joint_system, movement_capacity_reference]
+    blockers: [KR_joint_width_missing, joint_system_missing]
+
+  - node_id: FDN_014_BELOW_GRADE_MEP_ENTRY
+    family: foundation_penetration
+    hosts: [foundation_or_basement_wall, MEP_penetration]
+    applies_if:
+      - "penetration_below_grade=true"
+    compose:
+      penetration_water: WPF_004_MEP_ENTRY_BELOW_GRADE
+    require: [KR_opening_approval, MEP_sleeve_geometry, waterproofing_penetration_system]
+    blockers: [KR_opening_approval_missing, waterproofing_penetration_system_missing]
+
+  - node_id: FLR_009_PC_END_ON_RC_WALL
+    family: precast_bearing
+    hosts: [PC_slab_end, rc_wall]
+    applies_if: ["floor_system=precast_hollow_core_PC", "support_material=reinforced_concrete_wall"]
+    recipe: BRG_PC_OR_PB_ON_RC_WALL
+    require: [verified_PC_mark, KR_bearing_length, KR_connection_definition]
+    blockers: [KR_bearing_length_missing, KR_connection_definition_missing]
+
+  - node_id: FLR_010_PC_END_ON_RC_BEAM
+    family: precast_bearing
+    hosts: [PC_slab_end, rc_beam]
+    applies_if: ["floor_system=precast_hollow_core_PC", "support_material=reinforced_concrete_beam"]
+    recipe: BRG_PC_OR_PB_ON_RC_BEAM
+    require: [verified_PC_mark, KR_beam_geometry, KR_bearing_length, KR_connection_definition]
+    blockers: [KR_bearing_length_missing, KR_beam_geometry_missing]
+
+  - node_id: FLR_011_PB_END_ON_RC_WALL
+    family: precast_bearing
+    hosts: [PB_slab_end, rc_wall]
+    applies_if: ["floor_system=precast_hollow_core_PB", "support_material=reinforced_concrete_wall"]
+    recipe: BRG_PC_OR_PB_ON_RC_WALL
+    require: [manufacturer_PB_geometry, KR_bearing_length, KR_connection_definition]
+    blockers: [manufacturer_geometry_missing, KR_bearing_length_missing]
+
+  - node_id: FLR_012_PB_END_ON_RC_BEAM
+    family: precast_bearing
+    hosts: [PB_slab_end, rc_beam]
+    applies_if: ["floor_system=precast_hollow_core_PB", "support_material=reinforced_concrete_beam"]
+    recipe: BRG_PC_OR_PB_ON_RC_BEAM
+    require: [manufacturer_PB_geometry, KR_beam_geometry, KR_bearing_length, KR_connection_definition]
+    blockers: [manufacturer_geometry_missing, KR_bearing_length_missing]
+
+  - node_id: FLR_013_PRECAST_SIDE_JOINT
+    family: precast_side_interface
+    hosts: [precast_slab_side, adjacent_precast_slab_or_wall]
+    applies_if: ["floor_system in {precast_hollow_core_PC,precast_hollow_core_PB,precast_solid_or_ribbed}"]
+    recipe: BRG_PRECAST_SIDE_INTERFACE
+    require: [verified_product_side_geometry, project_joint_definition]
+    blockers: [project_joint_definition_missing]
+
+  - node_id: FLR_014_PRECAST_END_AT_EXTERNAL_ENVELOPE
+    family: precast_envelope_edge
+    hosts: [precast_slab_end, external_wall_system]
+    applies_if:
+      - "external_envelope=true"
+      - "floor_system in {precast_hollow_core_PC,precast_hollow_core_PB}"
+    recipe: BRG_PRECAST_END_NEAR_EXTERNAL_ENVELOPE
+    require: [structural_bearing_variant, wall_system, thermal_bridge_review, air_seal_strategy]
+    blockers: [structural_bearing_variant_missing, thermal_review_missing]
+
+application_policy:
+  - support_location_and_material_are_part_of_node_identity
+  - structural_node_and_envelope_overlay_may_compose_but_keep_separate_revision_sources
+  - below_grade_penetrations_always_require_both_KR_and_waterproofing_gate
+  - internal_raft_support_nodes_do_not_inherit_external_waterproofing_layers
+  - no_node_may_create_reinforcement_or_bearing_dimensions_without_KR

@@ -1,0 +1,164 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ROOF_STRUCTURAL_JOINT_CATALOG
+purpose: "Topology-aware catalog of structural roof joints. It identifies where a KR joint is required and how AR/BIM must represent it; structural dimensions remain external KR inputs."
+
+source_dependencies:
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
+  - 11_rafter_system_topology.yaml
+  - 14_ridge_hip_node.yaml
+  - 15_valley_node.yaml
+  - 45_rafter_wall_connection_variants.yaml
+
+nodes:
+  - node_id: ROOF_JOINT_001_RAFTER_PAIR_AT_RIDGE
+    family: rafter_ridge_joint
+    hosts: [rafter_left, rafter_right, ridge_zone]
+    applies_if:
+      structural_variant_id: rafter_pair
+      ridge_role: nonstructural_alignment_member_or_joint_zone
+    required_inputs:
+      - KR_ridge_joint_detail
+      - exact_rafter_geometry
+      - tie_or_thrust_resolution_reference
+      - connector_schedule
+    blockers:
+      - KR_ridge_joint_missing
+      - thrust_resolution_missing
+      - connector_schedule_missing
+    never_infer: [rafter_cut, overlap_length, bolt_nail_screw_pattern, collar_tie_geometry]
+    geometry_actions:
+      - trim_or_join_rafters_only_to_exact_KR_geometry
+      - bind_connection_metadata
+      - keep_covering_and_ventilation_ridge_node_independent_from_structural_joint
+    postconditions:
+      - ridge_joint_has_KR_reference
+      - no_nonstructural_ridge_board_promoted_to_structural_member
+
+  - node_id: ROOF_JOINT_002_RAFTER_TO_STRUCTURAL_RIDGE_BEAM
+    family: rafter_ridge_beam_support
+    hosts: [rafter, structural_ridge_beam]
+    applies_if:
+      structural_variant_id: structural_ridge_beam
+    required_inputs:
+      - KR_ridge_beam_geometry
+      - KR_rafter_bearing_detail
+      - connector_schedule
+      - ridge_beam_support_graph
+    blockers:
+      - ridge_beam_geometry_missing
+      - rafter_bearing_detail_missing
+      - ridge_beam_support_graph_missing
+    never_infer: [bearing_cut, hanger_type, fasteners, beam_section, post_locations]
+    geometry_actions:
+      - place_ridge_beam_from_KR
+      - place_rafter_support_relation_from_KR
+      - bind_support_graph
+    postconditions:
+      - ridge_beam_load_path_traceable_to_supports
+      - each_rafter_connection_traceable
+
+  - node_id: ROOF_JOINT_003_PURLIN_TO_POST_OR_WALL
+    family: purlin_support
+    hosts: [purlin, post_or_supporting_wall]
+    applies_if:
+      structural_variant_id: purlin_post
+    required_inputs:
+      - KR_purlin_geometry
+      - KR_support_geometry
+      - KR_joint_detail
+      - bracing_reference
+    blockers:
+      - purlin_geometry_missing
+      - support_geometry_missing
+      - joint_detail_missing
+      - bracing_reference_missing
+    never_infer: [notch, seat, cleat, angle, bolts, screws, post_section]
+    geometry_actions:
+      - place_purlin_and_support_from_KR
+      - bind_joint_and_bracing_references
+    postconditions:
+      - purlin_support_graph_complete
+      - bracing_reference_present
+
+  - node_id: ROOF_JOINT_004_HIP_RAFTER_AND_JACK_RAFTERS
+    family: hip_rafter_joint
+    hosts: [hip_rafter, jack_rafters, ridge_or_support_zone]
+    applies_if:
+      structural_variant_id: hip_valley_rafter
+      topology_event: hip
+    required_inputs:
+      - KR_hip_member_geometry
+      - KR_jack_rafter_geometry
+      - KR_hip_joint_details
+      - connector_schedule
+    blockers:
+      - hip_member_geometry_missing
+      - jack_rafter_geometry_missing
+      - hip_joint_detail_missing
+    never_infer: [hip_rafter_section, jack_spacing, cheek_cuts, seat_cuts, fasteners]
+    geometry_actions:
+      - place_hip_and_jack_members_from_KR
+      - attach_each_connection_to_KR_detail
+      - preserve_covering_hip_adapter_independently
+    postconditions:
+      - every_jack_rafter_has_resolved_support
+      - no_unapproved_member_cut
+
+  - node_id: ROOF_JOINT_005_VALLEY_RAFTER_AND_JACK_RAFTERS
+    family: valley_rafter_joint
+    hosts: [valley_rafter, jack_rafters, supporting_structure]
+    applies_if:
+      structural_variant_id: hip_valley_rafter
+      topology_event: valley
+    required_inputs:
+      - KR_valley_member_geometry
+      - KR_jack_rafter_geometry
+      - KR_valley_support_details
+      - connector_schedule
+    blockers:
+      - valley_member_geometry_missing
+      - valley_support_detail_missing
+    never_infer: [valley_rafter_section, jack_spacing, cuts, hangers, fasteners]
+    geometry_actions:
+      - place_valley_members_from_KR
+      - bind_support_and_connection_graph
+      - keep_waterproofing_valley_node_separate_but linked
+    postconditions:
+      - structural_valley_and_water_valley_share_same_topology_line
+      - water_path_not_obstructed_by_unmodeled_structural_guess
+
+  - node_id: ROOF_JOINT_006_TRUSS_BRACING_AND_BEARING_GRAPH
+    family: prefabricated_truss_system_joint_graph
+    hosts: [truss_set, supports, bracing_system]
+    applies_if:
+      structural_variant_id: prefabricated_truss
+    required_inputs:
+      - verified_truss_product_or_calculation
+      - KR_bearing_details
+      - permanent_bracing_layout
+      - hold_down_schedule
+      - permitted_openings
+    blockers:
+      - truss_product_or_calculation_missing
+      - permanent_bracing_layout_missing
+      - bearing_details_missing
+    never_infer: [web_cut, chord_cut, service_opening, bracing_member, hold_down]
+    geometry_actions:
+      - place_truss_set_from_verified_geometry
+      - place_or_reference_permanent_bracing_from_KR
+      - block_any_unapproved_opening_or_cut
+    postconditions:
+      - no_truss_member_modified_by_AR
+      - bracing_graph_present
+
+rules:
+  - id: roof.joint.topology_requires_structural_resolution
+    automation: true
+    statement: "Каждое изменение несущего пути крыши — опора, конек, промежуточный прогон, хребет, ендова, ферменная опора — создает отдельный structural joint instance, который должен ссылаться на КР."
+    result_on_missing: roof_KR_input_missing
+  - id: roof.joint.weather_node_not_structural_node
+    automation: true
+    statement: "Кровельный водозащитный узел и несущий узел могут совпадать по координатам, но хранятся как разные machine instances и валидируются независимо."

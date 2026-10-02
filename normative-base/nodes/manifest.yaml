@@ -1,9 +1,9 @@
-manifest_version: 13
+manifest_version: 14
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
-purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges, external cantilevers, entrances, deformation joints, external wall details and roof-node topology with fail-closed structural and product gates."
+purpose: "Machine-executable construction-node and working-documentation engine with fail-closed structural, product, coordination, SPDS and external-review readiness gates."
 
 load_order:
   - 00_engine_contract.yaml
@@ -49,6 +49,8 @@ load_order:
   - 40_wall_plinth_corner_cornice_nodes.yaml
   - 41_archicad_external_wall_execution_map.yaml
   - 42_gable_verge_node.yaml
+  - 42_working_documentation_release_gate.yaml
+  - 43_expertise_readiness_contract.yaml
   - 43_roof_penetration_node.yaml
   - 44_roof_node_applicability_catalog.yaml
 
@@ -62,20 +64,29 @@ modules:
   deformation_joint: DEFORMATION_JOINT_NODE_ENGINEERING
   external_wall: EXTERNAL_WALL_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
+  working_documentation: WORKING_DOCUMENTATION_RELEASE_GATE
+  external_review_readiness: EXPERTISE_READINESS_CONTRACT
 
 inherits:
   - ../target_2027.yaml
   - ../revision_watch_2027.yaml
   - ../revision_watch_adjacent_2027.yaml
   - ../schema/dimension_selection_policy.yaml
+  - ../rules/05_openings_windows_doors.yaml
   - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/09_engineering_coordination.yaml
   - ../rules/15_roofs.yaml
   - ../rules/16_stair_geometry.yaml
+  - ../rules/19_reinforced_concrete_lintels.yaml
   - ../rules/23_precast_slab_layout.yaml
+  - ../rules/24_masonry_opening_layout.yaml
   - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/63_door_blocks_2026.yaml
   - ../rules/68_facade_systems_2027.yaml
   - ../rules/69_roof_drainage_interfaces.yaml
   - ../rules/73_deformation_temperature_joints.yaml
+  - ../rules/75_spds_architecture_working_drawings.yaml
+  - ../rules/79_story_levels_vertical_coordination.yaml
   - ../rules/80_geometric_accuracy_tolerances.yaml
 
 hard_fail:
@@ -107,6 +118,10 @@ hard_fail:
   - deformation_joint_axis_missing
   - deformation_joint_movement_range_missing
   - deformation_joint_envelope_seal_unresolved
+  - external_wall_opening_product_or_mounting_joint_unresolved
+  - opening_lintel_or_bearing_unresolved
+  - plinth_waterproofing_or_grade_interface_unresolved
+  - external_wall_contour_unresolved
   - roof_node_scope_unresolved
   - roof_covering_system_missing
   - roof_structural_scheme_missing
@@ -119,6 +134,11 @@ hard_fail:
   - roof_air_vapor_contour_unresolved
   - roof_thermal_contour_unresolved
   - roof_fire_gate_unresolved
+  - working_documentation_blocking_issue_open
+  - model_and_drawing_revision_mismatch
+  - SPDS_working_drawing_gate_failed
+  - multidisciplinary_interface_unresolved
+  - undocumented_manual_override
 
 execution_policy:
   selector_may_rank_candidates: true
@@ -136,6 +156,12 @@ execution_policy:
   entrance_support_geometry_generation: external_geotechnical_KR_only
   deformation_joint_width_and_movement_generation: external_KR_only
   proprietary_joint_waterstop_sealant_firestop_generation: verified_product_or_project_detail_only
+  opening_product_geometry_generation: verified_product_only
+  lintel_and_opening_bearing_generation: external_KR_only
+  mounting_joint_generation: verified_system_or_project_detail_only
+  wall_envelope_component_generation: verified_system_and_calculation_only
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only
+  working_documentation_release_requires_zero_blockers: true
+  external_review_ready_may_not_claim_expertise_approval: true

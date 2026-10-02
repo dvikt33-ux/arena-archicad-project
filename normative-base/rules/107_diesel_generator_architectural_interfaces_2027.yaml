@@ -1,0 +1,202 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные и пожарные интерфейсы помещений с дизель-генераторами и наружных ДГУ.
+  СП 4.13130.2013 прямо распространяет требования подраздела 6.9 на ДГУ. Файл не рассчитывает
+  мощность, расход топлива, вентиляцию, дымоудаление выхлопа, акустику или электрическую схему.
+
+revision_dependencies:
+  - {document: SP_4_13130_2013, verified_changes: [1,2,3,4], status: active}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9], status: active}
+
+scope_and_precedence:
+  rules:
+    - id: dgu.fire.apply_boiler_subsection
+      source: {document: SP_4_13130_2013, clause: "6.9.1"}
+      automation: mandatory_router
+      applies_to:
+        - indoor_diesel_generator_room
+        - outdoor_diesel_generator_installation
+      route_to: SP_4_13130_2013_section_6_9
+      statement: >-
+        Помещение/установка ДГУ проходит пожарные требования подраздела 6.9; нельзя считать
+        генераторную обычной электрощитовой или только инженерным помещением.
+
+    - id: dgu.public.basement_permission_not_fire_approval
+      source: {document: SP_118_13330_2022, appendix: "В.1.1"}
+      automation: validation_only
+      statement: >-
+        Приложение В допускает ДГУ в подземных этажах общественного здания по процессу деятельности,
+        но это не отменяет ограничений СП 4 по функциональному классу, соседствам и ограждениям.
+
+embedded_DGU:
+  source: SP_4_13130_2013
+  rules:
+    - id: dgu.embedded.prohibited_functional_classes
+      clause: "6.9.5.2"
+      automation: hard_gate
+      prohibited_functional_fire_classes:
+        - F2_1
+        - F2_2
+        - F3_1
+        - F3_2
+        - F4_1
+        - F4_2
+      statement: >-
+        В многофункциональном ТРК классифицировать функциональный блок/пожарный отсек, в который
+        встраивается ДГУ; не разрешать размещение только потому, что весь комплекс имеет смешанный класс.
+
+    - id: dgu.embedded.no_below_public_mass_rooms
+      clause: "6.9.5.2"
+      automation: hard_gate
+      prohibited_directly_above_DGU:
+        - foyer
+        - auditorium
+        - retail_room
+        - classroom
+        - educational_auditorium
+        - dining_hall
+        - restaurant_hall
+        - changing_room
+        - bath_washing_room
+        - shower
+        - combustible_material_storage
+        - other_room_listed_by_applicable_clause
+      statement: "Встроенную ДГУ не размещать непосредственно под перечисленными помещениями."
+
+    - id: dgu.embedded.fire_separation
+      clause: "6.9.5.2; 6.9.6"
+      automation: hard_gate
+      required:
+        - fire_wall_type_2_or_type_1_fire_partition_as_applicable_to_current_configuration
+        - fire_floor_type_3
+      statement: >-
+        Конкретный тип вертикальной преграды зависит от схемы встроенного/крышного размещения;
+        BIM-стенка без подтвержденного пожарного типа не считается достаточной.
+
+attached_DGU:
+  source: SP_4_13130_2013
+  rules:
+    - id: dgu.attached.no_adjacent_mass_occupancy
+      clause: "6.9.4.1"
+      automation: hard_gate
+      condition: "attached_DGU"
+      prohibited_adjacent_room: mass_occupancy_room
+
+    - id: dgu.attached.fire_wall_and_noncombustible_roof
+      clause: "6.9.5"
+      automation: hard_gate
+      condition: "attached_DGU"
+      required_fire_wall: type_2
+      roof_material_group: NG
+
+    - id: dgu.attached.opening_clearances
+      clause: "6.9.5.1"
+      automation: conditional
+      condition: "attached_DGU"
+      dimension_semantics: clear_distance_to_nearest_unprotected_opening
+      min_horizontal_from_DGU_wall_to_building_opening_m: 4
+      min_vertical_from_DGU_roof_to_building_opening_m: 8
+      exception: opening_in_fire_barrier_with_required_fire_protection
+
+liquid_fuel_storage:
+  source: SP_4_13130_2013
+  rules:
+    - id: dgu.fuel.consumption_tanks_prefer_outside_room
+      clause: "6.9.9"
+      automation: validation_only
+      statement: >-
+        Расходные баки жидкого топлива по базовой логике размещать вне помещения генераторной;
+        допустимое размещение внутри зависит от типа установки и условий подраздела 6.9.
+
+    - id: dgu.fuel.embedded_attached_internal_capacity_cap
+      clause: "6.9.10"
+      automation: conditional
+      condition: "embedded_or_attached_DGU_has_internal_consumption_fuel_tanks"
+      max_total_internal_consumption_tank_volume_m3: 0.8
+      statement: >-
+        Значение 0,8 м³ — предел общей вместимости расходных баков внутри встроенной/пристроенной
+        установки по пожарному маршруту; проект топлива может потребовать более строгого решения.
+
+noise_vibration:
+  rules:
+    - id: dgu.no_noise_sensitive_adjacency
+      source: {document: SP_118_13330_2022, clause: "5.72"}
+      automation: hard_gate
+      condition: "DGU_room_is_noise_or_vibration_source"
+      prohibited_relative_positions:
+        - adjacent
+        - directly_above
+        - directly_below
+      protected_room_types:
+        - auditorium
+        - rehearsal_hall
+        - stage
+        - sound_control_room
+        - reading_room
+        - hospital_ward
+        - doctor_office
+        - operating_room
+        - child_occupied_room
+        - classroom
+        - other_permanent_occupancy_room
+        - residential_room_inside_public_building
+
+service_and_engineering:
+  rules:
+    - id: dgu.service_equipment_envelope_required
+      automation: mandatory_validation
+      required_inputs:
+        - DGU_equipment_envelope
+        - manufacturer_service_clearances
+        - replacement_route
+        - fuel_service_route
+        - ventilation_opening_envelopes
+        - exhaust_route
+      statement: >-
+        Размер помещения ДГУ не выводить из мощности одним коэффициентом; компоновка строится
+        вокруг реального оборудования, сервисных зон и маршрута замены.
+
+    - id: dgu.exhaust_and_ventilation_engineering_gate
+      automation: engineering_coordination_gate
+      discipline_boundary: [EOM, OV, TX, fire_safety]
+      statement: >-
+        Воздухозабор/выброс охлаждения и выхлоп ДГУ координировать с фасадом, кровлей, окнами,
+        воздухозаборами и пожарными зонами; параметры определяет профильный проект.
+
+BIM_required_parameters:
+  - DGU_id
+  - DGU_location_type
+  - functional_fire_class_of_host_block
+  - fire_compartment_id
+  - adjacent_room_types
+  - mass_occupancy_status
+  - DGU_fire_barrier_system_ids
+  - DGU_roof_material_group
+  - nearest_building_opening_geometry
+  - fuel_tank_volume_m3
+  - DGU_equipment_envelope
+  - manufacturer_service_clearances
+  - replacement_route
+  - fuel_service_route
+  - ventilation_opening_geometry
+  - exhaust_route_geometry
+
+hard_fail_conditions:
+  - "DGU treated only as generic technical room without SP4 section 6.9 routing"
+  - "embedded DGU placed in prohibited functional fire class"
+  - "embedded DGU placed below prohibited public or combustible-storage room"
+  - "attached DGU violates 4 m horizontal or 8 m vertical opening clearance without protected-opening exception"
+  - "embedded/attached internal consumption fuel tank total exceeds 0.8 m3 under this route"
+
+agent_logic:
+  - "Сначала определить embedded/attached/outdoor и функциональный пожарный класс принимающего блока."
+  - "Разрешение СП 118 на подземный этаж не считать разрешением СП 4."
+  - "Для ТРК не классифицировать весь объект одной функцией: проверять тот блок/отсек, где находится ДГУ."
+  - "Мощность ДГУ, расход топлива, воздухообмен, выхлоп, акустику и электросхему получать от профильных разделов."
+
+sources:
+  - "https://base.garant.ru/76806125/"
+  - "https://base.garant.ru/404976079/3e22e51c74db8e0b182fad67b502e640/"
+  - "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"

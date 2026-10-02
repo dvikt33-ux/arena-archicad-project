@@ -1,0 +1,75 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: LARGE_ROOF_OPENING_FRAMING_NODES
+purpose: "Executable perimeter and envelope nodes for large roof openings such as access hatches, grouped skylights, equipment openings and dormer cuts."
+
+source_dependencies:
+  - 43_roof_penetration_node.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 61_roof_window_nodes.yaml
+  - 64_complex_roof_topology_nodes.yaml
+
+selection_inputs:
+  - opening_purpose
+  - opening_host_roof_plane
+  - opening_geometry_reference
+  - KR_trimmed_framing_reference
+  - equipment_or_product_reference
+  - waterproofing_transition_reference
+  - thermal_boundary_mode
+  - air_vapor_transition_reference
+
+nodes:
+  - node_id: ROOF_OPEN_001_LARGE_STRUCTURAL_OPENING
+    applies_if:
+      opening_class: large_structural_opening
+    required_inputs:
+      - approved_opening_geometry
+      - KR_trimmed_framing_reference
+      - KR_local_load_path_reference
+      - waterproofing_transition_reference
+      - thermal_air_vapor_transition_reference_if_heated
+    geometry_actions:
+      - create_opening_from_approved_geometry
+      - place_trimmed_framing_from_KR
+      - instantiate_perimeter_waterproofing_nodes
+      - reconnect_thermal_and_air_vapor_contours
+      - reserve_uphill_water_diversion_zone_if_project_detail_requires
+    postconditions:
+      - opening_equals_approved_geometry
+      - framing_equals_KR
+      - all_four_perimeter_sides_have_water_control
+      - thermal_air_vapor_contours_resolved_when_applicable
+
+  - node_id: ROOF_OPEN_002_GROUPED_SKYLIGHT_ZONE
+    applies_if:
+      opening_class: grouped_skylights
+    required_inputs:
+      - verified_skylight_system
+      - manufacturer_grouping_detail
+      - KR_trimmed_framing_reference
+      - project_water_diversion_detail
+    hard_fail:
+      - manufacturer_grouping_detail_missing
+      - KR_trimmed_framing_reference_missing
+
+rules:
+  - id: roof.opening.no_member_cut_without_KR
+    automation: true
+    statement: "No rafter, purlin, truss or panel member may be cut or interrupted for an opening unless the exact modified load path is approved in KR."
+    result_on_missing: structural_penetration_not_approved
+  - id: roof.opening.product_clearance_is_product_owned
+    automation: true
+    statement: "Clearances, curb dimensions and installation frames tied to proprietary equipment are taken from verified manufacturer documentation, not generated generically."
+    result_on_missing: roof_required_manufacturer_detail_missing
+
+never_infer:
+  - header_count
+  - trimmer_count
+  - header_section
+  - trimmer_section
+  - curb_height
+  - equipment_clearance
+  - fastener_pattern
+  - water_diverter_geometry

@@ -1,0 +1,140 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+purpose: map_verified_foundation_and_floor_node_DSL_to_existing_Tapir_Archicad_commands
+
+verified_command_source:
+  file: ../izh/10_tapir_command_matrix.yaml
+  policy: "Use only commands already audited as available_upstream; all project writes still require typed safe wrappers."
+
+representation_policy:
+  raft: native_Slab
+  strip_foundation: native_Beam_or_Wall_selected_from_actual_KR_semantics
+  isolated_pad: native_Slab_or_verified_object_selected_from_actual_KR_semantics
+  pile: native_Column_or_verified_library_object_from_KR_geometry
+  pile_cap: native_Slab_or_Beam
+  basement_wall: native_Wall
+  floor_slab: native_Slab
+  supporting_beam: native_Beam
+  supporting_column: native_Column
+  structural_opening: native_Opening_after_KR_approval
+  repeated_profile: Complex_Profile_only_when_true_repeated_section
+  membranes_and_small_interface_materials: detail_2d_plus_properties_by_default
+
+operation_DSL:
+  create_slab_host:
+    preconditions: [KR_geometry_approved, level_reference_known]
+    operations: [CreateSlabs]
+    readback: [element_GUID, element_type, polygon, elevation, thickness_or_composite_reference]
+  create_wall_host:
+    preconditions: [KR_or_AR_host_geometry_approved]
+    operations: [CreateWalls]
+    readback: [element_GUID, element_type, baseline, height, thickness_or_composite_reference]
+  create_beam_host:
+    preconditions: [KR_beam_geometry_approved]
+    operations: [CreateBeams]
+    readback: [element_GUID, axis, section_reference]
+  create_column_host:
+    preconditions: [KR_column_or_pile_geometry_approved]
+    operations: [CreateColumns]
+    readback: [element_GUID, axis, section_reference]
+  create_structural_opening:
+    preconditions: [KR_opening_approved, host_GUID_verified, host_type_supported]
+    operations: [CreateOpenings]
+    readback: [opening_GUID, owner_GUID, opening_geometry]
+  create_associative_cut_relation:
+    preconditions: [relation_semantics_verified, target_GUID_verified, operator_GUID_verified]
+    operations: [CreateSolidElementLinks, GetSolidElementLinks]
+    readback: [target_operator_relation]
+  create_repeated_profile:
+    preconditions: [profile_semantics_verified]
+    operations: [CreateProfiles, GetProfiles]
+  create_detail_output:
+    preconditions: [node_instance_resolved]
+    operations: [CreateDetails, CreateAssociativeDimensionsOnSection]
+    note: "Documentation output only; semantic source remains model+node record."
+
+foundation_sequences:
+  raft_rc:
+    - validate_geotech_and_KR_revision
+    - create_slab_host
+    - create_only_KR_approved_openings
+    - instantiate_foundation_wall_nodes
+    - overlay_waterproofing_interfaces
+    - write_NODE_ID_and_revisions
+    - readback_and_validate
+  shallow_strip_rc:
+    - validate_geotech_and_KR_revision
+    - resolve_strip_representation_from_KR_geometry
+    - create_beam_or_wall_hosts
+    - instantiate_foundation_wall_nodes
+    - overlay_waterproofing_interfaces
+    - readback_and_validate
+  isolated_pad_rc:
+    - validate_geotech_and_KR_revision
+    - create_pad_hosts_from_KR_geometry
+    - create_or_confirm_columns
+    - validate_pad_column_relation
+    - readback_and_validate
+  pile_raft_rc:
+    - validate_pile_design_and_KR_revision
+    - create_columns_or_verified_pile_objects_from_KR_coordinates
+    - create_slab_host_for_raft
+    - validate_pile_head_to_raft_graph
+    - readback_and_validate
+  pile_caps_rc:
+    - validate_pile_design_and_KR_revision
+    - create_piles_from_KR_coordinates
+    - create_caps_and_tie_beams_from_KR_geometry
+    - validate_pile_cap_superstructure_graph
+    - readback_and_validate
+
+floor_sequences:
+  monolithic_rc_flat_slab:
+    - validate_KR_floor_revision
+    - create_slab_host
+    - create_only_KR_approved_openings
+    - instantiate_support_and_edge_nodes
+    - readback_and_validate
+  monolithic_rc_beam_slab:
+    - validate_KR_floor_revision
+    - create_beam_hosts
+    - create_slab_host
+    - create_only_KR_approved_openings
+    - instantiate_beam_slab_and_edge_nodes
+    - readback_and_validate
+  precast_hollow_core_PC:
+    - validate_verified_PC_marks
+    - layout_using_existing_precast_layout_rule
+    - create_or_place_verified_product_representation
+    - instantiate_bearing_variant_per_support
+    - validate_bearing_inputs_equal_KR
+    - readback_and_validate
+  precast_hollow_core_PB:
+    - validate_manufacturer_PB_geometry
+    - layout_without_generic_length_inference
+    - create_or_place_verified_product_representation
+    - instantiate_bearing_variant_per_support
+    - validate_bearing_inputs_equal_KR
+    - readback_and_validate
+
+write_gate:
+  before_KR_resolution:
+    allowed: [classification, candidate_selection, reserve_zones, metadata, coordination_placeholder]
+    prohibited: [structural_geometry_execution, reinforcement, bearing_geometry, structural_opening]
+  after_KR_resolution:
+    require: [KR_revision, geotech_revision_if_foundation, precondition_checksum]
+  after_write:
+    require: [GUID_readback, type_readback, geometry_readback, relation_readback, NODE_ID_readback]
+    mismatch_result: failed_or_rollback
+
+node_instance_properties:
+  - CONSTRUCTION_NODE_ID
+  - CONSTRUCTION_NODE_FAMILY
+  - CONSTRUCTION_NODE_REVISION
+  - CONSTRUCTION_NODE_STATUS
+  - KR_REVISION
+  - GEOTECH_REVISION_IF_APPLICABLE
+  - PRODUCT_SOURCE_IF_APPLICABLE
+  - NORMATIVE_SOURCE_SET
+  - UNRESOLVED_GATES

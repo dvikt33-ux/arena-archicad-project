@@ -1,0 +1,113 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: WALL_MATERIAL_SYSTEM_REGISTRY
+purpose: "Typed wall-material registry for roof-wall node selection. Product geometry is preserved from verified product data; wall material alone never authorizes structural anchorage or bearing geometry."
+
+source_dependencies:
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/24_masonry_opening_layout.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - 45_rafter_wall_connection_variants.yaml
+
+material_families:
+  - family_id: porous_ceramic_large_format
+    standard_reference: GOST_530_2012
+    semantic_name_ru: "крупноформатная поризованная керамика"
+    geometry_mode: verified_product_geometry
+    examples_non_normative:
+      - product_family: BRAER_Ceramic_Thermo_10_7_NF
+        nominal_geometry_mm: [380, 250, 219]
+        wall_thickness_class_mm: 380
+      - product_family: BRAER_Ceramic_Thermo_12_4_NF
+        nominal_geometry_mm: [440, 250, 219]
+        wall_thickness_class_mm: 440
+      - product_family: BRAER_Ceramic_Thermo_14_3_NF
+        nominal_geometry_mm: [510, 250, 219]
+        wall_thickness_class_mm: 510
+    constraints:
+      - do_not_treat_example_sizes_as_closed_standard_series
+      - product_mark_and_geometry_must_be_verified_for_project
+      - hollow_web_geometry_must_not_be_assumed_for_anchor_design
+      - roof_support_requires_KR_local_bearing_and_connection_detail
+
+  - family_id: ceramic_brick_and_stone
+    standard_reference: GOST_530_2012
+    semantic_name_ru: "керамический кирпич и камень"
+    geometry_mode: verified_product_geometry
+    constraints:
+      - masonry_strength_and_local_bearing_from_KR
+      - direct_roof_anchor_not_allowed_without_KR_detail
+
+  - family_id: AAC_autoclaved
+    standard_reference: GOST_31360_2024
+    semantic_name_ru: "автоклавный газобетон"
+    geometry_mode: verified_product_geometry
+    constraints:
+      - block_density_strength_geometry_from_verified_product
+      - concentrated_roof_support_requires_KR_detail
+      - anchor_system_must_be_verified_for_base_material
+      - ring_beam_or_distribution_element_presence_not_inferred
+
+  - family_id: silicate_masonry
+    standard_reference: GOST_379_2025
+    semantic_name_ru: "силикатные кладочные изделия"
+    geometry_mode: verified_product_geometry
+    constraints:
+      - nominal_product_series_is_not_a_substitute_for_project_wall_geometry
+      - local_bearing_and_anchor_solution_from_KR
+
+  - family_id: reinforced_concrete_monolithic
+    semantic_name_ru: "монолитный железобетон"
+    geometry_mode: KR_geometry
+    constraints:
+      - embedded_plate_anchor_channel_or_cast_in_connection_from_KR
+      - facade_system_is_separate_from_structural_wall
+
+  - family_id: framed_wall_timber
+    semantic_name_ru: "деревянная каркасная стена"
+    geometry_mode: verified_project_system
+    constraints:
+      - top_plate_header_stud_and_hold_down_geometry_from_KR_or_verified_system
+      - sheathing_is_not_assumed_as_structural_without_design_reference
+
+  - family_id: framed_wall_LSTK
+    semantic_name_ru: "каркасная стена ЛСТК"
+    geometry_mode: verified_project_system
+    constraints:
+      - profile_section_and_connection_schedule_from_KR
+      - thermal_bridge_interface_requires_envelope_review
+
+  - family_id: prefabricated_panel
+    semantic_name_ru: "сборная стеновая панель"
+    geometry_mode: verified_product_or_KR_geometry
+    constraints:
+      - panel_joint_insert_and_connection_geometry_from_verified_system
+      - do_not_drill_or_anchor_outside_approved_zones
+
+selection_fields:
+  required:
+    - wall_material_family
+    - wall_structural_role
+    - verified_wall_product_or_KR_system
+    - wall_actual_thickness_mm
+    - roof_structural_variant_id
+    - KR_roof_wall_support_detail
+  optional:
+    - product_mark
+    - nominal_product_geometry_mm
+    - masonry_unit_orientation
+    - facade_system
+    - insulation_system
+    - ring_beam_present_by_KR
+    - mauerlat_present_by_KR
+
+rules:
+  - id: wall.material.geometry_is_product_data
+    automation: true
+    statement: "Толщина и геометрия современной стеновой системы берутся из проверенного продукта/КР, а не из общего названия материала."
+    result_on_missing: product_geometry_or_manufacturer_data_missing
+  - id: wall.material.no_anchor_from_material_name
+    automation: true
+    statement: "Название материала стены не разрешает автоматически выбирать анкер, мауэрлат, армопояс, закладную, глубину анкеровки или шаг крепежа."
+    result_on_missing: needs_structural_connection

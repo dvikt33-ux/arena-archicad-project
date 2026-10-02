@@ -1,0 +1,97 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: INTERSECTING_ROOF_NODES
+purpose: "Executable nodes for T-shaped, cross-shaped and offset-elevation roof intersections."
+
+source_dependencies:
+  - 14_ridge_hip_node.yaml
+  - 15_valley_node.yaml
+  - 16_wall_abutment_node.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 52_wall_roof_contour_router.yaml
+  - 64_complex_roof_topology_nodes.yaml
+
+selection_inputs:
+  - intersection_type
+  - primary_roof_planes
+  - secondary_roof_planes
+  - elevation_relationship
+  - covering_system_primary
+  - covering_system_secondary
+  - KR_intersection_scheme_reference
+  - KR_support_reference
+  - verified_covering_transition_detail
+
+nodes:
+  - node_id: ROOF_X_001_T_INTERSECTION_SAME_ELEVATION
+    applies_if:
+      intersection_type: T_intersection
+      elevation_relationship: same_base_elevation
+    required_nodes:
+      - valley_left
+      - valley_right
+      - secondary_ridge_termination
+      - local_structural_support
+    required_inputs:
+      - KR_intersection_scheme_reference
+      - KR_support_reference
+      - verified_covering_transition_detail
+    geometry_actions:
+      - derive_plane_intersection_lines
+      - create_valley_node_instances
+      - terminate_secondary_ridge_at_verified_intersection
+      - bind_structural_nodes_to_KR
+      - resolve_water_path_through_both_valleys
+
+  - node_id: ROOF_X_002_CROSS_INTERSECTION
+    applies_if:
+      intersection_type: cross_intersection
+    required_nodes:
+      - valley_network
+      - ridge_network
+      - compound_center_junction
+      - local_structural_support
+    required_inputs:
+      - KR_intersection_scheme_reference
+      - compound_center_joint_reference
+      - verified_covering_transition_detail
+    hard_fail:
+      - compound_center_joint_missing
+      - drainage_network_unresolved
+
+  - node_id: ROOF_X_003_OFFSET_ELEVATION_ABUTMENT
+    applies_if:
+      elevation_relationship: high_to_low_roof
+    required_nodes:
+      - high_roof_edge
+      - low_roof_wall_abutment
+      - local_drainage_transition
+      - support_transition
+    required_inputs:
+      - host_wall_or_upstand_geometry
+      - verified_abutment_system
+      - KR_support_transition_reference
+      - drainage_strategy_reference
+    geometry_actions:
+      - create_high_low_interface_from_actual_levels
+      - instantiate_wall_abutment_node
+      - reserve_drainage_path
+      - reconnect_envelope_contours
+
+rules:
+  - id: roof.intersection.same_covering_not_assumed
+    automation: true
+    statement: "Primary and secondary roofs may use different verified covering systems; transition compatibility must be explicit."
+  - id: roof.intersection.center_joint_from_KR
+    automation: true
+    statement: "Compound ridge/valley centers and load transfer at intersecting roofs require a KR joint reference."
+    result_on_missing: roof_structural_joint_unresolved
+
+never_infer:
+  - valley_member_count
+  - jack_rafter_layout
+  - ridge_termination_connection
+  - local_posts_or_struts
+  - gutter_or_cricket_geometry
+  - flashing_dimensions

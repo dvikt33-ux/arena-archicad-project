@@ -1,0 +1,49 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+selector_id: FLOOR_SYSTEM_SELECTOR_V1
+
+sources:
+  - SP_63_13330_2018_changes_1_2
+  - SP_70_13330_2012_target_2027_change_8
+  - GOST_9561_2025_with_IUS_6_2026
+  - GOST_26434_2025
+
+preconditions:
+  hard_require: [structural_scheme, span_grid, loads_revision, KR_floor_system_status]
+  if_missing_result: blocked_waiting_for_KR
+
+candidates:
+  - id: monolithic_rc_flat_slab
+    consider_when: [KR_allows_monolithic_slab]
+    finalize_requires: [KR_slab_thickness, KR_reinforcement_reference, KR_support_zones]
+    never_infer: [slab_thickness, punching_reinforcement, column_head_or_drop]
+
+  - id: monolithic_rc_beam_slab
+    consider_when: [KR_allows_beam_slab]
+    finalize_requires: [KR_slab_geometry, KR_beam_geometry, KR_reinforcement_reference]
+    never_infer: [beam_section, slab_thickness, reinforcement]
+
+  - id: precast_hollow_core_PC
+    consider_when: [KR_allows_precast_hollow_core, verified_PC_product_family]
+    finalize_requires: [verified_marks, KR_bearing_zones, KR_ties_and_anchorage]
+    never_infer: [bearing_length, slab_mark, tie_geometry]
+
+  - id: precast_hollow_core_PB
+    consider_when: [KR_allows_precast_hollow_core, verified_PB_product_family]
+    finalize_requires: [manufacturer_geometry, KR_bearing_zones, KR_ties_and_anchorage]
+    never_infer: [PB_length_from_generic_grid, bearing_length, slab_mark]
+
+  - id: precast_solid_or_ribbed
+    consider_when: [KR_specifies_verified_precast_family]
+    finalize_requires: [product_standard_or_manufacturer_geometry, KR_support_graph]
+    never_infer: [product_type_from_span_alone]
+
+selection_constraints:
+  - direct_product_dimensions_override_modular_rounding
+  - product_family_must_be_verified_before_layout
+  - openings_in_precast_products_require_KR_and_product_rules
+  - floor_system_selection_cannot_be_finalized_by_AR_agent
+
+output:
+  fields: [candidate_ids, rejected_candidates, missing_inputs, KR_finalization_required]

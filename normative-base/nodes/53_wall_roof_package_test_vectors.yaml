@@ -1,0 +1,99 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+suite_id: WALL_ROOF_PACKAGE_TESTS_V1
+
+tests:
+  - test_id: warm_ceramic_440_etics_warm_roof_selects_package
+    intent: build_pitched_roof
+    inputs:
+      wall_system_family: warm_ceramic_large_format
+      wall_product_geometry_mm: [440, 250, 219]
+      facade_family: plaster_or_ETICS
+      roof_thermal_boundary_mode: insulated_slope
+      roof_edge_condition: eaves
+      exact_wall_product_id: BRAER_CERAMIC_THERMO_12_4_NF
+      thermal_calculation_reference: TH_01
+      KR_roof_wall_support_detail: KR_RWS_01
+      verified_roof_covering_system: ROOF_SYS_01
+      ventilation_mode: vented
+    expected:
+      package_id: PKG_TC_440_ETICS_WARM_ROOF
+
+  - test_id: warm_ceramic_510_must_not_reuse_380_package
+    intent: build_pitched_roof
+    inputs:
+      wall_system_family: warm_ceramic_large_format
+      wall_product_geometry_mm: [510, 250, 219]
+      facade_family: render_or_thin_coat
+      roof_thermal_boundary_mode: insulated_slope
+      roof_edge_condition: eaves
+    expected:
+      package_id: PKG_TC_510_RENDER_WARM_ROOF
+      forbidden_package_ids: [PKG_TC_380_BRICK_VENEER_WARM_ROOF, PKG_TC_440_ETICS_WARM_ROOF]
+
+  - test_id: warm_ceramic_missing_product_geometry_blocks
+    intent: build_pitched_roof
+    inputs:
+      wall_system_family: warm_ceramic_large_format
+      wall_product_geometry_mm: null
+      facade_family: plaster_or_ETICS
+      roof_thermal_boundary_mode: insulated_slope
+    expected:
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [wall_thickness_guess, support_geometry, anchor_pattern]
+
+  - test_id: aac_ventfacade_missing_support_strategy_blocks
+    intent: build_pitched_roof
+    inputs:
+      wall_system_family: AAC
+      facade_family: ventilated_facade
+      roof_thermal_boundary_mode: insulated_slope
+      exact_AAC_product_and_density_class: AAC_PRODUCT_01
+      KR_local_bearing_or_reinforced_belt_detail: null
+      verified_anchor_or_bearing_system: null
+      ventilated_facade_system_id: VF_01
+      subframe_top_termination_detail: VF_TOP_01
+    expected:
+      status: blocked_waiting_for_KR_or_product_data
+      forbidden_outputs: [reinforced_belt_geometry, anchor_type, anchor_spacing]
+
+  - test_id: rc_ventfacade_missing_embedded_detail_blocks
+    intent: build_pitched_roof
+    inputs:
+      wall_system_family: reinforced_concrete
+      facade_family: ventilated_facade
+      roof_thermal_boundary_mode: insulated_slope
+      KR_embedded_or_anchor_connection_detail: null
+      verified_facade_system: VF_RC_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [embedded_plate_geometry, anchor_layout]
+
+  - test_id: timber_frame_requires_membrane_continuity
+    intent: validate_roof_nodes
+    inputs:
+      wall_roof_package_id: PKG_TIMBER_FRAME_VENTED_WARM_ROOF
+      wall_air_control_layer: MEM_WALL_01
+      roof_air_control_layer: null
+      wall_vapor_control_layer: MEM_WALL_VP_01
+      roof_vapor_control_layer: MEM_ROOF_VP_01
+    expected:
+      status: blocked
+      blocked_reason: roof_air_vapor_contour_unresolved
+
+  - test_id: ventfacade_and_roof_cavity_not_auto_connected
+    intent: validate_roof_nodes
+    inputs:
+      wall_roof_package_id: PKG_AAC_VENTFACADE_WARM_ROOF
+      facade_cavity: present
+      roof_ventilation_mode: vented
+      verified_combined_cavity_detail: null
+    expected:
+      cavities_are_independent: true
+      forbidden_outputs: [combined_air_channel]
+
+validation_policy:
+  - every_expected_package_id_must_exist
+  - product_geometry_specific_tests_must_not_fall_back_to_nominal_family_only
+  - blocked_tests_must_not_generate_structural_or_product_dimensions

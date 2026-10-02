@@ -1,0 +1,57 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+purpose: "Machine-executable column-to-floor and beam-to-floor nodes for RC frames; no autonomous structural design."
+
+nodes:
+  - node_id: COL_FLR_001_RC_COLUMN_TO_FLAT_SLAB
+    family: column_floor
+    hosts: [rc_column, monolithic_rc_flat_slab]
+    applies_if: ["floor_system=monolithic_rc_flat_slab", "column_material=reinforced_concrete"]
+    require: [KR_column_geometry, KR_slab_geometry, KR_column_slab_joint, KR_punching_check_reference]
+    blockers: [KR_column_slab_joint_missing, KR_punching_check_missing]
+    contours: [load_path, movement_and_tolerance, fire_if_applicable]
+    geometry_actions: [align_column_and_slab_axes, preserve_KR_joint_zone, attach_punching_check_reference]
+    never_infer: [column_head, drop_panel, punching_reinforcement, slab_reinforcement]
+
+  - node_id: COL_FLR_002_RC_COLUMN_TO_BEAM_SLAB_FRAME
+    family: column_beam_floor
+    hosts: [rc_column, rc_beam, monolithic_rc_slab]
+    applies_if: ["floor_system=monolithic_rc_beam_slab", "column_material=reinforced_concrete"]
+    require: [KR_column_geometry, KR_beam_geometry, KR_beam_column_joint, KR_slab_beam_relation]
+    blockers: [KR_beam_column_joint_missing]
+    contours: [load_path, movement_and_tolerance, fire_if_applicable]
+    geometry_actions: [place_beam_to_KR_axis, preserve_column_beam_joint_zone, attach_KR_joint_reference]
+    never_infer: [beam_depth, beam_width, reinforcement, anchorage, joint_confinement]
+
+  - node_id: BEAM_FLR_001_RC_BEAM_TO_MONOLITHIC_SLAB
+    family: beam_floor
+    hosts: [rc_beam, monolithic_rc_slab]
+    applies_if: ["floor_system=monolithic_rc_beam_slab"]
+    require: [KR_beam_geometry, KR_slab_geometry, KR_beam_slab_relation]
+    blockers: [KR_beam_slab_geometry_missing]
+    contours: [load_path, movement_and_tolerance]
+    geometry_actions: [align_slab_to_beam_reference, preserve_KR_topology, attach_connection_metadata]
+    never_infer: [effective_flange_width, reinforcement, construction_joint_location]
+
+  - node_id: BEAM_FLR_002_RC_BEAM_TO_PRECAST_SLAB
+    family: beam_precast_floor
+    hosts: [rc_beam, precast_slab]
+    applies_if: ["floor_system in {precast_hollow_core_PC,precast_hollow_core_PB,precast_solid_or_ribbed}"]
+    require: [verified_slab_product, KR_beam_geometry, KR_bearing_length, KR_connection_definition]
+    blockers: [slab_product_not_verified, KR_bearing_length_missing]
+    contours: [load_path, movement_and_tolerance]
+    geometry_actions: [align_product_to_beam_support_plane, preserve_KR_bearing_length, attach_product_and_KR_references]
+    never_infer: [bearing_length, embedded_parts, grout, ties, beam_geometry]
+
+execution_policy:
+  archicad_major_elements: [CreateColumns, CreateBeams, CreateSlabs]
+  relation_readback_required: true
+  structural_joint_geometry_source: KR_only
+
+postconditions:
+  - host_types_match_expected
+  - all_load_path_relations_reference_KR
+  - precast_bearing_matches_KR_input_when_applicable
+  - no_unapproved_opening_or_trim_in_structural_zone

@@ -1,0 +1,106 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: select_roof_node_variants_from_existing_high_level_command_contract
+
+input_contract_reference: 06_high_level_command_contract.yaml
+policy: "Не изменяет синтаксис высокоуровневой команды. Преобразует уже разобранный project context и топологию модели в набор node instances и hard-fail gates."
+
+selector_inputs:
+  - parsed_intent
+  - roof_form
+  - roof_topology
+  - covering_system_id
+  - structural_roof_scheme_reference
+  - thermal_boundary_mode
+  - ventilation_mode
+  - drainage_mode
+  - wall_material_and_envelope_system
+  - penetrations
+  - vertical_abutments
+  - KR_revision
+
+families:
+  roof_wall_support:
+    apply_when: roof_load_path_intersects_support_line
+    require: [structural_roof_scheme_reference, KR_revision, wall_host]
+    file: 12_roof_wall_support_node.yaml
+  eaves:
+    apply_when: lower_free_edge_exists
+    require: [covering_system_id, drainage_mode]
+    file: 13_eaves_node.yaml
+  ridge:
+    apply_when: upper_convex_intersection_of_two_roof_planes
+    require: [covering_system_id, structural_roof_scheme_reference]
+    file: 14_ridge_hip_node.yaml
+  hip:
+    apply_when: sloping_convex_intersection_of_two_roof_planes
+    require: [covering_system_id, structural_roof_scheme_reference]
+    file: 14_ridge_hip_node.yaml
+  valley:
+    apply_when: concave_intersection_of_two_roof_planes
+    require: [covering_system_id, drainage_destination]
+    file: 15_valley_node.yaml
+  wall_abutment:
+    apply_when: roof_plane_intersects_vertical_host
+    require: [covering_system_id, vertical_host, wall_finish_system]
+    file: 16_wall_abutment_node.yaml
+  gable_verge:
+    apply_when: sloping_free_edge_to_gable
+    require: [covering_system_id]
+    file: 38_gable_verge_node.yaml
+  penetration:
+    apply_when: roof_penetration_count_greater_than_zero
+    require: [approved_opening_geometry, covering_system_id, penetration_product_or_project_detail_reference]
+    file: 39_roof_penetration_node.yaml
+
+structural_variant_binding:
+  source: 11_rafter_system_topology.yaml
+  rule: "Структурный вариант не выбирается по форме крыши. Каталог получает structural_variant_id только из подтвержденного КР reference."
+  missing_result: roof_structural_scheme_missing
+
+covering_binding:
+  source: 17_covering_system_adapters.yaml
+  rule: "Каждый наружный кровельный узел должен иметь adapter покрытия. Если adapter неизвестен, node может существовать только как unresolved metadata instance без исполняемой продуктовой геометрии."
+  missing_result: roof_covering_system_missing
+
+ventilation_binding:
+  source: 10_roof_ventilation_matrix.yaml
+  when: ventilation_mode == ventilated_channel
+  apply_to: [eaves, ridge, hip, valley, wall_abutment, gable_verge, penetration]
+  rule: "После выбора узлов проверить непрерывность каждого канала от входа до подтвержденного выхода; локальный узел не считается валидным, если ломает глобальную вентиляционную трассу."
+
+selection_sequence:
+  - parse_existing_high_level_command
+  - inspect_actual_roof_topology
+  - create_node_instance_for_each_topological_event
+  - bind_structural_variant_from_KR
+  - bind_covering_adapter
+  - bind_envelope_contours
+  - bind_ventilation_requirements
+  - run_family_specific_hard_fail_gates
+  - compile_archicad_operations
+  - execute_only_resolved_operations
+  - readback_and_validate
+
+instance_schema:
+  node_instance_id: required
+  family: required
+  host_guids: required
+  topology_signature: required
+  structural_variant_id: nullable_until_KR
+  covering_adapter_id: nullable_until_product_resolution
+  envelope_context: required
+  unresolved_gates: []
+  execution_status: [classified, coordinated, blocked, approved_for_model, executed, failed_readback]
+
+anti_pattern_guards:
+  - id: roof.catalog.no_typical_node_by_name_only
+    automation: true
+    statement: "Фраза 'сделай типовой узел крыши' не выбирает геометрию. Нужны фактическая топология, конструктивная схема КР, покрытие и контуры ограждения."
+  - id: roof.catalog.no_one_node_for_all_edges
+    automation: true
+    statement: "Одинаково названные узлы на разных участках крыши получают отдельные instances; их host geometry, slope, covering adapter и unresolved gates могут различаться."
+  - id: roof.catalog.no_hidden_default
+    automation: true
+    statement: "При недостатке входов selector возвращает конкретный blocked reason, а не молча подставляет распространенный узел."

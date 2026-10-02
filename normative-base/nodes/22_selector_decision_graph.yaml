@@ -2,7 +2,7 @@ checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 
-graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V2
+graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V3
 
 entrypoints:
   build_foundation_system: foundation_system_graph
@@ -15,6 +15,9 @@ entrypoints:
   build_stair_landing_node: stair_landing_graph
   build_parapet_node: parapet_graph
   build_facade_slab_edge_node: facade_edge_graph
+  build_balcony_loggia_node: balcony_loggia_graph
+  build_entrance_external_stair_node: entrance_external_stair_graph
+  build_deformation_joint_node: deformation_joint_graph
 
 foundation_system_graph:
   - gate: require_geotech_and_loads
@@ -156,6 +159,40 @@ facade_edge_graph:
   - route:
       when: ["facade_system=curtain_wall"]
       node_candidates: [FCD_EDGE_003_CURTAIN_WALL_AT_SLAB_EDGE]
+
+balcony_loggia_graph:
+  - gate: require_KR_external_slab_geometry
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["projection_type=cantilever", "structural_system=monolithic_rc"]
+      node_candidates: [BAL_001_MONOLITHIC_CANTILEVER_SLAB_AT_FACADE]
+  - route:
+      when: ["projection_type=recessed_loggia"]
+      node_candidates: [BAL_002_LOGGIA_SLAB_BETWEEN_SIDE_WALLS]
+  - overlay_if:
+      thermal_break_required: BAL_003_THERMAL_BREAK_CANTILEVER_INTERFACE
+      guard_required: BAL_004_BALCONY_EDGE_RAILING_SUPPORT
+
+entrance_external_stair_graph:
+  - route:
+      when: ["entrance_type=external_platform"]
+      node_candidates: [ENT_001_ENTRANCE_PLATFORM_AT_EXTERNAL_DOOR]
+  - overlay_if:
+      independent_external_foundation: ENT_002_PORCH_FOUNDATION_SEPARATED_FROM_MAIN_BUILDING
+      external_rc_stair_present: ENT_003_EXTERNAL_RC_STAIR_TO_PLATFORM
+      canopy_present: ENT_004_CANOPY_SUPPORT_AT_ENTRANCE
+
+ deformation_joint_graph:
+  - gate: require_KR_joint_axis_and_movement_range
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["joint_scope=vertical_through_structure"]
+      node_candidates: [JNT_001_STRUCTURAL_DEFORMATION_JOINT_VERTICAL]
+  - overlay_if:
+      finish_crosses_structural_joint: JNT_002_FLOOR_FINISH_JOINT_OVER_STRUCTURAL_JOINT
+      envelope_crosses_structural_joint: JNT_003_FACADE_DEFORMATION_JOINT
+      roof_crosses_structural_joint: JNT_004_ROOF_DEFORMATION_JOINT
+      joint_below_grade: JNT_005_BELOW_GRADE_DEFORMATION_JOINT_WATERSTOP
 
 resolution_order:
   - hard_fail_gates

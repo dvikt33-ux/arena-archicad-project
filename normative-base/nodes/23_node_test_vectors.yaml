@@ -1,7 +1,7 @@
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
-suite_id: CONSTRUCTION_NODE_SELECTOR_TESTS_V2
+suite_id: CONSTRUCTION_NODE_SELECTOR_TESTS_V3
 
 tests:
   - test_id: foundation_missing_geotech_blocks
@@ -196,6 +196,113 @@ tests:
     expected:
       status: blocked_waiting_for_product_data
       forbidden_outputs: [anchor_type, anchor_spacing, bracket_geometry]
+
+  - test_id: cantilever_balcony_selects_node
+    intent: build_balcony_loggia_node
+    inputs:
+      projection_type: cantilever
+      structural_system: monolithic_rc
+      KR_cantilever_geometry: KR_BAL_01
+      KR_reinforcement_and_anchorage_reference: KR_BAL_REINF_01
+      AR_finished_level_relation: AR_BAL_LVL_01
+      water_drainage_strategy: AR_BAL_DRAIN_01
+      thermal_bridge_strategy: THERM_BAL_01
+    expected:
+      node_id: BAL_001_MONOLITHIC_CANTILEVER_SLAB_AT_FACADE
+
+  - test_id: cantilever_balcony_without_KR_geometry_blocks
+    intent: build_balcony_loggia_node
+    inputs:
+      projection_type: cantilever
+      structural_system: monolithic_rc
+      KR_cantilever_geometry: null
+      water_drainage_strategy: AR_BAL_DRAIN_02
+      thermal_bridge_strategy: THERM_BAL_02
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [cantilever_length, slab_thickness, reinforcement, slope]
+
+  - test_id: thermal_break_without_verified_product_blocks
+    intent: build_balcony_loggia_node
+    inputs:
+      projection_type: cantilever
+      structural_system: monolithic_rc
+      KR_cantilever_geometry: KR_BAL_03
+      thermal_break_required: true
+      verified_thermal_break_system: null
+    expected:
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [thermal_break_product, module_spacing, reinforcement_configuration]
+
+  - test_id: entrance_platform_selects_node
+    intent: build_entrance_external_stair_node
+    inputs:
+      entrance_type: external_platform
+      AR_threshold_and_finished_levels: AR_ENT_01
+      KR_platform_support_geometry: KR_ENT_01
+      drainage_strategy: AR_ENT_DRAIN_01
+      waterproofing_interface_strategy: WP_ENT_01
+    expected:
+      node_id: ENT_001_ENTRANCE_PLATFORM_AT_EXTERNAL_DOOR
+
+  - test_id: porch_independent_foundation_without_geotech_blocks
+    intent: build_entrance_external_stair_node
+    inputs:
+      entrance_type: external_platform
+      independent_external_foundation: true
+      engineering_geology_revision: null
+      KR_porch_foundation_geometry: KR_PORCH_01
+    expected:
+      status: blocked_waiting_for_geotech_or_KR
+      forbidden_outputs: [foundation_type, foundation_depth, reinforcement]
+
+  - test_id: external_stair_without_route_check_blocks
+    intent: build_entrance_external_stair_node
+    inputs:
+      entrance_type: external_platform
+      external_rc_stair_present: true
+      KR_stair_geometry: KR_EXT_STAIR_01
+      KR_support_and_joint_definition: KR_EXT_STAIR_JOINT_01
+      AR_egress_or_accessibility_check: null
+      drainage_and_icing_strategy: EXT_DRAIN_01
+    expected:
+      status: blocked_waiting_for_KR_or_AR_check
+
+  - test_id: structural_deformation_joint_selects_node
+    intent: build_deformation_joint_node
+    inputs:
+      joint_scope: vertical_through_structure
+      KR_joint_axis: AXIS_DJ_01
+      KR_joint_width_and_movement_range: KR_DJ_MOV_01
+      KR_separation_extent: KR_DJ_EXT_01
+      adjacent_element_geometry: KR_DJ_ADJ_01
+    expected:
+      node_id: JNT_001_STRUCTURAL_DEFORMATION_JOINT_VERTICAL
+
+  - test_id: deformation_joint_without_movement_blocks
+    intent: build_deformation_joint_node
+    inputs:
+      joint_scope: vertical_through_structure
+      KR_joint_axis: AXIS_DJ_02
+      KR_joint_width_and_movement_range: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [joint_width, movement_range, dowels, sealant_product]
+
+  - test_id: below_grade_joint_without_verified_waterstop_blocks
+    intent: build_deformation_joint_node
+    inputs:
+      joint_scope: vertical_through_structure
+      joint_below_grade: true
+      KR_joint_axis: AXIS_DJ_03
+      KR_joint_width_and_movement_range: KR_DJ_MOV_03
+      KR_joint_geometry: KR_DJ_GEO_03
+      waterproofing_project_detail: WP_DJ_03
+      verified_waterstop_or_joint_system: null
+      groundwater_state: known
+    expected:
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [waterstop_type, waterstop_size, embedment]
 
 validation_policy:
   - referenced_expected_node_ids_must_exist

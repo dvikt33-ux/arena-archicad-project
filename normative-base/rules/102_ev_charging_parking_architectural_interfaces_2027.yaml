@@ -1,0 +1,114 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: "Архитектурные и пожарные интерфейсы машино-мест с зарядкой электромобилей; расчет мощности и кабелей остается ЭОМ."
+
+revision_dependencies:
+  - {document: SP_113_13330_2023, verified_changes: [1,2,3,4], change_4_effective_from: 2026-10-03}
+  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9]}
+
+parking_rules:
+  - id: ev.parking.allowed_scope
+    source: {document: SP_113_13330_2023, clause: "7.10.2"}
+    automation: conditional
+    permitted_parking_types: [open_site, open_parking, enclosed_parking]
+    permitted_constructive_fire_hazard_classes: [C0, C1]
+    prohibited_parking_types: [mechanized_parking, semi_mechanized_parking]
+
+  - id: ev.parking.deep_underground_slow_charge_only
+    source: {document: SP_113_13330_2023, clause: "7.10.2"}
+    automation: hard_gate
+    condition: "enclosed_parking_level_below_first_underground_or_basement_level"
+    max_nominal_charge_current_a: 32
+    battery_requirement: no_combustible_gas_release_during_charging_and_operation
+
+  - id: ev.parking.fire_section_trigger
+    source: {document: SP_113_13330_2023, clause: "6.2.12"}
+    automation: conditional
+    condition: "enclosed_parking_room_area_m2 > 1200 AND charging_space_count > 10"
+    max_ev_fire_section_area_m2: 1200
+
+  - id: ev.parking.fire_section_separation
+    source: {document: SP_113_13330_2023, clause: "6.2.12"}
+    automation: design_option
+    condition: "ev.parking.fire_section_trigger == true"
+    permitted_options:
+      - type_1_fire_partition
+      - combustible_load_free_zone_width_m_8
+      - combustible_load_free_zone_width_m_6_with_drencher_or_automatic_smoke_screen
+    min_free_zone_width_m_without_active_barrier: 8
+    min_free_zone_width_m_with_active_barrier: 6
+    statement: "Полосы 6/8 м должны реально оставаться свободными от горючей нагрузки."
+
+  - id: ev.parking.fire_section_exception_room_up_to_1200
+    source: {document: SP_113_13330_2023, clause: "6.2.12"}
+    automation: conditional_exception
+    condition: "enclosed_parking_room_area_m2 <= 1200"
+    separate_ev_fire_section_required: false
+
+  - id: ev.parking.fire_section_exception_up_to_10_spaces
+    source: {document: SP_113_13330_2023, clause: "6.2.12"}
+    automation: conditional_exception
+    condition: "enclosed_parking_room_area_m2 > 1200 AND charging_space_count <= 10"
+    separate_ev_fire_section_required: false
+    clarification: "MChS letter 43-4241-19 dated 2024-07-10"
+
+  - id: ev.parking.aup_required
+    source: {document: SP_113_13330_2023, clause: "6.2.30"}
+    automation: mandatory_router
+    condition: "enclosed_parking_has_charging_spaces"
+    requirement: automatic_fire_suppression
+
+charger_type_rules:
+  - id: ev.charger.type4_no_embedded_public_residential_room
+    source: {document: SP_256_1325800_2016, clause: "7.4.2"}
+    automation: hard_gate
+    condition: "charger_type == 4"
+    prohibited_locations:
+      - embedded_or_attached_room_of_residential_building
+      - embedded_or_attached_room_of_public_building
+
+  - id: ev.charger.types3_4_main_supply_route
+    source: {document: SP_256_1325800_2016, clause: "7.4.2"}
+    automation: engineering_coordination_gate
+    condition: "charger_type in [3,4]"
+    supply_from: [VRU, main_switchboard, TP_0_4kV_switchgear]
+    discipline_boundary: EOM
+
+  - id: ev.parking.charging_space_count_router
+    source: {document: SP_256_1325800_2016, clause: "7.4.4"}
+    automation: mandatory_router
+    statement: "Количество зарядных мест определять по СП 42, региональным/местным нормативам и профильным требованиям, а не универсальным процентом."
+
+service_geometry:
+  - id: ev.charger.vehicle_and_cable_geometry
+    source: {document: SP_113_13330_2023, clause: "7.10.5"}
+    automation: mandatory_validation
+    required_inputs: [design_vehicle_envelope, parking_orientation, charger_equipment_envelope, charging_cable_geometry]
+
+BIM_required_parameters:
+  - parking_room_area_m2
+  - parking_structural_fire_hazard_class
+  - parking_floor_level_index
+  - charging_space_count
+  - charger_type
+  - charger_nominal_current_a
+  - battery_combustible_gas_release_status
+  - fire_section_area_m2
+  - separation_option
+  - combustible_load_free_zone_width_m
+  - AUPT_status
+  - charger_supply_origin
+  - vehicle_envelope
+  - charging_cable_geometry
+
+agent_logic:
+  - "Не считать зарядные места обычными машино-местами без проверки п.6.2.12 СП 113."
+  - "Ниже первого подземного этажа проверять ток и тип аккумулятора."
+  - "Мощность, коэффициенты спроса и силовые кабели рассчитывает ЭОМ."
+
+sources:
+  - "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+  - "https://protect.gost.ru/sp/changesdetails/d438f64b-92ac-4527-8548-9b68adacfc66"
+  - "https://base.garant.ru/407887809/"
+  - "https://base.garant.ru/408556493/"
+  - "https://base.garant.ru/409528513/"

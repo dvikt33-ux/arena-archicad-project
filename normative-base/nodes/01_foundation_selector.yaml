@@ -1,0 +1,74 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+selector_id: FOUNDATION_SYSTEM_SELECTOR_V1
+
+sources:
+  - SP_22_13330_2016_changes_1_5
+  - SP_24_13330_2021_changes_1_2
+  - SP_63_13330_2018_changes_1_2
+  - SP_28_13330_2017_changes_1_4
+
+preconditions:
+  hard_require: [engineering_geology_revision, loads_revision, structural_scheme, groundwater_state]
+  if_missing_result: blocked_waiting_for_geotech_or_KR
+
+candidates:
+  - id: shallow_strip_rc
+    structural_family: shallow_foundation
+    geometry_family: continuous_strip
+    consider_when:
+      all: [load_path_is_line_based, shallow_foundation_not_rejected_by_geotech]
+    reject_when:
+      any: [KR_rejects_strip, settlement_or_bearing_check_failed]
+    finalize_requires: KR_approved_foundation_system
+
+  - id: isolated_pad_rc
+    structural_family: shallow_foundation
+    geometry_family: isolated_pad
+    consider_when:
+      all: [load_path_is_column_point_based, shallow_foundation_not_rejected_by_geotech]
+    reject_when:
+      any: [KR_rejects_pad, punching_or_bearing_or_settlement_check_failed]
+    finalize_requires: KR_approved_foundation_system
+
+  - id: raft_rc
+    structural_family: shallow_foundation
+    geometry_family: continuous_raft
+    consider_when:
+      any: [KR_requests_raft, basement_box_system, distributed_load_path]
+    reject_when:
+      any: [KR_rejects_raft]
+    finalize_requires: KR_approved_raft_geometry
+
+  - id: basement_box_rc
+    structural_family: box_foundation
+    geometry_family: raft_plus_basement_walls
+    consider_when:
+      all: [basement_state_is_present, KR_uses_box_action]
+    finalize_requires: [KR_approved_raft_geometry, KR_approved_basement_wall_geometry]
+
+  - id: pile_raft_rc
+    structural_family: pile_foundation
+    geometry_family: piles_plus_raft
+    consider_when:
+      any: [KR_requests_piles, shallow_foundation_rejected_by_geotech]
+    finalize_requires: [pile_design_revision, KR_approved_pile_layout, KR_approved_raft_geometry]
+
+  - id: pile_caps_rc
+    structural_family: pile_foundation
+    geometry_family: piles_plus_caps_plus_beams_optional
+    consider_when:
+      all: [KR_requests_piles, point_load_path]
+    finalize_requires: [pile_design_revision, KR_approved_pile_layout, KR_approved_cap_geometry]
+
+  - id: precast_strip_FBS_FL
+    structural_family: precast_shallow_foundation
+    geometry_family: precast_strip
+    consider_when:
+      all: [KR_requests_precast_strip, product_geometry_verified]
+    finalize_requires: [KR_approved_layout, verified_product_marks]
+
+selection_output:
+  fields: [candidate_ids, blocked_reasons, required_missing_inputs, KR_finalization_required]
+  forbidden_output: automatically_finalized_structural_foundation_type

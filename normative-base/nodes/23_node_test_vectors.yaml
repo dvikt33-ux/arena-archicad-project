@@ -1,7 +1,7 @@
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
-suite_id: CONSTRUCTION_NODE_SELECTOR_TESTS_V1
+suite_id: CONSTRUCTION_NODE_SELECTOR_TESTS_V2
 
 tests:
   - test_id: foundation_missing_geotech_blocks
@@ -102,6 +102,100 @@ tests:
     expected:
       status: blocked_waiting_for_KR
       forbidden_outputs: [foundation_thickness, reinforcement, concrete_class]
+
+  - test_id: rc_column_to_raft_selects_node
+    intent: build_column_foundation_node
+    inputs:
+      foundation_system: raft_rc
+      column_material: reinforced_concrete
+      KR_column_axis: AXIS_C4
+      KR_raft_geometry: KR_RAFT_02
+      KR_column_raft_joint: KR_JOINT_C4
+      KR_punching_check_reference: KR_PUNCH_C4
+    expected:
+      node_id: COL_FDN_002_RC_COLUMN_TO_RAFT
+
+  - test_id: flat_slab_column_missing_punching_blocks
+    intent: build_column_floor_node
+    inputs:
+      floor_system: monolithic_rc_flat_slab
+      column_material: reinforced_concrete
+      KR_column_geometry: KR_COL_01
+      KR_slab_geometry: KR_SLAB_01
+      KR_column_slab_joint: KR_CS_01
+      KR_punching_check_reference: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [drop_panel_geometry, punching_reinforcement]
+
+  - test_id: beam_precast_missing_bearing_blocks
+    intent: build_beam_floor_node
+    inputs:
+      floor_system: precast_hollow_core_PC
+      verified_slab_product: true
+      KR_beam_geometry: KR_BEAM_03
+      KR_bearing_length: null
+    expected:
+      status: blocked_waiting_for_KR
+
+  - test_id: monolithic_stair_selects_connection
+    intent: build_stair_landing_node
+    inputs:
+      stair_system: monolithic_rc
+      landing_system: monolithic_rc
+      KR_stair_geometry: KR_STAIR_01
+      KR_landing_geometry: KR_LDG_01
+      KR_joint_definition: KR_STAIR_JOINT_01
+      AR_clear_width_check: pass
+    expected:
+      node_id: STR_LDG_001_MONOLITHIC_STAIR_TO_MONOLITHIC_LANDING
+
+  - test_id: stair_without_egress_check_blocks
+    intent: build_stair_landing_node
+    inputs:
+      stair_system: monolithic_rc
+      landing_system: monolithic_rc
+      KR_stair_geometry: KR_STAIR_02
+      KR_landing_geometry: KR_LDG_02
+      AR_clear_width_check: null
+    expected:
+      status: blocked_waiting_for_KR_or_AR_check
+
+  - test_id: rc_parapet_selects_flat_roof_node
+    intent: build_parapet_node
+    inputs:
+      roof_type: flat
+      parapet_material: reinforced_concrete
+      KR_parapet_geometry: KR_PAR_01
+      roof_waterproofing_system: SYS_WP_01
+      thermal_edge_review: pass
+      coping_or_top_termination_system: SYS_CAP_01
+    expected:
+      node_id: PAR_001_RC_PARAPET_TO_FLAT_ROOF_SLAB
+
+  - test_id: ventilated_facade_selects_edge_node
+    intent: build_facade_slab_edge_node
+    inputs:
+      facade_system: ventilated_facade
+      KR_slab_edge_geometry: KR_EDGE_01
+      verified_facade_system: VF_SYS_01
+      manufacturer_anchor_layout_or_KR: VF_ANCHOR_01
+      fire_cutoff_strategy: FIRE_EDGE_01
+      thermal_review: pass
+    expected:
+      node_id: FCD_EDGE_002_VENTILATED_FACADE_AT_SLAB_EDGE
+
+  - test_id: ventilated_facade_without_anchor_layout_blocks
+    intent: build_facade_slab_edge_node
+    inputs:
+      facade_system: ventilated_facade
+      KR_slab_edge_geometry: KR_EDGE_02
+      verified_facade_system: VF_SYS_02
+      manufacturer_anchor_layout_or_KR: null
+      fire_cutoff_strategy: FIRE_EDGE_02
+    expected:
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [anchor_type, anchor_spacing, bracket_geometry]
 
 validation_policy:
   - referenced_expected_node_ids_must_exist

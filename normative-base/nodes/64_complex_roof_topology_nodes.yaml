@@ -1,0 +1,80 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: COMPLEX_ROOF_TOPOLOGY_NODES
+purpose: "Machine routing for non-simple pitched-roof topology. Detect required node families from geometry and project intent without synthesizing structural member sizes or connections."
+
+source_dependencies:
+  - 08_roof_execution_contract.yaml
+  - 09_roof_node_router.yaml
+  - 11_rafter_system_topology.yaml
+  - 14_ridge_hip_node.yaml
+  - 15_valley_node.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 47_roof_execution_decision_graph.yaml
+  - 52_wall_roof_contour_router.yaml
+
+selection_inputs:
+  - roof_plane_graph
+  - roof_plane_elevations
+  - roof_plane_slopes
+  - roof_outline
+  - host_wall_graph
+  - thermal_boundary_mode
+  - roof_covering_system
+  - KR_roof_scheme_reference
+  - KR_member_layout_reference
+  - KR_connection_schedule_reference
+
+recognized_topologies:
+  simple_gable:
+    requires: [ridge, eaves, gable_verges]
+  simple_hip:
+    requires: [ridge, hips, eaves]
+  intersecting_T_roof:
+    requires: [primary_roof, secondary_roof, valleys, ridge_terminations, local_support_nodes]
+  intersecting_cross_roof:
+    requires: [multiple_ridges, multiple_valleys, local_support_nodes]
+  offset_elevation_roofs:
+    requires: [high_roof_edge, low_roof_abutment, drainage_transition, support_transition]
+  mansard_broken_slope:
+    requires: [upper_slope, lower_slope, slope_break_line, structural_break_joint]
+  dormer:
+    requires: [dormer_front, dormer_side_walls_or_cheeks, dormer_roof, dormer_valleys_or_abutments, opening_framing]
+  large_roof_opening:
+    requires: [opening_perimeter, trimmed_member_zone, water_diversion_zone, contour_reconnection]
+  complex_hip_valley:
+    requires: [hip_nodes, valley_nodes, ridge_nodes, compound_junctions]
+
+routing_policy:
+  - id: roof.complex.detect_topology_before_nodes
+    automation: true
+    statement: "Node selection starts from actual roof-plane graph and elevation relationships; node families shall not be chosen from roof style names alone."
+  - id: roof.complex.structural_topology_from_KR
+    automation: true
+    statement: "Architectural topology may be detected automatically, but load-bearing member arrangement, doubled members, trimmers, supports and joint geometry are taken only from KR."
+    result_on_missing: roof_KR_input_missing
+  - id: roof.complex.water_path_is_independent_gate
+    automation: true
+    statement: "Every intersection shall resolve its own precipitation path; geometric intersection alone is not sufficient for release."
+    result_on_missing: roof_water_path_unresolved
+
+hard_fail:
+  - roof_plane_graph_missing
+  - KR_roof_scheme_reference_missing
+  - structural_joint_at_compound_intersection_unresolved
+  - water_path_at_compound_intersection_unresolved
+  - thermal_or_air_vapor_contour_unresolved
+
+never_infer:
+  - rafter_section
+  - hip_rafter_section
+  - valley_rafter_section
+  - doubled_member_requirement
+  - trimmer_section
+  - post_or_strut_requirement
+  - bearing_length
+  - notch_geometry
+  - fastener_type
+  - fastener_count
+  - connection_plate_geometry

@@ -2,13 +2,19 @@ checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 
-graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V1
+graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V2
 
 entrypoints:
   build_foundation_system: foundation_system_graph
   build_foundation_wall_connection: foundation_wall_graph
   build_floor_system: floor_system_graph
   build_floor_support_nodes: floor_support_graph
+  build_column_foundation_node: column_foundation_graph
+  build_column_floor_node: column_floor_graph
+  build_beam_floor_node: beam_floor_graph
+  build_stair_landing_node: stair_landing_graph
+  build_parapet_node: parapet_graph
+  build_facade_slab_edge_node: facade_edge_graph
 
 foundation_system_graph:
   - gate: require_geotech_and_loads
@@ -84,6 +90,72 @@ floor_support_graph:
       external_envelope: FLR_006_SLAB_EDGE_EXTERNAL_WALL
       project_joint_present: FLR_008_FLOOR_DEFORMATION_JOINT
       MEP_penetration_requested: FLR_007_STRUCTURAL_FLOOR_OPENING
+
+column_foundation_graph:
+  - gate: require_KR_foundation_and_column_geometry
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["foundation_system=isolated_pad_rc", "column_material=reinforced_concrete"]
+      node_candidates: [COL_FDN_001_RC_COLUMN_TO_ISOLATED_PAD]
+  - route:
+      when: ["foundation_system=raft_rc", "column_material=reinforced_concrete"]
+      node_candidates: [COL_FDN_002_RC_COLUMN_TO_RAFT]
+  - route:
+      when: ["foundation_system in {pile_cap_rc,pile_raft_rc}", "column_material=reinforced_concrete"]
+      node_candidates: [COL_FDN_003_RC_COLUMN_TO_PILE_CAP]
+
+column_floor_graph:
+  - gate: require_KR_column_floor_joint
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["floor_system=monolithic_rc_flat_slab", "column_material=reinforced_concrete"]
+      node_candidates: [COL_FLR_001_RC_COLUMN_TO_FLAT_SLAB]
+  - route:
+      when: ["floor_system=monolithic_rc_beam_slab", "column_material=reinforced_concrete"]
+      node_candidates: [COL_FLR_002_RC_COLUMN_TO_BEAM_SLAB_FRAME]
+
+beam_floor_graph:
+  - route:
+      when: ["floor_system=monolithic_rc_beam_slab"]
+      node_candidates: [BEAM_FLR_001_RC_BEAM_TO_MONOLITHIC_SLAB]
+  - route:
+      when: ["floor_system in {precast_hollow_core_PC,precast_hollow_core_PB,precast_solid_or_ribbed}"]
+      node_candidates: [BEAM_FLR_002_RC_BEAM_TO_PRECAST_SLAB]
+
+stair_landing_graph:
+  - gate: require_KR_stair_geometry_and_AR_egress_check
+    if_missing: blocked_waiting_for_KR_or_AR_check
+  - route:
+      when: ["stair_system=monolithic_rc", "landing_system=monolithic_rc"]
+      node_candidates: [STR_LDG_001_MONOLITHIC_STAIR_TO_MONOLITHIC_LANDING]
+  - route:
+      when: ["stair_system=precast_rc"]
+      node_candidates: [STR_LDG_002_PRECAST_FLIGHT_TO_PRECAST_LANDING]
+  - overlay_if:
+      support_material_reinforced_concrete_wall: STR_LDG_003_STAIR_TO_RC_WALL_SUPPORT
+
+parapet_graph:
+  - route:
+      when: ["roof_type=flat", "parapet_material=reinforced_concrete"]
+      node_candidates: [PAR_001_RC_PARAPET_TO_FLAT_ROOF_SLAB]
+  - route:
+      when: ["roof_type=flat", "parapet_material=masonry"]
+      node_candidates: [PAR_002_MASONRY_PARAPET_TO_ROOF_EDGE]
+  - overlay_if:
+      project_joint_present: PAR_003_PARAPET_AT_DEFORMATION_JOINT
+
+facade_edge_graph:
+  - gate: require_KR_slab_edge_geometry
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["facade_system=masonry_or_multilayer_masonry"]
+      node_candidates: [FCD_EDGE_001_MASONRY_EXTERNAL_WALL_AT_SLAB_EDGE]
+  - route:
+      when: ["facade_system=ventilated_facade"]
+      node_candidates: [FCD_EDGE_002_VENTILATED_FACADE_AT_SLAB_EDGE]
+  - route:
+      when: ["facade_system=curtain_wall"]
+      node_candidates: [FCD_EDGE_003_CURTAIN_WALL_AT_SLAB_EDGE]
 
 resolution_order:
   - hard_fail_gates

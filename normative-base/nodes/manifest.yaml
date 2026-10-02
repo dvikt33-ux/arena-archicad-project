@@ -1,4 +1,4 @@
-manifest_version: 11
+manifest_version: 12
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -44,6 +44,9 @@ load_order:
   - 35_entrance_porch_external_stair_nodes.yaml
   - 36_building_deformation_joint_nodes.yaml
   - 37_archicad_external_joint_execution_map.yaml
+  - 38_gable_verge_node.yaml
+  - 39_roof_penetration_node.yaml
+  - 40_roof_node_applicability_catalog.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE

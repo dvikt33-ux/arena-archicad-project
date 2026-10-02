@@ -1,0 +1,114 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: WALL_ROOF_CONTOUR_ROUTER
+purpose: "Route thermal, air, vapor, water, ventilation and fire contours through the selected wall-roof package."
+
+inputs:
+  - wall_roof_package_id
+  - wall_layer_stack
+  - roof_layer_stack
+  - facade_system_id
+  - roof_covering_system_id
+  - roof_thermal_boundary_mode
+  - wall_air_control_layer
+  - wall_vapor_control_layer
+  - roof_air_control_layer
+  - roof_vapor_control_layer
+  - roof_ventilation_mode
+  - fire_interface_requirements
+
+contour_engine:
+  thermal:
+    require:
+      - explicit_primary_wall_thermal_layer
+      - explicit_primary_roof_thermal_layer
+      - transition_geometry_or_detail_reference
+    pass_if:
+      - wall_and_roof_thermal_layers_are_topologically_connected
+      - no_unresolved_structural_thermal_bridge_at_support
+    on_fail: roof_thermal_contour_unresolved
+
+  air:
+    require:
+      - explicit_wall_air_control_layer
+      - explicit_roof_air_control_layer
+      - transition_tape_membrane_plaster_or_system_detail_reference
+    pass_if:
+      - continuous_closed_air_control_path_exists
+    on_fail: roof_air_vapor_contour_unresolved
+
+  vapor:
+    require_when: roof_or_wall_assembly_requires_vapor_control
+    require:
+      - vapor_control_strategy
+      - warm_side_continuity_detail
+    rule: "Do not infer vapor-barrier location solely from generic material order; use thermal/moisture design and verified system."
+    on_fail: roof_air_vapor_contour_unresolved
+
+  bulk_water:
+    require:
+      - roofing_water_shedding_path
+      - wall_or_facade_top_termination_path
+      - eaves_gable_or_abutment_discharge_path
+    pass_if:
+      - every_water_path_terminates_to_exterior_or_verified_drainage_system
+      - no_water_path_discharges_into_wall_core
+    on_fail: roof_water_path_unresolved
+
+  ventilation:
+    require_when: roof_ventilation_mode_is_vented
+    require:
+      - intake_path
+      - continuous_flow_path
+      - outlet_path
+      - obstruction_review_at_support_and_edge
+    rule: "Roof ventilation cavity and ventilated-facade cavity are separate systems unless a verified project detail explicitly connects them."
+    on_fail: roof_ventilation_mode_unresolved
+
+  fire:
+    require_when: fire_interface_requirements_present
+    require:
+      - verified_fire_cutoff_or_separation_detail
+      - compatible_facade_and_roof_system_classification
+    never_infer:
+      - fire_cut_product
+      - fire_cut_dimensions
+      - cavity_barrier_spacing
+    on_fail: roof_fire_gate_unresolved
+
+junction_checks:
+  - id: JCT_EAVES_WALL
+    applies_if: roof_edge_condition=eaves
+    must_resolve: [thermal, air, vapor, bulk_water, ventilation_if_vented, fire_if_required]
+  - id: JCT_GABLE_WALL
+    applies_if: roof_edge_condition=gable
+    must_resolve: [thermal, air, vapor, bulk_water, wind_rain_interface, fire_if_required]
+  - id: JCT_HIGH_WALL_ABUTMENT
+    applies_if: roof_edge_condition=wall_abutment
+    must_resolve: [thermal, air, vapor, bulk_water, snow_water_accumulation_review, fire_if_required]
+  - id: JCT_ROOF_PENETRATION
+    applies_if: penetration_present=true
+    must_resolve: [air, vapor, bulk_water, thermal_if_in_thermal_envelope, fire_if_required]
+
+output_schema:
+  selected_package_id: null
+  contour_status:
+    thermal: unresolved
+    air: unresolved
+    vapor: unresolved
+    bulk_water: unresolved
+    ventilation: not_applicable
+    fire: not_applicable
+  resolved_detail_references: []
+  blocking_reasons: []
+  archicad_relationship_writes: []
+  detail_2d_requirements: []
+
+rules:
+  - id: roof.wall.contours_all_required_before_release
+    automation: true
+    statement: "Узел стена-крыша не может считаться выпущенным, пока все применимые контуры не замкнуты и не имеют проверяемой ссылки на геометрию или деталь."
+  - id: roof.wall.facade_roof_cavities_are_independent
+    automation: true
+    statement: "Вентилируемый фасад и вентиляционный зазор скатной крыши по умолчанию не соединяются в один воздушный канал."

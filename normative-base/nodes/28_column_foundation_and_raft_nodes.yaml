@@ -1,0 +1,47 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+purpose: "Machine-executable column-to-foundation and column-to-raft node definitions. Structural dimensions and reinforcement remain KR-owned."
+
+nodes:
+  - node_id: COL_FDN_001_RC_COLUMN_TO_ISOLATED_PAD
+    family: column_foundation
+    hosts: [rc_column, isolated_pad_rc]
+    applies_if: ["foundation_system=isolated_pad_rc", "column_material=reinforced_concrete"]
+    require: [KR_column_base_geometry, KR_pad_geometry, KR_connection_definition, KR_reinforcement_reference]
+    blockers: [KR_connection_definition_missing, KR_pad_geometry_missing]
+    contours: [load_path, movement_and_tolerance, durability]
+    geometry_actions: [place_column_on_KR_reference, preserve_KR_base_geometry, attach_KR_connection_metadata]
+    never_infer: [pad_width, pad_depth, reinforcement, starter_bars, anchorage_length, concrete_class]
+
+  - node_id: COL_FDN_002_RC_COLUMN_TO_RAFT
+    family: column_raft
+    hosts: [rc_column, raft_rc]
+    applies_if: ["foundation_system=raft_rc", "column_material=reinforced_concrete"]
+    require: [KR_column_axis, KR_raft_geometry, KR_column_raft_joint, KR_punching_check_reference]
+    blockers: [KR_column_raft_joint_missing, KR_punching_check_missing]
+    contours: [load_path, movement_and_tolerance, durability]
+    geometry_actions: [align_column_axis_to_KR_grid, preserve_raft_topology, attach_punching_check_reference]
+    never_infer: [drop_panel_geometry, punching_reinforcement, raft_thickness, column_dowels]
+
+  - node_id: COL_FDN_003_RC_COLUMN_TO_PILE_CAP
+    family: column_pile_cap
+    hosts: [rc_column, pile_cap_rc]
+    applies_if: ["foundation_system in {pile_cap_rc,pile_raft_rc}", "column_material=reinforced_concrete"]
+    require: [KR_pile_cap_geometry, KR_pile_layout_reference, KR_column_base_geometry, KR_connection_definition]
+    blockers: [pile_design_missing, KR_pile_cap_geometry_missing]
+    contours: [load_path, movement_and_tolerance, durability]
+    geometry_actions: [place_cap_from_KR_geometry, align_column_to_cap_reference, preserve_pile_group_reference]
+    never_infer: [pile_count, pile_spacing, cap_depth, reinforcement, column_dowels]
+
+execution_policy:
+  archicad_major_elements: [CreateColumns, CreateSlabs, CreateBeams]
+  structural_connection_representation: metadata_reference_to_KR_detail_unless_exact_geometry_required
+  write_before_KR: coordination_placeholder_only
+
+postconditions:
+  - column_and_foundation_hosts_exist
+  - structural_reference_ids_written
+  - no_generated_reinforcement_without_KR
+  - node_status_is_blocked_if_punching_or_connection_reference_missing

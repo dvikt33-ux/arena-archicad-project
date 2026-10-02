@@ -1,0 +1,69 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: INTERNAL_NODE_SELECTOR
+
+graph_id: INTERNAL_NODE_SELECTOR_GRAPH_V1
+
+entrypoints:
+  build_internal_walls_and_partitions: internal_partition_graph
+  build_internal_door_openings: internal_door_graph
+  build_service_shafts: shaft_graph
+  build_engineering_penetrations: penetration_graph
+  validate_concealed_electrical_boxes: electrical_box_graph
+
+internal_partition_graph:
+  - gate: resolve_wall_structural_role
+    if_missing: blocked_wall_role_unresolved
+  - route:
+      when: ["wall_system_family=masonry"]
+      node_candidates: [INT_WALL_001_MASONRY_INTERNAL_WALL_TO_FLOOR_AND_SLAB]
+  - route:
+      when: ["wall_system_family=framed_gypsum"]
+      node_candidates: [INT_PART_001_DRYWALL_PARTITION_BASE]
+  - overlay_if:
+      sliding_top_required: INT_PART_002_DRYWALL_PARTITION_SLIDING_TOP
+      partition_intersection_present: INT_PART_004_PARTITION_INTERSECTION
+
+internal_door_graph:
+  - route:
+      when: ["host_partition_family=framed_gypsum"]
+      node_candidates: [INT_PART_003_DRYWALL_DOOR_OPENING]
+  - gate: require_verified_door_product_and_opening_geometry
+    if_missing: blocked_waiting_for_product_or_AR
+
+shaft_graph:
+  - route:
+      when: ["shaft_enclosure_family=framed_gypsum"]
+      node_candidates: [SHAFT_001_GYPSUM_SERVICE_SHAFT_ENCLOSURE]
+  - overlay_if:
+      access_hatch_required: SHAFT_002_ACCESS_HATCH
+  - gate: require_engineering_service_volume
+    if_missing: blocked_waiting_for_engineering
+
+penetration_graph:
+  - gate: require_engineering_owner_and_approved_geometry
+    if_missing: blocked_waiting_for_engineering
+  - route:
+      when: ["penetration_host in {partition,shaft_enclosure}"]
+      node_candidates: [PEN_001_ENGINEERING_PENETRATION_THROUGH_PARTITION_OR_SHAFT]
+
+electrical_box_graph:
+  - route:
+      when: ["boxes_exist_on_both_faces=true"]
+      node_candidates: [ELEC_001_OPPOSITE_SIDE_CONCEALED_BOX_COORDINATION]
+  - validation:
+      min_edge_to_edge_offset_mm: 150
+      on_violation: blocked_electrical_box_offset_below_minimum
+
+resolution_order:
+  - hard_fail_gates
+  - exact_verified_system
+  - structural_role
+  - fire_acoustic_moisture_requirements
+  - engineering_owner_and_geometry
+  - node_specific_blockers
+  - compile_internal_execution_graph
+
+no_match_result: blocked_no_verified_node
+multiple_equal_match_result: blocked_ambiguous_node_selection

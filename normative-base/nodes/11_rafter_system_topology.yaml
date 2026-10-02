@@ -1,0 +1,62 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: classify_structural_roof_topology_without_inventing_KR_dimensions
+
+source_stack:
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structure_if_used}
+  - {document: SP_20_13330_2016, role: loads_and_actions}
+  - {document: SP_260_1325800_2023, role: LSTK_if_used}
+
+variants:
+  - id: roof.structure.rafter_pair_nonstructural_ridge
+    automation: conditional
+    class: rafter_pair
+    ridge_role: nonstructural_alignment_member_or_joint_zone
+    required_KR_inputs: [rafter_section, rafter_spacing, tie_or_thrust_resolution, support_detail, connector_schedule, bracing]
+  - id: roof.structure.structural_ridge_beam
+    automation: conditional
+    class: structural_ridge_beam
+    required_KR_inputs: [ridge_beam_section, ridge_beam_supports, rafter_section, rafter_spacing, bearing_detail, connector_schedule, bracing]
+  - id: roof.structure.purlin_post_system
+    automation: conditional
+    class: purlin_post
+    required_KR_inputs: [purlin_sections, post_sections, support_locations, rafter_section, rafter_spacing, connections, bracing]
+  - id: roof.structure.prefabricated_truss
+    automation: conditional
+    class: prefabricated_truss
+    required_KR_inputs: [truss_product_or_calculation, truss_spacing, bearing, hold_downs, bracing, permitted_openings]
+  - id: roof.structure.hip_valley_rafter_system
+    automation: conditional
+    class: hip_valley_rafter
+    required_KR_inputs: [common_rafter_data, hip_or_valley_member_data, jack_rafter_data, node_connections, support_scheme, bracing]
+  - id: roof.structure.LSTK
+    automation: conditional
+    class: cold_formed_steel
+    required_KR_inputs: [profile_schedule, screw_or_bolt_schedule, bracing, bearing, local_reinforcement, corrosion_class]
+  - id: roof.structure.panel_CLT_or_engineered_timber
+    automation: conditional
+    class: panel_or_engineered_timber
+    required_KR_inputs: [panel_geometry, span_scheme, joints, fasteners, supports, moisture_and_fire_design]
+
+rules:
+  - id: roof.structure.no_default_mauerlat
+    automation: true
+    statement: "Не считать мауэрлат обязательным элементом любой скатной крыши. Создавать его только если он присутствует в подтвержденной расчетной схеме КР."
+  - id: roof.structure.no_default_rafter_spacing
+    automation: true
+    statement: "Шаг стропил/ферм не выводить из размера утеплителя, типовой практики или шага обрешетки; принимать из КР."
+  - id: roof.structure.no_member_cut_without_KR
+    automation: true
+    statement: "Врубка, отверстие, подрезка, ослабление стропила/фермы/балки/профиля запрещены без расчетного решения КР."
+    result_on_violation: blocked_needs_structural_detail
+  - id: roof.structure.connection_is_input_not_guess
+    automation: true
+    statement: "Тип, количество, диаметр, длина и шаг крепежа, анкеров и металлических соединителей являются входом КР/изделия и не генерируются архитектурным узлом."
+
+machine_output:
+  structural_variant_id: required
+  member_geometry_source: KR
+  connection_schedule_source: KR_or_verified_product
+  support_node_instances: generated_from_confirmed_support_lines
+  topology_status: classified_or_blocked

@@ -1,0 +1,74 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: map_covering_system_to_verified_node_behaviour
+
+adapters:
+  covering.roll_membrane:
+    source: SP_17_13330_2017_changes_1_5
+    node_overrides:
+      eaves: {additional_layer_min_width_mm_external_drainage: 250}
+      ridge: {when_slope_percent_min_3: {additional_layer_each_side_mm: [150,250]}}
+      valley: {additional_layer_min_each_side_mm: 500}
+      wall_abutment: {additional_layer_min_upstand_mm: 300}
+    product_data_required: [membrane_system, layer_count_or_system_solution, fixing_or_bonding_solution]
+
+  covering.mastic:
+    source: SP_17_13330_2017_changes_1_5
+    node_overrides:
+      eaves: additional_mastic_layer_with_reinforcement
+      ridge_valley: reinforced_mastic_additional_layer
+      wall_abutment: reinforced_mastic_upstand_and_upper_edge_protection
+    product_data_required: [mastic_system, reinforcement, substrate_preparation]
+
+  covering.bituminous_shingles:
+    sources: [SP_17_13330_2017_changes_1_5, GOST_R_70340_2022]
+    node_behaviour:
+      eaves: metal_eaves_strip_and_underlay_per_system
+      verge: metal_verge_strip_per_system
+      ridge_hip: ridge_shingle_or_verified_equivalent
+      valley: verified_valley_method_from_standard_or_manufacturer
+      wall_abutment: verified_bitumen_polymer_or_valley_carpet_plus_metal_apron_and_seal
+    product_data_required: [shingle_model, underlay_system, manufacturer_node_manual]
+
+  covering.tiles:
+    sources: [SP_17_13330_2017_changes_1_5, GOST_R_70342_2022]
+    node_behaviour:
+      ridge_hip: ridge_batten_and_verified_ridge_tile_system
+      valley: metal_or_factory_valley_trough
+      wall_abutment: manufacturer_or_standard_flashing_system
+    product_data_required: [tile_type, tile_geometry, batten_gauge, manufacturer_node_manual]
+
+  covering.metal_tile:
+    sources: [SP_17_13330_2017_changes_1_5, GOST_R_58739_2019]
+    node_behaviour:
+      ridge_hip: verified_ridge_element_and_aeration_component_if_profile_ventilation
+      valley: manufacturer_verified_valley_flashing
+      wall_abutment: lower_abutment_flashing_with_system_connection_to_wall
+      eaves: verified_eaves_flashing_and_gutter_interface
+    product_data_required: [profile_model, sheet_module, ridge_profile, flashing_catalog, fastener_schedule_from_system]
+
+  covering.profiled_metal:
+    sources: [SP_17_13330_2017_changes_1_5, applicable_profile_standard]
+    product_data_required: [profile_model, support_spacing_from_KR_or_system, overlap_and_fastener_schedule]
+    node_behaviour:
+      ridge_hip: verified_profile_ridge_system
+      valley: verified_valley_flashing
+      wall_abutment: verified_wall_flashing
+
+  covering.folded_metal:
+    source: SP_17_13330_2017_changes_1_5
+    node_behaviour:
+      seams_and_abutments: verified_folded_sheet_detail
+    product_data_required: [metal_type, seam_system, substrate, clip_schedule, thermal_movement_solution]
+
+unknown_covering_policy:
+  - id: roof.covering.unknown_block
+    automation: true
+    statement: "Если покрытие не классифицировано или отсутствует проверенный продуктовый узел, разрешена только схема roof plane без статуса approved_for_model; узлы карниза/конька/ендовы/примыкания блокируются."
+    result: needs_covering_system
+
+precedence:
+  - code_minimums_cannot_be_weakened_by_manufacturer
+  - manufacturer_may_add_stricter_geometry_or_components
+  - product_specific_fastener_dimensions_are_not_inferred

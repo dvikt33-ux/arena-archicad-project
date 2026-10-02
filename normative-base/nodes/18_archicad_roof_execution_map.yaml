@@ -1,0 +1,100 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: map_node_DSL_to_safe_Archicad_representation_without_fake_API_assumptions
+
+representation_policy:
+  roof_planes: native_Roof
+  structural_members: native_Beam_or_verified_structural_object_only_from_KR_geometry
+  walls: native_Wall
+  openings: native_Opening_only_after_host_and_KR_approval
+  stable_repeatable_flashings: Complex_Profile_or_verified_Library_Object
+  membranes_tapes_small_fasteners: detail_2d_plus_properties_by_default
+  manufacturer_system: verified_library_object_or_detail_reference
+  structural_connection: metadata_reference_to_KR_detail_unless_exact_model_geometry_is_required
+
+verified_operation_families_from_existing_bridge:
+  - CreateRoofs
+  - CreateBeams
+  - CreateWalls
+  - CreateOpenings
+  - TrimElements
+  - GetElementTrims
+  - RemoveElementTrims
+  - CreateProfiles
+  - CreateObjects
+  - CreateDetails
+  - CreateWorksheets
+
+operation_DSL:
+  classify_roof_topology:
+    write: false
+    output: [edge_classes, intersection_classes, required_node_instances]
+  build_roof_planes:
+    preconditions: [slope_valid_for_covering, roof_levels_known]
+    operations: [CreateRoofs]
+  place_KR_members:
+    preconditions: [structural_scheme_confirmed, exact_member_geometry_from_KR]
+    operations: [CreateBeams]
+  trim_roof_to_hosts:
+    preconditions: [relationship_confirmed]
+    operations: [TrimElements, GetElementTrims]
+    postcondition: expected_trim_relationship_read_back
+  create_detail_geometry:
+    preconditions: [node_selected]
+    operations: [CreateDetails, CreateProfiles, CreateObjects]
+  create_structural_opening:
+    preconditions: [KR_opening_approved, host_compatible]
+    operations: [CreateOpenings]
+
+high_level_command_contract:
+  examples:
+    - command: create_pitched_roof
+      required_arguments: [roof_form, covering_system_id, structural_roof_scheme_reference, thermal_boundary_mode, ventilation_mode]
+      engine_sequence:
+        - classify_roof_topology
+        - validate_covering_slope
+        - resolve_rafter_topology_from_KR
+        - create_roof_planes
+        - instantiate_support_nodes
+        - instantiate_eaves_nodes
+        - instantiate_ridge_hip_valley_nodes_by_topology
+        - instantiate_wall_abutment_and_penetration_nodes
+        - apply_covering_adapters
+        - validate_contours
+        - readback
+    - command: rebuild_roof_nodes
+      required_arguments: [existing_roof_guid_set]
+      engine_sequence:
+        - classify_roof_topology
+        - compare_existing_node_instances
+        - remove_or_obsolete_invalid_node_metadata
+        - instantiate_required_nodes
+        - validate_contours
+        - readback
+
+write_gate:
+  - id: roof.archicad.no_write_before_resolution
+    automation: true
+    statement: "До прохождения hard-fail gates разрешены только классификация, зоны резервирования и metadata; создание несущей или продуктовой геометрии запрещено."
+  - id: roof.archicad.readback_required
+    automation: true
+    statement: "После записи перечитать фактическую геометрию/отношения и сверить с command snapshot; успешный API-вызов сам по себе не считается успешным узлом."
+
+node_instance_properties:
+  - ROOF_NODE_ID
+  - ROOF_NODE_FAMILY
+  - ROOF_NODE_REVISION
+  - ROOF_NODE_STATUS
+  - ROOF_NODE_SOURCE_STACK
+  - ROOF_NODE_KR_REFERENCE
+  - ROOF_NODE_COVERING_SYSTEM
+  - ROOF_NODE_UNRESOLVED_GATES
+
+postconditions:
+  - node_count_matches_topology
+  - each_node_has_hosts
+  - each_structural_member_has_KR_source
+  - covering_adapter_present
+  - hard_fail_count_is_zero_for_approved_for_model
+  - geometry_readback_matches_expected

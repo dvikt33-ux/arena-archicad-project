@@ -1,0 +1,58 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: valley
+purpose: machine_valley_node_for_concave_roof_intersections
+
+source_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], clauses: ["4.3", "5.2.8", "6.1.5"]}
+
+applicability:
+  intersection_type: concave_two_roof_planes
+
+required_inputs:
+  - adjacent_roof_planes
+  - covering_system_id
+  - valley_line
+  - slope_percent_along_valley
+  - structural_variant_id
+  - KR_valley_member_and_jack_rafter_connections_if_structural
+  - drainage_destination
+
+rules:
+  - id: roof.valley.min_longitudinal_slope
+    automation: validation_only
+    source_clause: "SP17 4.3"
+    min_percent: 0.5
+    statement: "Ендова должна иметь проектный уклон к водоотводу; 0,5% является нижним общим пределом, но покрытие/водосбор/расстояние до приемника могут потребовать большего."
+  - id: roof.valley.roll_mastic_reinforcement
+    automation: conditional
+    when: {covering_system_id: [roll_bituminous, mastic]}
+    source_clause: "SP17 5.2.8"
+    values: {additional_waterproofing_min_each_side_from_fold_mm: 500}
+  - id: roof.valley.structural_member_from_KR
+    automation: true
+    statement: "Ендовное стропило, укороченные стропила, опоры, подкосы и соединители создаются только из КР. Геометрия линии ендовы не определяет автоматически их сечения."
+    result_on_missing: needs_structural_valley_detail
+  - id: roof.valley.ventilation_route
+    automation: validation_only
+    statement: "Ендова не должна молча обрывать вентиляционные каналы. Для каждого пересеченного канала требуется подтвержденный выход/обход; универсальные поперечные отверстия в стропилах запрещены без КР."
+  - id: roof.valley.no_water_trap
+    automation: true
+    statement: "Все слои водоотвода в ендове должны иметь непрерывный нисходящий путь; контробрешетка, обрешетка и примыкающие элементы не образуют замкнутый карман воды."
+
+geometry_operations:
+  - create_valley_topology_from_concave_intersection
+  - reference_KR_valley_member_if_any
+  - apply_covering_specific_valley_adapter
+  - create_additional_waterproofing_zone_if_applicable
+  - route_underroof_membrane_to_valley_or_verified_bypass
+  - preserve_or_reroute_ventilation_channels_without_structural_cut
+
+postconditions:
+  - concave_intersection_confirmed
+  - longitudinal_drainage_path_verified
+  - structural_detail_reference_present_when_needed
+  - ventilation_channels_resolved
+  - covering_adapter_verified
+  - no_unapproved_rafter_cut

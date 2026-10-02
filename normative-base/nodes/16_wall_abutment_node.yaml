@@ -1,0 +1,63 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: wall_abutment
+purpose: machine_roof_to_vertical_wall_shaft_parapet_abutment
+
+source_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], clauses: ["5.1.20", "5.1.21", "5.1.22", "5.1.23", "6.1.5"]}
+
+required_inputs:
+  - roof_plane
+  - vertical_host
+  - covering_system_id
+  - abutment_orientation
+  - wall_finish_system
+  - underroof_water_control_layer
+  - thermal_air_vapor_contours
+  - covering_product_or_system_reference_when_product_specific
+
+rules:
+  - id: roof.abutment.roll_mastic_vertical_upstand
+    automation: conditional
+    when: {covering_system_id: [roll_bituminous, mastic]}
+    source_clause: "SP17 5.1.20-5.1.21"
+    values: {additional_waterproofing_min_upstand_mm: 300}
+    statement: "Дополнительный водоизоляционный слой заводится на вертикальную поверхность не менее чем на 300 мм и закрепляется/защищается применимым способом с герметизацией верхнего края."
+  - id: roof.abutment.low_parapet_over_top
+    automation: conditional
+    when: {covering_system_id: [roll_bituminous, mastic], vertical_projection_mm: {max: 600}}
+    source_clause: "SP17 5.1.22"
+    statement: "Если парапет/противопожарная стена/стенка деформационного шва выступает не более 600 мм, дополнительный водоизоляционный слой заводится на верхнюю грань."
+  - id: roof.abutment.parapet_cap_geometry
+    automation: conditional
+    when: {host_type: [parapet, fire_wall, deformation_joint_wall]}
+    source_clause: "SP17 5.1.23"
+    values: {cap_side_projection_min_mm: 60, cap_min_slope_percent_toward_roof: 3}
+    statement: "Верхняя грань защищается фартуком/плитами с герметизацией; защитный элемент выступает минимум на 60 мм за боковые грани и имеет уклон минимум 3% в сторону кровли."
+  - id: roof.abutment.underroof_water_diversion
+    automation: true
+    statement: "Подкровельная вода должна быть перехвачена и возвращена на наружную водоотводящую плоскость выше примыкания; вода не направляется за стеновой контур или в утеплитель."
+  - id: roof.abutment.ventilation_not_blocked
+    automation: validation_only
+    statement: "Если примыкание пересекает вентилируемый канал, должен существовать подтвержденный вход/выход/обход. Запирание вентиляции вертикальной стеной без решения запрещено."
+  - id: roof.abutment.product_adapter_required
+    automation: true
+    statement: "Для штучных/металлических покрытий наружная планка, ендовый ковер, фартук или системный элемент выбираются через covering adapter; размеры фирменной детали не выдумываются."
+
+geometry_operations:
+  - classify_abutment_orientation
+  - create_verified_upstand_or_flashing_zone
+  - terminate_covering_by_adapter
+  - route_underroof_water_around_abutment
+  - continue_thermal_air_vapor_contours
+  - create_parapet_cap_when_applicable
+  - reserve_movement_gap_if_required_by_system
+
+postconditions:
+  - vertical_waterproofing_height_verified_when_applicable
+  - upper_edge_protection_verified
+  - no_uphill_water_trap
+  - ventilation_resolved_if_crossed
+  - wall_finish_and_flashing_interface_defined
+  - air_vapor_thermal_contours_checked

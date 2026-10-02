@@ -1,0 +1,70 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: verified_ventilation_geometry_for_ventilated_rafter_roofs
+
+source:
+  document: SP_17_13330_2017
+  verified_changes: [1,2,3,4,5]
+  clauses: ["4.5", "Appendix A Table A.2", "6.1.4", "6.1.5"]
+
+base_rules:
+  - id: roof.vent.min_channel_height
+    automation: true
+    source_clause: "4.5"
+    min_height_mm: 50
+  - id: roof.vent.eaves_inlet_area
+    automation: true
+    source_clause: "4.5"
+    min_total_area_cm2_per_m: 200
+    applies_to: ventilated_channel
+  - id: roof.vent.ridge_outlet_area
+    automation: true
+    source_clause: "4.5"
+    min_total_area_cm2_per_m: 100
+    applies_to: ventilated_channel_with_ridge_outlet
+  - id: roof.vent.area_scales_with_channel_height
+    automation: validation_only
+    source_clause: "4.5"
+    statement: "При увеличении высоты вентиляционного канала относительно требуемой общей площади входных и выходных отверстий увеличиваются пропорционально."
+  - id: roof.vent.counterbatten_equals_channel
+    automation: conditional
+    source_clause: "6.1.4"
+    statement: "Для применимой стропильной схемы высота контробрешетки назначается по требуемой высоте вентиляционного канала; сечение/крепление контробрешетки дополнительно проверяются системой и КР."
+
+verified_table_A2:
+  slope_columns_percent: [18,27,36,47,56]
+  slope_columns_degrees_reference: [10,15,20,25,30]
+  rows:
+    - {slope_length_m: 5, heights_mm: [50,50,50,50,50]}
+    - {slope_length_m: 10, heights_mm: [80,60,50,50,50]}
+    - {slope_length_m: 15, heights_mm: [100,80,60,50,50]}
+    - {slope_length_m: 20, heights_mm: [100,100,80,60,50]}
+    - {slope_length_m: 25, heights_mm: [100,100,100,80,60]}
+
+selection_policy:
+  - id: roof.vent.table_exact
+    automation: true
+    when: slope_length_and_slope_match_table_grid
+    action: use_exact_table_value
+  - id: roof.vent.table_non_grid
+    automation: conservative_validation
+    statement: "Если длина/уклон находятся между табличными значениями, не выполнять линейную интерполяцию как нормативную. Для автоматической предварительной координации допускается только консервативная ячейка: длина округляется вверх до следующей строки, уклон вниз до предыдущего столбца; результат помечается conservative_precheck. Перед выпуском узла требуется подтверждение проектировщика или расчет/системное решение."
+    result_status: conservative_precheck_not_final
+  - id: roof.vent.outside_verified_matrix
+    automation: true
+    when: "slope_length_m > 25 OR slope_percent < 18 OR slope_percent > 56 OR required_topology_not_covered"
+    result: needs_roof_ventilation_design
+
+continuity_rules:
+  - id: roof.vent.eaves_to_outlet_continuity
+    automation: true
+    source_clause: "6.1.5"
+    statement: "Карниз, конек, хребет, ендова и примыкание не должны перекрывать требуемый путь вентиляции; каждый канал должен иметь подтвержденный вход и выход либо отдельное проектное решение."
+  - id: roof.vent.no_insect_screen_blockage
+    automation: validation_only
+    statement: "Защитная сетка/перфорация учитывается по фактической живой площади; номинальная геометрическая площадь решетки не считается автоматически свободной площадью."
+
+sources:
+  - "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  - "https://base.garant.ru/71729740/53f89421bbdaf741eb2d1ecc4ddb4c33/"

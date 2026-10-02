@@ -8,6 +8,9 @@ intent_contract:
     - build_foundation_wall_connection
     - build_floor_system
     - build_floor_support_nodes
+    - build_pitched_roof
+    - rebuild_roof_nodes
+    - validate_roof_nodes
     - rebuild_invalidated_nodes
     - validate_construction_nodes
 
@@ -16,7 +19,7 @@ pipeline:
   - resolve_project_context
   - load_RU_2027_PLUS_normative_stack
   - run_structural_boundary_gate
-  - run_foundation_or_floor_selector
+  - run_domain_selector
   - require_KR_finalization_for_structural_choice
   - resolve_node_family
   - instantiate_assembly_template
@@ -27,16 +30,34 @@ pipeline:
   - run_node_contour_validation
   - emit_receipt_and_revision
 
+roof_pipeline:
+  - classify_roof_topology
+  - require_covering_system
+  - validate_covering_slope
+  - require_structural_roof_scheme_from_KR
+  - resolve_ventilation_mode_and_matrix
+  - instantiate_roof_wall_support_nodes
+  - instantiate_eaves_nodes
+  - instantiate_ridge_hip_valley_nodes_from_topology
+  - instantiate_wall_abutment_and_penetration_nodes
+  - apply_covering_system_adapters
+  - compile_archicad_element_graph
+  - execute_only_resolved_geometry
+  - readback
+  - validate_water_air_vapor_thermal_ventilation_contours
+
 command_example_schema:
-  intent: build_foundation_wall_connection
+  intent: build_pitched_roof
   targets:
-    wall_ids: []
+    building_ids: []
   context:
-    foundation_system: null
-    wall_system: null
-    basement_state: null
-    groundwater_state: null
+    roof_form: null
+    covering_system_id: null
+    structural_roof_scheme_reference: null
     KR_revision: null
+    thermal_boundary_mode: null
+    ventilation_mode: null
+    drainage_mode: null
   behavior:
     create_missing_hosts: false
     allow_coordination_placeholder: true
@@ -55,6 +76,7 @@ compiled_element_graph_schema:
   products: []
   relations: []
   openings: []
+  node_instances: []
   property_writes: []
   detail_2d_outputs: []
   external_calculation_refs: []
@@ -74,6 +96,8 @@ operation_contract:
     - reinforcement_generation_without_KR
     - automatic_structural_dimension_guess
     - automatic_bearing_length_guess
+    - automatic_rafter_section_or_spacing_guess
+    - automatic_roof_fastener_schedule_guess
     - silent_fallback_to_morph
 
 readback:
@@ -89,9 +113,10 @@ readback:
   on_mismatch: rollback_or_mark_failed
 
 future_chat_template_target:
-  user_command_style: "high_level_only"
+  user_command_style: high_level_only
   examples:
     - "Собери фундаментную плиту по утвержденному КР и узлы наружных стен."
     - "Разложи ПК/ПБ по утвержденной схеме и создай узлы опирания."
-    - "Проверь все узлы фундамент–стена после изменения геологии/КР."
-  policy: "Chat command never contains guessed reinforcement, bearing length or foundation dimensions; engine resolves verified project data and blocks if absent."
+    - "Собери двускатную крышу с выбранной металлочерепицей по утвержденной схеме КР."
+    - "Перестрой узлы карнизов, конька, ендов и примыканий после изменения формы крыши."
+  policy: "Chat command содержит намерение и выбранную систему; engine разрешает нормативные и проектные данные, а при отсутствии КР/продуктового узла блокирует исполнение вместо подстановки типового решения."

@@ -9,6 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
 IZH = ROOT / "izh"
+NODES = ROOT / "nodes"
 EXPECTED_PROFILE = "RU_2027_PLUS"
 
 
@@ -23,6 +24,8 @@ def is_machine_rule(node: dict[str, Any]) -> bool:
         "requires_manufacturer_data",
         "agent_action",
         "result",
+        "result_on_missing",
+        "result_on_violation",
     }
     return isinstance(node.get("id"), str) and bool(rule_markers.intersection(node))
 
@@ -50,6 +53,25 @@ def validate_profile_file(file: Path, doc: Any, errors: list[str]) -> None:
         errors.append(f"missing checked_at: {file.relative_to(ROOT)}")
 
 
+def validate_package_manifest(
+    parsed: dict[Path, Any], directory: Path, name: str, errors: list[str]
+) -> None:
+    manifest = parsed.get(directory / "manifest.yaml")
+    if not isinstance(manifest, dict):
+        errors.append(f"{name} manifest.yaml missing or invalid")
+        return
+    listed = set(manifest.get("load_order") or [])
+    actual = {p.name for p in directory.glob("*.yaml") if p.name != "manifest.yaml"}
+    missing = sorted(actual - listed)
+    stale = sorted(listed - actual)
+    if missing:
+        errors.append(f"{name} manifest missing YAML files: {missing}")
+    if stale:
+        errors.append(f"{name} manifest lists absent YAML files: {stale}")
+    if manifest.get("target_profile") != EXPECTED_PROFILE:
+        errors.append(f"{name} manifest target_profile mismatch")
+
+
 def main() -> int:
     errors: list[str] = []
     parsed: dict[Path, Any] = {}
@@ -68,7 +90,10 @@ def main() -> int:
     for file, doc in parsed.items():
         in_rules = file.parent == RULES
         in_izh = file.parent == IZH
-        if not (in_rules or in_izh):
+        in_nodes = file.parent == NODES
+        if not (in_rules or in_izh or in_nodes):
+            continue
+        if file.name == "manifest.yaml":
             continue
         validate_profile_file(file, doc, errors)
         if not isinstance(doc, dict):
@@ -98,20 +123,8 @@ def main() -> int:
     else:
         errors.append("manifest.yaml missing or invalid")
 
-    izh_manifest = parsed.get(IZH / "manifest.yaml")
-    if isinstance(izh_manifest, dict):
-        listed = set(izh_manifest.get("load_order") or [])
-        actual = {p.name for p in IZH.glob("*.yaml") if p.name != "manifest.yaml"}
-        missing = sorted(actual - listed)
-        stale = sorted(listed - actual)
-        if missing:
-            errors.append(f"IZH manifest missing YAML files: {missing}")
-        if stale:
-            errors.append(f"IZH manifest lists absent YAML files: {stale}")
-        if izh_manifest.get("target_profile") != EXPECTED_PROFILE:
-            errors.append("IZH manifest target_profile mismatch")
-    else:
-        errors.append("izh/manifest.yaml missing or invalid")
+    validate_package_manifest(parsed, IZH, "IZH", errors)
+    validate_package_manifest(parsed, NODES, "NODES", errors)
 
     if errors:
         print("NORMATIVE BASE VALIDATION FAILED")

@@ -1,0 +1,58 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: ridge_hip
+purpose: machine_ridge_and_hip_nodes_with_structural_and_ventilation_gates
+
+source_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], clauses: ["4.5", "5.2.8", "6.1.5"]}
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structure_when_used}
+
+required_inputs:
+  - intersection_type
+  - covering_system_id
+  - structural_variant_id
+  - ventilation_mode
+  - slope_percent_by_adjacent_plane
+  - slope_length_mm_by_adjacent_plane
+  - KR_ridge_or_hip_connection
+
+rules:
+  - id: roof.ridge.structural_variant_required
+    automation: true
+    statement: "Конек сначала классифицируется как не несущая зона стыка, несущая коньковая балка, вершина фермы, ЛСТК или панельный стык. Архитектурный код не превращает коньковую доску в несущую балку."
+    result_on_missing: needs_structural_roof_scheme
+  - id: roof.ridge.ventilated_outlet
+    automation: conditional
+    when: {intersection_type: ridge, ventilation_mode: ventilated_channel}
+    source_clause: "SP17 4.5"
+    min_free_outlet_area_cm2_per_m: 100
+    statement: "На коньке обеспечить суммарную свободную площадь выходных отверстий не менее 100 см²/м с учетом фактической живой площади элемента."
+  - id: roof.ridge.roll_mastic_reinforcement
+    automation: conditional
+    when: {intersection_type: ridge, covering_system_id: [roll_bituminous, mastic], slope_percent_min: 3}
+    source_clause: "SP17 5.2.8"
+    values: {additional_waterproofing_each_side_mm: {min: 150, max: 250}}
+  - id: roof.hip.no_fake_ridge_outlet
+    automation: true
+    when: {intersection_type: hip}
+    statement: "Не считать хребет автоматически эквивалентом конькового выходного отверстия. Вентиляционный выход определяется схемой каналов/покрытия."
+  - id: roof.ridge.covering_adapter_required
+    automation: true
+    statement: "Коньковый/хребтовый наружный элемент создается только через adapter выбранного покрытия; generic cap допускается только как LOD-схема без статуса approved_for_model."
+
+geometry_operations:
+  - create_or_reference_KR_ridge_or_hip_member
+  - trim_roof_planes_to_intersection
+  - continue_underroof_water_layers_without_uphill_trap
+  - create_ventilation_outlet_zone_if_applicable
+  - apply_covering_specific_ridge_or_hip_adapter
+  - close_air_vapor_thermal_contours_where_envelope_crosses_node
+
+postconditions:
+  - structural_variant_classified
+  - KR_connection_reference_present
+  - ridge_outlet_area_verified_if_required
+  - covering_adapter_verified
+  - no_unapproved_structural_member_created
+  - water_and_envelope_contours_checked

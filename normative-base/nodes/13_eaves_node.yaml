@@ -1,0 +1,61 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: eaves
+purpose: machine_eaves_node_for_water_ventilation_envelope_and_covering_transition
+
+source_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], clauses: ["4.5", "5.2.7", "6.1.5"]}
+
+required_inputs:
+  - roof_plane
+  - covering_system_id
+  - drainage_mode
+  - ventilation_mode
+  - slope_percent
+  - slope_length_mm
+  - wall_support_node
+  - eaves_overhang_from_project
+  - gutter_system_if_used
+
+rules:
+  - id: roof.eaves.ventilated_inlet
+    automation: conditional
+    when: {ventilation_mode: ventilated_channel}
+    min_free_inlet_area_cm2_per_m: 200
+    source_clause: "SP17 4.5"
+    statement: "В карнизной зоне обеспечить суммарную свободную площадь входных отверстий не менее 200 см²/м; фактическая живая площадь сеток/перфорации должна быть подтверждена."
+  - id: roof.eaves.water_path
+    automation: true
+    statement: "Основная и подкровельная вода должны иметь явный путь наружу или в проектный желоб; подкладочный слой/мембрана не должны заканчиваться в утеплителе или полости карниза."
+  - id: roof.eaves.roll_mastic_reinforcement
+    automation: conditional
+    when: {covering_system_id: [roll_bituminous, mastic], drainage_mode: external}
+    source_clause: "SP17 5.2.7"
+    values: {additional_waterproofing_min_width_mm: 250}
+    statement: "Карниз при наружном водоотводе усиливается дополнительным водоизоляционным слоем по применимой системе."
+  - id: roof.eaves.no_default_overhang
+    automation: true
+    statement: "Величина свеса не назначается типовым числом: это проектная геометрия с проверкой водоотвода, ветрового воздействия, фасада и конструктивной схемы."
+    result_on_missing: needs_eaves_geometry
+  - id: roof.eaves.no_default_gutter
+    automation: true
+    statement: "Диаметр/сечение желоба и водосточной трубы не выбираются архитектурным узлом; используются результаты расчета водоотвода/системы."
+    result_on_missing: needs_roof_drainage_design
+
+geometry_operations:
+  - terminate_covering_by_selected_adapter
+  - route_underroof_water_to_exterior
+  - generate_ventilation_inlet_zone_if_required
+  - preserve_KR_rafter_tail_geometry
+  - place_drip_or_eaves_flashing_from_covering_adapter
+  - reserve_gutter_and_bracket_zone_if_gutter_system_defined
+  - connect_air_vapor_thermal_contours_to_roof_wall_support_node
+
+postconditions:
+  - water_path_outward
+  - free_ventilation_area_verified_if_required
+  - no_KR_member_modified
+  - overhang_has_project_source
+  - gutter_has_design_reference_if_used
+  - covering_adapter_applied

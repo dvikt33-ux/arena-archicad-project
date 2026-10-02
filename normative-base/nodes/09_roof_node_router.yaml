@@ -1,0 +1,73 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: route_roof_geometry_to_required_node_families
+
+source_stack:
+  - SP_17_13330_2017_changes_1_5
+  - SP_64_13330_2017_changes_1_4_when_timber_structural_system
+
+roof_form_router:
+  - id: roof.router.mono_pitch
+    automation: true
+    when: {roof_form: mono_pitch}
+    require_nodes: [roof_wall_support, eaves, high_edge_or_wall_abutment, gable_verge_if_present, penetration_if_present]
+    forbid_nodes: [ridge_between_two_slopes]
+  - id: roof.router.gable
+    automation: true
+    when: {roof_form: gable}
+    require_nodes: [roof_wall_support, eaves, ridge, gable_verge, penetration_if_present]
+  - id: roof.router.hip
+    automation: true
+    when: {roof_form: hip}
+    require_nodes: [roof_wall_support, eaves, ridge_if_present, hip, penetration_if_present]
+  - id: roof.router.valley_complex
+    automation: true
+    when: {concave_intersection_count: greater_than_zero}
+    require_nodes: [valley]
+  - id: roof.router.vertical_abutment
+    automation: true
+    when: {roof_plane_intersects_vertical_wall_or_shaft: true}
+    require_nodes: [wall_abutment]
+  - id: roof.router.penetration
+    automation: true
+    when: {roof_penetration_count: greater_than_zero}
+    require_nodes: [penetration]
+
+edge_classification:
+  lower_free_edge: eaves
+  upper_convex_intersection_two_roof_planes: ridge
+  sloping_convex_intersection_two_roof_planes: hip
+  concave_intersection_two_roof_planes: valley
+  sloping_free_edge_to_gable: gable_verge
+  roof_to_vertical_surface: wall_abutment
+  roof_opening_for_system: penetration
+
+covering_adapter_route:
+  bituminous_shingles: covering.bituminous_shingles
+  ceramic_or_cement_sand_tiles: covering.tiles
+  metal_tile: covering.metal_tile
+  profiled_metal_sheet: covering.profiled_metal
+  folded_sheet_metal: covering.folded_metal
+  roll_bituminous_or_polymer: covering.roll_membrane
+  mastic: covering.mastic
+  unknown: blocked_needs_covering_system
+
+structural_router_policy:
+  - id: roof.router.form_not_structure
+    automation: true
+    statement: "Форма крыши сама по себе не выбирает стропильную систему. Двускатная крыша может иметь висячие/наслонные стропила, несущую коньковую балку, фермы, ЛСТК или панельную систему; выбор принадлежит КР."
+    result_on_missing: needs_structural_roof_scheme
+  - id: roof.router.node_count_from_topology
+    automation: true
+    statement: "Узлы создаются по фактической топологии модели: каждое ребро/примыкание/проходка получает node instance и собственный status."
+
+output_contract:
+  - node_instance_id
+  - node_family
+  - host_element_guids
+  - location_curve_or_point
+  - covering_adapter
+  - structural_variant_reference
+  - applicability_status
+  - unresolved_gates

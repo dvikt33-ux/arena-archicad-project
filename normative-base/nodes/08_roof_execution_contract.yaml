@@ -1,0 +1,79 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: machine_execution_contract_for_roof_nodes
+
+execution_modes:
+  classify_only: "Определить применимые семейства узлов без записи геометрии."
+  coordinate: "Построить разрешенную архитектурную геометрию и зоны резервирования; расчетные КР-параметры остаются входами."
+  execute_geometry: "Создать/изменить геометрию только после прохождения всех required gates."
+  approved_for_model: "Исполнение разрешено после нормативной, КР и продуктовой проверки применимых частей."
+
+required_inputs:
+  roof_geometry:
+    - roof_form
+    - roof_planes
+    - slope_percent_by_plane
+    - slope_length_mm_by_plane
+    - lower_edges
+    - convex_intersections
+    - concave_intersections
+    - vertical_abutments
+    - penetrations
+  covering:
+    - covering_system_id
+    - covering_product_or_verified_system_reference_if_product_specific
+  envelope:
+    - thermal_boundary_mode
+    - insulation_thickness_from_thermal_design
+    - air_control_layer
+    - vapor_control_layer
+    - underroof_water_control_layer
+    - ventilation_mode
+  structural_from_KR:
+    - structural_roof_scheme
+    - primary_member_geometry
+    - support_lines
+    - bearing_details
+    - connector_schedule
+    - uplift_and_lateral_restraint
+    - approved_openings_and_trimmers
+
+structural_fail_closed:
+  - id: roof.exec.no_member_guessing
+    automation: true
+    statement: "Сечение, шаг, опирание, врубки, отверстия, анкеры, гвозди, винты, болты и металлические соединители несущей системы принимаются только из КР/расчета или проверенной документации расчетного изделия."
+    result_on_missing: needs_structural_calculation
+  - id: roof.exec.no_generic_mauerlat
+    automation: true
+    statement: "Мауэрлат не создается как обязательный универсальный элемент. Он применяется только если выбран и рассчитан как часть конструктивной схемы КР."
+    result_on_missing: route_support_without_invented_mauerlat
+
+contour_postconditions:
+  - load_path_has_KR_reference
+  - bulk_water_path_exits_to_exterior_or_drain
+  - underroof_water_path_has_no_trapped_end
+  - air_control_contour_is_continuous_or_blocked
+  - vapor_control_contour_is_continuous_or_blocked
+  - thermal_contour_is_continuous_or_has_calculated_bridge
+  - ventilation_path_is_continuous_if_required
+  - fire_separation_is_preserved_where_applicable
+  - movement_and_tolerance_are_not_rigidly_locked_without_basis
+
+operation_record_required:
+  - command_id
+  - selected_node_ids
+  - source_stack
+  - input_snapshot
+  - unresolved_items
+  - geometry_operations
+  - external_calculation_references
+  - manufacturer_references
+  - readback_results
+  - postcondition_results
+
+execution_rule:
+  - id: roof.exec.hard_fail_before_write
+    automation: true
+    statement: "Если required input или hard-fail gate не разрешен, не создавать приблизительный узел; вернуть blocked state с точным недостающим входом."
+    result: fail_closed

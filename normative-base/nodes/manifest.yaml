@@ -1,8 +1,10 @@
-manifest_version: 2
+manifest_version: 3
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
+purpose: "Machine-executable construction-node engine: foundations, floors and roof-node topology with fail-closed structural and product gates."
+
 load_order:
   - 00_engine_contract.yaml
   - 01_foundation_selector.yaml
@@ -12,16 +14,35 @@ load_order:
   - 05_floor_connection_nodes.yaml
   - 06_high_level_command_contract.yaml
   - 07_canonical_node_catalog_v1.yaml
+  - 08_roof_execution_contract.yaml
+  - 09_roof_node_router.yaml
+  - 10_roof_ventilation_matrix.yaml
+  - 11_rafter_system_topology.yaml
+  - 12_roof_wall_support_node.yaml
+  - 13_eaves_node.yaml
+  - 14_ridge_hip_node.yaml
+  - 15_valley_node.yaml
+  - 16_wall_abutment_node.yaml
+  - 17_covering_system_adapters.yaml
+  - 18_archicad_roof_execution_map.yaml
+
+modules:
+  foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
+  roof: ROOF_NODE_ENGINEERING
+
 inherits:
   - ../target_2027.yaml
   - ../revision_watch_2027.yaml
   - ../revision_watch_adjacent_2027.yaml
   - ../schema/dimension_selection_policy.yaml
   - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
   - ../rules/23_precast_slab_layout.yaml
   - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/69_roof_drainage_interfaces.yaml
   - ../rules/73_deformation_temperature_joints.yaml
   - ../rules/80_geometric_accuracy_tolerances.yaml
+
 hard_fail:
   - engineering_geology_missing_for_foundation_selection
   - structural_loads_missing_for_foundation_selection
@@ -32,6 +53,19 @@ hard_fail:
   - product_geometry_or_manufacturer_data_missing
   - stale_normative_revision
   - target_profile_mismatch
+  - roof_node_scope_unresolved
+  - roof_covering_system_missing
+  - roof_structural_scheme_missing
+  - roof_KR_input_missing
+  - roof_required_manufacturer_detail_missing
+  - roof_ventilation_mode_unresolved
+  - roof_ventilation_input_outside_verified_matrix
+  - roof_host_relationship_unresolved
+  - roof_water_path_unresolved
+  - roof_air_vapor_contour_unresolved
+  - roof_thermal_contour_unresolved
+  - roof_fire_gate_unresolved
+
 execution_policy:
   selector_may_rank_candidates: true
   selector_may_finalize_structural_system_without_KR: false
@@ -40,3 +74,6 @@ execution_policy:
   reinforcement_generation: external_KR_only
   bearing_length_generation: external_KR_or_verified_product_system_only
   foundation_depth_width_thickness_generation: external_geotechnical_KR_only
+  roof_member_geometry_generation: external_KR_only
+  roof_connection_fastener_generation: external_KR_or_verified_product_only
+  roof_covering_detail_generation: verified_code_and_product_adapter_only

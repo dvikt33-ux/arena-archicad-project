@@ -1,0 +1,61 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: roof_wall_support
+purpose: machine_node_for_structural_roof_support_at_wall_without_invented_KR_values
+
+applicability:
+  hosts: [roof_or_rafter_system, external_or_internal_supporting_wall]
+  structural_variants: [rafter_pair, structural_ridge_beam_system, purlin_post, prefabricated_truss, hip_valley_rafter, LSTK, panel_or_engineered_timber]
+  wall_material_classes: [masonry, reinforced_concrete, AAC, timber, steel_or_other_KR_confirmed]
+
+required_inputs:
+  from_KR:
+    - support_line_and_level
+    - bearing_element_type
+    - member_geometry
+    - bearing_length_or_contact_geometry
+    - connector_schedule
+    - uplift_restraint
+    - lateral_restraint
+    - local_reinforcement_if_required
+  from_AR_thermal:
+    - insulation_geometry
+    - wall_air_control_layer
+    - roof_air_control_layer
+    - wall_vapor_control_layer
+    - roof_vapor_control_layer
+    - thermal_bridge_assessment_or_reference
+
+rules:
+  - id: roof.support.KR_connection_required
+    automation: true
+    statement: "Несущий контакт крыша–стена создается только по подтвержденному КР узлу; архитектурный код не назначает мауэрлат, анкер, врубку или bearing length."
+    result_on_missing: needs_structural_connection
+  - id: roof.support.AAC_hollow_masonry_no_generic_anchor
+    automation: true
+    when: {wall_material: [AAC, hollow_masonry]}
+    statement: "Запрещено применять универсальный анкерный шаблон непосредственно в AAC/пустотелую кладку без расчетного основания, локального усиления и подтвержденной системы крепления."
+    result_on_missing: needs_KR_anchor_detail
+  - id: roof.support.air_vapor_continuity
+    automation: validation_only
+    statement: "Внутренний воздухонепроницаемый/парорегулирующий контур крыши должен быть герметично состыкован с применимым стеновым контуром; несущая опора не считается герметизацией."
+  - id: roof.support.thermal_continuity
+    automation: validation_only
+    statement: "Тепловой контур стены и крыши соединяется без необоснованного локального разрыва; мост холода в расчетной опоре проходит отдельную теплотехническую проверку."
+
+geometry_operations:
+  - place_support_reference_from_KR
+  - place_structural_members_from_KR_geometry
+  - attach_connection_schedule_reference
+  - join_air_control_contours
+  - join_vapor_control_contours
+  - continue_thermal_layer_to_calculated_interface
+  - preserve_underroof_water_and_ventilation_paths
+
+postconditions:
+  - support_level_matches_KR
+  - no_unapproved_cut_or_notch
+  - connector_schedule_reference_present
+  - thermal_air_vapor_contours_checked
+  - structural_member_not_driven_by_AR_default

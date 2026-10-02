@@ -1,0 +1,144 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы дренажных приямков подземной части зданий по актуальному
+  СП 30.13330.2020 с Изм. №1-5. Файл определяет необходимость резервирования приямков,
+  количества дренажных насосов и геометрию отвода воды, но не выполняет гидравлический расчет.
+
+revision_dependencies:
+  - {document: SP_30_13330_2020, verified_changes: [1,2,3,4,5], status: active}
+
+underground_sump_requirements:
+  source: {document: SP_30_13330_2020, clause: "20.14 current text after Changes 3 and 4"}
+  rules:
+    - id: drainage.sump.itp_water_heat_metering
+      automation: conditional
+      condition: "underground_room_type in [ITP, water_meter_room, heat_meter_room] AND drainage_sump_is_provided"
+      required_working_pumps: 1
+      required_reserve_pumps: 1
+      statement: >-
+        Для приямков ИТП и узлов учета воды/тепловой энергии в подземной части резервировать
+        один рабочий и один резервный дренажные насосы.
+
+    - id: drainage.sump.vehicle_storage_room
+      automation: conditional
+      condition: "underground_room_type == vehicle_storage_room AND drainage_sump_is_provided"
+      required_working_pumps: 1
+      required_reserve_pumps: 1
+      statement: >-
+        Для приямков помещений хранения автомобилей в подземной части резервировать один
+        рабочий и один резервный дренажные насосы.
+
+    - id: drainage.sump.pump_room_or_supply_vent_room
+      automation: conditional
+      condition: "underground_room_type in [pump_room, supply_ventilation_room] AND drainage_sump_is_provided"
+      required_working_pumps: 1
+      required_reserve_pumps: 0
+      statement: >-
+        Для приямков насосных и приточных венткамер СП 30 требует один рабочий дренажный насос.
+        Дополнительное резервирование может быть предусмотрено профильным проектом, но не выводится автоматически.
+
+    - id: drainage.sump.technical_crawlspace
+      automation: conditional
+      condition: "underground_room_type == technical_crawlspace AND drainage_sump_is_provided"
+      required_working_pumps: 1
+      required_reserve_pumps: 1
+      reserve_storage_offsite_allowed: true
+      statement: >-
+        Для технического подполья предусматривать рабочий и резервный дренажные насосы;
+        резервный насос допускается хранить на складе.
+
+underground_parking_fire_water_collection:
+  source: {document: SP_30_13330_2020, clause: "20.14 current text"}
+  rules:
+    - id: drainage.parking.interfloor_firewater_drop
+      automation: mandatory_validation
+      condition: "multilevel_underground_vehicle_storage"
+      statement: >-
+        В межэтажных перекрытиях подземных помещений хранения автомобилей предусматривать
+        устройства или трапы для отвода воды при пожаротушении на нижний уровень.
+
+    - id: drainage.parking.lowest_level_collection_routes
+      automation: mandatory_validation
+      condition: "lowest_underground_vehicle_storage_level"
+      requirement: channels_to_collection_reservoirs_or_sumps
+      statement: >-
+        На нижнем подземном уровне предусматривать лотки/маршруты отвода воды при пожаротушении
+        в приемные резервуары или систему приямков.
+
+    - id: drainage.parking.minimum_collection_volume_per_fire_compartment
+      automation: conditional
+      dimension_semantics: total_sump_or_collection_volume_per_fire_compartment
+      min_volume_m3: 2.0
+      actual_volume: calculation_required
+      statement: >-
+        Суммарный объем приемных приямков/резервуаров на каждый пожарный отсек определяется
+        расчетом, но не может быть менее 2 м³.
+      requires_calculation: true
+
+    - id: drainage.parking.channel_min_slope
+      automation: conditional
+      dimension_semantics: longitudinal_slope
+      min_slope_ratio: 0.006
+      statement: "Минимальный уклон лотков отвода воды при пожаротушении — 0,006."
+
+pressure_discharge_route:
+  - id: drainage.pump.pressure_discharge_destination
+    source: {document: SP_30_13330_2020, clause: "20.15 current text"}
+    automation: engineering_coordination_gate
+    permitted_routes:
+      - separate_outlet_to_stormwater_system
+      - centralized_sewerage_system_subject_to_clause_18_15
+    statement: >-
+      Напорный трубопровод дренажных насосов маршрутизировать отдельным выпуском в ливневую
+      систему либо в централизованную систему водоотведения при выполнении требований п.18.15.
+      Архитектура резервирует выпуск/проходку, но выбор системы и гидравлику определяет ВК.
+
+architectural_coordination:
+  - id: drainage.sump.service_access
+    automation: mandatory_validation
+    statement: >-
+      Приямок, насосы, датчики уровня и обратная/запорная арматура должны оставаться доступными
+      для осмотра, извлечения и замены; не перекрывать их стационарным оборудованием или отделкой.
+
+  - id: drainage.sump.structural_gate
+    automation: mandatory_router
+    statement: >-
+      Глубину, размеры и положение приямка в фундаментной плите/перекрытии согласовывать с КР.
+      Архитектурный агент не вырезает приямок в несущей конструкции по одному требованию ВК.
+    downstream: rules/08_structural_design_boundaries.yaml
+
+BIM_required_parameters:
+  - underground_room_type
+  - sump_id
+  - sump_geometry
+  - sump_total_volume_m3
+  - working_drainage_pump_count
+  - reserve_drainage_pump_count
+  - reserve_pump_storage_location
+  - fire_compartment_id
+  - firewater_channel_geometry
+  - firewater_channel_slope
+  - drainage_pressure_discharge_route
+  - pump_service_access_envelope
+  - KR_sump_approval_status
+
+hard_fail_conditions:
+  - "underground ITP/water/heat-meter sump has no reserve drainage pump"
+  - "vehicle-storage sump has no required working and reserve drainage pumps"
+  - "technical crawlspace has no working/reserve pump arrangement"
+  - "lowest underground parking fire-compartment collection volume below 2 m3"
+  - "parking firewater channel slope below 0.006"
+  - "sump inserted into structural slab/foundation without KR approval"
+
+agent_logic:
+  - "Не считать наличие трапа достаточным, если п.20.14 требует приямок и насосное удаление воды."
+  - "Минимум 2 м³ — нижний предел, а не расчетный объем по умолчанию."
+  - "Количество насосов зависит от типа обслуживаемого подземного помещения."
+  - "Сначала зарезервировать sump/service envelopes и маршруты воды, затем согласовать отверстия и глубину с КР."
+
+sources:
+  - "https://protect.gost.ru/sp/details/8cd57a35-8503-4bb8-802a-324b64f3e0e7"
+  - "https://base.garant.ru/408556691/"
+  - "https://base.garant.ru/410613256/"
+  - "https://base.garant.ru/400383625/"

@@ -1,24 +1,53 @@
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: ROOF_NODE_ENGINEERING
-catalog_version: 2
+catalog_version: 3
 
-nodes:
-  - {node_id: ROOF_AR_001_WALL_SUPPORT, family: roof_wall_support, recipe: 12_roof_wall_support_node.yaml}
-  - {node_id: ROOF_AR_002_EAVES, family: eaves, recipe: 13_eaves_node.yaml}
-  - {node_id: ROOF_AR_003_RIDGE, family: ridge, recipe: 14_ridge_hip_node.yaml}
-  - {node_id: ROOF_AR_004_HIP, family: hip, recipe: 14_ridge_hip_node.yaml}
-  - {node_id: ROOF_AR_005_VALLEY, family: valley, recipe: 15_valley_node.yaml}
-  - {node_id: ROOF_AR_006_WALL_ABUTMENT, family: wall_abutment, recipe: 16_wall_abutment_node.yaml}
-  - {node_id: ROOF_AR_007_GABLE_VERGE, family: gable_verge, recipe: roof_gable_verge_node.yaml}
-  - {node_id: ROOF_AR_008_PENETRATION, family: roof_penetration, recipe: roof_penetration_node.yaml}
-  - {node_id: ROOF_KR_001_RAFTER_TO_WALL_SUPPORT, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_002_RAFTER_PAIR_APEX, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_003_RAFTER_TO_STRUCTURAL_RIDGE_BEAM, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_004_RAFTER_TO_PURLIN, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_005_PURLIN_TO_POST, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_006_JACK_TO_HIP_OR_VALLEY, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
-  - {node_id: ROOF_KR_007_TRUSS_TO_SUPPORT, family: structural_roof_connection, recipe: roof_rafter_connection_nodes.yaml}
+architectural_nodes:
+  - node_id: ROOF_AR_001_WALL_SUPPORT
+    family: roof_wall_support
+    recipe: 12_roof_wall_support_node.yaml
+    usage: "каждая расчетная линия опирания крыши на стену/ригель"
+  - node_id: ROOF_AR_002_EAVES
+    family: eaves
+    recipe: 13_eaves_node.yaml
+    usage: "каждый нижний свободный край ската"
+  - node_id: ROOF_AR_003_RIDGE
+    family: ridge
+    recipe: 14_ridge_hip_node.yaml
+    usage: "каждое верхнее выпуклое пересечение двух скатов"
+  - node_id: ROOF_AR_004_HIP
+    family: hip
+    recipe: 14_ridge_hip_node.yaml
+    usage: "каждое наклонное выпуклое пересечение двух скатов"
+  - node_id: ROOF_AR_005_VALLEY
+    family: valley
+    recipe: 15_valley_node.yaml
+    usage: "каждое вогнутое пересечение двух скатов"
+  - node_id: ROOF_AR_006_WALL_ABUTMENT
+    family: wall_abutment
+    recipe: 16_wall_abutment_node.yaml
+    usage: "каждое пересечение ската с вертикальной стеной, шахтой или парапетом"
+  - node_id: ROOF_AR_007_GABLE_VERGE
+    family: gable_verge
+    recipe: roof_gable_verge_node.yaml
+    usage: "каждый наклонный свободный торец ската у фронтона"
+  - node_id: ROOF_AR_008_PENETRATION
+    family: roof_penetration
+    recipe: roof_penetration_node.yaml
+    usage: "каждая проходка, окно крыши, дымоход или инженерное пересечение кровельного пирога"
+
+structural_node_refs:
+  source: roof_rafter_connection_nodes.yaml
+  node_refs:
+    - ROOF_KR_001_RAFTER_TO_WALL_SUPPORT
+    - ROOF_KR_002_RAFTER_PAIR_APEX
+    - ROOF_KR_003_RAFTER_TO_STRUCTURAL_RIDGE_BEAM
+    - ROOF_KR_004_RAFTER_TO_PURLIN
+    - ROOF_KR_005_PURLIN_TO_POST
+    - ROOF_KR_006_JACK_TO_HIP_OR_VALLEY
+    - ROOF_KR_007_TRUSS_TO_SUPPORT
+  usage: "каждый конец или расчетная точка соединения несущих элементов; конкретный тип выбирается structural topology + KR"
 
 selection_rules:
   - id: roof.catalog.topology_drives_nodes
@@ -28,14 +57,6 @@ selection_rules:
     automation: true
     statement: "Если подходящего узла нет или blockers не разрешены, запрещено подставлять ближайший типовой узел по аналогии."
     result_on_missing: roof_node_scope_unresolved
-
-usage_map:
-  roof_wall_support: "каждая расчетная линия опирания крыши на стену/ригель"
-  eaves: "каждый нижний свободный край ската"
-  ridge: "каждое верхнее выпуклое пересечение двух скатов"
-  hip: "каждое наклонное выпуклое пересечение двух скатов"
-  valley: "каждое вогнутое пересечение двух скатов"
-  wall_abutment: "каждое пересечение ската с вертикальной стеной, шахтой или парапетом"
-  gable_verge: "каждый наклонный свободный торец ската у фронтона"
-  roof_penetration: "каждая проходка, окно крыши, дымоход или инженерное пересечение кровельного пирога"
-  structural_roof_connection: "каждый конец или расчетная точка соединения несущих элементов стропильной системы"
+  - id: roof.catalog.structural_refs_are_not_definitions
+    automation: true
+    statement: "ROOF_KR_* определяются только в roof_rafter_connection_nodes.yaml; каталог хранит ссылки и не дублирует node_id."

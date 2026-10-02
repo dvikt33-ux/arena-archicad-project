@@ -1,0 +1,47 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+purpose: "Machine-executable stair-to-landing connection nodes. Structural bearing and reinforcement are KR-owned; evacuation geometry remains governed by architectural/fire rules."
+
+nodes:
+  - node_id: STR_LDG_001_MONOLITHIC_STAIR_TO_MONOLITHIC_LANDING
+    family: stair_landing
+    hosts: [monolithic_rc_stair, monolithic_rc_landing]
+    applies_if: ["stair_system=monolithic_rc", "landing_system=monolithic_rc"]
+    require: [KR_stair_geometry, KR_landing_geometry, KR_joint_definition, AR_clear_width_check]
+    blockers: [KR_joint_definition_missing, egress_clearance_failed]
+    contours: [load_path, movement_and_tolerance, fire, egress_clearance]
+    geometry_actions: [place_stair_from_KR_geometry, preserve_landing_level, verify_clear_width_after_finishes]
+    never_infer: [waist_thickness, reinforcement, joint_reinforcement, support_length]
+
+  - node_id: STR_LDG_002_PRECAST_FLIGHT_TO_PRECAST_LANDING
+    family: precast_stair_landing
+    hosts: [precast_stair_flight, precast_landing]
+    applies_if: ["stair_system=precast_rc"]
+    require: [verified_stair_product, verified_landing_product, KR_bearing_geometry, KR_connection_definition]
+    blockers: [product_geometry_missing, KR_bearing_geometry_missing]
+    contours: [load_path, movement_and_tolerance, fire, egress_clearance]
+    geometry_actions: [place_verified_products, preserve_KR_bearing_geometry, attach_product_marks]
+    never_infer: [bearing_length, welds, embedded_parts, grout, reinforcement]
+
+  - node_id: STR_LDG_003_STAIR_TO_RC_WALL_SUPPORT
+    family: stair_wall_support
+    hosts: [stair_or_landing, rc_wall]
+    applies_if: ["support_material=reinforced_concrete_wall"]
+    require: [KR_support_zone, KR_connection_definition, AR_clearance_check]
+    blockers: [KR_support_zone_missing]
+    contours: [load_path, movement_and_tolerance, fire]
+    geometry_actions: [align_support_to_KR_reference, preserve_clearance, attach_KR_detail_reference]
+    never_infer: [pocket_depth, corbel_geometry, embedded_part, reinforcement]
+
+execution_policy:
+  archicad_major_elements: [CreateStairs, CreateSlabs, CreateWalls]
+  product_based_stair_requires_verified_geometry: true
+  evacuation_geometry_rechecked_after_finish_layers: true
+
+postconditions:
+  - stair_and_landing_levels_match_project
+  - required_clear_width_preserved
+  - structural_support_reference_present
+  - no_product_or_bearing_dimension_guessed

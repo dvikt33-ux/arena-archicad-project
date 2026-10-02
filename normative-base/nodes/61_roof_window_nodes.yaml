@@ -1,0 +1,62 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ROOF_WINDOW_NODES
+purpose: "Executable roof-window interfaces using verified product geometry and manufacturer installation systems. Structural trimming remains KR-only."
+
+source_dependencies:
+  - 43_roof_penetration_node.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 52_wall_roof_contour_router.yaml
+  - 17_covering_system_adapters.yaml
+
+nodes:
+  - node_id: RWIN_001_ROOF_WINDOW_IN_INSULATED_SLOPE
+    family: roof_window
+    applies_if:
+      penetration_type: roof_window
+      roof_thermal_boundary_mode: insulated_slope
+    required_inputs:
+      - verified_roof_window_product
+      - manufacturer_installation_detail
+      - compatible_flashing_kit_or_verified_covering_adapter
+      - approved_structural_opening_reference
+      - thermal_insulation_collar_or_project_detail
+      - air_vapor_sealing_detail
+      - underroof_membrane_connection_detail
+    blockers:
+      - product_geometry_or_manufacturer_data_missing
+      - structural_penetration_not_approved
+      - roof_thermal_contour_unresolved
+      - roof_air_vapor_contour_unresolved
+      - roof_water_path_unresolved
+    never_infer:
+      - rough_opening_size
+      - frame_to_rafter_clearance
+      - structural_trimmer_size
+      - flashing_kit_type
+      - installation_height
+      - insulation_collar_geometry
+      - vapor_barrier_adapter_geometry
+    geometry_actions:
+      - create_opening_from_approved_KR_and_product_geometry
+      - place_window_without_scaling_verified_product
+      - place_manufacturer_flashing_adapter_for_selected_roof_covering
+      - close_thermal_contour_around_frame
+      - connect_air_vapor_layer_to_verified_window_adapter
+      - connect_underroof_membrane_to_drainage_collar_or_verified_detail
+    postconditions:
+      - product_not_scaled_outside_verified_geometry
+      - structural_opening_matches_approved_reference
+      - thermal_air_vapor_weather_contours_resolved
+      - roof_covering_adapter_compatible_with_covering_system
+
+rules:
+  - id: roof.window.product_geometry_is_authoritative
+    automation: true
+    statement: "Размер и монтажная геометрия мансардного окна берутся из конкретного проверенного изделия и его монтажной системы, а не из универсального архитектурного шаблона."
+    result_on_missing: product_geometry_or_manufacturer_data_missing
+  - id: roof.window.structural_trimming_KR_only
+    automation: true
+    statement: "Обрамление проема в стропильной системе и изменение шага/сечений элементов выполняются только по КР."
+    result_on_missing: structural_penetration_not_approved

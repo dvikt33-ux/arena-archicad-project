@@ -1,9 +1,9 @@
-manifest_version: 12
+manifest_version: 13
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
-purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges, external cantilevers, entrances, deformation joints and roof-node topology with fail-closed structural and product gates."
+purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges, external cantilevers, entrances, deformation joints, external wall details and roof-node topology with fail-closed structural and product gates."
 
 load_order:
   - 00_engine_contract.yaml
@@ -44,9 +44,13 @@ load_order:
   - 35_entrance_porch_external_stair_nodes.yaml
   - 36_building_deformation_joint_nodes.yaml
   - 37_archicad_external_joint_execution_map.yaml
-  - 38_gable_verge_node.yaml
-  - 39_roof_penetration_node.yaml
-  - 40_roof_node_applicability_catalog.yaml
+  - 38_window_door_opening_nodes.yaml
+  - 39_lintel_sill_reveal_nodes.yaml
+  - 40_wall_plinth_corner_cornice_nodes.yaml
+  - 41_archicad_external_wall_execution_map.yaml
+  - 42_gable_verge_node.yaml
+  - 43_roof_penetration_node.yaml
+  - 44_roof_node_applicability_catalog.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -56,6 +60,7 @@ modules:
   external_cantilever: EXTERNAL_CANTILEVER_NODE_ENGINEERING
   entrance: ENTRANCE_NODE_ENGINEERING
   deformation_joint: DEFORMATION_JOINT_NODE_ENGINEERING
+  external_wall: EXTERNAL_WALL_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
 
 inherits:

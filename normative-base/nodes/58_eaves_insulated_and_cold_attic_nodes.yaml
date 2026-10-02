@@ -1,0 +1,88 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: EAVES_INSULATED_AND_COLD_ATTIC
+purpose: "Executable eaves families for insulated slope and cold attic. Thermal-boundary modes are mutually exclusive."
+
+source_dependencies:
+  - 13_eaves_node.yaml
+  - 10_roof_ventilation_matrix.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 54_cold_attic_wall_roof_packages.yaml
+  - 56_roof_wall_support_belt_nodes.yaml
+  - 57_mauerlat_support_nodes.yaml
+
+nodes:
+  - node_id: EAVES_101_INSULATED_SLOPE_AT_MASONRY_WALL
+    family: eaves
+    applies_if:
+      roof_thermal_boundary_mode: insulated_slope
+      wall_material_family: [large_format_hollow_ceramic, AAC, silicate_masonry]
+    required_inputs:
+      - selected_wall_roof_assembly_package
+      - KR_roof_support_detail
+      - verified_eaves_covering_detail
+      - roof_ventilation_mode
+      - wall_thermal_system
+      - roof_thermal_system
+      - air_vapor_continuity_detail
+    blockers:
+      - roof_wall_assembly_package_missing
+      - roof_ventilation_mode_unresolved
+      - roof_air_vapor_contour_unresolved
+      - roof_thermal_contour_unresolved
+      - roof_water_path_unresolved
+    never_infer:
+      - insulation_thickness
+      - ventilation_gap_height
+      - eaves_overhang
+      - gutter_geometry
+      - drip_edge_product
+      - insect_mesh_product
+    geometry_actions:
+      - create_eaves_geometry_from_verified_package
+      - continue_wall_thermal_contour_to_roof_thermal_contour
+      - continue_air_vapor_layer_without_open_gap
+      - preserve_roof_ventilation_inlet
+      - route_underroof_water_to_exterior
+      - keep_structural_support_geometry_equal_KR
+    postconditions:
+      - thermal_contour_continuous
+      - air_vapor_contour_continuous
+      - roof_ventilation_inlet_not_blocked
+      - water_path_exits_outside_envelope
+
+  - node_id: EAVES_102_COLD_ATTIC_AT_MASONRY_WALL
+    family: eaves
+    applies_if:
+      roof_thermal_boundary_mode: cold_attic_floor
+      wall_material_family: [large_format_hollow_ceramic, AAC, silicate_masonry]
+    required_inputs:
+      - selected_cold_attic_package
+      - attic_floor_thermal_system
+      - KR_roof_support_detail
+      - attic_ventilation_strategy
+      - verified_eaves_covering_detail
+    blockers:
+      - roof_thermal_boundary_mode_unresolved
+      - attic_floor_thermal_system_missing
+      - attic_ventilation_strategy_missing
+    never_infer:
+      - insulation_in_roof_slope
+      - attic_vent_open_area
+      - soffit_open_area
+      - support_geometry
+    geometry_actions:
+      - terminate_thermal_contour_at_attic_floor_wall_interface
+      - keep_roof_slope_outside_thermal_envelope
+      - preserve_attic_ventilation_path
+      - route_underroof_water_to_exterior
+    postconditions:
+      - no_insulated_slope_package_mixed_into_cold_attic
+      - thermal_boundary_equals_attic_floor
+
+rules:
+  - id: roof.eaves.cold_and_warm_not_interchangeable
+    automation: true
+    statement: "Карниз холодного чердака и карниз утепленного ската являются разными исполняемыми семействами и не заменяют друг друга."
+    result_on_missing: roof_thermal_boundary_mode_unresolved

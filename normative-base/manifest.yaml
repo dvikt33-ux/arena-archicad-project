@@ -1,4 +1,4 @@
-manifest_version: 91
+manifest_version: 92
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
@@ -163,6 +163,7 @@ rule_files:
   - 105_foodservice_wastewater_grease_interfaces_2027.yaml
   - 106_trk_waste_collection_interfaces_2027.yaml
   - 107_diesel_generator_architectural_interfaces_2027.yaml
+  - 108_refrigeration_machine_room_interfaces_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

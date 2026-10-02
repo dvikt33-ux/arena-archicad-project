@@ -8,16 +8,33 @@ intent_contract:
     - build_foundation_wall_connection
     - build_floor_system
     - build_floor_support_nodes
+    - build_column_foundation_node
+    - build_column_floor_node
+    - build_beam_floor_node
+    - build_stair_landing_node
+    - build_parapet_node
+    - build_facade_slab_edge_node
+    - build_balcony_loggia_node
+    - build_entrance_external_stair_node
+    - build_deformation_joint_node
+    - build_external_wall_system
+    - build_window_door_opening_nodes
+    - build_wall_continuity_nodes
     - build_pitched_roof
     - rebuild_roof_nodes
     - validate_roof_nodes
     - rebuild_invalidated_nodes
     - validate_construction_nodes
+    - generate_working_documentation
+    - validate_working_documentation
+    - prepare_external_review_package
+    - process_external_review_comments
 
 pipeline:
   - parse_high_level_intent
   - resolve_project_context
   - load_RU_2027_PLUS_normative_stack
+  - verify_source_revision_freshness
   - run_structural_boundary_gate
   - run_domain_selector
   - require_KR_finalization_for_structural_choice
@@ -28,6 +45,8 @@ pipeline:
   - execute_deterministic_operations
   - readback_geometry_and_relationships
   - run_node_contour_validation
+  - run_cross_discipline_interface_validation
+  - invalidate_stale_views_and_release_receipts
   - emit_receipt_and_revision
 
 roof_pipeline:
@@ -39,6 +58,7 @@ roof_pipeline:
   - instantiate_roof_wall_support_nodes
   - instantiate_eaves_nodes
   - instantiate_ridge_hip_valley_nodes_from_topology
+  - instantiate_gable_verge_nodes_if_present
   - instantiate_wall_abutment_and_penetration_nodes
   - apply_covering_system_adapters
   - compile_archicad_element_graph
@@ -46,15 +66,60 @@ roof_pipeline:
   - readback
   - validate_water_air_vapor_thermal_ventilation_contours
 
+external_wall_pipeline:
+  - resolve_wall_structural_and_envelope_system
+  - resolve_facade_system_and_product_refs
+  - instantiate_foundation_plinth_wall_transition
+  - instantiate_floor_edge_and_corner_nodes
+  - resolve_each_window_and_door_product
+  - derive_structural_opening_only_from_verified_product_and_mounting_joint
+  - instantiate_lintel_sill_reveal_quarter_nodes_as_applicable
+  - instantiate_facade_opening_interfaces
+  - instantiate_wall_top_eaves_cornice_or_roof_interface
+  - compile_archicad_element_graph
+  - execute_only_resolved_geometry
+  - readback
+  - validate_load_thermal_air_vapor_water_fire_movement_contours
+
+working_documentation_pipeline:
+  - require_released_model_revision_candidate
+  - rerun_normative_and_node_validation
+  - rerun_cross_discipline_interface_validation
+  - verify_zero_blocking_issues
+  - generate_or_refresh_required_AR_views
+  - generate_or_refresh_plans_sections_facades_roof_views_as_applicable
+  - generate_or_refresh_node_and_fragment_views
+  - generate_or_refresh_schedules_and_marks
+  - verify_axes_levels_dimensions_and_symbols_against_SPDS
+  - verify_associativity_or_traceability_to_model_geometry
+  - verify_openings_niches_shafts_and_installation_holes_are_documented
+  - compare_drawing_geometry_to_model_readback
+  - emit_working_documentation_release_receipt
+
+external_review_pipeline:
+  - require_working_documentation_release_gate_pass
+  - require_zero_blocking_issues
+  - create_document_and_drawing_registers
+  - create_normative_compliance_matrix
+  - create_node_and_detail_traceability_matrix
+  - create_cross_discipline_interface_register
+  - create_source_revision_report
+  - create_unresolved_nonblocking_issue_register
+  - set_readiness_level_L3_EXTERNAL_REVIEW_READY
+  - prohibit_claim_of_expertise_approval
+
 command_example_schema:
   intent: build_pitched_roof
   targets:
     building_ids: []
   context:
+    project_stage: working_documentation
     roof_form: null
     covering_system_id: null
     structural_roof_scheme_reference: null
+    AR_revision: null
     KR_revision: null
+    engineering_revision_set: []
     thermal_boundary_mode: null
     ventilation_mode: null
     drainage_mode: null
@@ -62,6 +127,7 @@ command_example_schema:
     create_missing_hosts: false
     allow_coordination_placeholder: true
     fail_closed: true
+    require_release_traceability: true
 
 selector_result_schema:
   selected_node_family: null
@@ -69,7 +135,10 @@ selector_result_schema:
   missing_required_inputs: []
   blocked_reasons: []
   normative_sources: []
+  source_revisions: []
   structural_approval_required: true
+  affected_disciplines: []
+  invalidated_release_receipts: []
 
 compiled_element_graph_schema:
   hosts: []
@@ -80,6 +149,7 @@ compiled_element_graph_schema:
   property_writes: []
   detail_2d_outputs: []
   external_calculation_refs: []
+  drawing_dependencies: []
 
 operation_contract:
   every_operation_requires:
@@ -88,6 +158,7 @@ operation_contract:
     - preconditions
     - idempotency_key
     - expected_postcondition
+    - source_revision_context
   structural_host_modification_requires:
     - KR_revision
     - approved_geometry_or_opening
@@ -98,7 +169,10 @@ operation_contract:
     - automatic_bearing_length_guess
     - automatic_rafter_section_or_spacing_guess
     - automatic_roof_fastener_schedule_guess
+    - automatic_product_certification_or_fire_class_guess
     - silent_fallback_to_morph
+    - marking_unresolved_placeholder_as_final
+    - marking_project_as_expertise_approved
 
 readback:
   require:
@@ -110,7 +184,21 @@ readback:
     - NODE_ID
     - NODE_REVISION
     - source_set
+    - AR_KR_engineering_revision_context
   on_mismatch: rollback_or_mark_failed
+
+release_status_contract:
+  allowed:
+    - model_in_progress
+    - coordinated_model
+    - working_documentation_candidate
+    - ready_for_internal_check
+    - ready_for_external_review
+  forbidden_without_human_external_result:
+    - expertise_approved
+    - authority_approved
+    - signed_by_GIP_or_GAP
+  rule: "ready_for_external_review означает, что машинные и проектные gates пройдены и блокирующих вопросов нет; это не подменяет профессиональную проверку, подпись ответственного специалиста или заключение экспертизы."
 
 future_chat_template_target:
   user_command_style: high_level_only
@@ -119,4 +207,7 @@ future_chat_template_target:
     - "Разложи ПК/ПБ по утвержденной схеме и создай узлы опирания."
     - "Собери двускатную крышу с выбранной металлочерепицей по утвержденной схеме КР."
     - "Перестрой узлы карнизов, конька, ендов и примыканий после изменения формы крыши."
-  policy: "Chat command содержит намерение и выбранную систему; engine разрешает нормативные и проектные данные, а при отсутствии КР/продуктового узла блокирует исполнение вместо подстановки типового решения."
+    - "Собери наружные стены с окнами, дверями, перемычками, цоколем и фасадными узлами."
+    - "Обнови рабочие чертежи по текущей модели и покажи все блокирующие несоответствия."
+    - "Подготовь комплект к внешней проверке и выдай матрицу соответствия и незакрытых вопросов."
+  policy: "Chat command содержит намерение и выбранную систему; engine разрешает нормативные и проектные данные, а при отсутствии КР, инженерного решения, расчета или проверенного продуктового узла блокирует исполнение вместо подстановки типового решения."

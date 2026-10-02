@@ -1,0 +1,98 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V1
+
+entrypoints:
+  build_foundation_system: foundation_system_graph
+  build_foundation_wall_connection: foundation_wall_graph
+  build_floor_system: floor_system_graph
+  build_floor_support_nodes: floor_support_graph
+
+foundation_system_graph:
+  - gate: require_geotech_and_loads
+    if_missing: blocked_waiting_for_geotech_or_KR
+  - gate: approved_foundation_system_present
+    if_true: dispatch_to_assembly_by_exact_system
+    if_false: return_candidate_set_from_01_foundation_selector
+  - gate: execution_requested
+    require: KR_approved_foundation_system
+    if_missing: blocked_waiting_for_KR
+
+foundation_wall_graph:
+  - key: foundation_system
+  - key: wall_structural_material
+  - key: basement_state
+  - key: below_grade_state
+  - key: external_envelope_state
+  - route:
+      when: ["foundation_system in {shallow_strip_rc,raft_rc}", "wall_structural_material=masonry"]
+      node_candidates: [FDN_001_STRIP_RC_TO_MASONRY, FDN_003_RAFT_TO_EXTERNAL_MASONRY_WALL]
+  - route:
+      when: ["foundation_system in {shallow_strip_rc,raft_rc}", "wall_structural_material=reinforced_concrete"]
+      node_candidates: [FDN_002_STRIP_RC_TO_RC_WALL]
+  - route:
+      when: ["foundation_system=raft_rc", "wall_structural_material=AAC"]
+      node_candidates: [FDN_004_RAFT_TO_AAC_EXTERNAL_WALL]
+  - route:
+      when: ["basement_state=present", "wall_structural_material=reinforced_concrete"]
+      node_candidates: [FDN_005_RAFT_TO_BASEMENT_RC_WALL]
+  - route:
+      when: ["foundation_system=pile_raft_rc"]
+      node_candidates: [FDN_006_PILE_RAFT_TO_RC_WALL_OR_COLUMN]
+  - route:
+      when: ["foundation_system=isolated_pad_rc"]
+      node_candidates: [FDN_007_ISOLATED_PAD_TO_COLUMN]
+  - route:
+      when: ["foundation_system=precast_strip_FBS_FL"]
+      node_candidates: [FDN_008_PRECAST_FL_FBS_TO_WALL]
+  - ambiguity_policy: choose_exact_host_and_material_signature_or_block
+
+floor_system_graph:
+  - gate: require_KR_floor_system_status
+    if_missing: blocked_waiting_for_KR
+  - gate: product_family_required_if_precast
+    if_missing: blocked_waiting_for_product_data
+  - dispatch:
+      monolithic_rc_flat_slab: monolithic_rc_flat_slab
+      monolithic_rc_beam_slab: monolithic_rc_beam_slab
+      precast_hollow_core_PC: precast_hollow_core_PC
+      precast_hollow_core_PB: precast_hollow_core_PB
+      precast_solid_or_ribbed: precast_solid_or_ribbed
+
+floor_support_graph:
+  - route:
+      when: ["floor_system=monolithic_rc_flat_slab", "support_material=reinforced_concrete_wall"]
+      node_candidates: [FLR_001_MONOLITHIC_SLAB_TO_RC_WALL]
+  - route:
+      when: ["floor_system=monolithic_rc_beam_slab", "support_material=reinforced_concrete_beam"]
+      node_candidates: [FLR_002_MONOLITHIC_SLAB_TO_RC_BEAM]
+  - route:
+      when: ["floor_system=precast_hollow_core_PC", "support_material=masonry"]
+      node_candidates: [FLR_003_PC_TO_MASONRY_WALL, BRG_PC_END_ON_MASONRY]
+  - route:
+      when: ["floor_system=precast_hollow_core_PB", "support_material=masonry"]
+      node_candidates: [FLR_004_PB_TO_MASONRY_WALL, BRG_PB_END_ON_MASONRY]
+  - route:
+      when: ["floor_system in {precast_hollow_core_PC,precast_hollow_core_PB}", "support_material=reinforced_concrete_wall"]
+      node_candidates: [FLR_005_PRECAST_TO_RC_SUPPORT, BRG_PC_OR_PB_ON_RC_WALL]
+  - route:
+      when: ["floor_system in {precast_hollow_core_PC,precast_hollow_core_PB}", "support_material=reinforced_concrete_beam"]
+      node_candidates: [FLR_005_PRECAST_TO_RC_SUPPORT, BRG_PC_OR_PB_ON_RC_BEAM]
+  - overlay_if:
+      external_envelope: FLR_006_SLAB_EDGE_EXTERNAL_WALL
+      project_joint_present: FLR_008_FLOOR_DEFORMATION_JOINT
+      MEP_penetration_requested: FLR_007_STRUCTURAL_FLOOR_OPENING
+
+resolution_order:
+  - hard_fail_gates
+  - exact_project_KR_system
+  - exact_product_family
+  - host_material_and_geometry
+  - exposure_and_envelope_overlays
+  - node_specific_blockers
+  - compile_execution_graph
+
+no_match_result: blocked_no_verified_node
+multiple_equal_match_result: blocked_ambiguous_node_selection

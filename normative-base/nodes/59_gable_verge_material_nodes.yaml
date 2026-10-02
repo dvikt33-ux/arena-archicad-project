@@ -1,0 +1,80 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: GABLE_VERGE_MATERIAL_NODES
+purpose: "Material-aware gable and verge interfaces for masonry, AAC, RC and framed walls."
+
+source_dependencies:
+  - 42_gable_verge_node.yaml
+  - 48_wall_material_system_registry.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 52_wall_roof_contour_router.yaml
+
+nodes:
+  - node_id: GABLE_101_WARM_CERAMIC_GABLE
+    family: gable_verge
+    applies_if:
+      wall_material_family: large_format_hollow_ceramic
+      gable_wall_present: true
+    required_inputs:
+      - verified_wall_product_geometry
+      - gable_structural_role
+      - KR_gable_top_restraint_detail_if_loadbearing_or_restrained
+      - selected_wall_roof_assembly_package
+      - verified_verge_covering_detail
+    blockers:
+      - roof_wall_product_geometry_missing
+      - gable_restraint_strategy_missing
+      - roof_wall_assembly_package_missing
+    never_infer:
+      - toothed_block_cut_pattern
+      - generic_anchor_into_hollow_web
+      - gable_top_reinforcement
+      - verge_overhang
+    geometry_actions:
+      - preserve_exact_ceramic_course_geometry
+      - cut_gable_profile_to_roof_geometry_without_altering_product_thickness
+      - bind_restraint_to_KR_reference
+      - continue_facade_weather_and_thermal_layers_to_verge
+      - place_verified_verge_covering_detail
+
+  - node_id: GABLE_102_AAC_GABLE
+    family: gable_verge
+    applies_if:
+      wall_material_family: AAC
+      gable_wall_present: true
+    required_inputs:
+      - verified_AAC_product_geometry
+      - KR_gable_restraint_detail
+      - selected_wall_roof_assembly_package
+    never_infer:
+      - AAC_anchor_type
+      - local_reinforcement
+      - gable_top_bond_beam
+    geometry_actions:
+      - preserve_exact_AAC_product_geometry
+      - bind_gable_restraint_to_KR
+      - close_thermal_air_weather_contours_at_verge
+
+  - node_id: GABLE_103_RC_OR_FRAME_GABLE
+    family: gable_verge
+    applies_if:
+      wall_material_family: [reinforced_concrete, timber_frame, LSTK]
+    required_inputs:
+      - verified_wall_or_frame_geometry
+      - verified_facade_system
+      - KR_or_manufacturer_verge_support_detail
+    never_infer:
+      - cladding_subframe_geometry
+      - framing_member_section
+      - connector_pattern
+    geometry_actions:
+      - trim_wall_or_frame_to_roof_envelope
+      - bind_verge_support_to_verified_detail
+      - continue_facade_and_roof_weather_layers
+
+rules:
+  - id: roof.gable.material_specific_restraint
+    automation: true
+    statement: "Фронтонная стена должна иметь подтвержденную схему устойчивости/раскрепления; материал стены не определяет ее автоматически."
+    result_on_missing: roof_host_relationship_unresolved

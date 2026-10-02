@@ -2,7 +2,7 @@ checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 
-graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V3
+graph_id: CONSTRUCTION_NODE_SELECTOR_GRAPH_V4
 
 entrypoints:
   build_foundation_system: foundation_system_graph
@@ -18,6 +18,9 @@ entrypoints:
   build_balcony_loggia_node: balcony_loggia_graph
   build_entrance_external_stair_node: entrance_external_stair_graph
   build_deformation_joint_node: deformation_joint_graph
+  build_external_wall_system: external_wall_system_graph
+  build_window_door_opening_nodes: opening_graph
+  build_wall_continuity_nodes: wall_continuity_graph
 
 foundation_system_graph:
   - gate: require_geotech_and_loads
@@ -193,6 +196,54 @@ deformation_joint_graph:
       envelope_crosses_structural_joint: JNT_003_FACADE_DEFORMATION_JOINT
       roof_crosses_structural_joint: JNT_004_ROOF_DEFORMATION_JOINT
       joint_below_grade: JNT_005_BELOW_GRADE_DEFORMATION_JOINT_WATERSTOP
+
+external_wall_system_graph:
+  - gate: require_wall_system_and_facade_system
+    if_missing: blocked_waiting_for_AR_or_product_data
+  - compose:
+      base_transition_if_present: WALL_001_PLINTH_TO_EXTERNAL_WALL
+      floor_edge_if_present: facade_edge_graph
+      external_corner_if_present: WALL_002_EXTERNAL_CORNER_MASONRY_OR_MULTILAYER
+      openings_if_present: opening_graph
+      wall_top_if_eaves_or_cornice: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+      facade_transition_if_present: WALL_004_FACADE_SYSTEM_TRANSITION_AT_CORNER_OR_RETURN
+  - gate: validate_envelope_contours_after_composition
+    require: [thermal_continuity, bulk_water, air_tightness_if_applicable, vapor_control_if_applicable, fire_if_applicable]
+    if_missing: blocked_unresolved_envelope_contour
+
+opening_graph:
+  - gate: require_structural_opening_geometry
+    if_missing: blocked_waiting_for_AR_or_KR
+  - route:
+      when: ["opening_type=window", "external_wall=true"]
+      node_candidates: [OPN_001_WINDOW_BLOCK_IN_EXTERNAL_WALL]
+  - route:
+      when: ["opening_type=door", "external_wall=true"]
+      node_candidates: [OPN_002_EXTERNAL_DOOR_BLOCK_IN_WALL]
+  - overlay_if:
+      facade_system_SFTK: OPN_003_WINDOW_OR_DOOR_IN_SFTK_FACADE
+      facade_system_ventilated: OPN_004_WINDOW_OR_DOOR_IN_VENTILATED_FACADE
+      lintel_system_precast_rc: OPN_HEAD_001_PRECAST_RC_LINTEL_OVER_MASONRY_OPENING
+      lintel_system_project_specific: OPN_HEAD_002_MONOLITHIC_OR_STEEL_LINTEL_BY_KR
+      exposed_window_sill: OPN_SILL_001_EXTERNAL_WINDOW_SILL_DRAINAGE_INTERFACE
+      insulated_reveal_required: OPN_REVEAL_001_INSULATED_EXTERNAL_REVEAL
+      quarter_required: OPN_QUARTER_001_MASONRY_OR_PRODUCT_QUARTER
+  - gate: verify_product_mounting_joint_and_clearance_inputs
+    if_missing: blocked_waiting_for_product_data_or_project_detail
+
+wall_continuity_graph:
+  - route:
+      when: ["interface=plinth_to_external_wall"]
+      node_candidates: [WALL_001_PLINTH_TO_EXTERNAL_WALL]
+  - route:
+      when: ["interface=external_corner"]
+      node_candidates: [WALL_002_EXTERNAL_CORNER_MASONRY_OR_MULTILAYER]
+  - route:
+      when: ["interface=wall_top_eaves_or_cornice"]
+      node_candidates: [WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE]
+  - route:
+      when: ["interface=facade_system_transition"]
+      node_candidates: [WALL_004_FACADE_SYSTEM_TRANSITION_AT_CORNER_OR_RETURN]
 
 resolution_order:
   - hard_fail_gates

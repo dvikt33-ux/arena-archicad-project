@@ -1,4 +1,4 @@
-manifest_version: 20
+manifest_version: 21
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -70,6 +70,14 @@ load_order:
   - 53_archicad_internal_execution_map.yaml
   - 54_internal_selector_graph.yaml
   - 55_internal_node_test_vectors.yaml
+  - 56_roof_wall_support_belt_nodes.yaml
+  - 57_mauerlat_support_nodes.yaml
+  - 58_eaves_insulated_and_cold_attic_nodes.yaml
+  - 59_gable_verge_material_nodes.yaml
+  - 60_chimney_roof_penetration_nodes.yaml
+  - 61_roof_window_nodes.yaml
+  - 62_roof_edge_penetration_test_vectors.yaml
+  - 63_archicad_roof_edge_penetration_execution_map.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -89,6 +97,13 @@ modules:
   roof_wall_contour_router: WALL_ROOF_CONTOUR_ROUTER
   cold_attic_wall_roof_packages: COLD_ATTIC_WALL_ROOF_PACKAGES
   archicad_wall_roof_package_execution: ARCHICAD_WALL_ROOF_PACKAGE_EXECUTION_MAP
+  roof_support_belt: ROOF_WALL_SUPPORT_BELT_NODES
+  roof_mauerlat: MAUERLAT_SUPPORT_NODES
+  roof_eaves_modes: EAVES_INSULATED_AND_COLD_ATTIC
+  roof_gable_material_nodes: GABLE_VERGE_MATERIAL_NODES
+  roof_chimney_penetration: CHIMNEY_ROOF_PENETRATION_NODES
+  roof_window: ROOF_WINDOW_NODES
+  roof_edge_penetration_execution: ARCHICAD_ROOF_EDGE_PENETRATION_EXECUTION_MAP
   working_documentation: WORKING_DOCUMENTATION_RELEASE_GATE
   external_review_readiness: EXPERTISE_READINESS_CONTRACT
 
@@ -213,6 +228,10 @@ execution_policy:
   roof_wall_assembly_package_selection: exact_wall_facade_roof_context_only
   roof_wall_contour_release: all_applicable_contours_must_resolve
   cold_attic_and_insulated_slope_are_not_interchangeable: true
+  roof_support_belt_generation: exact_KR_only
+  roof_mauerlat_generation: exact_KR_only
+  chimney_fire_clearance_generation: verified_fire_and_product_detail_only
+  roof_window_geometry_generation: verified_product_plus_KR_only
   archicad_package_execution_requires_readback: true
   working_documentation_release_requires_zero_blockers: true
   external_review_ready_may_not_claim_expertise_approval: true

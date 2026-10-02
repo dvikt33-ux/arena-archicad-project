@@ -1,0 +1,136 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ROOF_WALL_MATERIAL_ADAPTERS
+purpose: "Material-specific applicability adapters for roof-wall support nodes. Adapters classify permissible interface families but do not design structural connections."
+
+source_dependencies:
+  - 12_roof_wall_support_node.yaml
+  - 45_rafter_wall_connection_variants.yaml
+  - 48_wall_material_system_registry.yaml
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+
+adapters:
+  - adapter_id: CERAMIC_LARGE_FORMAT_ROOF_SUPPORT
+    wall_material_family: porous_ceramic_large_format
+    applicable_wall_thickness_classes_mm: [380, 440, 510]
+    thickness_semantics: example_product_classes_not_universal_standard_series
+    requires:
+      - verified_product_mark_and_geometry
+      - KR_local_bearing_check_or_detail
+      - KR_roof_wall_support_detail
+      - KR_uplift_and_lateral_restraint_reference
+      - thermal_air_vapor_interface_review
+    allowed_support_families:
+      - KR_defined_distribution_element_to_masonry
+      - KR_defined_RC_ring_beam_to_roof
+      - KR_defined_embedded_or_anchor_system_to_verified_base
+    forbidden_without_KR:
+      - direct_rafter_on_hollow_ceramic_unit
+      - generic_anchor_into_hollow_webs
+      - inferred_RC_ring_beam
+      - inferred_mauerlat
+      - inferred_concrete_belt_height_width_reinforcement
+    notes:
+      - "Для 380/440/510 мм движок сохраняет фактическую толщину стены и продуктовую геометрию; одинаковый материал не означает одинаковый узел."
+
+  - adapter_id: AAC_ROOF_SUPPORT
+    wall_material_family: AAC_autoclaved
+    requires:
+      - verified_AAC_product
+      - KR_local_bearing_or_distribution_detail
+      - verified_anchor_system_if_anchor_into_AAC_is_used
+      - KR_roof_wall_support_detail
+    allowed_support_families:
+      - KR_defined_RC_ring_beam_to_roof
+      - KR_defined_distribution_element
+      - verified_anchor_system_to_AAC_if_explicitly_approved
+    forbidden_without_KR:
+      - generic_anchor_into_AAC
+      - direct_concentrated_rafter_bearing_without_distribution_check
+      - inferred_ring_beam
+      - inferred_mauerlat
+
+  - adapter_id: SILICATE_MASONRY_ROOF_SUPPORT
+    wall_material_family: silicate_masonry
+    requires:
+      - verified_masonry_product
+      - KR_local_bearing_check_or_detail
+      - KR_roof_wall_support_detail
+    allowed_support_families:
+      - KR_defined_distribution_element_to_masonry
+      - KR_defined_RC_ring_beam_to_roof
+      - KR_defined_anchor_or_embedded_connection
+    forbidden_without_KR:
+      - universal_masonry_anchor
+      - inferred_bearing_length
+      - inferred_mauerlat
+
+  - adapter_id: RC_MONOLITHIC_ROOF_SUPPORT
+    wall_material_family: reinforced_concrete_monolithic
+    requires:
+      - KR_wall_geometry
+      - KR_connection_detail
+      - KR_embedded_anchor_or_cast_in_definition_if_used
+    allowed_support_families:
+      - embedded_plate_or_channel
+      - cast_in_anchor_system
+      - KR_defined_direct_bearing
+    forbidden_without_KR:
+      - post_installed_anchor_selection
+      - anchor_edge_distance_guess
+      - embedment_guess
+
+  - adapter_id: TIMBER_FRAME_ROOF_SUPPORT
+    wall_material_family: framed_wall_timber
+    requires:
+      - verified_wall_frame_schedule
+      - KR_top_plate_and_roof_connection_detail
+      - hold_down_and_bracing_reference
+    allowed_support_families:
+      - rafter_to_top_plate_by_KR
+      - truss_to_top_plate_by_KR
+      - panel_roof_to_timber_wall_by_verified_system
+    forbidden_without_KR:
+      - nail_pattern_guess
+      - screw_pattern_guess
+      - top_plate_section_guess
+      - hold_down_substitution
+
+  - adapter_id: LSTK_WALL_ROOF_SUPPORT
+    wall_material_family: framed_wall_LSTK
+    requires:
+      - verified_profile_schedule
+      - KR_connection_detail
+      - connector_schedule
+      - thermal_bridge_interface_review
+    allowed_support_families:
+      - LSTK_roof_to_LSTK_wall_by_KR
+      - timber_or_panel_roof_to_LSTK_wall_by_KR
+    forbidden_without_KR:
+      - self_drilling_screw_pattern_guess
+      - bracket_selection
+      - profile_reinforcement_guess
+
+  - adapter_id: PREFAB_PANEL_ROOF_SUPPORT
+    wall_material_family: prefabricated_panel
+    requires:
+      - verified_panel_product_or_KR_geometry
+      - approved_connection_zone
+      - KR_roof_connection_detail
+    allowed_support_families:
+      - roof_to_panel_insert_by_KR
+      - roof_to_top_beam_or_edge_member_by_KR
+    forbidden_without_KR:
+      - drilling_outside_approved_zone
+      - insert_relocation
+      - new_anchor_without_panel_design_check
+
+selection_policy:
+  - match_exact_wall_material_family
+  - preserve_actual_wall_thickness_and_product_geometry
+  - choose_only_support_family_explicitly_allowed_by_adapter
+  - require_KR_detail_before_structural_geometry_write
+  - if_adapter_missing_return_blocked_no_verified_material_adapter
+  - if_multiple_support_families_match_return_blocked_ambiguous_roof_wall_support

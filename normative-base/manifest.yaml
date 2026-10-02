@@ -1,4 +1,4 @@
-manifest_version: 84
+manifest_version: 85
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
@@ -156,6 +156,7 @@ rule_files:
   - 98_external_fire_water_site_interfaces_2027.yaml
   - 99_heat_point_architectural_interfaces_2027.yaml
   - 100_residential_gas_architectural_interfaces_2027.yaml
+  - 101_transformer_substation_architectural_interfaces_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

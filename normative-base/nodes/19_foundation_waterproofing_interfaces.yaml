@@ -1,0 +1,43 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+sources:
+  - {document: SP_22_13330_2016, changes: [1,2,3,4,5], role: geotechnical_and_foundation_exposure}
+  - {document: SP_28_13330_2017, changes: [1,2,3,4], role: durability_and_corrosion}
+  - {document: SP_50_13330_2024, role: thermal_moisture}
+  - {document: SP_71_13330_2017, changes: [1,2,3], role: waterproofing_and_insulation_execution}
+
+interface_families:
+  - id: WPF_001_RAFT_EDGE_NO_BASEMENT
+    hosts: [raft_or_strip_foundation, external_wall, ground_floor]
+    applies_if: ["basement_state=absent", "external_envelope=true"]
+    require: [moisture_exposure_classification, finished_ground_levels, waterproofing_strategy, horizontal_capillary_control_if_masonry_or_timber, thermal_edge_review]
+    contours: [bulk_water, capillary_control, thermal, air, durability]
+    hard_fail: [waterproofing_strategy_missing, finished_ground_levels_missing]
+  - id: WPF_002_BASEMENT_WALL_RAFT_EXTERNAL
+    hosts: [raft, basement_wall, external_ground]
+    applies_if: ["basement_state=present", "wall_is_external_below_grade=true"]
+    require: [groundwater_state, external_waterproofing_system, raft_wall_joint_strategy, termination_at_plinth, protective_layer_before_backfill, drainage_decision_from_project]
+    contours: [bulk_water, joint_water_control, durability, thermal_if_required]
+    hard_fail: [groundwater_state_unknown, raft_wall_joint_strategy_missing]
+  - id: WPF_003_FOUNDATION_DEFORMATION_JOINT
+    hosts: [foundation_segment_A, foundation_segment_B]
+    applies_if: ["project_joint_present=true"]
+    require: [KR_joint_width, approved_joint_waterproofing_system, movement_capacity_reference, continuity_to_wall_or_floor_joint]
+    contours: [movement, bulk_water, durability]
+    never_infer: [joint_width, waterstop_type, sealant_product]
+  - id: WPF_004_MEP_ENTRY_BELOW_GRADE
+    hosts: [foundation_or_basement_wall, MEP_penetration]
+    applies_if: ["penetration_below_grade=true"]
+    require: [KR_approved_opening, MEP_sleeve_geometry, waterproofing_penetration_system, movement_or_settlement_allowance_if_required]
+    contours: [bulk_water, air_if_envelope, fire_if_applicable, movement]
+    hard_fail: [KR_opening_approval_missing, waterproofing_penetration_system_missing]
+
+execution_policy:
+  waterproofing_product_selection: external_project_or_verified_system_only
+  layer_count_selection: external_project_only
+  drainage_need_and_geometry: external_geotechnical_project_only
+  model_membrane_as_3d: only_if_coordination_or_quantity_requires
+  otherwise_representation: property_plus_detail_2d
+postconditions: [no_waterproofing_contour_terminates_unresolved, all_below_grade_penetrations_have_approved_seal_system, all_joint_transitions_reference_same_node_revision]

@@ -1,5 +1,5 @@
-manifest_version: 83
-checked_at: 2026-10-01
+manifest_version: 84
+checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
 load_order:
@@ -155,6 +155,7 @@ rule_files:
   - 97_fire_alarm_post_architectural_interfaces_2027.yaml
   - 98_external_fire_water_site_interfaces_2027.yaml
   - 99_heat_point_architectural_interfaces_2027.yaml
+  - 100_residential_gas_architectural_interfaces_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

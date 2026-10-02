@@ -1,0 +1,65 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: machine_structural_connection_topology_for_rafter_systems
+
+source_stack:
+  - {document: SP_64_13330_2017, changes: [1,2,3,4], role: timber_structure_and_connections_when_used}
+  - {document: SP_20_13330_2016, role: actions}
+  - {document: SP_260_1325800_2023, role: LSTK_when_used}
+
+connection_families:
+  - node_id: ROOF_KR_001_RAFTER_TO_WALL_SUPPORT
+    hosts: [rafter_or_truss, wall_support]
+    applies_if: [rafter_or_truss_bears_on_wall_line]
+    required_KR_inputs: [bearing_geometry, member_end_geometry, connector_schedule, uplift_restraint, lateral_restraint]
+    geometry_actions: [place_member_end_from_KR, establish_bearing_relation, attach_connection_metadata]
+  - node_id: ROOF_KR_002_RAFTER_PAIR_APEX
+    hosts: [rafter_left, rafter_right]
+    applies_if: [structural_variant=rafter_pair_nonstructural_ridge]
+    required_KR_inputs: [apex_cut_geometry, connector_schedule, tie_or_thrust_resolution, bracing]
+    geometry_actions: [place_rafter_ends_from_KR, establish_apex_relation, attach_connection_metadata]
+  - node_id: ROOF_KR_003_RAFTER_TO_STRUCTURAL_RIDGE_BEAM
+    hosts: [rafter, structural_ridge_beam]
+    applies_if: [structural_variant=structural_ridge_beam]
+    required_KR_inputs: [ridge_beam_geometry, rafter_end_geometry, bearing_or_hanger_detail, connector_schedule]
+    geometry_actions: [place_ridge_beam_from_KR, place_rafter_end_from_KR, establish_support_relation]
+  - node_id: ROOF_KR_004_RAFTER_TO_PURLIN
+    hosts: [rafter, purlin]
+    applies_if: [structural_variant=purlin_post]
+    required_KR_inputs: [purlin_geometry, rafter_contact_geometry, connector_schedule, restraint]
+    geometry_actions: [place_purlin_from_KR, establish_support_relation, attach_connection_metadata]
+  - node_id: ROOF_KR_005_PURLIN_TO_POST
+    hosts: [purlin, post]
+    applies_if: [structural_variant=purlin_post]
+    required_KR_inputs: [post_geometry, purlin_end_or_continuous_geometry, connector_schedule, bracing]
+    geometry_actions: [place_post_from_KR, establish_support_relation, attach_connection_metadata]
+  - node_id: ROOF_KR_006_JACK_TO_HIP_OR_VALLEY
+    hosts: [jack_rafter, hip_or_valley_member]
+    applies_if: [roof_has_hip_or_valley=true]
+    required_KR_inputs: [member_geometry, end_cut_geometry, connector_schedule, support_scheme]
+    geometry_actions: [place_members_from_KR, establish_connection_relation]
+  - node_id: ROOF_KR_007_TRUSS_TO_SUPPORT
+    hosts: [prefabricated_or_calculated_truss, support]
+    applies_if: [structural_variant=prefabricated_truss]
+    required_KR_inputs: [truss_geometry_or_product, bearing_geometry, hold_down_schedule, bracing, erection_restraint]
+    geometry_actions: [place_truss_from_verified_geometry, establish_bearing_relation, attach_hold_down_reference]
+
+rules:
+  - id: roof.rafter_connection.connection_schedule_required
+    automation: true
+    statement: "Ни один несущий стропильный узел не получает крепеж из архитектурного шаблона: тип, количество, диаметр, шаг, длина, угол и краевые расстояния принимаются только из КР/расчетной документации или проверенной системы изделия."
+    result_on_missing: needs_structural_connection_schedule
+  - id: roof.rafter_connection.no_geometry_from_visual_contact
+    automation: true
+    statement: "Факт визуального пересечения/касания элементов в BIM не считается расчетным соединением и не разрешает автоматическую врубку, подрезку или крепеж."
+    result_on_missing: unresolved_structural_connection
+  - id: roof.rafter_connection.no_forced_mauerlat
+    automation: true
+    statement: "Узел ROOF_KR_001 работает с фактическим bearing element из КР; если мауэрлат отсутствует в КР, он не создается."
+
+postconditions:
+  - every_primary_member_end_has_resolved_support_or_joint
+  - connection_schedule_reference_exists_for_every_structural_joint
+  - no_member_notch_or_hole_without_KR_reference
+  - no_visual_contact_is_treated_as_structural_connection

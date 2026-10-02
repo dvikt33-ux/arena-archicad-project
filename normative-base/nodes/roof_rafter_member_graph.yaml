@@ -1,0 +1,30 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+purpose: build_structural_member_graph_from_KR_inputs_without_structural_design
+input_graph:
+  required: [KR_revision, structural_variant_id, member_schedule, member_axis_geometry, support_graph, connection_schedule, bracing_graph]
+member_roles: [common_rafter, jack_rafter, hip_rafter, valley_rafter, ridge_beam, nonstructural_ridge_board, purlin, post, strut, tie, truss, top_plate_or_mauerlat_if_KR_selected, LSTK_profile]
+algorithm:
+  - {step: validate_KR_revision, fail: roof_KR_input_missing}
+  - {step: instantiate_member_axes, action: "Создать оси строго из KR member_axis_geometry."}
+  - {step: instantiate_member_sections, action: "Назначить сечения из KR member_schedule без типового округления."}
+  - {step: resolve_support_graph, action: "Для каждого конца/опоры назначить family из roof_rafter_connection_nodes.yaml."}
+  - {step: apply_end_geometry, action: "Врубки/подрезки/торцы создавать только из exact KR geometry; иначе blocked joint."}
+  - {step: resolve_bracing, action: "Создать раскрепления только из bracing_graph."}
+  - {step: collision_check, action: "Коллизии с проходками/окнами не устранять подрезкой несущего элемента."}
+  - {step: node_binding, action: "Связать structural joints с архитектурными узлами крыши."}
+  - {step: readback, action: "Сверить оси, сечения, отметки и relations с KR snapshot."}
+rules:
+  - id: roof.member_graph.KR_is_authority
+    automation: true
+    statement: "Граф стропильной системы исполняет подтвержденный КР и не проектирует расчетную схему."
+    result_on_mismatch: needs_AR_KR_coordination
+  - id: roof.member_graph.no_collision_cut
+    automation: true
+    statement: "Коллизия не исправляется автоматической подрезкой/переносом стропила."
+    result_on_collision: structural_collision_blocked
+  - id: roof.member_graph.no_auto_section_optimization
+    automation: true
+    statement: "Движок не меняет сечение/шаг ради коллизии, экономии или модуля."
+output: {structural_member_instances: [], structural_joint_instances: [], blocked_joints: [], collisions: [], KR_readback_receipt: required}

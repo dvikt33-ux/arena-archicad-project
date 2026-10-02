@@ -182,7 +182,7 @@ entrance_external_stair_graph:
       external_rc_stair_present: ENT_003_EXTERNAL_RC_STAIR_TO_PLATFORM
       canopy_present: ENT_004_CANOPY_SUPPORT_AT_ENTRANCE
 
- deformation_joint_graph:
+deformation_joint_graph:
   - gate: require_KR_joint_axis_and_movement_range
     if_missing: blocked_waiting_for_KR
   - route:

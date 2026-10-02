@@ -1,0 +1,46 @@
+manifest_version: 1
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+scope: general_buildings
+purpose: "Machine-executable selection and assembly of foundation, wall-foundation and floor-system nodes from verified project inputs."
+
+load_order:
+  - 00_engine_contract.yaml
+  - 01_foundation_selector.yaml
+  - 02_foundation_assemblies.yaml
+  - 03_foundation_wall_nodes.yaml
+  - 04_floor_system_selector.yaml
+  - 05_floor_connection_nodes.yaml
+  - 06_high_level_command_contract.yaml
+
+inherits:
+  - ../target_2027.yaml
+  - ../revision_watch_2027.yaml
+  - ../revision_watch_adjacent_2027.yaml
+  - ../schema/dimension_selection_policy.yaml
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/23_precast_slab_layout.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/73_deformation_temperature_joints.yaml
+  - ../rules/80_geometric_accuracy_tolerances.yaml
+
+hard_fail:
+  - engineering_geology_missing_for_foundation_selection
+  - structural_loads_missing_for_foundation_selection
+  - KR_foundation_type_not_approved_for_execution
+  - KR_bearing_or_connection_geometry_missing
+  - groundwater_or_exposure_unknown_when_waterproofing_contour_required
+  - structural_penetration_not_approved
+  - product_geometry_or_manufacturer_data_missing
+  - stale_normative_revision
+  - target_profile_mismatch
+
+execution_policy:
+  selector_may_rank_candidates: true
+  selector_may_finalize_structural_system_without_KR: false
+  assembly_may_create_coordination_placeholder_before_KR: true
+  assembly_may_create_approved_structural_geometry_only_from_KR: true
+  reinforcement_generation: external_KR_only
+  bearing_length_generation: external_KR_or_verified_product_system_only
+  foundation_depth_width_thickness_generation: external_geotechnical_KR_only

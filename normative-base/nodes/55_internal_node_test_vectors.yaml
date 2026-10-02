@@ -1,0 +1,82 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+suite_id: INTERNAL_NODE_SELECTOR_TESTS_V1
+
+tests:
+  - test_id: drywall_partition_selects_base_node
+    intent: build_internal_walls_and_partitions
+    inputs:
+      wall_system_family: framed_gypsum
+      verified_partition_system: SYS_GYPSUM_01
+      partition_height: 3000
+      room_moisture_mode: dry
+      top_joint_strategy: fixed
+    expected:
+      node_id: INT_PART_001_DRYWALL_PARTITION_BASE
+
+  - test_id: drywall_partition_missing_system_blocks
+    intent: build_internal_walls_and_partitions
+    inputs:
+      wall_system_family: framed_gypsum
+      verified_partition_system: null
+    expected:
+      status: blocked_waiting_for_product_or_AR
+      forbidden_outputs: [stud_section, stud_spacing, sheathing_layers, insulation_type]
+
+  - test_id: sliding_top_without_KR_deflection_blocks
+    intent: build_internal_walls_and_partitions
+    inputs:
+      wall_system_family: framed_gypsum
+      sliding_top_required: true
+      verified_partition_system: SYS_GYPSUM_02
+      KR_floor_deflection_reference: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [head_gap, profile_geometry, fastener_spacing]
+
+  - test_id: drywall_door_selects_opening_node
+    intent: build_internal_door_openings
+    inputs:
+      host_partition_family: framed_gypsum
+      verified_door_product: DOOR_01
+      door_mass: 25
+      opening_geometry: AR_OPN_01
+      jamb_reinforcement_strategy: SYS_JAMB_01
+    expected:
+      node_id: INT_PART_003_DRYWALL_DOOR_OPENING
+
+  - test_id: service_shaft_selects_enclosure_and_hatch
+    intent: build_service_shafts
+    inputs:
+      shaft_enclosure_family: framed_gypsum
+      engineering_service_volume: ENG_SHAFT_01
+      verified_enclosure_system: SHAFT_SYS_01
+      access_hatch_required: true
+      verified_hatch_product: HATCH_01
+      service_clearance: ENG_ACCESS_01
+    expected:
+      node_ids: [SHAFT_001_GYPSUM_SERVICE_SHAFT_ENCLOSURE, SHAFT_002_ACCESS_HATCH]
+
+  - test_id: penetration_without_engineering_owner_blocks
+    intent: build_engineering_penetrations
+    inputs:
+      penetration_host: shaft_enclosure
+      engineering_owner: null
+      approved_penetration_geometry: PEN_GEO_01
+    expected:
+      status: blocked_waiting_for_engineering
+      forbidden_outputs: [opening_size, sleeve_size, firestop_product]
+
+  - test_id: concealed_boxes_under_150_block
+    intent: validate_concealed_electrical_boxes
+    inputs:
+      boxes_exist_on_both_faces: true
+      opposite_side_box_edge_offset_mm: 120
+    expected:
+      node_id: ELEC_001_OPPOSITE_SIDE_CONCEALED_BOX_COORDINATION
+      status: blocked_electrical_box_offset_below_minimum
+
+validation_policy:
+  - referenced_expected_node_ids_must_exist
+  - blocked_tests_must_not_require_inferred_structural_or_product_geometry

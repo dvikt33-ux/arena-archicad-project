@@ -1,0 +1,219 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: ARCHICAD_INTERIOR_FLOOR_CEILING_EXECUTION_MAP
+purpose: "Compile verified floor/wet-zone and suspended-ceiling node decisions into source-audited Archicad/Tapir operations without inventing products, structural openings or support geometry."
+
+verified_command_source: ../izh/10_tapir_command_matrix.yaml
+
+representation_policy:
+  structural_floor:
+    representation: existing_native_Slab
+    ownership: KR
+    mutation_by_finish_engine: forbidden
+  finish_floor_major_geometry:
+    representation: native_Slab
+    command: CreateSlabs
+    only_if: verified_floor_build_up_and_finished_level_require_3d_geometry
+  waterproofing:
+    representation_default: properties_plus_detail_2d
+    commands_for_documentation: [CreateDetails, CreateWorksheets]
+    three_dimensional_only_if: explicit_project_LOD_quantity_or_coordination_requirement
+  drain_or_channel:
+    representation: verified_MEP_element_when_supported
+    commands: [CreateMEPRoutingElements, ConnectMEPElements]
+    product_geometry_gate: verified_product_and_VK_reference
+  structural_penetration:
+    representation: native_Opening
+    command: CreateOpenings
+    gate: KR_approved_geometry_and_engineering_owner
+  suspended_ceiling_finish_plane:
+    representation: separate_native_Slab_when_semantically_acceptable
+    command: CreateSlabs
+    note: "The finish plane is not proof of the hidden frame/hanger system."
+  ceiling_hidden_frame_and_hangers:
+    representation_default: properties_plus_detail_2d
+    commands_for_documentation: [CreateDetails, CreateWorksheets]
+    three_dimensional_only_if: verified_system_geometry_and_project_LOD_requires
+  perimeter_or_joint_profile:
+    representation: verified_Profile_or_detail
+    commands: [CreateProfiles, CreateDetails]
+  ceiling_device_cutout:
+    representation: Opening_only_when_host_compatibility_and_geometry_are_verified
+    command: CreateOpenings
+  MEP_device:
+    representation: existing_engineering_element
+    mutation_by_AR_finish_engine: forbidden
+
+operation_graphs:
+  build_room_floor_system:
+    node_families: [FNSH_FLR_001_ROOM_FLOOR_BUILDUP]
+    preflight:
+      - structural_floor_GUID_exists
+      - structural_floor_revision_matches_KR
+      - floor_build_up_source_verified
+      - finished_floor_level_resolved
+    operations:
+      - op: CreateSlabs
+        only_if: major_finish_geometry_required
+        semantic_class: interior_finish_floor
+        geometry_source: verified_floor_specification_and_AR_levels
+      - op: CreateDetails
+        only_if: floor_build_up_detail_required
+        semantic_class: floor_build_up_detail
+    readback:
+      - finish_floor_GUIDs
+      - top_levels
+      - thicknesses_from_approved_inputs
+      - room_zone_relations
+      - NODE_ID
+      - source_revision
+
+  build_wet_zone_floor:
+    node_families:
+      - FNSH_FLR_002_WET_ROOM_FLOOR_WITH_WATERPROOFING
+      - FNSH_FLR_003_WET_ROOM_FLOOR_TO_WALL_UPTURN
+      - FNSH_FLR_005_WET_ROOM_THRESHOLD_OR_LEVEL_DROP
+      - FNSH_FLR_006_FLOOR_FINISH_AT_BUILDING_DEFORMATION_JOINT
+    preflight:
+      - liquid_exposure_and_waterproofing_basis_resolved
+      - finished_floor_levels_resolved
+      - accessibility_status_resolved_at_doors
+      - waterproofing_system_or_project_detail_verified_when_required
+    operations:
+      - op: CreateSlabs
+        only_if: verified_finish_or_slope_geometry_requires_3d
+        semantic_class: wet_room_finish_floor
+      - op: CreateProfiles
+        only_if: verified_threshold_or_joint_profile_requires_model_geometry
+        semantic_class: verified_floor_interface_profile
+      - op: CreateDetails
+        semantic_class: waterproofing_and_threshold_detail
+      - op: CreateWorksheets
+        only_if: dedicated_waterproofing_or_floor_assembly_sheet_required
+        semantic_class: floor_waterproofing_worksheet
+    forbidden:
+      - modify_structural_slab_to_fake_finish_slope
+      - synthesize_waterproofing_product
+      - generate_generic_20mm_threshold_on_accessible_route
+    readback:
+      - finish_floor_levels
+      - threshold_geometry_if_any
+      - waterproofing_system_reference
+      - deformation_joint_axis_if_applicable
+      - NODE_IDs
+
+  build_floor_drain_nodes:
+    node_families: [FNSH_FLR_004_FLOOR_DRAIN_INTERFACE]
+    preflight:
+      - explicit_drain_design_intent
+      - verified_drain_product_or_supported_MEP_semantic
+      - VK_owner_and_revision
+      - drain_finished_level
+      - waterproofing_interface_resolved
+      - structural_opening_KR_approval_if_required
+    operations:
+      - op: CreateMEPRoutingElements
+        only_if: MEP_route_or_supported_drain_semantic_is_owned_by_VK
+        semantic_class: VK_drainage_element
+      - op: ConnectMEPElements
+        only_if: verified_connections_are_supplied_by_VK
+        semantic_class: VK_connection
+      - op: CreateOpenings
+        only_if: KR_approved_structural_opening_geometry_present
+        semantic_class: approved_structural_penetration
+      - op: CreateDetails
+        semantic_class: drain_waterproofing_interface_detail
+    forbidden:
+      - add_floor_drain_from_room_name
+      - infer_outlet_diameter
+      - infer_structural_opening
+    readback:
+      - drain_GUID_or_external_product_reference
+      - top_level
+      - owner_revision
+      - opening_GUID_if_created
+      - connection_relations
+      - NODE_ID
+
+  build_suspended_ceiling_system:
+    node_families:
+      - CLG_001_SUSPENDED_GYPSUM_CEILING_SYSTEM
+      - CLG_002_CEILING_PERIMETER_TO_WALL
+      - CLG_004_CEILING_ACCESS_PANEL
+      - CLG_005_WET_ROOM_SUSPENDED_CEILING
+      - CLG_006_CEILING_AT_DEFORMATION_JOINT
+    preflight:
+      - ceiling_system_verified
+      - design_load_verified
+      - frame_and_suspension_spacing_resolved
+      - structural_soffit_and_finished_ceiling_levels_resolved
+      - service_zone_coordination_passed
+    operations:
+      - op: CreateSlabs
+        only_if: ceiling_finish_plane_is_modeled_in_3d
+        semantic_class: suspended_ceiling_finish_plane
+      - op: CreateProfiles
+        only_if: verified_perimeter_or_joint_profile_is_modeled
+        semantic_class: ceiling_verified_profile
+      - op: CreateOpenings
+        only_if: access_panel_or_device_cutout_geometry_is_approved_and_host_supported
+        semantic_class: ceiling_access_or_device_opening
+      - op: CreateDetails
+        semantic_class: suspended_ceiling_system_detail
+      - op: CreateWorksheets
+        only_if: ceiling_layout_or_service_coordination_sheet_required
+        semantic_class: ceiling_coordination_worksheet
+    forbidden:
+      - model_hidden_hanger_grid_from_unverified_spacing
+      - infer_anchor_product
+      - bridge_building_deformation_joint_with_continuous_ceiling_frame
+    readback:
+      - ceiling_finish_GUIDs
+      - finished_ceiling_levels
+      - room_zone_relations
+      - opening_GUIDs_if_created
+      - verified_system_reference
+      - NODE_IDs
+
+  build_ceiling_mep_interfaces:
+    node_families: [CLG_003_CEILING_MEP_DEVICE_INTERFACE]
+    preflight:
+      - engineering_device_owner_present
+      - device_geometry_and_weight_present
+      - support_strategy_resolved
+      - ceiling_capacity_verified_if_device_loads_ceiling
+    operations:
+      - op: CreateOpenings
+        only_if: verified_ceiling_cutout_geometry_is_required
+        semantic_class: ceiling_device_cutout
+      - op: CreateDetails
+        semantic_class: ceiling_device_support_interface_detail
+    forbidden:
+      - attach_device_load_to_ceiling_without_capacity_confirmation
+      - alter_MEP_route_or_device_without_engineering_ownership
+    readback:
+      - ceiling_opening_GUIDs
+      - device_relation_reference
+      - support_owner
+      - service_access_status
+      - NODE_ID
+
+write_gates:
+  - id: interior_floor_ceiling.no_KR_host_mutation
+    condition: "Finish and ceiling operations may not alter KR-owned structural slab/opening geometry unless a separately approved KR operation explicitly authorizes it."
+  - id: interior_floor_ceiling.no_product_inference
+    condition: "Waterproofing, drains, ceiling systems, access panels, anchors, sealants and profiles are never synthesized as verified products."
+  - id: interior_floor_ceiling.readback_required
+    condition: "Every geometry write must be followed by GUID/type/level/relation/NODE_ID readback before success."
+
+instance_properties:
+  - CONSTRUCTION_NODE_ID
+  - CONSTRUCTION_NODE_REVISION
+  - SYSTEM_REFERENCE
+  - AR_REVISION
+  - KR_REVISION
+  - ENGINEERING_OWNER
+  - PRODUCT_REFERENCE
+  - NORMATIVE_RULE_REFS
+  - UNRESOLVED_GATES

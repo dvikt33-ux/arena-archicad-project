@@ -1,0 +1,200 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы водомерных узлов и хозяйственно-питьевых повысительных насосных
+  установок по актуальному СП 30.13330.2020 с Изм. №1-5. Файл резервирует доступ, микроклимат,
+  сервисные и демонтажные зоны, но не рассчитывает расходы, напоры, диаметры и подбор насосов.
+
+revision_dependencies:
+  - {document: SP_30_13330_2020, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SP_73_13330_2016, verified_changes: [1,2,3], target_2027_deferred_change_parts: true}
+
+legacy_guards:
+  - id: vk.domestic.block_removed_sp30_13_4
+    automation: forbidden_to_infer
+    statement: >-
+      Не применять п.13.4 исходной редакции СП 30 как действующее правило: Изменением №3 этот
+      пункт исключен. Архитектурные требования к пожарным насосным брать из актуального СП 485
+      и rules/94_fire_suppression_pump_room_interfaces_2027.yaml.
+
+  - id: vk.domestic.block_old_sp30_13_6_adjacency_text
+    automation: forbidden_to_infer
+    statement: >-
+      Не использовать старую редакцию п.13.6 с перечнем запрещенных смежностей насосных с жилыми,
+      учебными, больничными, офисными и подобными помещениями как буквальное текущее правило.
+      Изменение №3 заменило пункт требованием учитывать действующие нормы шума и вибрации.
+
+water_meter_nodes:
+  source: SP_30_13330_2020
+  rules:
+    - id: vk.water_meter.location_accessible_room
+      clause: "12.5"
+      automation: mandatory_validation
+      statement: >-
+        Счетчики холодной и горячей воды размещать в удобном и легкодоступном помещении;
+        архитектурное решение должно сохранять доступ для считывания, обслуживания и замены.
+      required:
+        - service_access_route
+        - readable_meter_position
+
+    - id: vk.water_meter.room_temperature_min
+      clause: "12.5"
+      automation: conditional
+      dimension_semantics: room_air_temperature
+      min_temperature_c: 5
+      statement: "Температура воздуха в помещении счетчиков воды должна быть не ниже +5 °C."
+      discipline_boundary: OV
+
+    - id: vk.water_meter.room_lighting_required
+      clause: "12.5"
+      automation: mandatory_validation
+      requirement: artificial_and_or_natural_lighting
+      statement: "Помещение счетчиков должно иметь искусственное и/или естественное освещение."
+
+    - id: vk.water_meter.heavy_meter_lifting_space
+      clause: "12.5"
+      automation: conditional
+      condition: "meter_mass_kg > 25"
+      requirement: overhead_space_for_lifting_mechanism
+      statement: >-
+        Для счетчика массой более 25 кг резервировать достаточное пространство над счетчиком
+        для установки подъемного механизма; конкретный габарит определяется выбранным оборудованием.
+      requires_manufacturer_data: true
+
+    - id: vk.water_meter_technical_cabinet_access
+      clause: "11.7; 12.5"
+      automation: mandatory_validation
+      statement: >-
+        Технические шкафы стояков и измерительных приборов должны обеспечивать свободный доступ
+        технического персонала; отделка, мебель и архитектурные панели не должны блокировать
+        открывание и сервисную зону.
+
+pump_installations:
+  source: SP_30_13330_2020
+  rules:
+    - id: vk.domestic.pump_location_options
+      clause: "13.3"
+      automation: design_option
+      applies_to: domestic_potable_water_pump_installation
+      permitted_contexts:
+        - building_service_room
+        - ITP_room
+        - boiler_room
+        - boiler_house_room
+      statement: >-
+        Хозяйственно-питьевые насосные установки допускается размещать в здании, включая ИТП,
+        бойлерные и котельные, при выполнении действующих требований по шуму и вибрации.
+
+    - id: vk.domestic.pump_noise_vibration_2027_gate
+      clause: "13.6 current text after Change 3"
+      automation: mandatory_router
+      route_to:
+        - sanitary_registry_2027.yaml
+        - rules/27_thermal_acoustic_envelope.yaml
+      statement: >-
+        Насосы и иные источники шума/вибраций размещать только после проверки действующих
+        гигиенических нормативов. После 01.03.2027 не наследовать автоматически числовые значения
+        из истекающих санитарных актов до подтверждения официального преемника.
+
+pump_room_clearances:
+  source: {document: SP_30_13330_2020, clause: "13.22"}
+  dimension_semantics: clear_service_passage
+  rules:
+    - id: vk.pump.clear_between_pumps
+      automation: conditional
+      min_clear_m: 1.0
+      relation: between_pumps_or_motors
+
+    - id: vk.pump.clear_to_wall_buried_room
+      automation: conditional
+      condition: "pump_room_is_recessed_or_buried"
+      min_clear_m: 0.7
+      relation: pump_or_motor_to_wall
+
+    - id: vk.pump.clear_to_wall_other_room
+      automation: conditional
+      condition: "pump_room_is_not_recessed_or_buried"
+      min_clear_m: 1.0
+      relation: pump_or_motor_to_wall
+      additional_requirement: "motor_side_clearance_sufficient_for_rotor_removal"
+
+    - id: vk.pump.clear_between_compressors
+      automation: conditional
+      min_clear_m: 1.5
+      relation: between_compressors_or_blowers
+
+    - id: vk.pump.clear_compressor_to_wall
+      automation: conditional
+      min_clear_m: 1.0
+      relation: compressor_or_blower_to_wall
+
+    - id: vk.pump.clear_between_fixed_projections
+      automation: conditional
+      min_clear_m: 0.7
+      relation: between_fixed_projecting_parts_of_equipment
+
+    - id: vk.pump.clear_before_electrical_board
+      automation: conditional
+      min_clear_m: 2.0
+      relation: in_front_of_distribution_electrical_board
+
+    - id: vk.pump.small_unit_compact_exception
+      automation: conditional_exception
+      all_conditions:
+        - "discharge_connection_diameter_mm <= 100"
+        - "compact_wall_or_common_foundation_layout_selected"
+      min_clear_between_projecting_parts_m: 0.25
+      min_clear_around_double_unit_m: 0.7
+      statement: >-
+        Для малых агрегатов с нагнетательным патрубком до 100 мм включительно допускается
+        предусмотренная СП компактная установка, но только при сохранении указанных проходов.
+
+lifting_and_maintenance:
+  - id: vk.pump.lifting_transport_equipment
+    source: {document: SP_30_13330_2020, clause: "13.23"}
+    automation: mandatory_validation
+    statement: >-
+      Для эксплуатации технологического оборудования, арматуры и трубопроводов насосной
+      предусматривать подъемно-транспортное оборудование; архитектура резервирует его рабочую
+      зону и маршрут демонтажа по фактическому проекту.
+    requires_engineering_input: true
+
+BIM_required_parameters:
+  - water_meter_node_id
+  - water_meter_mass_kg
+  - water_meter_service_zone
+  - water_meter_room_temperature_design_c
+  - water_meter_room_lighting_status
+  - lifting_mechanism_zone
+  - pump_unit_ids
+  - pump_room_type
+  - pump_discharge_connection_diameter_mm
+  - pump_service_envelopes
+  - motor_rotor_removal_envelope
+  - electrical_distribution_board_service_zone
+  - lifting_transport_equipment_envelope
+  - dismantling_route
+  - sanitary_noise_vibration_status
+
+hard_fail_conditions:
+  - "water meter room design temperature below +5 C"
+  - "water meter or technical cabinet has no accessible service/readout route"
+  - "meter over 25 kg has no verified lifting-space solution"
+  - "pump-room clear service passage below applicable SP 30 clause 13.22 value"
+  - "old deleted SP 30 clause 13.4 used as current fire-pump-room rule"
+  - "old pre-Change-3 clause 13.6 adjacency list used as current literal rule"
+  - "2027 noise/vibration compliance asserted from expired sanitary numeric values without successor check"
+
+agent_logic:
+  - "Сначала определить тип узла: водомерный, хозяйственно-питьевой насосный или пожарный насосный; не смешивать их нормы."
+  - "Габарит насосной строить от реальных equipment/service/dismantling envelopes, а не от площади здания."
+  - "Проход 2,0 м перед электрощитом хранить отдельным направленным envelope, а не как общий отступ вокруг насоса."
+  - "Для шумов и вибрации использовать санитарный replacement gate целевого периода."
+  - "Гидравлику, напор, расход и подбор насосов не выполнять в архитектурном правиле."
+
+sources:
+  - "https://protect.gost.ru/sp/details/8cd57a35-8503-4bb8-802a-324b64f3e0e7"
+  - "https://protect.gost.ru/sp/changesdetails/e99262f3-6481-4f2c-9301-f53e2d0e24a7"
+  - "https://protect.gost.ru/sp/changesdetails/5c93cef4-e7dd-472f-9cb4-99bca869186d"
+  - "https://base.garant.ru/400383625/"
+  - "https://base.garant.ru/408556691/"

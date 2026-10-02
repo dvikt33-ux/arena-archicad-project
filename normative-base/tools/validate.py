@@ -14,7 +14,6 @@ EXPECTED_PROFILE = "RU_2027_PLUS"
 
 
 def is_machine_rule(node: dict[str, Any]) -> bool:
-    """Distinguish machine-rule identifiers from repeated document/node catalog IDs."""
     rule_markers = {
         "automation",
         "auto_rule",
@@ -40,6 +39,26 @@ def walk_rule_ids(node: Any, path: str = ""):
     elif isinstance(node, list):
         for i, value in enumerate(node):
             yield from walk_rule_ids(value, f"{path}[{i}]")
+
+
+def is_node_definition(node: dict[str, Any]) -> bool:
+    node_id = node.get("node_id")
+    if not isinstance(node_id, str):
+        return False
+    definition_markers = {"hosts", "family", "recipe", "applies_if", "geometry_actions"}
+    return bool(definition_markers.intersection(node))
+
+
+def walk_node_definitions(node: Any, path: str = ""):
+    if isinstance(node, dict):
+        if is_node_definition(node):
+            yield node["node_id"], path
+        for key, value in node.items():
+            child = f"{path}.{key}" if path else str(key)
+            yield from walk_node_definitions(value, child)
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from walk_node_definitions(value, f"{path}[{i}]")
 
 
 def validate_profile_file(file: Path, doc: Any, errors: list[str]) -> None:
@@ -70,6 +89,37 @@ def validate_package_manifest(
         errors.append(f"{name} manifest lists absent YAML files: {stale}")
     if manifest.get("target_profile") != EXPECTED_PROFILE:
         errors.append(f"{name} manifest target_profile mismatch")
+
+
+def validate_node_test_references(
+    parsed: dict[Path, Any], known_node_ids: set[str], errors: list[str]
+) -> None:
+    test_file = NODES / "23_node_test_vectors.yaml"
+    doc = parsed.get(test_file)
+    if not isinstance(doc, dict):
+        return
+    tests = doc.get("tests") or []
+    if not isinstance(tests, list):
+        errors.append("NODES test vectors 'tests' must be a list")
+        return
+    for test in tests:
+        if not isinstance(test, dict):
+            continue
+        test_id = test.get("test_id", "<unknown>")
+        expected = test.get("expected")
+        if not isinstance(expected, dict):
+            errors.append(f"node test {test_id!r} missing expected mapping")
+            continue
+        refs: list[str] = []
+        one = expected.get("node_id")
+        many = expected.get("node_ids")
+        if isinstance(one, str):
+            refs.append(one)
+        if isinstance(many, list):
+            refs.extend(ref for ref in many if isinstance(ref, str))
+        for ref in refs:
+            if ref not in known_node_ids:
+                errors.append(f"node test {test_id!r} references unknown node_id {ref!r}")
 
 
 def main() -> int:
@@ -110,6 +160,24 @@ def main() -> int:
             else:
                 seen_rule_ids[rule_id] = (file, node_path)
 
+    seen_node_ids: dict[str, tuple[Path, str]] = {}
+    for file, doc in parsed.items():
+        if file.parent != NODES or file.name == "manifest.yaml":
+            continue
+        for node_id, node_path in walk_node_definitions(doc):
+            previous = seen_node_ids.get(node_id)
+            if previous:
+                p_file, p_path = previous
+                errors.append(
+                    "duplicate construction node_id "
+                    f"{node_id!r}: {p_file.relative_to(ROOT)}:{p_path} and "
+                    f"{file.relative_to(ROOT)}:{node_path}"
+                )
+            else:
+                seen_node_ids[node_id] = (file, node_path)
+
+    validate_node_test_references(parsed, set(seen_node_ids), errors)
+
     manifest = parsed.get(ROOT / "manifest.yaml")
     if isinstance(manifest, dict):
         listed = set(manifest.get("rule_files") or [])
@@ -134,7 +202,8 @@ def main() -> int:
 
     print(
         f"OK: {len(yaml_files)} YAML files parsed; "
-        f"{len(seen_rule_ids)} unique machine rule ids; manifests synchronized."
+        f"{len(seen_rule_ids)} unique machine rule ids; "
+        f"{len(seen_node_ids)} unique construction node ids; manifests synchronized."
     )
     return 0
 

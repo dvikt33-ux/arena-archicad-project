@@ -1,0 +1,147 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+vectors:
+  - id: roof.test.gable_exact_vent_classify
+    payload:
+      intent: build_pitched_roof
+      mode: coordinate
+      context:
+        roof_form: gable
+        covering_system_id: metal_tile
+        structural_variant_id: roof.structure.structural_ridge_beam
+        structural_roof_scheme_reference: KR-ROOF-001
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        drainage_mode: external
+        topology: {ridge_count: 1, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 10, slope_percent: 36}
+          - {id: B, slope_length_m: 10, slope_percent: 36}
+    expect:
+      status: coordination_ready
+      contains_node_ids: [ROOF_AR_001_WALL_SUPPORT, ROOF_AR_002_EAVES, ROOF_AR_003_RIDGE, ROOF_AR_007_GABLE_VERGE]
+      contains_structural_node_ids: [ROOF_KR_001_RAFTER_TO_WALL_SUPPORT, ROOF_KR_003_RAFTER_TO_STRUCTURAL_RIDGE_BEAM]
+      vent_status: verified_exact
+      vent_height_mm: 50
+
+  - id: roof.test.execute_without_KR_blocks
+    payload:
+      intent: build_pitched_roof
+      mode: execute_geometry
+      context:
+        roof_form: gable
+        covering_system_id: metal_tile
+        structural_variant_id: roof.structure.structural_ridge_beam
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 1, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 10, slope_percent: 36}
+          - {id: B, slope_length_m: 10, slope_percent: 36}
+    expect:
+      status: blocked
+      blocker_prefixes: ["missing:KR_revision", "missing:structural_roof_scheme_reference", "roof_KR_input_missing"]
+
+  - id: roof.test.valley_adds_node
+    payload:
+      intent: build_pitched_roof
+      mode: coordinate
+      context:
+        roof_form: gable
+        covering_system_id: tiles
+        structural_variant_id: roof.structure.hip_valley_rafter_system
+        structural_roof_scheme_reference: KR-ROOF-002
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 1, hip_count: 0, valley_count: 1, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 15, slope_percent: 47}
+          - {id: B, slope_length_m: 15, slope_percent: 47}
+    expect:
+      status: coordination_ready
+      contains_node_ids: [ROOF_AR_005_VALLEY]
+      contains_structural_node_ids: [ROOF_KR_006_JACK_TO_HIP_OR_VALLEY]
+
+  - id: roof.test.non_grid_vent_is_precheck
+    payload:
+      intent: validate_roof_nodes
+      mode: coordinate
+      context:
+        roof_form: mono_pitch
+        covering_system_id: folded_metal
+        structural_variant_id: roof.structure.purlin_post_system
+        structural_roof_scheme_reference: KR-ROOF-003
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 0, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 12, slope_percent: 40}
+    expect:
+      status: coordination_ready
+      warning_prefixes: [ventilation_precheck_only]
+      vent_status: conservative_precheck_not_final
+
+  - id: roof.test.vent_outside_matrix_blocks
+    payload:
+      intent: validate_roof_nodes
+      mode: coordinate
+      context:
+        roof_form: mono_pitch
+        covering_system_id: folded_metal
+        structural_variant_id: roof.structure.purlin_post_system
+        structural_roof_scheme_reference: KR-ROOF-004
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 0, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 28, slope_percent: 36}
+    expect:
+      status: blocked
+      blocker_prefixes: [roof_ventilation_input_outside_verified_matrix]
+
+  - id: roof.test.unknown_covering_blocks
+    payload:
+      intent: build_pitched_roof
+      mode: coordinate
+      context:
+        roof_form: gable
+        covering_system_id: unknown
+        structural_variant_id: roof.structure.rafter_pair_nonstructural_ridge
+        structural_roof_scheme_reference: KR-ROOF-005
+        thermal_boundary_mode: cold_attic
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 1, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 0}
+        roof_planes:
+          - {id: A, slope_length_m: 5, slope_percent: 27}
+          - {id: B, slope_length_m: 5, slope_percent: 27}
+    expect:
+      status: blocked
+      blocker_prefixes: [roof_covering_system_missing]
+
+  - id: roof.test.penetration_execution_requires_records
+    payload:
+      intent: build_pitched_roof
+      mode: execute_geometry
+      context:
+        roof_form: gable
+        covering_system_id: metal_tile
+        structural_variant_id: roof.structure.structural_ridge_beam
+        structural_roof_scheme_reference: KR-ROOF-006
+        KR_revision: KR-R6
+        KR_data:
+          member_schedule: [{id: R1}]
+          member_axis_geometry: [{id: R1}]
+          support_graph: [{id: S1}]
+          connection_schedule: [{id: C1}]
+          bracing_graph: [{id: B1}]
+        thermal_boundary_mode: warm_roof
+        ventilation_mode: ventilated_channel
+        topology: {ridge_count: 1, hip_count: 0, valley_count: 0, vertical_abutment_count: 0, penetration_count: 1}
+        roof_planes:
+          - {id: A, slope_length_m: 10, slope_percent: 36}
+          - {id: B, slope_length_m: 10, slope_percent: 36}
+    expect:
+      status: blocked
+      contains_node_ids: [ROOF_AR_008_PENETRATION]
+      blocker_prefixes: [structural_penetration_not_approved]

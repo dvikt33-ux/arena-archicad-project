@@ -1,4 +1,4 @@
-manifest_version: 9
+manifest_version: 10
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -37,6 +37,7 @@ load_order:
   - roof_canonical_node_catalog.yaml
   - roof_gable_verge_node.yaml
   - roof_penetration_node.yaml
+  - roof_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE

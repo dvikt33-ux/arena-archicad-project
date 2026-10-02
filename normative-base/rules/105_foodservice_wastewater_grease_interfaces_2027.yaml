@@ -1,0 +1,228 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурно-планировочные интерфейсы производственной канализации предприятий общественного
+  питания и жироуловителей по СП 30.13330.2020 с Изм. №1-5. Файл задает разделение систем,
+  условия локальной очистки, помещение жироуловителя и сервисные маршруты; гидравлика,
+  диаметры выпусков и подбор оборудования остаются разделами ВК/ТХ.
+
+revision_dependencies:
+  - {document: SP_30_13330_2020, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SANPIN_2_3_2_4_4282_26, status: active, effective_from: 2026-09-01}
+
+system_separation:
+  source: SP_30_13330_2020
+  rules:
+    - id: foodservice.sewer.production_domestic_separate
+      clause: "16.2"
+      automation: hard_gate
+      applies_to:
+        - multifunctional_building_or_complex
+        - shop
+        - foodservice_enterprise
+        - food_processing_enterprise
+      requirement: separate_production_and_domestic_sewer_systems
+      statement: >-
+        В ТРК и предприятиях общественного питания производственную и бытовую канализацию
+        моделировать как разные системы; объединение внутри здания не принимать по умолчанию.
+
+    - id: foodservice.sewer.production_acceptance_quality_gate
+      clause: "16.3; 20.1"
+      automation: engineering_coordination_gate
+      condition: "production_wastewater_to_centralized_sewer"
+      requirement: comply_with_local_wastewater_acceptance_rules_before_discharge
+      local_treatment_required_if_noncompliant: true
+      discipline_boundary: [VK, TX]
+
+outlets_and_routes:
+  source: SP_30_13330_2020
+  rules:
+    - id: foodservice.sewer.two_separate_outlets_one_manhole_allowed
+      clause: "18.15"
+      automation: design_option
+      condition: "foodservice_or_shop_production_and_domestic_outlets"
+      requirement: outlets_remain_separate
+      common_external_manhole_allowed: true
+      statement: >-
+        Производственный и бытовой выпуски могут присоединяться к одному колодцу централизованной
+        сети, но до колодца остаются двумя раздельными выпусками.
+
+    - id: foodservice.sewer.production_pipe_box_without_revisions
+      clause: "18.14"
+      automation: conditional
+      applies_to:
+        - foodservice_production_room
+        - foodservice_storage_room
+        - shop_goods_receiving_room
+        - shop_goods_storage_room
+        - shop_goods_preparation_room
+        - shop_auxiliary_room
+      route_form: box_without_revisions_in_room
+      statement: >-
+        Производственную канализацию в перечисленных помещениях допускается вести в коробах
+        без ревизий; точки обслуживания выносить в допустимые доступные места по проекту ВК.
+
+mandatory_grease_separator:
+  source: SP_30_13330_2020
+  rules:
+    - id: foodservice.grease.semi_finished_500_seats
+      clause: "20.2"
+      automation: conditional
+      all_conditions:
+        foodservice_process: semi_finished_products
+        hall_seats: {min: 500}
+      grease_separator_required: true
+      installation_relation: production_wastewater_outlet
+
+    - id: foodservice.grease.raw_200_seats_600_dishes
+      clause: "20.2"
+      automation: conditional
+      all_conditions:
+        foodservice_process: raw_products
+        hall_seats: {min: 200}
+        dishes_output: {min_exclusive: 600}
+      grease_separator_required: true
+      installation_relation: production_wastewater_outlet
+
+    - id: foodservice.grease.hospital_1000_beds
+      clause: "20.2"
+      automation: conditional
+      all_conditions:
+        facility: hospital_food_unit
+        hospital_beds: {min: 1000}
+      grease_separator_required: true
+
+    - id: foodservice.grease.no_threshold_extrapolation
+      automation: validation_only
+      statement: >-
+        Пороговые условия п.20.2 определяют случаи обязательности по этому пункту, но их нельзя
+        трактовать как запрет жироуловителя для меньшего предприятия, если его требует технолог,
+        местные правила приема стоков или проект ВК.
+
+indoor_grease_separator_room:
+  source: SP_30_13330_2020
+  rules:
+    - id: foodservice.grease.indoor_only_when_outdoor_outlet_install_impossible
+      clause: "20.3"
+      automation: conditional
+      condition: "grease_separator_inside_building"
+      prerequisite: outdoor_or_near_building_outlet_installation_not_possible
+
+    - id: foodservice.grease.indoor_separate_room
+      clause: "20.3"
+      automation: hard_gate
+      condition: "grease_separator_inside_building"
+      requirement: dedicated_room
+
+    - id: foodservice.grease.indoor_separate_supply_exhaust_ventilation
+      clause: "20.3"
+      automation: engineering_coordination_gate
+      condition: "grease_separator_inside_building"
+      ventilation_relation: separate_from_other_rooms_and_building_systems
+      performance_requirement: prevent_odor_transfer_to_other_rooms
+      discipline_boundary: OV
+
+    - id: foodservice.grease.indoor_water_and_floor_drain
+      clause: "20.3"
+      automation: mandatory_validation
+      condition: "grease_separator_inside_building"
+      required:
+        - hot_water_inlet
+        - cold_water_inlet
+        - hose_bib
+        - floor_drain_DN100
+      statement: "Помещение должно поддерживать санитарную уборку и обслуживание установки."
+
+    - id: foodservice.grease.indoor_body_vent_riser
+      clause: "20.3"
+      automation: engineering_coordination_gate
+      condition: "grease_separator_inside_building"
+      requirement: grease_separator_body_connection_for_ventilated_riser
+      discipline_boundary: VK
+
+    - id: foodservice.grease.indoor_air_gap
+      clause: "20.3"
+      automation: engineering_coordination_gate
+      condition: "grease_separator_inside_building"
+      requirement: air_gap_between_cold_water_supply_and_separator_contents
+      discipline_boundary: VK
+
+    - id: foodservice.grease.pumpout_without_truck_entry
+      clause: "20.3"
+      automation: hard_gate
+      condition: "grease_separator_inside_building"
+      requirement: pumpout_possible_without_waste_tanker_entering_building
+      BIM_check: external_service_hose_or_connection_route
+
+    - id: foodservice.grease.replacement_route_after_finishes
+      clause: "20.3"
+      automation: mandatory_validation
+      condition: "grease_separator_inside_building"
+      dimension_semantics: finished_clear_opening_and_route
+      requirement: passages_and_openings_allow_removal_and_replacement_of_separator
+      required_inputs:
+        - grease_separator_equipment_envelope
+        - replacement_transport_envelope
+        - finished_door_clear_dimensions
+        - corridor_clear_dimensions
+
+wastewater_pumping:
+  source: SP_30_13330_2020
+  rules:
+    - id: foodservice.sewer.odorous_pump_isolated_location
+      clause: "20.7"
+      automation: conditional
+      condition: "wastewater_pump_handles_toxic_putrescible_or_odorous_wastewater"
+      permitted_locations:
+        - detached_building
+        - basement
+        - isolated_room
+        - separate_heated_first_floor_room_when_no_basement
+      first_floor_no_basement_exit_requirement: direct_outside_or_stairwell
+
+    - id: foodservice.sewer.pump_room_ventilation
+      clause: "20.8"
+      automation: engineering_coordination_gate
+      condition: "wastewater_pump_room"
+      requirement: supply_and_exhaust_ventilation
+      discipline_boundary: OV
+
+BIM_required_parameters:
+  - foodservice_enterprise_id
+  - foodservice_process
+  - hall_seats
+  - dishes_output
+  - production_sewer_system_id
+  - domestic_sewer_system_id
+  - production_outlet_id
+  - domestic_outlet_id
+  - external_manhole_id
+  - grease_separator_required_status
+  - grease_separator_location
+  - grease_separator_equipment_envelope
+  - grease_separator_room_id
+  - grease_separator_ventilation_system_id
+  - grease_separator_body_vent_riser_id
+  - grease_separator_service_connection_route
+  - grease_separator_replacement_route
+  - floor_drain_nominal_diameter_mm
+  - wastewater_pump_room_id
+
+hard_fail_conditions:
+  - "foodservice in multifunctional building has combined production/domestic internal sewer system without special approved basis"
+  - "mandatory grease separator threshold met but no separator is modeled"
+  - "indoor grease separator is not in dedicated room"
+  - "indoor grease separator has no separate ventilation route"
+  - "waste tanker must enter the building to pump out indoor grease separator"
+  - "grease separator cannot be removed through finished service route"
+
+agent_logic:
+  - "Сначала разделить бытовую и производственную канализацию, затем оптимизировать шахты и выпуски."
+  - "Жироуловитель не размещать под стойкой кухни как обычное сантехническое оборудование, если по п.20.3 требуется отдельное помещение."
+  - "Проверять путь замены установки по чистовым размерам после дверных коробок, отделки и инженерных систем."
+  - "Производительность жироуловителя, диаметры, уклоны, насосы и гидравлику определяет ВК/ТХ."
+
+sources:
+  - "https://base.garant.ru/400383625/"
+  - "https://normpoisk.ru/library/%D0%A1%D0%9F%2030.13330.2020"
+  - "https://internet-law.ru/documents/prod/pravila/0/sp_30.html"

@@ -1,4 +1,4 @@
-manifest_version: 17
+manifest_version: 18
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -60,6 +60,9 @@ load_order:
   - 48_wall_material_system_registry.yaml
   - 49_roof_wall_material_adapters.yaml
   - 50_roof_wall_material_test_vectors.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 52_wall_roof_contour_router.yaml
+  - 53_wall_roof_package_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -73,6 +76,8 @@ modules:
   roof: ROOF_NODE_ENGINEERING
   roof_wall_material_registry: WALL_MATERIAL_SYSTEM_REGISTRY
   roof_wall_material_adapters: ROOF_WALL_MATERIAL_ADAPTERS
+  roof_wall_assembly_packages: WALL_ROOF_ASSEMBLY_PACKAGES
+  roof_wall_contour_router: WALL_ROOF_CONTOUR_ROUTER
   working_documentation: WORKING_DOCUMENTATION_RELEASE_GATE
   external_review_readiness: EXPERTISE_READINESS_CONTRACT
 
@@ -139,6 +144,8 @@ hard_fail:
   - roof_wall_material_adapter_missing
   - roof_wall_product_geometry_missing
   - roof_wall_support_strategy_ambiguous
+  - roof_wall_assembly_package_missing
+  - roof_wall_assembly_package_ambiguous
   - roof_required_manufacturer_detail_missing
   - roof_ventilation_mode_unresolved
   - roof_ventilation_input_outside_verified_matrix
@@ -179,5 +186,7 @@ execution_policy:
   roof_structural_joint_generation: exact_KR_or_verified_product_only
   roof_wall_material_geometry_generation: verified_product_or_KR_only
   roof_wall_support_family_selection: verified_material_adapter_plus_KR_only
+  roof_wall_assembly_package_selection: exact_wall_facade_roof_context_only
+  roof_wall_contour_release: all_applicable_contours_must_resolve
   working_documentation_release_requires_zero_blockers: true
   external_review_ready_may_not_claim_expertise_approval: true

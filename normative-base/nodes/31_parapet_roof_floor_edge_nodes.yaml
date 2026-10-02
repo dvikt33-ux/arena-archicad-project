@@ -1,0 +1,47 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+purpose: "Machine-executable parapet-to-roof/floor-edge nodes combining structural host, waterproofing, thermal, air and facade contours."
+
+nodes:
+  - node_id: PAR_001_RC_PARAPET_TO_FLAT_ROOF_SLAB
+    family: parapet_roof
+    hosts: [rc_parapet, roof_slab]
+    applies_if: ["roof_type=flat", "parapet_material=reinforced_concrete"]
+    require: [KR_parapet_geometry, roof_waterproofing_system, thermal_edge_review, coping_or_top_termination_system]
+    blockers: [KR_parapet_geometry_missing, waterproofing_termination_unresolved]
+    contours: [bulk_water, thermal_continuity, air_tightness, movement_and_tolerance, durability]
+    geometry_actions: [place_parapet_from_KR_geometry, continue_roof_waterproofing_to_verified_termination, preserve_thermal_contour]
+    never_infer: [parapet_reinforcement, waterproofing_height, insulation_thickness, coping_fasteners]
+
+  - node_id: PAR_002_MASONRY_PARAPET_TO_ROOF_EDGE
+    family: parapet_roof
+    hosts: [masonry_parapet, roof_slab]
+    applies_if: ["roof_type=flat", "parapet_material=masonry"]
+    require: [KR_or_AR_parapet_geometry, masonry_system, roof_waterproofing_system, top_termination_system, thermal_moisture_review]
+    blockers: [masonry_system_missing, waterproofing_termination_unresolved]
+    contours: [bulk_water, capillary_control, thermal_continuity, air_tightness, movement_and_tolerance]
+    geometry_actions: [place_parapet_geometry, preserve_capillary_separation, continue_waterproofing, attach_top_termination_reference]
+    never_infer: [masonry_reinforcement, coping_product, membrane_layers, insulation_thickness]
+
+  - node_id: PAR_003_PARAPET_AT_DEFORMATION_JOINT
+    family: parapet_deformation_joint
+    hosts: [parapet_segment_A, parapet_segment_B, roof_joint]
+    applies_if: ["project_joint_present=true"]
+    require: [KR_joint_width, approved_joint_waterproofing_system, movement_capacity_reference]
+    blockers: [KR_joint_width_missing, joint_system_missing]
+    contours: [movement_and_tolerance, bulk_water, thermal_continuity]
+    geometry_actions: [align_joint_through_roof_and_parapet, preserve_movement_zone, link_joint_system_reference]
+    never_infer: [joint_width, waterstop_or_cover_profile, sealant_product]
+
+execution_policy:
+  archicad_major_elements: [CreateWalls, CreateSlabs, CreateProfiles]
+  membranes_default: property_plus_detail_2d
+  exact_fastener_geometry: manufacturer_or_KR_only
+
+postconditions:
+  - roof_water_path_has_no_unresolved_termination
+  - parapet_hosts_match_project_geometry
+  - thermal_and_air_contours_are_continuous_or_blocked_for_review
+  - deformation_joint_is_continuous_when_present

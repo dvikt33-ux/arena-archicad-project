@@ -1,0 +1,117 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: WORKING_DOCUMENTATION_RELEASE_GATE
+purpose: "Fail-closed release gate: a model is not considered finished until normative, multidisciplinary and SPDS checks required for working documentation are resolved."
+
+source_dependencies:
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/09_engineering_coordination.yaml
+  - ../rules/26_spds_model_coordinates.yaml
+  - ../rules/75_spds_architecture_working_drawings.yaml
+  - ../rules/79_story_levels_vertical_coordination.yaml
+  - ../rules/80_geometric_accuracy_tolerances.yaml
+  - ../manifest.yaml
+
+release_states:
+  - model_in_progress
+  - model_geometry_resolved
+  - coordination_pending
+  - working_documentation_candidate
+  - blocked_unresolved_inputs
+  - ready_for_internal_check
+  - ready_for_external_review
+
+status_policy:
+  - id: wd.release.no_false_ready
+    automation: true
+    statement: "Запрещено присваивать проекту статус готовой рабочей документации при наличии unresolved/blocked требований, неподтвержденных КР/инженерных входных данных или несогласованных проектных изменений."
+  - id: wd.release.expertise_not_guaranteed
+    automation: true
+    statement: "Статус ready_for_external_review означает только прохождение машинных и проектных gates; он не является гарантией положительного заключения экспертизы и не заменяет ответственность проектировщиков, ГИП/ГАП и экспертной организации."
+
+required_project_inputs:
+  - approved_project_scope_and_stage
+  - target_profile_RU_2027_PLUS
+  - current_normative_revision_set
+  - AR_revision
+  - KR_revision_where_structural_scope_exists
+  - engineering_revisions_for_affected_interfaces
+  - geotechnical_revision_where_foundations_or_grade_depend_on_it
+  - verified_product_systems_where_product_specific_geometry_is_used
+  - approved_coordinate_and_level_system
+
+model_release_gate:
+  require:
+    - all_selected_NODE_ID_instances_have_resolved_required_inputs
+    - no_untyped_freeform_geometry_write
+    - structural_geometry_matches_current_KR_revision
+    - foundation_geometry_matches_current_geotechnical_and_KR_inputs
+    - openings_have_required_AR_KR_fire_accessibility_and_engineering_approvals
+    - envelope_contours_are_resolved_for_thermal_air_vapor_water_and_fire_as_applicable
+    - deformation_joints_propagate_through_all_affected_systems
+    - product_specific_geometry_has_verified_product_reference
+    - model_readback_has_no_geometry_or_relationship_mismatch
+    - current_normative_sources_are_not_stale_for_target_profile
+
+working_drawing_gate:
+  require:
+    - floor_plans_generated_from_current_model_state
+    - sections_cover_characteristic_structural_and_envelope_conditions
+    - facades_show_opening_types_levels_and_finish_information_required_by_AR
+    - roof_plan_present_when_roof_exists
+    - required_floor_or_ceiling_plans_present_when_applicable
+    - construction_nodes_and_fragments_are_referenced_from_parent_views
+    - openings_recesses_niches_and_required_installation_holes_are_dimensioned_and_located
+    - coordination_axes_and_levels_follow_loaded_SPDS_rules
+    - marks_and_schedules_resolve_to_model_elements_or verified project data
+    - dimensions_are_associative_or otherwise traceably linked to approved geometry
+    - drawing_views_do_not_hide_unresolved_model_conflicts
+
+cross_discipline_gate:
+  require:
+    - AR_KR_interfaces_reconciled
+    - AR_MEP_openings_and_shafts_reconciled
+    - fire_safety_interfaces_resolved
+    - accessibility_interfaces_resolved
+    - facade_roof_drainage_interfaces_resolved
+    - equipment_service_clearances_resolved_where_architecturally_relevant
+  on_missing: blocked_unresolved_inputs
+
+issue_register_required_fields:
+  - issue_id
+  - discipline
+  - affected_GUIDs_or_view_ids
+  - affected_NODE_IDs
+  - description
+  - blocking_status
+  - required_source_or_decision
+  - responsible_discipline
+  - source_revision
+  - detected_at
+  - resolved_at
+
+release_receipt:
+  emit:
+    - project_revision
+    - AR_revision
+    - KR_revision
+    - engineering_revision_set
+    - normative_profile
+    - normative_source_set_hash
+    - node_catalog_revision
+    - model_readback_status
+    - working_drawing_check_status
+    - unresolved_issue_count
+    - blocking_issue_count
+    - release_state
+
+hard_fail:
+  - blocking_issue_count_greater_than_zero
+  - stale_normative_revision
+  - current_model_differs_from_released_drawings
+  - drawing_dimension_conflicts_with_model_readback
+  - structural_or_engineering_interface_changed_after_last_coordination
+  - missing_required_detail_for_constructible_interface
+  - product_reference_missing_for_product_specific_detail
+  - undocumented_exception_or_manual_override

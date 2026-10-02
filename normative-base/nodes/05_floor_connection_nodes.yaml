@@ -1,0 +1,65 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+node_families:
+  monolithic_slab_to_rc_wall:
+    hosts: [monolithic_slab, rc_wall]
+    require: [KR_joint_definition, KR_reinforcement_reference, slab_wall_geometry]
+    contours: [load_path, movement, fire_if_applicable, acoustic_if_applicable]
+    hard_fail: [KR_joint_definition_missing]
+
+  monolithic_slab_to_rc_beam:
+    hosts: [monolithic_slab, rc_beam]
+    require: [KR_beam_slab_geometry, KR_reinforcement_reference]
+    contours: [load_path, movement]
+
+  monolithic_slab_edge_to_external_wall:
+    hosts: [monolithic_slab_edge, external_wall]
+    require: [KR_edge_geometry, wall_system, thermal_bridge_review, air_seal_strategy]
+    contours: [load_path, thermal, air, bulk_water_if_exposed, fire_if_applicable]
+    never_infer: [insulation_thickness, thermal_break_product]
+
+  precast_PC_to_masonry_wall:
+    hosts: [PC_slab, masonry_wall]
+    require: [verified_slab_mark, KR_bearing_length, KR_support_zone, KR_ties_or_anchorage]
+    contours: [load_path, movement, fire_if_applicable, acoustic_if_applicable]
+    hard_fail: [bearing_length_missing, wall_support_check_missing]
+
+  precast_PB_to_masonry_wall:
+    hosts: [PB_slab, masonry_wall]
+    require: [manufacturer_geometry, KR_bearing_length, KR_support_zone, KR_ties_or_anchorage]
+    contours: [load_path, movement, fire_if_applicable, acoustic_if_applicable]
+    hard_fail: [manufacturer_geometry_missing, bearing_length_missing]
+
+  precast_slab_to_rc_wall_or_beam:
+    hosts: [precast_slab, rc_support]
+    require: [verified_product, KR_bearing_zone, KR_connection_definition]
+    contours: [load_path, movement, fire_if_applicable]
+    hard_fail: [connection_definition_missing]
+
+  floor_slab_deformation_joint:
+    hosts: [slab_segment_A, slab_segment_B]
+    require: [joint_location_from_project, KR_joint_width_and_edge_design, envelope_joint_system_if_external]
+    contours: [movement, water_if_exposed, fire_if_required, acoustic_if_required]
+    never_infer: [joint_width, reinforcement, sealant_system]
+
+  floor_opening_structural_host:
+    hosts: [floor_slab, opening]
+    require: [MEP_request, KR_approved_location_and_size]
+    hard_fail: [KR_opening_approval_missing]
+    execution: create_native_opening_only_after_approval
+
+layout_interface:
+  use_existing_rules:
+    - ../rules/02_precast_floor_slabs.yaml
+    - ../rules/23_precast_slab_layout.yaml
+    - ../rules/73_deformation_temperature_joints.yaml
+    - ../rules/80_geometric_accuracy_tolerances.yaml
+
+postconditions:
+  - support_relation_matches_KR
+  - slab_product_or_monolithic_system_matches_selector_result
+  - no_unapproved_opening
+  - NODE_ID_and_revision_present
+  - generated_detail_uses_same_semantic_node

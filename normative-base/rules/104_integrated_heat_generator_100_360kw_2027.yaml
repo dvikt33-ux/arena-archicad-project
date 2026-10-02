@@ -1,0 +1,203 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы автономных теплогенераторных общей мощностью свыше 100 до 360 кВт
+  включительно по СП 281.1325800.2016 с Изм. №1-2. Не выполняет тепловой, газовый, гидравлический,
+  аэродинамический или акустический расчет.
+
+revision_dependencies:
+  - {document: SP_281_1325800_2016, verified_changes: [1,2], change_2_effective_from: 2024-06-16}
+  - {document: SP_4_13130_2013, status: active}
+  - {document: SP_1_13130_2020, status: active}
+
+scope_gate:
+  - id: heatgen.281.power_scope
+    source: {document: SP_281_1325800_2016, clause: "1.1-1.2, Change 2"}
+    automation: hard_gate
+    applies_when: "total_heat_output_kw > 100 AND total_heat_output_kw <= 360"
+    excluded_route: "individual_heat_generator_system_total_output_kw <= 100 -> SP_282_1325800_2023"
+
+  - id: heatgen.281.block_legacy_change1_layout_rules
+    automation: auto
+    blocked_legacy_clauses: ["5.6","5.7","5.8","5.9","5.10","5.11","5.12","5.14","5.16","5.17"]
+    statement: >-
+      Не применять исключенные Изм. №2 старые планировочные правила как действующие требования.
+      Текущую геометрию брать из редакции с Изм. №2 и актуальных СП 1/СП 4.
+
+public_buildings:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.public.permitted_forms
+      clause: "5.15, Change 2"
+      automation: design_option
+      permitted_forms:
+        - embedded
+        - attached
+        - roof
+        - detached
+        - block_modular
+
+    - id: heatgen.public.no_attached_at_entrance_lobby_side
+      clause: "5.15, Change 2"
+      automation: hard_gate
+      condition: "attached_heat_generator_room"
+      prohibited_location: side_of_building_entrance_lobby
+      statement: "Пристроенную теплогенераторную не размещать со стороны входного вестибюля здания."
+
+    - id: heatgen.public.no_embedded_roof_over_mass_occupancy
+      clause: "5.18, Change 2"
+      automation: hard_gate
+      applies_to: [embedded_heat_generator_room, roof_heat_generator_room]
+      prohibited_below_room_types:
+        - foyer_with_mass_occupancy
+        - auditorium
+        - retail_hall
+        - dining_hall
+        - restaurant_hall
+        - cafe_hall
+        - other_mass_occupancy_room
+      statement: >-
+        Не размещать встроенную или крышную теплогенераторную на перекрытии/совмещенном покрытии,
+        ограждающем помещение с массовым пребыванием людей.
+
+fuel_and_location:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.roof_gas_fuel_only
+      clause: "5.4"
+      automation: hard_gate
+      condition: "roof_heat_generator_room"
+      permitted_fuel: gaseous
+      statement: "Крышную теплогенераторную по данному СП проектировать на газообразном топливе."
+
+    - id: heatgen.embedded_attached_fuel_route
+      clause: "5.4"
+      automation: validation_only
+      applies_to: [embedded_heat_generator_room, attached_heat_generator_room]
+      permitted_fuels: [gaseous, liquid, solid]
+      statement: "Конкретный вид топлива дополнительно проверяется по пожарным, экологическим и технологическим требованиям объекта."
+
+egress_and_explosion_relief:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.egress_current_router
+      clause: "5.20, Change 2"
+      automation: mandatory_router
+      applies_to: [embedded_heat_generator_room, attached_heat_generator_room, roof_heat_generator_room]
+      downstream: [SP_1_13130_2020, SP_4_13130_2013]
+      statement: >-
+        Не использовать старую фиксированную схему выхода из прежней редакции п.5.20;
+        выходы проверяются по актуальным СП 1 и СП 4.
+
+    - id: heatgen.lightweight_relief_construction
+      clause: "5.21, Change 2"
+      automation: mandatory_validation
+      requirement: lightweight_relief_construction
+      preferred_solution: window_openings_with_GOST_R_56288_windows
+      calculation: required
+      fallback_when_calculation_absent: SP_4_13130
+      statement: "Площадь ЛСК не назначать универсальным коэффициентом СП 281 без требуемого расчета/маршрута СП 4."
+
+waterproofing_and_spill:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.floor_waterproofing
+      clause: "5.22, Change 2"
+      automation: conditional
+      applies_to: [embedded_heat_generator_room, roof_heat_generator_room]
+      requirement: floor_waterproofing
+      min_waterproofing_upstand_mm: 100
+      dimension_semantics: vertical_upstand
+      calculation: "actual height >= containment height for maximum simultaneous emergency coolant spill"
+      statement: >-
+        Высота гидроизоляции определяется максимальным аварийным объемом теплоносителя,
+        но не может быть менее 100 мм.
+
+height_and_service:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.room_min_clear_height
+      clause: "5.32, Change 2"
+      automation: conditional
+      dimension_semantics: finished_floor_to_bottom_of_projecting_structure
+      min_clear_height_m: 2.5
+
+    - id: heatgen.service_vertical_clearance
+      clause: "5.32, Change 2"
+      automation: conditional
+      dimension_semantics: clear_vertical_above_serviced_equipment
+      min_clearance_m: 1.0
+      statement: "От верха обслуживаемого оборудования до низа выступающих конструкций обеспечивать не менее 1 м."
+
+    - id: heatgen.no_direct_equipment_fixing_to_main_building
+      clause: "5.30, Change 2"
+      automation: hard_gate
+      statement: >-
+        Оборудование интегрированной теплогенераторной не крепить непосредственно к несущим
+        и ограждающим конструкциям основного здания; конструктивное/виброакустическое решение
+        подтверждается профильным проектом.
+
+    - id: heatgen.outdoor_service_base_envelope
+      clause: "5.30, Change 2"
+      automation: conditional
+      condition: "heat_generator_room_has_external_service"
+      min_base_extension_service_side_m: 1.0
+      min_base_extension_other_sides_m: 0.5
+      block_modular_min_all_sides_m: 0.5
+      dimension_semantics: clear_horizontal_service_base
+
+roof_and_facade_service:
+  source: SP_281_1325800_2016
+  rules:
+    - id: heatgen.roof_gas_reduction_point_service_access
+      clause: "8.32, Change 2"
+      automation: mandatory_validation
+      condition: "gas_reduction_point_on_roof"
+      requirement: roof_service_access_as_for_roof_heat_generator_room
+      service_platform_required: true
+      statement: "Площадку обслуживания и безопасный подход моделировать как сохраняемый эксплуатационный маршрут."
+
+    - id: heatgen.facade_gas_pipe_safe_service
+      clause: "8.33, Change 2"
+      automation: mandatory_validation
+      condition: "facade_gas_pipeline_present"
+      requirement: safe_service_and_repair_device_or_route
+
+BIM_required_parameters:
+  - total_heat_output_kw
+  - heat_generator_room_type
+  - fuel_type
+  - adjacent_room_function_below
+  - mass_occupancy_status_below
+  - entrance_lobby_facade_zone
+  - egress_route_ids
+  - lightweight_relief_solution_reference
+  - maximum_emergency_coolant_spill_volume
+  - waterproofing_upstand_mm
+  - room_clear_height_m
+  - equipment_top_level
+  - bottom_projecting_structure_level
+  - equipment_support_system
+  - service_envelope
+  - roof_service_route
+  - facade_gas_pipeline_service_route
+
+hard_fail_conditions:
+  - "old SP281 clauses 5.6-5.12 or 5.16-5.17 used as current after 2024-06-16"
+  - "<=100 kW individual system routed through SP281 instead of SP282"
+  - "attached public heat generator room placed on entrance lobby side"
+  - "embedded/roof heat generator room directly over mass-occupancy room"
+  - "roof heat generator room uses non-gaseous fuel under this route"
+  - "waterproofing upstand below 100 mm"
+  - "room clear height below 2.5 m or service vertical clearance below 1.0 m"
+
+agent_logic:
+  - "Сначала классифицировать диапазон мощности: <=100 кВт -> СП 282; >100-360 кВт -> СП 281."
+  - "Не восстанавливать исключенные Изм. №2 пункты из старых шаблонов/публикаций."
+  - "Выходы определять через актуальные СП 1/СП 4, а не старый текст СП 281."
+  - "Акустику, вибрацию, тепловую мощность, гидравлику, газ, дымоход и подбор оборудования передавать профильным разделам."
+
+sources:
+  - "https://protect.gost.ru/sp/details/1f695d98-05d6-46ea-b688-052560d25553"
+  - "https://base.garant.ru/409367224/"
+  - "https://base.garant.ru/71692314/"

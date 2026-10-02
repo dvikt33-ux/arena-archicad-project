@@ -1,9 +1,9 @@
-manifest_version: 10
+manifest_version: 11
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
-purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges and roof-node topology with fail-closed structural and product gates."
+purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges, external cantilevers, entrances, deformation joints and roof-node topology with fail-closed structural and product gates."
 
 load_order:
   - 00_engine_contract.yaml
@@ -40,12 +40,19 @@ load_order:
   - 31_parapet_roof_floor_edge_nodes.yaml
   - 32_facade_slab_edge_nodes.yaml
   - 33_archicad_frame_edge_execution_map.yaml
+  - 34_balcony_loggia_cantilever_nodes.yaml
+  - 35_entrance_porch_external_stair_nodes.yaml
+  - 36_building_deformation_joint_nodes.yaml
+  - 37_archicad_external_joint_execution_map.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
   frame: FRAME_NODE_ENGINEERING
   stair: STAIR_NODE_ENGINEERING
   envelope_edge: ENVELOPE_EDGE_NODE_ENGINEERING
+  external_cantilever: EXTERNAL_CANTILEVER_NODE_ENGINEERING
+  entrance: ENTRANCE_NODE_ENGINEERING
+  deformation_joint: DEFORMATION_JOINT_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
 
 inherits:
@@ -81,6 +88,17 @@ hard_fail:
   - facade_system_not_verified
   - facade_anchor_layout_missing
   - parapet_waterproofing_termination_unresolved
+  - KR_cantilever_geometry_missing
+  - KR_cantilever_reinforcement_or_anchorage_missing
+  - external_water_path_unresolved
+  - thermal_break_system_unverified
+  - railing_anchor_design_missing
+  - entrance_platform_level_relation_unresolved
+  - porch_geotechnical_or_KR_input_missing
+  - external_stair_route_check_missing
+  - deformation_joint_axis_missing
+  - deformation_joint_movement_range_missing
+  - deformation_joint_envelope_seal_unresolved
   - roof_node_scope_unresolved
   - roof_covering_system_missing
   - roof_structural_scheme_missing
@@ -105,6 +123,11 @@ execution_policy:
   frame_joint_geometry_generation: external_KR_only
   stair_structural_geometry_generation: external_KR_only
   facade_anchor_geometry_generation: external_KR_or_verified_product_only
+  cantilever_geometry_and_reinforcement_generation: external_KR_only
+  railing_anchor_generation: external_KR_or_verified_product_only
+  entrance_support_geometry_generation: external_geotechnical_KR_only
+  deformation_joint_width_and_movement_generation: external_KR_only
+  proprietary_joint_waterstop_sealant_firestop_generation: verified_product_or_project_detail_only
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only

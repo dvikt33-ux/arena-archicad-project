@@ -1,4 +1,4 @@
-manifest_version: 15
+manifest_version: 16
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -53,7 +53,10 @@ load_order:
   - 43_expertise_readiness_contract.yaml
   - 43_roof_penetration_node.yaml
   - 44_roof_node_applicability_catalog.yaml
+  - 45_rafter_wall_connection_variants.yaml
   - 45_working_documentation_test_vectors.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 47_roof_execution_decision_graph.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -127,6 +130,7 @@ hard_fail:
   - roof_covering_system_missing
   - roof_structural_scheme_missing
   - roof_KR_input_missing
+  - roof_structural_joint_unresolved
   - roof_required_manufacturer_detail_missing
   - roof_ventilation_mode_unresolved
   - roof_ventilation_input_outside_verified_matrix
@@ -164,5 +168,6 @@ execution_policy:
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only
+  roof_structural_joint_generation: exact_KR_or_verified_product_only
   working_documentation_release_requires_zero_blockers: true
   external_review_ready_may_not_claim_expertise_approval: true

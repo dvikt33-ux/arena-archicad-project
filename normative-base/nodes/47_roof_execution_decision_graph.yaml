@@ -1,0 +1,140 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ROOF_EXECUTION_DECISION_GRAPH
+purpose: "Bind the existing high-level command contract to roof topology, structural joints, weather nodes, envelope contours and Archicad operations without changing command syntax."
+
+input_contract_reference: 06_high_level_command_contract.yaml
+
+execution_graph:
+  - step: parse_existing_command
+    consumes: [intent, targets, context, behavior]
+    writes_geometry: false
+  - step: classify_roof_topology
+    uses: 09_roof_node_router.yaml
+    emits: [roof_planes, free_edges, convex_intersections, concave_intersections, vertical_abutments, penetrations]
+    writes_geometry: false
+  - step: bind_covering_system
+    uses: 17_covering_system_adapters.yaml
+    on_missing: roof_covering_system_missing
+    writes_geometry: false
+  - step: bind_structural_topology
+    uses: 11_rafter_system_topology.yaml
+    on_missing: roof_structural_scheme_missing
+    writes_geometry: false
+  - step: instantiate_structural_support_and_joint_instances
+    uses:
+      - 45_rafter_wall_connection_variants.yaml
+      - 46_roof_structural_joint_catalog.yaml
+    writes_geometry: false
+    until: all_KR_required_inputs_resolved
+  - step: instantiate_weather_node_instances
+    uses:
+      - 12_roof_wall_support_node.yaml
+      - 13_eaves_node.yaml
+      - 14_ridge_hip_node.yaml
+      - 15_valley_node.yaml
+      - 16_wall_abutment_node.yaml
+      - 42_gable_verge_node.yaml
+      - 43_roof_penetration_node.yaml
+      - 44_roof_node_applicability_catalog.yaml
+    writes_geometry: false
+  - step: solve_ventilation_paths
+    uses: 10_roof_ventilation_matrix.yaml
+    on_unresolved: roof_ventilation_mode_unresolved
+    writes_geometry: false
+  - step: solve_envelope_contours
+    require:
+      - thermal_contour
+      - air_control_contour
+      - vapor_control_contour
+      - bulk_water_contour
+      - underroof_water_contour
+    on_unresolved: roof_air_vapor_contour_unresolved
+    writes_geometry: false
+  - step: compile_archicad_operations
+    uses: 18_archicad_roof_execution_map.yaml
+    require: all_selected_instances_have_execution_status_at_least_coordinated
+    writes_geometry: false
+  - step: execute_resolved_geometry
+    require:
+      - structural_geometry_source_is_KR_or_verified_product
+      - covering_adapter_verified
+      - hard_fail_count_zero_for_each_written_instance
+    writes_geometry: true
+  - step: readback
+    require:
+      - created_or_modified_GUIDs
+      - topology_relationships
+      - critical_dimensions_match_approved_inputs
+      - instance_properties_written
+    on_mismatch: rollback_or_mark_failed
+  - step: validate_global_roof_system
+    require:
+      - load_path_graph_complete
+      - water_paths_complete
+      - ventilation_paths_complete_when_required
+      - thermal_air_vapor_contours_complete
+      - no_unapproved_structural_cuts
+      - no_orphan_node_instances
+
+instance_link_contract:
+  structural_instance_fields:
+    - STRUCTURAL_NODE_ID
+    - STRUCTURAL_VARIANT_ID
+    - KR_REVISION
+    - KR_DETAIL_REFERENCE
+    - HOST_GUIDS
+    - CONNECTION_SCHEDULE_REFERENCE
+    - STATUS
+  weather_instance_fields:
+    - ROOF_NODE_ID
+    - ROOF_NODE_FAMILY
+    - COVERING_SYSTEM_ID
+    - HOST_GUIDS
+    - SOURCE_STACK
+    - STATUS
+  cross_link:
+    key: topology_signature
+    rule: "Structural and weather instances at the same topological event share topology_signature but keep independent status and source references."
+
+selection_precedence:
+  - explicit_project_and_KR_inputs
+  - mandatory_and_special_normative_requirements
+  - verified_covering_system_requirements
+  - verified_envelope_system_requirements
+  - topology_classification
+  - coordination_preferences
+
+rules:
+  - id: roof.graph.high_level_contract_is_stable
+    automation: true
+    statement: "Этот decision graph не изменяет синтаксис высокоуровневых команд. Он исполняет уже разобранные intent/context из 06_high_level_command_contract.yaml."
+  - id: roof.graph.no_weather_to_structure_inference
+    automation: true
+    statement: "Наличие конька, ендовы, карниза или примыкания не дает права выводить из них сечение, шаг, опору или крепеж стропильной системы."
+    result_on_violation: roof_KR_input_missing
+  - id: roof.graph.no_structure_to_product_inference
+    automation: true
+    statement: "Подтвержденная стропильная схема не дает права автоматически выбирать кровельный продукт, фартук, проходку, уплотнитель или крепеж покрытия."
+    result_on_missing: roof_required_manufacturer_detail_missing
+  - id: roof.graph.rebuild_only_invalidated_instances
+    automation: true
+    statement: "При изменении крыши перестраивать только node instances, чья topology_signature, host geometry, KR revision, covering adapter или contour dependency изменились; остальные сохранять с readback-проверкой."
+
+command_binding_examples:
+  build_pitched_roof:
+    invokes: full_graph
+  rebuild_roof_nodes:
+    invokes: classify_diff_then_rebuild_invalidated_instances
+  validate_roof_nodes:
+    invokes: read_only_from_topology_through_global_validation
+
+final_status_gate:
+  approved_for_model_requires:
+    - all_structural_instances_resolved
+    - all_weather_instances_resolved
+    - all_envelope_contours_resolved
+    - all_required_ventilation_paths_resolved
+    - all_product_specific_details_verified
+    - readback_passed

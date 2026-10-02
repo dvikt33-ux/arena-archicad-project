@@ -1,4 +1,4 @@
-manifest_version: 8
+manifest_version: 9
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -32,6 +32,8 @@ load_order:
   - 23_node_test_vectors.yaml
   - 24_foundation_floor_applicability_catalog_v2.yaml
   - 25_foundation_subgrade_preparation_nodes.yaml
+  - 26_precast_socket_foundation_nodes.yaml
+  - 27_precast_pile_product_adapter.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE

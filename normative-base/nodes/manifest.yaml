@@ -1,4 +1,4 @@
-manifest_version: 6
+manifest_version: 7
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -30,6 +30,7 @@ load_order:
   - 21_archicad_foundation_floor_execution_map.yaml
   - 22_selector_decision_graph.yaml
   - 23_node_test_vectors.yaml
+  - 24_foundation_floor_applicability_catalog_v2.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE

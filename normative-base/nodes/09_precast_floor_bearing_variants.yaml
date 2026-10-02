@@ -1,0 +1,105 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+sources:
+  - {document: GOST_9561_2025, correction: IUS_6_2026, role: hollow_core_product_geometry}
+  - {document: GOST_26434_2025, role: residential_precast_floor_types}
+  - {document: SP_63_13330_2018, changes: [1,2], role: RC_support_design}
+  - {document: SP_15_13330_2020, role: masonry_support_design}
+  - {document: SP_70_13330_2012, target_2027_change: 8, role: execution}
+
+variants:
+  - node_id: BRG_PC_END_ON_MASONRY
+    hosts: [PC_slab_end, masonry_wall]
+    require:
+      - verified_PC_mark
+      - KR_bearing_length
+      - KR_wall_support_check
+      - KR_tie_or_anchorage_definition
+      - leveling_bed_definition_if_projected
+    geometry_actions:
+      - align_slab_end_to_KR_support_reference
+      - preserve_KR_bearing_length
+      - place_only_verified_ties_or_anchors
+      - generate_support_detail_from_actual_geometry
+    never_infer: [bearing_length, mortar_grade, tie_type, tie_spacing]
+
+  - node_id: BRG_PB_END_ON_MASONRY
+    hosts: [PB_slab_end, masonry_wall]
+    require:
+      - manufacturer_PB_geometry
+      - KR_bearing_length
+      - KR_wall_support_check
+      - KR_tie_or_anchorage_definition
+    geometry_actions:
+      - place_PB_using_verified_manufacturer_dimensions
+      - align_slab_end_to_KR_support_reference
+      - preserve_KR_bearing_length
+    never_infer: [PB_length_from_generic_module, bearing_length, tie_geometry]
+
+  - node_id: BRG_PC_OR_PB_ON_RC_WALL
+    hosts: [hollow_core_slab_end, rc_wall]
+    require:
+      - verified_slab_product
+      - KR_bearing_length
+      - KR_connection_definition
+      - KR_support_level
+    geometry_actions:
+      - align_to_RC_support_reference
+      - preserve_connection_zone
+      - create_no_opening_without_KR
+    never_infer: [bearing_length, embedded_parts, anchorage]
+
+  - node_id: BRG_PC_OR_PB_ON_RC_BEAM
+    hosts: [hollow_core_slab_end, rc_beam]
+    require:
+      - verified_slab_product
+      - KR_beam_geometry
+      - KR_bearing_length
+      - KR_connection_definition
+    geometry_actions:
+      - align_slab_to_beam_support_plane
+      - verify_no_collision_with_beam_geometry
+      - preserve_KR_bearing_length
+    never_infer: [beam_width, bearing_length, anchorage]
+
+  - node_id: BRG_PRECAST_SIDE_INTERFACE
+    hosts: [precast_slab_side, adjacent_slab_or_wall]
+    require:
+      - verified_product_side_geometry
+      - project_joint_definition
+      - KR_tie_definition_if_structural
+    geometry_actions:
+      - preserve_product_side_profile
+      - preserve_joint_geometry
+      - create_fill_or_grout_only_from_project_definition
+    never_infer: [joint_fill, structural_tie, key_geometry]
+
+  - node_id: BRG_PRECAST_END_NEAR_EXTERNAL_ENVELOPE
+    hosts: [precast_slab_end, external_wall_system]
+    require:
+      - structural_bearing_variant
+      - wall_system
+      - thermal_bridge_review
+      - air_seal_strategy
+      - facade_fire_interface_if_applicable
+    geometry_actions:
+      - instantiate_structural_bearing_node
+      - overlay_thermal_air_fire_contours
+      - keep_structural_and_envelope_revisions_linked
+    never_infer: [insulation_thickness, thermal_break_product, fire_stop_product]
+
+selection_keys:
+  - slab_family
+  - support_material
+  - support_geometry
+  - external_envelope_state
+  - KR_bearing_length
+  - product_mark_or_manufacturer_family
+
+hard_fail:
+  - slab_product_not_verified
+  - KR_bearing_length_missing
+  - KR_support_check_missing
+  - unapproved_structural_opening

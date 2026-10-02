@@ -1,0 +1,168 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: EXTERNAL_WALL_CONTINUITY_NODE_ENGINEERING
+purpose: "External wall continuity nodes at plinths, corners and top/cornice interfaces."
+
+source_dependencies:
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/68_facade_systems_2027.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/69_roof_drainage_interfaces.yaml
+  - ../nodes/03_foundation_wall_nodes.yaml
+  - ../nodes/16_wall_abutment_node.yaml
+
+nodes:
+  - node_id: WALL_001_PLINTH_TO_EXTERNAL_WALL
+    family: plinth_external_wall_transition
+    hosts: [foundation_or_basement_wall, plinth, external_wall, facade_system]
+    applies_if:
+      external_wall: true
+      plinth_interface: present
+    required_inputs:
+      - foundation_wall_node
+      - facade_system
+      - waterproofing_termination_strategy
+      - thermal_interface_review
+      - exterior_grade_or_paving_relation
+    blockers:
+      - foundation_wall_node_unresolved
+      - waterproofing_termination_unresolved
+      - thermal_interface_unresolved
+      - grade_relation_unresolved
+    never_infer:
+      - plinth_height
+      - insulation_thickness
+      - waterproofing_product
+      - protection_board
+      - flashing_profile
+      - fasteners
+    contours:
+      - thermal_continuity
+      - bulk_water_and_waterproofing
+      - drainage_and_drying
+      - air_tightness_if_applicable
+      - movement_and_tolerance
+    geometry_actions:
+      - compose_foundation_wall_and_facade_nodes
+      - preserve_waterproofing_termination_above_below_grade
+      - coordinate_plinth_finish_with_grade_or_paving
+    archicad_representation:
+      primary_hosts: Wall_and_Slab_or_Profile_by_actual_semantics
+      membranes_and_flashings: properties_plus_detail_2d_by_default
+    postconditions:
+      - no_unresolved_waterproofing_termination
+      - thermal_contour_continuous_or_explicitly_blocked
+
+  - node_id: WALL_002_EXTERNAL_CORNER_MASONRY_OR_MULTILAYER
+    family: external_wall_corner
+    hosts: [external_wall_A, external_wall_B, facade_system]
+    applies_if:
+      corner_type: external
+    required_inputs:
+      - wall_system_A
+      - wall_system_B
+      - corner_structural_role
+      - masonry_or_panel_layout_if_applicable
+      - facade_corner_detail
+      - thermal_interface_review
+    blockers:
+      - corner_structural_role_unresolved
+      - facade_corner_detail_missing
+      - thermal_interface_unresolved
+    never_infer:
+      - masonry_cut_pattern
+      - tie_or_anchor_layout
+      - insulation_thickness
+      - corner_profile
+      - sealant
+    contours:
+      - load_path_if_structural
+      - thermal_continuity
+      - air_tightness
+      - bulk_water
+      - facade_movement
+    geometry_actions:
+      - join_or_miter_hosts_only_when_wall_system_allows
+      - preserve_verified_corner_bond_or_panel_joint
+      - apply_facade_corner_detail
+    archicad_representation:
+      wall_corner: native_Wall_intersection_where_semantically_correct
+      facade_corner: verified_Profile_Object_or_detail_2d
+    postconditions:
+      - corner_not_resolved_by_cosmetic_surface_only
+      - no_unverified_anchor_or_tie_generated
+
+  - node_id: WALL_003_EXTERNAL_WALL_TO_EAVES_OR_CORNICE
+    family: external_wall_top_interface
+    hosts: [external_wall, roof_or_cornice, facade_system]
+    applies_if:
+      wall_top_condition: eaves_or_cornice
+    required_inputs:
+      - roof_wall_support_node_or_roof_edge_reference
+      - facade_system
+      - water_shedding_strategy
+      - ventilation_path_if_vented_roof_or_facade
+      - thermal_interface_review
+    blockers:
+      - roof_wall_interface_unresolved
+      - water_path_unresolved
+      - ventilation_path_unresolved_when_required
+      - thermal_interface_unresolved
+    never_infer:
+      - cornice_projection
+      - drip_geometry
+      - soffit_vent_area
+      - flashing_profile
+      - fasteners
+    contours:
+      - thermal_continuity
+      - air_tightness
+      - vapor_control
+      - bulk_water
+      - ventilation_if_required
+      - fire_if_required
+    geometry_actions:
+      - compose_wall_and_roof_edge_nodes
+      - preserve_verified_eaves_or_cornice_geometry
+      - verify_water_and_ventilation_paths
+    archicad_representation:
+      roof_and_wall_hosts: native_Roof_Wall_Profile_as_applicable
+      flashings_and_vents: verified_Object_Profile_or_detail_2d
+    postconditions:
+      - roof_wall_contours_close_without_hidden_gap
+      - water_path_discharges_to_exterior
+
+  - node_id: WALL_004_FACADE_SYSTEM_TRANSITION_AT_CORNER_OR_RETURN
+    family: facade_system_transition
+    hosts: [facade_system_A, facade_system_B, base_wall]
+    applies_if:
+      facade_transition: true
+    required_inputs:
+      - facade_system_A_verified
+      - facade_system_B_verified
+      - systemholder_transition_detail
+      - fire_interface_review
+      - thermal_interface_review
+    blockers:
+      - either_facade_system_unverified
+      - transition_detail_missing
+      - fire_interface_unresolved_when_required
+    never_infer:
+      - transition_profile
+      - anchors
+      - fastener_spacing
+      - insulation_substitution
+    contours:
+      - thermal_continuity
+      - bulk_water
+      - movement_and_tolerance
+      - fire
+    geometry_actions:
+      - apply_verified_transition_detail
+      - preserve_system_specific_clearances_and_layer_terminations
+    archicad_representation:
+      transition: verified_Profile_Object_or_detail_2d
+    postconditions:
+      - both_facade_systems_retain_verified_identity
+      - transition_does_not_mix_unverified_components

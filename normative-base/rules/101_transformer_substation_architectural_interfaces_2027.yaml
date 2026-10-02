@@ -1,0 +1,241 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы встроенных/пристроенных трансформаторных подстанций, КТП и ЗРУ
+  в жилых и общественных зданиях по актуальной редакции СП 256 с Изм. №1-9. Файл задает
+  размещение, противопожарное отделение, вертикальные соседства, уровни полов и доступ,
+  но не выполняет расчет электрических нагрузок, токов КЗ, подбор трансформаторов и РЗА.
+
+revision_dependencies:
+  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9], status: active}
+
+placement:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.embedded_attached_general_permission
+      clause: "6.4, current text through Change 9"
+      automation: validation_only
+      applies_to: [public_building, residential_building]
+      statement: >-
+        Встроенная/пристроенная ТП или КТП сама по себе не запрещена в общественном или жилом
+        здании, но допускается только при выполнении специальных санитарных, противопожарных
+        и электротехнических требований. Наличие разрешения в п.6.4 не является автоматическим
+        разрешением конкретного места.
+
+    - id: eom.tp.no_sleeping_or_educational_blocks
+      clause: "6.4"
+      automation: hard_gate
+      prohibited_building_or_block_types:
+        - sleeping_building_of_institution
+        - school
+        - other_educational_building
+      statement: "Встроенные и пристроенные подстанции в указанных объектах не размещать."
+
+residential_embedded_tp:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.residential_not_same_fire_compartment
+      clause: "6.4"
+      automation: hard_gate
+      condition: "TP_in_residential_building"
+      prohibited_relation: same_fire_compartment_as_residential_premises
+      statement: "ТП не должна находиться в одном пожарном отсеке с жилыми помещениями."
+
+    - id: eom.tp.residential_allowed_floor_band
+      clause: "6.4, Change 7"
+      automation: conditional
+      condition: "embedded_TP_in_residential_building"
+      allowed_levels:
+        - underground_floor
+        - first_floor
+      statement: >-
+        Встроенную ТП жилого здания размещать только в допускаемой п.6.4 зоне подземных этажей
+        или первого этажа при одновременном выполнении остальных требований данного пункта.
+
+    - id: eom.tp.residential_fire_separation
+      clause: "6.4, Change 7"
+      automation: hard_gate
+      condition: "embedded_TP_in_residential_building"
+      required:
+        - fire_wall_type_1
+        - fire_floor_type_1
+      opening_fill_requirement: "fire_gate_or_door_EI60_min_except_external_wall_openings"
+      statement: >-
+        Блок встроенной ТП отделять противопожарными стенами и перекрытиями 1-го типа;
+        заполнение внутренних проемов — противопожарные ворота/двери не ниже EI 60.
+
+    - id: eom.tp.residential_no_permanent_occupancy_adjacency
+      clause: "6.4, Change 7"
+      automation: hard_gate
+      condition: "embedded_or_attached_TP_in_residential_building"
+      prohibited_relative_positions_for_permanent_occupancy_rooms:
+        - directly_above
+        - directly_below
+        - directly_adjacent
+      applies_to_permanent_occupancy:
+        - residential
+        - public
+        - other_permanent_occupancy
+      statement: >-
+        Над, под и смежно со встроенной/пристроенной ТП или РП не размещать помещения
+        с постоянным пребыванием людей; помещения ТП дополнительно экранировать от примыкающих
+        помещений иного назначения по проектному решению.
+
+    - id: eom.tp.residential_transformer_type_gate
+      clause: "6.4, Change 7"
+      automation: conditional
+      condition: "embedded_TP_in_residential_building"
+      dry_transformer: allowed_all_permitted_levels
+      noncombustible_liquid_filled_transformer: allowed_only_first_floor
+      statement: >-
+        Для встроенной ТП жилого здания сухие трансформаторы допустимы в предусмотренных вариантах;
+        трансформаторы с негорючим заполнителем — только при размещении на первом этаже.
+
+wet_room_and_water_protection:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.no_direct_wet_room_above
+      clause: "6.6, Change 8"
+      automation: hard_gate
+      applies_to: [embedded_TP, KTP, ZRU_up_to_10kV]
+      prohibited_directly_above:
+        - shower
+        - bathroom
+        - toilet
+        - other_wet_process_room_in_clause_scope
+      exception:
+        required_separator: technical_floor_or_technical_space
+      statement: >-
+        Не размещать ТП/КТП/ЗРУ непосредственно под помещениями с мокрыми процессами.
+        Исключение допускается только при отделении техническим этажом или пространством;
+        наличие обычного перекрытия само по себе исключением не является.
+
+    - id: eom.tp.waterproofing_above_required
+      clause: "6.6"
+      automation: mandatory_validation
+      applies_to: [embedded_TP, KTP, ZRU_up_to_10kV]
+      requirement: reliable_waterproofing_above_room
+      protects_against:
+        - heating_system_accident
+        - water_supply_system_accident
+        - sewer_system_accident
+      statement: "Над помещениями ТП/КТП/ЗРУ предусматривать надежную защиту от аварийного поступления воды."
+
+floor_levels_and_access:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.internal_entrance_floor_upstand
+      clause: "6.6"
+      automation: conditional
+      dimension_semantics: finished_floor_level_difference
+      condition: "TP_or_ZRU_entry_from_adjacent_internal_room"
+      min_tp_floor_above_adjacent_floor_mm: 100
+      statement: "Со стороны входа пол камеры трансформатора/ЗРУ принимать не менее чем на 100 мм выше пола примыкающего помещения."
+
+    - id: eom.tp.external_entrance_floor_above_ground
+      clause: "6.6"
+      automation: conditional
+      dimension_semantics: finished_floor_to_external_ground_level
+      condition: "TP_entry_directly_from_outside"
+      min_floor_above_ground_mm: 300
+      statement: "При наружном входе отметка пола ТП должна быть не менее чем на 300 мм выше отметки земли."
+
+    - id: eom.tp.steps_when_level_difference_over_400
+      clause: "6.6"
+      automation: conditional
+      condition: "entry_level_difference_mm > 400"
+      requirement: steps_required
+      statement: "При перепаде более 400 мм для входа предусматривать ступени с дальнейшей проверкой эвакуации/МГН по применимости."
+
+    - id: eom.tp.vehicle_access_required
+      clause: "6.6"
+      automation: mandatory_validation
+      requirement: vehicle_access_road_to_substation
+      statement: >-
+        Компоновка участка/здания должна сохранять подъезд автотранспорта к ТП; парковка,
+        благоустройство и ограждения не должны блокировать транспортирование оборудования.
+
+    - id: eom.tp.round_the_clock_operator_access
+      clause: "6.7"
+      automation: mandatory_validation
+      requirement: unrestricted_24h_service_access
+      statement: >-
+        Расположение ТП должно обеспечивать круглосуточный беспрепятственный доступ персонала
+        эксплуатирующей организации независимо от режима работы арендаторов/ТРК.
+
+dry_transformer_basement:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.dry_transformer_basement_flood_gate
+      clause: "6.10, current text"
+      automation: hard_gate
+      condition: "dry_transformer_substation_in_basement"
+      required:
+        - protected_from_groundwater_flooding
+        - protected_from_surface_flooding
+        - protected_from_water_heating_sewer_accidents
+        - transformer_lifting_route_to_ground
+      statement: >-
+        Подвальное размещение сухой ТП допускается только при исключении затопления и наличии
+        реального маршрута подъема/замены трансформатора.
+
+    - id: eom.tp.basement_outer_wall_gap
+      clause: "6.10, current text"
+      automation: conditional
+      condition: "dry_transformer_substation_in_basement AND separate_outer_building_wall_exists"
+      preferred_min_gap_mm: 800
+      reduced_min_gap_mm: 200
+      reduced_gap_condition: verified_ventilation_of_interwall_space
+      statement: >-
+        Между наружной стеной здания и стеной подвальной ТП принимать, как правило, не менее
+        800 мм; уменьшение до 200 мм допускается только при обеспеченной вентиляции межстенного пространства.
+
+oil_or_liquid_transformer_interfaces:
+  source: SP_256_1325800_2016
+  rules:
+    - id: eom.tp.oil_transformer_floor_and_facade
+      clause: "6.9, current text"
+      automation: conditional
+      condition: "oil_transformer_substation"
+      allowed_levels:
+        - first_floor
+        - plinth_part_above_planning_ground_level
+      transformer_room_doors_relation: on_building_facade
+      statement: >-
+        Подстанцию с масляным трансформатором размещать на первом этаже или в цокольной части
+        выше планировочной отметки земли; двери камер трансформаторов выводить на фасад.
+
+BIM_required_parameters:
+  - TP_id
+  - TP_type
+  - transformer_type
+  - building_function
+  - TP_floor_level
+  - fire_compartment_id
+  - adjacent_room_function_above
+  - adjacent_room_function_below
+  - adjacent_room_function_side
+  - permanent_occupancy_status_of_adjacent_rooms
+  - technical_floor_or_space_between_wet_and_TP
+  - waterproofing_solution_reference
+  - TP_finished_floor_level
+  - adjacent_finished_floor_level
+  - external_ground_level_at_entry
+  - service_access_route
+  - vehicle_access_route
+  - transformer_replacement_route
+  - wall_gap_mm
+  - interwall_ventilation_status
+
+agent_logic:
+  - "Не использовать старый шаблон 'ТП в жилом здании только как исключение': проверять текущий п.6.4 СП 256 с Изм. №1-9."
+  - "Сначала исключить помещения постоянного пребывания над/под/смежно, затем выбирать место ТП."
+  - "Техпространство между мокрым помещением и ТП должно быть реальной отдельной зоной, а не названием слоя перекрытия."
+  - "Подъезд и маршрут замены трансформатора моделировать как обслуживаемый envelope; дверного проема без транспортной траектории недостаточно."
+  - "Мощность, количество трансформаторов, электрические схемы, вентиляцию и электромагнитный расчет получать из ЭОМ."
+
+sources:
+  - "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"
+  - "https://protect.gost.ru/sp/changesdetails/d438f64b-92ac-4527-8548-9b68adacfc66"
+  - "https://base.garant.ru/411459273/"
+  - "https://meganorm.ru/mega_doc/norm_update_01032026/pravila/0/sp_256_1325800_2016_svod_pravil_elektroustanovki_zhilykh_i.html"

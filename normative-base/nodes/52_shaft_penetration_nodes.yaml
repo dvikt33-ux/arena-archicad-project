@@ -1,0 +1,117 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: SHAFT_AND_PENETRATION_NODE_ENGINEERING
+purpose: "Machine-selectable communication-shaft, access-hatch, service-penetration and concealed-box nodes for coordinated working documentation."
+
+source_dependencies:
+  - ../rules/67_communication_shafts_electrical_boxes.yaml
+  - ../rules/91_engineering_architectural_interfaces_2027.yaml
+  - ../rules/92_ventilation_exhaust_facade_roof_2027.yaml
+  - ../rules/93_smoke_control_architectural_interfaces_2027.yaml
+  - ../rules/96_fire_electrical_routing_architectural_interfaces_2027.yaml
+
+nodes:
+  - node_id: SHAFT_001_GYPSUM_SERVICE_SHAFT_ENCLOSURE
+    family: communication_shaft_enclosure
+    hosts: [shaft_service_volume, shaft_enclosure]
+    required_inputs:
+      - shaft_id
+      - shaft_function
+      - engineering_service_volume
+      - required_service_access
+      - required_fire_resistance_if_applicable
+      - required_thermal_or_acoustic_performance_if_applicable
+      - verified_enclosure_system
+    blockers:
+      - engineering_service_volume_missing
+      - service_access_requirement_missing
+      - enclosure_system_unverified
+      - fire_performance_unverified_when_required
+    never_infer: [shaft_size_from_architectural_residual_space, fire_resistance, sheathing_layers, insulation_thickness]
+    contours: [service_access, fire_if_required, acoustic_if_required, thermal_if_required]
+    geometry_actions:
+      - reserve_engineering_service_volume
+      - create_enclosure_from_verified_system
+      - preserve_access_clearances
+    archicad_representation:
+      service_volume: Zone_or_coordination_volume
+      enclosure: Wall_or_Composite_Wall
+    postconditions:
+      - shaft_volume_not_reduced_below_engineering_requirement
+      - enclosure_system_id_written
+
+  - node_id: SHAFT_002_ACCESS_HATCH
+    family: shaft_access_hatch
+    hosts: [shaft_enclosure, access_hatch]
+    required_inputs:
+      - access_hatch_service_target
+      - verified_hatch_product
+      - required_fire_performance_if_applicable
+      - required_thermal_performance_if_applicable
+      - service_clearance
+    blockers:
+      - service_target_missing
+      - hatch_product_unverified
+      - hatch_performance_below_enclosure_requirement
+    never_infer: [hatch_size, fire_rating, hinge_side, lock_type]
+    contours: [service_access, fire_if_required, thermal_if_required]
+    geometry_actions:
+      - create_verified_hatch_opening
+      - place_verified_hatch_product
+      - verify_service_access_envelope
+    archicad_representation:
+      opening: Opening
+      product: Door_or_Object_by_verified_semantics
+    postconditions:
+      - hatch_performance_not_lower_than_enclosure_when_required
+
+  - node_id: PEN_001_ENGINEERING_PENETRATION_THROUGH_PARTITION_OR_SHAFT
+    family: coordinated_service_penetration
+    hosts: [wall_or_shaft_enclosure, engineering_route]
+    required_inputs:
+      - penetration_id
+      - engineering_owner
+      - approved_penetration_geometry
+      - service_type
+      - sealing_strategy
+      - firestop_system_if_required
+      - acoustic_or_air_seal_if_required
+    blockers:
+      - engineering_owner_missing
+      - penetration_geometry_not_approved
+      - required_sealing_or_firestop_unresolved
+    never_infer: [opening_size, sleeve_size, firestop_product, sealant_product, clearance]
+    contours: [fire_if_required, air_tightness_if_required, acoustic_if_required, service_coordination]
+    geometry_actions:
+      - create_opening_only_from_approved_penetration_geometry
+      - attach_engineering_owner_and_revision
+      - attach_verified_sealing_or_firestop_reference
+    archicad_representation:
+      opening: Opening
+      sealing: properties_plus_detail_2d
+    postconditions:
+      - penetration_has_owner_revision_and_detail_reference
+
+  - node_id: ELEC_001_OPPOSITE_SIDE_CONCEALED_BOX_COORDINATION
+    family: concealed_electrical_box_pair
+    hosts: [partition, electrical_box_group_A, electrical_box_group_B]
+    required_inputs:
+      - box_geometry_A
+      - box_geometry_B
+      - partition_system
+    blockers:
+      - opposite_side_geometry_unavailable
+    never_infer: [box_depth, acoustic_putty, firestop_product]
+    contours: [acoustic_if_required, fire_if_required]
+    validation:
+      prohibit_direct_opposition: true
+      min_edge_to_edge_offset_mm: 150
+    geometry_actions:
+      - compare_boxes_on_both_partition_faces
+      - block_if_edge_offset_below_150_mm
+    archicad_representation:
+      boxes: Objects_or_MEP_elements
+      validation_result: properties
+    postconditions:
+      - opposite_side_box_offset_mm_gte_150

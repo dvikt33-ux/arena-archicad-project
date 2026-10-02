@@ -1,0 +1,109 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+suite_id: WORKING_DOCUMENTATION_RELEASE_TESTS_V1
+
+tests:
+  - test_id: verified_window_opening_selects_OPN001
+    intent: build_window_door_opening_nodes
+    inputs:
+      opening_type: window
+      external_wall: true
+      structural_opening_geometry: AR_OPN_01
+      verified_window_system_or_product: WIN_SYS_01
+      block_outer_geometry: WIN_GEO_01
+      mounting_joint_system: MJ_01
+      mounting_gap_left_right_top_bottom: MJ_GAPS_01
+      thermal_interface_review: pass
+    expected:
+      node_id: OPN_001_WINDOW_BLOCK_IN_EXTERNAL_WALL
+      status: resolved
+
+  - test_id: window_without_mounting_joint_blocks
+    intent: build_window_door_opening_nodes
+    inputs:
+      opening_type: window
+      external_wall: true
+      structural_opening_geometry: AR_OPN_02
+      verified_window_system_or_product: WIN_SYS_02
+      block_outer_geometry: WIN_GEO_02
+      mounting_joint_system: null
+    expected:
+      status: blocked_waiting_for_product_data_or_project_detail
+      forbidden_outputs: [universal_mounting_gap, guessed_tape_system, guessed_foam_joint]
+
+  - test_id: precast_lintel_without_bearing_blocks
+    intent: build_window_door_opening_nodes
+    inputs:
+      opening_type: window
+      external_wall: true
+      lintel_system: precast_rc
+      KR_lintel_mark: PRB_TEST
+      verified_product_geometry: LINTEL_GEO_01
+      KR_bearing_left: null
+      KR_bearing_right: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [bearing_length, lintel_mark_from_span_only]
+
+  - test_id: plinth_without_waterproofing_termination_blocks
+    intent: build_wall_continuity_nodes
+    inputs:
+      interface: plinth_to_external_wall
+      foundation_wall_node: FDN_REF_01
+      facade_system: FACADE_01
+      waterproofing_termination_strategy: null
+      thermal_interface_review: pass
+      exterior_grade_or_paving_relation: GRADE_01
+    expected:
+      status: blocked_unresolved_envelope_contour
+
+  - test_id: working_documentation_with_blocker_cannot_release
+    intent: validate_working_documentation
+    inputs:
+      released_model_revision_candidate: MODEL_17
+      blocking_issue_count: 1
+      SPDS_documentation_check_status: pass
+      cross_discipline_interface_status: pass
+    expected:
+      release_state: blocked_unresolved_inputs
+      forbidden_outputs: [ready_for_external_review, expertise_approved]
+
+  - test_id: stale_drawings_block_release
+    intent: validate_working_documentation
+    inputs:
+      model_revision: MODEL_18
+      drawing_model_revision: MODEL_17
+      blocking_issue_count: 0
+    expected:
+      status: blocked_model_and_drawing_revision_mismatch
+      forbidden_outputs: [ready_for_external_review]
+
+  - test_id: structural_revision_change_invalidates_external_ready
+    intent: validate_working_documentation
+    inputs:
+      prior_release_state: ready_for_external_review
+      prior_KR_revision: KR_20
+      current_KR_revision: KR_21
+    expected:
+      status: invalidated_requires_recoordination
+      forbidden_outputs: [keep_prior_external_review_ready]
+
+  - test_id: zero_blocker_package_can_be_marked_external_review_ready
+    intent: prepare_external_review_package
+    inputs:
+      working_documentation_release_gate: pass
+      blocking_issue_count: 0
+      source_revision_report: current
+      model_readback_status: pass
+      SPDS_documentation_check_status: pass
+      cross_discipline_interface_status: pass
+    expected:
+      readiness_level: L3_EXTERNAL_REVIEW_READY
+      forbidden_outputs: [expertise_approved, authority_approved, signed_by_GIP_or_GAP]
+
+validation_policy:
+  - no_test_may_expect_automatic_expertise_approval
+  - release_ready_requires_zero_blockers
+  - stale_model_or_discipline_revision_invalidates_release
+  - unresolved_product_or_structural_input_must_fail_closed

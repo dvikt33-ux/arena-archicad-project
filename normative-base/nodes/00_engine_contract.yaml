@@ -1,0 +1,43 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+required_inputs:
+  project: [building_use, structural_scheme, storeys, basement_state, design_life, location]
+  geotechnical: [engineering_geology_revision, soil_layers, design_soil_properties, groundwater_state, frost_and_special_soil_flags]
+  structural: [KR_revision, loads_revision, approved_foundation_system, approved_host_geometry, approved_bearing_zones]
+  envelope_if_applicable: [wall_system, thermal_calculation_status, moisture_exposure, waterproofing_strategy]
+  product_if_precast: [product_family, verified_geometry_source]
+
+states:
+  - candidate
+  - coordination_placeholder
+  - blocked_waiting_for_geotech
+  - blocked_waiting_for_KR
+  - blocked_waiting_for_product_data
+  - ready_for_assembly
+  - assembled
+  - readback_verified
+  - approved_for_model
+  - invalidated
+
+never_infer:
+  - foundation_type_from_building_height_alone
+  - foundation_depth_width_thickness
+  - pile_type_length_diameter_spacing_or_capacity
+  - reinforcement
+  - bearing_length
+  - concrete_class
+  - waterproofing_product_or_layer_count
+  - insulation_thickness
+  - openings_in_structural_hosts
+
+archicad_semantics:
+  foundation_raft: native_Slab
+  strip_foundation: native_Beam_or_Wall_by_actual_geometry
+  pile: native_Column_or_verified_library_object
+  pile_cap: native_Slab_or_Beam
+  basement_wall: native_Wall
+  floor_slab: native_Slab
+  supporting_beam: native_Beam
+  supporting_wall: native_Wall

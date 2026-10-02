@@ -1,0 +1,94 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+suite_id: ROOF_EDGE_PENETRATION_TESTS_V1
+
+tests:
+  - test_id: warm_ceramic_support_belt_requires_KR
+    intent: build_roof_wall_support
+    inputs:
+      wall_material_family: large_format_hollow_ceramic
+      verified_wall_product_geometry: CER_440_PRODUCT
+      KR_support_belt_geometry: null
+      KR_roof_support_detail: KR_ROOF_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [belt_height, belt_width, reinforcement, anchor_layout, mauerlat_section]
+
+  - test_id: mauerlat_not_inferred_from_masonry
+    intent: build_roof_wall_support
+    inputs:
+      wall_material_family: large_format_hollow_ceramic
+      KR_bearing_element_type: null
+    expected:
+      status: blocked_ambiguous_support_strategy
+      forbidden_outputs: [mauerlat_presence, mauerlat_section, anchor_spacing]
+
+  - test_id: insulated_eaves_selects_warm_family
+    intent: build_roof_eaves
+    inputs:
+      roof_thermal_boundary_mode: insulated_slope
+      wall_material_family: large_format_hollow_ceramic
+      selected_wall_roof_assembly_package: PKG_CER_440_ETICS_INSULATED
+      KR_roof_support_detail: KR_EAVES_01
+      verified_eaves_covering_detail: SYS_EAVES_01
+      roof_ventilation_mode: ventilated_underroof
+      wall_thermal_system: WALL_THERM_01
+      roof_thermal_system: ROOF_THERM_01
+      air_vapor_continuity_detail: AV_01
+    expected:
+      node_id: EAVES_101_INSULATED_SLOPE_AT_MASONRY_WALL
+
+  - test_id: cold_attic_does_not_use_insulated_slope_eaves
+    intent: build_roof_eaves
+    inputs:
+      roof_thermal_boundary_mode: cold_attic_floor
+      wall_material_family: AAC
+      selected_cold_attic_package: PKG_AAC_COLD_ATTIC
+      attic_floor_thermal_system: ATTIC_FLOOR_01
+      KR_roof_support_detail: KR_EAVES_02
+      attic_ventilation_strategy: ATTIC_VENT_01
+      verified_eaves_covering_detail: SYS_EAVES_02
+    expected:
+      node_id: EAVES_102_COLD_ATTIC_AT_MASONRY_WALL
+      forbidden_node_ids: [EAVES_101_INSULATED_SLOPE_AT_MASONRY_WALL]
+
+  - test_id: chimney_without_fire_design_blocks
+    intent: build_roof_penetration
+    inputs:
+      penetration_type: chimney_or_heat_producing_flue
+      roof_thermal_boundary_mode: insulated_slope
+      verified_chimney_system: CHIM_SYS_01
+      manufacturer_roof_penetration_detail: CHIM_DTL_01
+      fire_design_reference: null
+      approved_structural_opening_reference: KR_OPEN_01
+    expected:
+      status: blocked_fire_gate
+      forbidden_outputs: [combustible_clearance, firestop_thickness, trimmer_size]
+
+  - test_id: roof_window_without_product_blocks
+    intent: build_roof_penetration
+    inputs:
+      penetration_type: roof_window
+      roof_thermal_boundary_mode: insulated_slope
+      verified_roof_window_product: null
+      approved_structural_opening_reference: KR_RW_01
+    expected:
+      status: blocked_waiting_for_product_data
+      forbidden_outputs: [rough_opening_size, flashing_kit_type, installation_height]
+
+  - test_id: warm_ceramic_gable_needs_restraint
+    intent: build_gable_verge
+    inputs:
+      wall_material_family: large_format_hollow_ceramic
+      gable_wall_present: true
+      verified_wall_product_geometry: CER_510_PRODUCT
+      KR_gable_top_restraint_detail_if_loadbearing_or_restrained: null
+    expected:
+      status: blocked_host_relationship
+      forbidden_outputs: [gable_top_reinforcement, generic_anchor_into_hollow_web]
+
+validation_policy:
+  - referenced_expected_node_ids_must_exist
+  - forbidden_outputs_must_not_be_generated_when_blocked
+  - cold_attic_and_insulated_slope_tests_must_remain_distinct

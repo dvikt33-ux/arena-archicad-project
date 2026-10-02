@@ -1,0 +1,91 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: CHIMNEY_ROOF_PENETRATION_NODES
+purpose: "Executable chimney/heat-producing flue roof penetrations with mandatory fire and manufacturer/project gates. No generic clearance or firestop dimensions are synthesized."
+
+source_dependencies:
+  - 43_roof_penetration_node.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 52_wall_roof_contour_router.yaml
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+
+nodes:
+  - node_id: CHIM_001_FACTORY_CHIMNEY_THROUGH_INSULATED_SLOPE
+    family: roof_penetration
+    applies_if:
+      penetration_type: chimney_or_heat_producing_flue
+      roof_thermal_boundary_mode: insulated_slope
+    required_inputs:
+      - verified_chimney_system
+      - manufacturer_roof_penetration_detail
+      - fire_design_reference
+      - approved_structural_opening_reference
+      - roof_covering_system
+      - air_vapor_sealing_detail
+      - weather_flashing_detail
+    blockers:
+      - verified_chimney_system_missing
+      - manufacturer_detail_missing
+      - roof_fire_gate_unresolved
+      - structural_penetration_not_approved
+      - roof_air_vapor_contour_unresolved
+      - roof_water_path_unresolved
+    never_infer:
+      - combustible_clearance
+      - boxing_size
+      - firestop_material
+      - firestop_thickness
+      - chimney_support_spacing
+      - flashing_dimensions
+      - structural_trimmer_size
+    geometry_actions:
+      - create_structural_opening_from_approved_KR_geometry
+      - place_chimney_from_verified_product_geometry
+      - place_fire_separation_zone_from_verified_fire_detail
+      - seal_air_vapor_layer_to_verified_system_detail
+      - create_weather_flashing_from_verified_covering_detail
+      - keep_underroof_water_path_clear_of_penetration
+    postconditions:
+      - fire_design_reference_present
+      - product_detail_traceable
+      - structural_opening_matches_KR
+      - air_vapor_contour_closed
+      - weather_contour_closed
+
+  - node_id: CHIM_002_FACTORY_CHIMNEY_THROUGH_COLD_ATTIC_ROOF
+    family: roof_penetration
+    applies_if:
+      penetration_type: chimney_or_heat_producing_flue
+      roof_thermal_boundary_mode: cold_attic_floor
+    required_inputs:
+      - verified_chimney_system
+      - fire_design_reference
+      - approved_roof_opening_reference
+      - attic_floor_penetration_fire_and_air_detail
+      - roof_weather_flashing_detail
+    blockers:
+      - roof_fire_gate_unresolved
+      - structural_penetration_not_approved
+      - attic_floor_penetration_detail_missing
+    never_infer:
+      - fire_clearance
+      - attic_floor_box_geometry
+      - roof_flashing_dimensions
+    geometry_actions:
+      - treat_attic_floor_and_roof_plane_as_separate_penetration_interfaces
+      - preserve_attic_floor_thermal_air_boundary
+      - preserve_cold_attic_ventilation_path
+      - create_roof_weather_penetration_from_verified_detail
+
+rules:
+  - id: roof.chimney.no_generic_fire_clearance
+    automation: true
+    statement: "Для дымоходов и иных горячих проходок запрещено применять универсальный зазор или типовой огнезащитный короб без подтвержденного пожарного и системного решения."
+    result_on_missing: roof_fire_gate_unresolved
+  - id: roof.chimney.structure_requires_KR
+    automation: true
+    statement: "Подрезка стропил, устройство ригелей/обрамления и изменение несущей схемы вокруг дымохода допускаются только по КР."
+    result_on_missing: structural_penetration_not_approved

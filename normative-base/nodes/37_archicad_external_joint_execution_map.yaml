@@ -1,0 +1,69 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+purpose: "Compile balcony, entrance and deformation-joint node selections into safe Archicad operation graphs."
+
+representation_policy:
+  balcony_and_loggia_slabs: native_Slab
+  external_platforms: native_Slab
+  external_stairs: native_Stair_when_supported_by_verified_geometry
+  foundations_and_supports: native_Slab_Beam_Wall_Column_by_actual_semantics
+  railings: native_Railing_if_verified_geometry_available
+  deformation_joint_major_geometry: separated_native_hosts_plus_detail
+  membranes_sealants_firestops_waterstops: detail_2d_plus_properties_by_default
+  proprietary_thermal_breaks_joint_profiles_fasteners: verified_LibraryObject_or_reference_only
+
+operation_DSL:
+  build_balcony_loggia_node:
+    preconditions: [selected_BAL_node, KR_geometry_resolved]
+    operations: [CreateSlabs, CreateWalls, CreateProfiles, CreateDetails]
+    optional_operations: [CreateRailings, ApplyFavoritesToElements]
+    postcondition: balcony_hosts_and_contours_readback_verified
+  build_entrance_external_stair_node:
+    preconditions: [selected_ENT_node, KR_geometry_resolved, AR_route_check_resolved]
+    operations: [CreateSlabs, CreateStairs, CreateWalls, CreateBeams, CreateColumns, CreateRoofs, CreateDetails]
+    postcondition: entrance_geometry_levels_and_support_relations_verified
+  build_deformation_joint_node:
+    preconditions: [selected_JNT_node, KR_joint_axis_and_movement_resolved]
+    operations: [CreateOpenings, TrimElements, CreateProfiles, CreateDetails]
+    guarded_operations: [CreateSolidElementLinks]
+    postcondition: structural_and_envelope_separation_verified_without_unintended_bridge
+
+write_gate:
+  - id: external_joint.no_cantilever_geometry_without_KR
+    automation: true
+    statement: "Консольная геометрия, армирование и анкеровка балкона не создаются без утвержденных данных КР."
+  - id: external_joint.no_slope_inference
+    automation: true
+    statement: "Уклоны наружных площадок, балконов и кровельных/шовных узлов не назначаются типовым значением; используется проектная геометрия."
+  - id: external_joint.no_railing_anchor_inference
+    automation: true
+    statement: "Анкеры ограждений не генерируются без КР или проверенной системы производителя."
+  - id: external_joint.no_joint_width_inference
+    automation: true
+    statement: "Ширина деформационного шва и расчетный диапазон перемещений всегда поступают из проекта КР."
+  - id: external_joint.no_proprietary_product_inference
+    automation: true
+    statement: "Терморазрывы, гидрошпонки, шовные профили, герметики и огнезащитные заполнения не выбираются автоматически без проверенной системы."
+  - id: external_joint.readback_required
+    automation: true
+    statement: "После записи перечитываются GUID, уровни, геометрия шва/консоли, отношения опирания и NODE_ID; API success без readback не считается исполнением."
+
+node_instance_properties:
+  - CONSTRUCTION_NODE_ID
+  - CONSTRUCTION_NODE_FAMILY
+  - CONSTRUCTION_NODE_REVISION
+  - CONSTRUCTION_NODE_STATUS
+  - KR_REFERENCE
+  - AR_REFERENCE
+  - PRODUCT_SYSTEM_REFERENCE
+  - WATER_DRAINAGE_STRATEGY_REFERENCE
+  - UNRESOLVED_GATES
+
+postconditions:
+  - all_created_hosts_exist
+  - no_structural_dimension_was_inferred
+  - no_unverified_anchor_or_joint_product_was_created
+  - movement_joint_has_no_unintended_rigid_bridge
+  - water_path_is_resolved_or_node_remains_blocked
+  - selected_node_id_written_to_hosts_or_relationship_record

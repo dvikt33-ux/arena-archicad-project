@@ -1,0 +1,95 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: INTERIOR_FLOOR_CEILING_SELECTOR
+
+graph_id: INTERIOR_FLOOR_CEILING_SELECTOR_V1
+
+entrypoints:
+  build_room_floor_system: room_floor_graph
+  build_wet_zone_floor: wet_zone_floor_graph
+  build_floor_drain_nodes: floor_drain_graph
+  build_suspended_ceiling_system: suspended_ceiling_graph
+  build_ceiling_mep_interfaces: ceiling_mep_graph
+
+room_floor_graph:
+  - gate: require_structural_floor_and_AR_finished_level
+    if_missing: blocked_waiting_for_AR_or_KR
+  - gate: require_verified_floor_build_up
+    if_missing: blocked_waiting_for_project_specification
+  - route:
+      when: ["room_floor_finish_required=true"]
+      node_candidates: [FNSH_FLR_001_ROOM_FLOOR_BUILDUP]
+  - overlay_if:
+      structural_deformation_joint_crosses_finish: FNSH_FLR_006_FLOOR_FINISH_AT_BUILDING_DEFORMATION_JOINT
+
+wet_zone_floor_graph:
+  - gate: require_liquid_exposure_and_waterproofing_applicability
+    if_missing: blocked_waiting_for_AR_or_normative_classification
+  - route:
+      when: ["wet_zone=true"]
+      node_candidates: [FNSH_FLR_002_WET_ROOM_FLOOR_WITH_WATERPROOFING]
+  - overlay_if:
+      waterproofing_required_and_floor_adjoins_wall: FNSH_FLR_003_WET_ROOM_FLOOR_TO_WALL_UPTURN
+      wet_room_boundary_at_door: FNSH_FLR_005_WET_ROOM_THRESHOLD_OR_LEVEL_DROP
+      structural_deformation_joint_crosses_finish: FNSH_FLR_006_FLOOR_FINISH_AT_BUILDING_DEFORMATION_JOINT
+  - gate: accessible_route_threshold_check
+    policy: "On an accessible route, do not select a generic 20 mm threshold. Prefer no threshold/level drop; if a threshold is permitted and required, enforce the applicable 14 mm maximum."
+
+floor_drain_graph:
+  - gate: explicit_drain_design_intent
+    if_missing: blocked_no_drain_design_basis
+  - gate: verified_drain_product_and_VK_reference
+    if_missing: blocked_waiting_for_product_or_VK
+  - gate: structural_penetration_KR_approval_if_required
+    if_missing: blocked_waiting_for_KR
+  - route:
+      when: ["floor_drain_or_channel_present=true"]
+      node_candidates: [FNSH_FLR_004_FLOOR_DRAIN_INTERFACE]
+
+suspended_ceiling_graph:
+  - gate: require_verified_ceiling_system_and_load
+    if_missing: blocked_waiting_for_ceiling_system_or_calculation
+  - route:
+      when: ["suspended_ceiling_type=gypsum_board_system"]
+      node_candidates: [CLG_001_SUSPENDED_GYPSUM_CEILING_SYSTEM]
+  - overlay_if:
+      ceiling_meets_wall: CLG_002_CEILING_PERIMETER_TO_WALL
+      access_panel_required: CLG_004_CEILING_ACCESS_PANEL
+      room_moisture_regime_humid_or_wet: CLG_005_WET_ROOM_SUSPENDED_CEILING
+      building_joint_crosses_ceiling: CLG_006_CEILING_AT_DEFORMATION_JOINT
+  - gate: require_service_zone_coordination
+    if_missing: blocked_waiting_for_engineering_coordination
+
+ceiling_mep_graph:
+  - gate: require_engineering_owner_and_device_geometry
+    if_missing: blocked_waiting_for_engineering
+  - gate: require_explicit_support_strategy
+    if_missing: blocked_waiting_for_support_design
+  - gate: require_ceiling_capacity_if_ceiling_supported
+    if_missing: blocked_waiting_for_ceiling_system_or_calculation
+  - route:
+      when: ["device_intersects_or_mounts_in_ceiling=true"]
+      node_candidates: [CLG_003_CEILING_MEP_DEVICE_INTERFACE]
+
+slope_resolution:
+  shower_special_case:
+    source: SP_30_13330_2020_clause_17_9
+    applicable_only_when: shower_rule_applicable
+    allowed_slope_fraction: {min: 0.01, max: 0.02}
+  SP29_medium_or_high_liquid_exposure:
+    applicable_only_when: SP29_clause_4_5_applicable
+    seamless_or_tile_except_concrete_percent: {min: 0.5, max: 1.0}
+    brick_or_concrete_percent: {min: 1.0, max: 2.0}
+  default_policy: do_not_generate_slope_without_applicable_rule_or_project_input
+
+resolution_order:
+  - normative_applicability_classification
+  - project_AR_KR_engineering_ownership
+  - verified_system_or_product
+  - accessibility_and_fire_acoustic_overrides
+  - node_specific_blockers
+  - compile_archicad_execution_graph
+
+no_match_result: blocked_no_verified_node
+multiple_equal_match_result: blocked_ambiguous_node_selection

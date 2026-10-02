@@ -1,4 +1,4 @@
-manifest_version: 87
+manifest_version: 88
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
@@ -159,6 +159,7 @@ rule_files:
   - 101_transformer_substation_architectural_interfaces_2027.yaml
   - 102_ev_charging_parking_architectural_interfaces_2027.yaml
   - 103_public_gas_architectural_interfaces_2027.yaml
+  - 104_integrated_heat_generator_100_360kw_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

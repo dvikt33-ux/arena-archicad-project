@@ -1,0 +1,174 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: EXTERNAL_WALL_OPENING_NODE_ENGINEERING
+purpose: "Opening-head, lintel, sill and reveal nodes for external wall openings."
+
+source_dependencies:
+  - ../rules/19_reinforced_concrete_lintels.yaml
+  - ../rules/24_masonry_opening_layout.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/68_facade_systems_2027.yaml
+
+nodes:
+  - node_id: OPN_HEAD_001_PRECAST_RC_LINTEL_OVER_MASONRY_OPENING
+    family: opening_head_structural_lintel
+    hosts: [masonry_wall, opening, precast_rc_lintel]
+    applies_if:
+      wall_material_family: masonry
+      lintel_system: precast_rc
+    required_inputs:
+      - KR_lintel_mark
+      - verified_product_geometry
+      - opening_structural_geometry
+      - KR_bearing_left
+      - KR_bearing_right
+      - load_capacity_confirmation
+    blockers:
+      - KR_lintel_mark_missing
+      - product_geometry_missing
+      - bearing_length_missing
+      - load_capacity_confirmation_missing
+    never_infer:
+      - lintel_mark_from_span_only
+      - bearing_length
+      - product_geometry_from_abbreviated_mark
+      - reinforcement
+    contours:
+      - load_path
+      - thermal_continuity_if_external
+      - facade_interface_if_applicable
+    geometry_actions:
+      - place_exact_verified_lintel_product
+      - preserve_confirmed_left_and_right_bearing_zones
+      - coordinate_quarter_geometry_if_product_family_requires
+    archicad_representation:
+      product: verified_Library_Object_or_Beam_by_exact_product_semantics
+      bearing_zones: relationship_metadata
+    postconditions:
+      - lintel_mark_matches_KR
+      - product_geometry_matches_verified_source
+      - bearing_zones_match_KR
+
+  - node_id: OPN_HEAD_002_MONOLITHIC_OR_STEEL_LINTEL_BY_KR
+    family: opening_head_project_specific_lintel
+    hosts: [wall, opening, project_specific_lintel]
+    applies_if:
+      lintel_system: project_specific
+    required_inputs:
+      - KR_lintel_geometry
+      - KR_material_and_section
+      - KR_bearing_or_connection_detail
+    blockers:
+      - KR_lintel_geometry_missing
+      - KR_bearing_or_connection_detail_missing
+    never_infer:
+      - section
+      - reinforcement
+      - bearing_length
+      - connection_plates_or_anchors
+    contours: [load_path, thermal_continuity_if_external, corrosion_if_steel]
+    geometry_actions:
+      - create_structural_host_from_exact_KR_geometry
+      - attach_KR_joint_reference
+    archicad_representation:
+      monolithic_rc: Beam_or_Wall_by_actual_semantics
+      steel: Beam_or_Profile_by_actual_semantics
+    postconditions:
+      - geometry_and_connections_match_KR
+
+  - node_id: OPN_SILL_001_EXTERNAL_WINDOW_SILL_DRAINAGE_INTERFACE
+    family: window_sill_weather_interface
+    hosts: [window_block, external_wall, facade_system]
+    applies_if:
+      opening_type: window
+      sill_exposed_to_weather: true
+    required_inputs:
+      - verified_sill_or_flashing_system
+      - water_shedding_strategy
+      - end_return_and_side_interface_detail
+      - frame_bottom_interface
+    blockers:
+      - sill_or_flashing_system_unverified
+      - water_path_unresolved
+    never_infer:
+      - sill_slope
+      - drip_geometry
+      - projection
+      - fasteners
+      - sealant_product
+    contours:
+      - bulk_water_and_drainage
+      - air_tightness
+      - thermal_continuity
+      - movement_and_tolerance
+    geometry_actions:
+      - place_or_reference_verified_sill_profile
+      - verify_continuous_water_path_to_exterior
+      - preserve_side_returns_and_frame_interface
+    archicad_representation:
+      sill: Profile_or_Object_if_verified_otherwise_detail_2d
+      seals: properties_plus_detail_2d
+    postconditions:
+      - water_path_resolved_to_exterior
+      - sill_does_not_break_window_mounting_joint_contours
+
+  - node_id: OPN_REVEAL_001_INSULATED_EXTERNAL_REVEAL
+    family: external_opening_reveal
+    hosts: [opening, wall, facade_system]
+    applies_if:
+      external_wall: true
+    required_inputs:
+      - wall_system
+      - facade_system
+      - verified_reveal_detail
+      - thermal_interface_review
+      - mounting_joint_system
+    blockers:
+      - reveal_detail_missing
+      - thermal_interface_unresolved
+      - mounting_joint_interface_unresolved
+    never_infer:
+      - insulation_thickness
+      - frame_overlap
+      - trim_profile
+      - sealant_or_tape_product
+    contours:
+      - thermal_continuity
+      - air_tightness
+      - vapor_control
+      - bulk_water
+    geometry_actions:
+      - preserve_verified_reveal_build_up
+      - coordinate_with_frame_and_mounting_joint
+      - verify_no_layer_terminates_without_detail
+    archicad_representation:
+      reveal_layers: Wall_Profile_or_detail_2d_by_need
+      interface_products: properties_plus_detail_reference
+    postconditions:
+      - reveal_contours_close_into_wall_and_window_contours
+
+  - node_id: OPN_QUARTER_001_MASONRY_OR_PRODUCT_QUARTER
+    family: opening_quarter
+    hosts: [opening, masonry_or_lintel_product]
+    applies_if:
+      quarter_required: true
+    required_inputs:
+      - quarter_source
+      - verified_geometry
+      - compatible_window_or_door_position
+    blockers:
+      - quarter_source_missing
+      - verified_geometry_missing
+    never_infer:
+      - quarter_depth
+      - quarter_width
+      - relation_to_lintel_product
+    contours: [thermal_continuity, bulk_water, movement_and_tolerance]
+    geometry_actions:
+      - create_only_from_verified_masonry_layout_or_product_geometry
+      - coordinate_with_window_or_door_frame
+    archicad_representation:
+      quarter: host_geometry_or_product_geometry_by_source
+    postconditions:
+      - quarter_not_added_as_arbitrary_cosmetic_recess

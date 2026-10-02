@@ -1,0 +1,184 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: EXTERNAL_WALL_OPENING_NODE_ENGINEERING
+purpose: "Machine-selectable window and door opening nodes preserving separate product, mounting-joint, structural-opening and clear-opening geometry."
+
+source_dependencies:
+  - ../rules/05_openings_windows_doors.yaml
+  - ../rules/21_doors_egress_openings.yaml
+  - ../rules/24_masonry_opening_layout.yaml
+  - ../rules/63_door_blocks_2026.yaml
+  - ../rules/68_facade_systems_2027.yaml
+
+nodes:
+  - node_id: OPN_001_WINDOW_BLOCK_IN_EXTERNAL_WALL
+    family: external_wall_window_opening
+    hosts: [external_wall, window_block]
+    applies_if:
+      opening_type: window
+      external_wall: true
+    required_inputs:
+      - wall_system
+      - structural_opening_geometry
+      - verified_window_system_or_product
+      - block_outer_geometry
+      - mounting_joint_system
+      - mounting_gap_left_right_top_bottom
+      - thermal_interface_review
+    blockers:
+      - window_system_or_product_unverified
+      - structural_opening_geometry_missing
+      - mounting_joint_system_missing
+      - mounting_gap_geometry_missing
+    never_infer:
+      - block_outer_width_or_height
+      - sash_geometry_or_mass
+      - hardware_system
+      - universal_mounting_gap
+      - opening_geometry_from_library_object_default
+    contours:
+      - load_path_if_wall_or_lintel_is_structural
+      - thermal_continuity
+      - air_tightness
+      - vapor_control
+      - bulk_water_and_drainage
+      - fire_if_applicable
+      - construction_sequence
+    geometry_actions:
+      - create_or_verify_structural_opening_from_approved_geometry
+      - place_verified_window_block_without_stretching_beyond_system
+      - store_mounting_joint_as_properties_and_detail_geometry
+      - verify_frame_position_relative_to_wall_and_facade_system
+    archicad_representation:
+      opening: Opening_or_native_window_host_opening
+      product: Window
+      mounting_joint: properties_plus_detail_2d_unless_explicit_3d_required
+    postconditions:
+      - structural_opening_not_equal_to_block_outer_geometry_unless_explicitly_zero_gap_system
+      - product_id_and_system_provider_written
+      - mounting_gap_values_preserved
+      - clear_opening_parameter_preserved_if_required
+
+  - node_id: OPN_002_EXTERNAL_DOOR_BLOCK_IN_WALL
+    family: external_wall_door_opening
+    hosts: [external_wall, door_block]
+    applies_if:
+      opening_type: door
+      external_wall: true
+    required_inputs:
+      - structural_opening_geometry
+      - verified_door_product_or_system
+      - door_outer_geometry
+      - swing_and_handing
+      - clear_opening_requirement_if_applicable
+      - threshold_strategy
+      - mounting_joint_strategy
+    blockers:
+      - door_product_or_system_unverified
+      - structural_opening_geometry_missing
+      - clear_opening_check_missing_when_egress_or_accessible
+      - special_door_classification_missing_when_required
+    never_infer:
+      - fire_rating
+      - egress_clear_width_from_nominal_opening
+      - threshold_height_from_library_default
+      - door_leaf_mass_or_hardware_capacity
+      - universal_mounting_gap
+    contours:
+      - clear_egress_or_accessibility_if_applicable
+      - air_tightness
+      - thermal_continuity
+      - bulk_water
+      - fire_if_applicable
+      - security_only_if_project_specified
+    geometry_actions:
+      - create_or_verify_structural_opening
+      - place_verified_door_block
+      - verify_swing_and_clear_passage
+      - attach_threshold_and_mounting_joint_metadata
+    archicad_representation:
+      opening: Opening_or_native_door_host_opening
+      product: Door
+      joint: properties_plus_detail_2d
+    postconditions:
+      - wall_opening_box_leaf_and_clear_width_are_separate_parameters
+      - special_door_properties_not_synthesized
+      - egress_or_accessibility_checks_pass_where_applicable
+
+  - node_id: OPN_003_WINDOW_OR_DOOR_IN_SFTK_FACADE
+    family: sftk_opening_interface
+    hosts: [external_wall, opening_product, SFTK]
+    applies_if:
+      facade_system: SFTK
+    required_inputs:
+      - base_opening_node
+      - verified_SFTK_system
+      - insulation_thickness_calculated
+      - frame_position
+      - systemholder_opening_detail
+    blockers:
+      - base_opening_node_unresolved
+      - SFTK_system_unverified
+      - thermal_calculation_missing
+      - systemholder_opening_detail_missing
+    never_infer:
+      - insulation_thickness
+      - adhesive_or_anchor_layout
+      - mesh_product
+      - opening_profile_product
+    contours:
+      - thermal_continuity
+      - bulk_water
+      - air_tightness
+      - facade_reinforcement
+      - fire_if_applicable
+    geometry_actions:
+      - preserve_systemholder_frame_overlap_or_interface_detail
+      - create_opening_corner_reinforcement_metadata
+      - verify_insulation_joint_offsets_around_opening
+    archicad_representation:
+      facade_layers: Wall_or_Morph_only_when_needed
+      profiles_and_mesh: properties_plus_detail_2d_by_default
+    postconditions:
+      - opening_detail_linked_to_verified_SFTK_system
+      - frame_interface_and_corner_reinforcement_resolved
+
+  - node_id: OPN_004_WINDOW_OR_DOOR_IN_VENTILATED_FACADE
+    family: nfs_opening_interface
+    hosts: [external_wall, opening_product, ventilated_facade]
+    applies_if:
+      facade_system: ventilated_facade
+    required_inputs:
+      - base_opening_node
+      - verified_facade_system
+      - subframe_opening_detail
+      - fire_cutoff_strategy_if_required
+      - drainage_and_flashing_strategy
+    blockers:
+      - facade_system_unverified
+      - subframe_opening_detail_missing
+      - water_path_unresolved
+      - fire_interface_unresolved_when_required
+    never_infer:
+      - brackets
+      - anchors
+      - fastener_spacing
+      - cladding_return_geometry
+      - fire_cut_product
+    contours:
+      - thermal_continuity
+      - drained_ventilated_cavity
+      - bulk_water
+      - fire
+      - movement_and_tolerance
+    geometry_actions:
+      - preserve_verified_subframe_geometry
+      - reserve_opening_perimeter_for_flashings_and_returns
+      - attach_manufacturer_detail_reference
+    archicad_representation:
+      cladding_and_subframe: verified_system_representation
+      perimeter_interfaces: properties_plus_detail_2d_unless_coordination_requires_3d
+    postconditions:
+      - no_unverified_anchor_or_bracket_created
+      - water_path_and_fire_interface_resolved

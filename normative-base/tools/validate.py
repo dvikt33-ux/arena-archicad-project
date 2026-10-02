@@ -122,6 +122,107 @@ def validate_node_test_references(
                 errors.append(f"node test {test_id!r} references unknown node_id {ref!r}")
 
 
+def validate_intent_contract(parsed: dict[Path, Any], errors: list[str]) -> None:
+    contract = parsed.get(NODES / "06_high_level_command_contract.yaml")
+    selector = parsed.get(NODES / "22_selector_decision_graph.yaml")
+    tests_doc = parsed.get(NODES / "23_node_test_vectors.yaml")
+
+    if not isinstance(contract, dict):
+        errors.append("high-level command contract missing or invalid")
+        return
+    intent_contract = contract.get("intent_contract")
+    if not isinstance(intent_contract, dict):
+        errors.append("high-level command contract missing intent_contract mapping")
+        return
+    supported_raw = intent_contract.get("supported_intents")
+    if not isinstance(supported_raw, list):
+        errors.append("high-level command supported_intents must be a list")
+        return
+    supported = {x for x in supported_raw if isinstance(x, str)}
+
+    if isinstance(selector, dict):
+        entrypoints = selector.get("entrypoints")
+        if isinstance(entrypoints, dict):
+            selector_intents = {x for x in entrypoints if isinstance(x, str)}
+            missing = sorted(selector_intents - supported)
+            if missing:
+                errors.append(f"selector entrypoints missing from supported_intents: {missing}")
+
+    required_release_intents = {
+        "generate_working_documentation",
+        "validate_working_documentation",
+        "prepare_external_review_package",
+        "process_external_review_comments",
+    }
+    missing_release = sorted(required_release_intents - supported)
+    if missing_release:
+        errors.append(f"working-documentation intents missing: {missing_release}")
+
+    if isinstance(tests_doc, dict):
+        tests = tests_doc.get("tests") or []
+        if isinstance(tests, list):
+            for test in tests:
+                if not isinstance(test, dict):
+                    continue
+                intent = test.get("intent")
+                if isinstance(intent, str) and intent not in supported:
+                    errors.append(
+                        f"node test {test.get('test_id', '<unknown>')!r} uses unsupported intent {intent!r}"
+                    )
+
+    release_contract = contract.get("release_status_contract")
+    if not isinstance(release_contract, dict):
+        errors.append("high-level command contract missing release_status_contract")
+    else:
+        allowed = set(release_contract.get("allowed") or [])
+        forbidden = set(release_contract.get("forbidden_without_human_external_result") or [])
+        if "ready_for_external_review" not in allowed:
+            errors.append("release_status_contract must allow ready_for_external_review")
+        if "expertise_approved" in allowed:
+            errors.append("expertise_approved must never be an automatically allowed release status")
+        if "expertise_approved" not in forbidden:
+            errors.append("expertise_approved must be explicitly forbidden without human external result")
+
+
+def validate_documentation_release_contracts(
+    parsed: dict[Path, Any], errors: list[str]
+) -> None:
+    wd_file = NODES / "42_working_documentation_release_gate.yaml"
+    exp_file = NODES / "43_expertise_readiness_contract.yaml"
+    wd = parsed.get(wd_file)
+    exp = parsed.get(exp_file)
+
+    if not isinstance(wd, dict):
+        errors.append("working documentation release gate missing or invalid")
+    else:
+        required_sections = {
+            "model_release_gate",
+            "working_drawing_gate",
+            "cross_discipline_gate",
+            "issue_register_required_fields",
+            "release_receipt",
+            "hard_fail",
+        }
+        missing = sorted(required_sections - set(wd))
+        if missing:
+            errors.append(f"working documentation release gate missing sections: {missing}")
+
+    if not isinstance(exp, dict):
+        errors.append("expertise readiness contract missing or invalid")
+    else:
+        levels = exp.get("readiness_levels") or []
+        level_ids = {
+            row.get("level")
+            for row in levels
+            if isinstance(row, dict) and isinstance(row.get("level"), str)
+        }
+        if "L3_EXTERNAL_REVIEW_READY" not in level_ids:
+            errors.append("expertise readiness contract missing L3_EXTERNAL_REVIEW_READY")
+        policy_text = str(exp.get("readiness_policy", ""))
+        if "no_approval_claim" not in policy_text:
+            errors.append("expertise readiness contract must prohibit approval claims")
+
+
 def main() -> int:
     errors: list[str] = []
     parsed: dict[Path, Any] = {}
@@ -177,6 +278,8 @@ def main() -> int:
                 seen_node_ids[node_id] = (file, node_path)
 
     validate_node_test_references(parsed, set(seen_node_ids), errors)
+    validate_intent_contract(parsed, errors)
+    validate_documentation_release_contracts(parsed, errors)
 
     manifest = parsed.get(ROOT / "manifest.yaml")
     if isinstance(manifest, dict):
@@ -203,7 +306,8 @@ def main() -> int:
     print(
         f"OK: {len(yaml_files)} YAML files parsed; "
         f"{len(seen_rule_ids)} unique machine rule ids; "
-        f"{len(seen_node_ids)} unique construction node ids; manifests synchronized."
+        f"{len(seen_node_ids)} unique construction node ids; manifests synchronized; "
+        "high-level intents and documentation release contracts validated."
     )
     return 0
 

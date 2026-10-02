@@ -1,0 +1,103 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: COLD_ATTIC_WALL_ROOF_PACKAGES
+purpose: "Machine-selectable cold-attic wall/roof packages where the thermal boundary is at the upper floor/attic floor rather than in the pitched roof slope."
+
+source_dependencies:
+  - 48_wall_material_system_registry.yaml
+  - 49_roof_wall_material_adapters.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - 52_wall_roof_contour_router.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+
+packages:
+  - package_id: PKG_TC_COLD_ATTIC_EAVES
+    wall_system_family: warm_ceramic_large_format
+    roof_thermal_boundary_mode: cold_attic_floor
+    roof_edge_condition: eaves
+    required_inputs:
+      - exact_wall_product_id
+      - exact_wall_product_geometry
+      - KR_roof_wall_support_detail
+      - attic_floor_thermal_assembly
+      - attic_air_sealing_strategy
+      - roof_ventilation_strategy
+      - eaves_weather_detail
+    contour_requirements:
+      thermal: wall_thermal_layer_to_attic_floor_thermal_layer
+      air: wall_air_control_to_attic_floor_air_control
+      vapor: resolved_at_attic_floor_warm_side_as_required
+      roof_slope_thermal: not_primary_thermal_boundary
+      ventilation: attic_ventilation_path_explicit
+      water: roof_shedding_path_to_exterior
+    blockers:
+      - attic_floor_thermal_assembly_missing
+      - attic_air_sealing_strategy_missing
+      - roof_ventilation_strategy_missing
+      - KR_roof_wall_support_detail_missing
+    never_infer:
+      - eaves_vent_free_area
+      - attic_vent_area
+      - support_anchor_pattern
+      - thermal_insulation_thickness
+
+  - package_id: PKG_AAC_COLD_ATTIC_EAVES
+    wall_system_family: AAC
+    roof_thermal_boundary_mode: cold_attic_floor
+    roof_edge_condition: eaves
+    required_inputs:
+      - exact_AAC_product_and_density_class
+      - KR_local_bearing_or_reinforced_belt_detail
+      - verified_anchor_or_bearing_system
+      - attic_floor_thermal_assembly
+      - attic_air_sealing_strategy
+      - roof_ventilation_strategy
+    blockers:
+      - verified_AAC_support_strategy_missing
+      - attic_floor_thermal_assembly_missing
+      - roof_ventilation_strategy_missing
+    never_infer:
+      - reinforced_belt_geometry
+      - anchor_type_or_spacing
+      - insulation_thickness
+
+  - package_id: PKG_RC_COLD_ATTIC_EAVES
+    wall_system_family: reinforced_concrete
+    roof_thermal_boundary_mode: cold_attic_floor
+    roof_edge_condition: eaves
+    required_inputs:
+      - KR_embedded_or_anchor_connection_detail
+      - attic_floor_thermal_assembly
+      - attic_air_sealing_strategy
+      - roof_ventilation_strategy
+    blockers:
+      - KR_connection_detail_missing
+      - attic_floor_thermal_assembly_missing
+      - attic_air_sealing_strategy_missing
+
+  - package_id: PKG_TIMBER_FRAME_COLD_ATTIC_EAVES
+    wall_system_family: timber_frame
+    roof_thermal_boundary_mode: cold_attic_floor
+    roof_edge_condition: eaves
+    required_inputs:
+      - KR_top_plate_and_rafter_connection_detail
+      - attic_floor_thermal_assembly
+      - explicit_wall_to_ceiling_air_control_connection
+      - explicit_wall_to_ceiling_vapor_control_connection
+      - attic_ventilation_strategy
+    blockers:
+      - wall_ceiling_membrane_connection_missing
+      - attic_ventilation_strategy_missing
+
+routing_rules:
+  - id: cold_attic.thermal_boundary_at_floor
+    automation: true
+    statement: "При режиме cold_attic_floor основной тепловой и воздушный контур проходит через чердачное перекрытие; скат крыши не должен автоматически получать свойства утепленной мансардной кровли."
+  - id: cold_attic.no_warm_roof_package_substitution
+    automation: true
+    statement: "Пакет insulated_slope не может автоматически заменять cold_attic_floor и наоборот."
+  - id: cold_attic.attic_ventilation_explicit
+    automation: true
+    statement: "Вентиляция холодного чердака должна иметь самостоятельную подтвержденную схему и не выводится из геометрии кровельного вентиляционного зазора по умолчанию."

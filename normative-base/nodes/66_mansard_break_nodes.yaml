@@ -1,0 +1,75 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: MANSARD_BREAK_NODES
+purpose: "Executable nodes for broken-slope mansard roofs, with separate structural break joint and envelope-contour transition."
+
+source_dependencies:
+  - 11_rafter_system_topology.yaml
+  - 17_covering_system_adapters.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 52_wall_roof_contour_router.yaml
+  - 64_complex_roof_topology_nodes.yaml
+
+selection_inputs:
+  - upper_slope_plane
+  - lower_slope_plane
+  - slope_break_line
+  - thermal_boundary_mode
+  - covering_system
+  - KR_break_joint_reference
+  - KR_member_layout_reference
+  - verified_covering_break_detail
+
+nodes:
+  - node_id: MANSARD_BREAK_001_INSULATED_CONTINUOUS_ENVELOPE
+    applies_if:
+      thermal_boundary_mode: insulated_slope
+    required_inputs:
+      - KR_break_joint_reference
+      - exact_upper_member_geometry
+      - exact_lower_member_geometry
+      - verified_covering_break_detail
+      - thermal_continuity_detail
+      - air_vapor_continuity_detail
+    geometry_actions:
+      - place_upper_and_lower_roof_planes
+      - instantiate_structural_break_joint_from_KR
+      - continue_thermal_layer_through_break_zone
+      - reconnect_air_vapor_layer
+      - apply_verified_covering_break_detail
+    postconditions:
+      - structural_break_matches_KR
+      - thermal_contour_continuous
+      - air_vapor_contour_continuous
+      - water_path_resolved
+
+  - node_id: MANSARD_BREAK_002_COLD_ATTIC_TRANSITION
+    applies_if:
+      thermal_boundary_mode: mixed_or_cold_attic
+    required_inputs:
+      - project_thermal_boundary_map
+      - KR_break_joint_reference
+      - ventilation_path_reference
+      - verified_covering_break_detail
+    geometry_actions:
+      - preserve_project_thermal_boundary
+      - prevent_false_insulated_slope_continuation
+      - preserve_cold_zone_ventilation_path
+
+rules:
+  - id: roof.mansard.break_is_structural_joint
+    automation: true
+    statement: "The slope break is not a graphic kink only; its load-bearing joint is a KR-owned node."
+    result_on_missing: roof_structural_joint_unresolved
+  - id: roof.mansard.contours_follow_real_boundary
+    automation: true
+    statement: "Thermal and air-vapor contours follow the actual heated-volume boundary and shall not be extended through a cold attic by visual analogy."
+
+never_infer:
+  - knee_wall_height
+  - support_post_section
+  - purlin_section
+  - rafter_splice_geometry
+  - connection_plate_geometry
+  - fastener_schedule

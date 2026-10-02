@@ -1,0 +1,67 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+purpose: "Compile column, beam, stair, parapet and facade-edge node selections into safe Archicad operation graphs."
+
+representation_policy:
+  rc_columns: native_Column
+  rc_beams: native_Beam
+  slabs_and_landings: native_Slab
+  stairs: native_Stair_when_supported_by_verified_geometry
+  parapets: native_Wall_or_verified_profile_by_actual_semantics
+  facade_major_hosts: native_Wall_or_CurtainWall_where_supported
+  facade_brackets_anchors_fasteners: manufacturer_or_KR_reference_unless_exact_geometry_required
+  membranes_tapes_fire_seals: detail_2d_plus_properties_by_default
+
+operation_DSL:
+  build_column_foundation_node:
+    preconditions: [selected_COL_FDN_node, KR_geometry_resolved]
+    operations: [CreateColumns, CreateSlabs, CreateBeams]
+    postcondition: column_base_and_foundation_readback_matches_KR
+  build_column_floor_node:
+    preconditions: [selected_COL_FLR_node, KR_joint_reference_resolved]
+    operations: [CreateColumns, CreateBeams, CreateSlabs]
+    postcondition: structural_hosts_and_axes_match_expected
+  build_beam_floor_node:
+    preconditions: [selected_BEAM_FLR_node, KR_bearing_or_joint_resolved]
+    operations: [CreateBeams, CreateSlabs]
+    postcondition: beam_slab_relation_matches_KR
+  build_stair_landing_node:
+    preconditions: [selected_STR_LDG_node, KR_geometry_resolved, egress_clearance_passed]
+    operations: [CreateStairs, CreateSlabs, CreateWalls]
+    postcondition: stair_levels_and_clear_width_match_expected
+  build_parapet_node:
+    preconditions: [selected_PAR_node, roof_waterproofing_strategy_resolved]
+    operations: [CreateWalls, CreateSlabs, CreateProfiles, CreateDetails]
+    postcondition: parapet_hosts_and_contour_metadata_verified
+  build_facade_edge_node:
+    preconditions: [selected_FCD_EDGE_node, facade_system_verified, KR_slab_edge_resolved]
+    operations: [CreateWalls, CreateSlabs, CreateProfiles, CreateObjects, CreateDetails]
+    postcondition: facade_edge_relation_and_contours_verified
+
+write_gate:
+  - id: frame_edge.no_structural_write_without_KR
+    automation: true
+    statement: "Несущая геометрия соединения колонны, балки, лестницы и края перекрытия не создается без подтвержденной геометрии КР."
+  - id: frame_edge.no_facade_anchor_inference
+    automation: true
+    statement: "Кронштейны, анкеры и крепеж фасадной системы не генерируются из типовых значений; требуется КР или проверенная система производителя."
+  - id: frame_edge.readback_required
+    automation: true
+    statement: "После каждой записи перечитываются GUID, типы элементов, уровни, опорные/стыковые зоны и NODE_ID; успешный API-вызов без readback не считается успешным исполнением."
+
+node_instance_properties:
+  - CONSTRUCTION_NODE_ID
+  - CONSTRUCTION_NODE_FAMILY
+  - CONSTRUCTION_NODE_REVISION
+  - CONSTRUCTION_NODE_STATUS
+  - KR_REFERENCE
+  - PRODUCT_SYSTEM_REFERENCE
+  - UNRESOLVED_GATES
+
+postconditions:
+  - all_created_hosts_exist
+  - node_id_written_to_hosts_or_relationship_record
+  - no_structural_dimension_was_inferred
+  - no_unverified_product_anchor_was_created
+  - required_contours_pass_or_node_remains_blocked

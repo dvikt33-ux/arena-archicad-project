@@ -1,0 +1,86 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: COMPLEX_HIP_VALLEY_NODES
+purpose: "Executable complex hip/valley topology nodes with strict separation of structural, covering and drainage responsibilities."
+
+source_dependencies:
+  - 14_ridge_hip_node.yaml
+  - 15_valley_node.yaml
+  - 17_covering_system_adapters.yaml
+  - 46_roof_structural_joint_catalog.yaml
+  - 64_complex_roof_topology_nodes.yaml
+
+selection_inputs:
+  - hip_valley_graph
+  - adjacent_roof_planes
+  - plane_slopes
+  - covering_system
+  - KR_hip_valley_scheme_reference
+  - KR_compound_joint_reference
+  - verified_valley_covering_detail
+  - drainage_strategy_reference
+
+nodes:
+  - node_id: HV_001_SIMPLE_HIP_WITH_JACK_RAFTERS
+    applies_if:
+      topology: simple_hip
+    required_inputs:
+      - KR_hip_valley_scheme_reference
+      - KR_hip_member_reference
+      - KR_jack_rafter_layout_reference
+    geometry_actions:
+      - create_hip_axis_from_plane_intersection
+      - place_structural_members_from_KR
+      - bind_jack_rafter_instances_to_KR_layout
+      - apply_verified_covering_hip_detail
+
+  - node_id: HV_002_VALLEY_WITH_JACK_RAFTERS
+    applies_if:
+      topology: valley
+    required_inputs:
+      - KR_hip_valley_scheme_reference
+      - KR_valley_member_reference
+      - KR_jack_rafter_layout_reference
+      - verified_valley_covering_detail
+      - drainage_strategy_reference
+    geometry_actions:
+      - create_valley_axis_from_plane_intersection
+      - place_valley_member_from_KR
+      - place_jack_members_from_KR
+      - construct_verified_water_collection_zone
+    postconditions:
+      - valley_structural_reference_present
+      - valley_covering_detail_verified
+      - uninterrupted_water_path_present
+
+  - node_id: HV_003_COMPOUND_HIP_VALLEY_JUNCTION
+    applies_if:
+      topology: compound_hip_valley_junction
+    required_inputs:
+      - KR_compound_joint_reference
+      - exact_member_geometry
+      - verified_covering_transition_detail
+      - drainage_strategy_reference
+    hard_fail:
+      - KR_compound_joint_reference_missing
+      - covering_transition_unverified
+      - drainage_strategy_missing
+
+rules:
+  - id: roof.hip_valley.axis_from_geometry_member_from_KR
+    automation: true
+    statement: "Hip and valley axes may be derived from roof-plane intersections, but their load-bearing members and connections come only from KR."
+  - id: roof.valley.water_path_mandatory
+    automation: true
+    statement: "A valley cannot be released unless the precipitation path through its full length and outlet is resolved."
+    result_on_missing: roof_water_path_unresolved
+
+never_infer:
+  - hip_member_section
+  - valley_member_section
+  - doubled_or_tripled_member_requirement
+  - jack_rafter_spacing
+  - connector_schedule
+  - valley_lining_width
+  - snow_reinforcement_requirement

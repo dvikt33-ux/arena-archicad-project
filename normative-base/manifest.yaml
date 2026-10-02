@@ -1,4 +1,4 @@
-manifest_version: 93
+manifest_version: 94
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 
@@ -165,6 +165,7 @@ rule_files:
   - 107_diesel_generator_architectural_interfaces_2027.yaml
   - 108_refrigeration_machine_room_interfaces_2027.yaml
   - 109_domestic_water_meter_pump_interfaces_2027.yaml
+  - 110_drainage_sumps_underground_rooms_2027.yaml
 
 packages:
   - id: IZH_NODE_ENGINEERING

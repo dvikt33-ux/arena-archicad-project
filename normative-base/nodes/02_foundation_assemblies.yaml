@@ -1,0 +1,113 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+assembly_templates:
+  shallow_strip_rc:
+    hosts: [strip_foundation, supported_wall_or_column]
+    required_components:
+      - KR_approved_rc_foundation_geometry
+      - verified_support_interface
+      - waterproofing_contour_if_exposed
+      - thermal_contour_if_envelope
+      - corrosion_protection_if_required
+      - controlled_penetrations_only
+    archicad_graph:
+      - create_or_confirm: foundation_host
+      - create_or_confirm: supported_host
+      - attach_relationship: support_relation
+      - attach_properties: [NODE_FAMILY, KR_REVISION, GEOTECH_REVISION]
+      - add_detail_layers_as_properties_or_2d: [waterproofing, insulation, protection]
+    hard_fail: [KR_geometry_missing, support_zone_missing]
+
+  isolated_pad_rc:
+    hosts: [pad_foundation, column]
+    required_components: [KR_approved_pad_geometry, KR_approved_column_interface, durability_layers_if_required]
+    archicad_graph:
+      - create_or_confirm: pad_host
+      - create_or_confirm: column_host
+      - attach_relationship: point_support_relation
+      - attach_properties: [NODE_FAMILY, KR_REVISION]
+    hard_fail: [KR_geometry_missing, column_base_detail_missing]
+
+  raft_rc:
+    hosts: [foundation_raft, supported_walls_columns]
+    required_components:
+      - KR_approved_raft_outline_and_levels
+      - KR_approved_thickened_zones_if_any
+      - waterproofing_strategy
+      - construction_joint_strategy
+      - deformation_joint_strategy_if_any
+      - thermal_edge_strategy_if_envelope
+      - approved_MEP_sleeves
+    archicad_graph:
+      - create_or_confirm: raft_slab
+      - create_or_confirm: thickened_zones_as_KR_semantics
+      - create_only_approved: penetrations
+      - attach_properties: [KR_REVISION, WATERPROOFING_STRATEGY, NODE_REVISION]
+    hard_fail: [KR_raft_geometry_missing, unapproved_penetration]
+
+  basement_box_rc:
+    hosts: [raft, basement_walls, ground_floor_or_floor_slab]
+    required_components:
+      - KR_approved_box_geometry
+      - raft_wall_joint_definition
+      - external_waterproofing_continuity
+      - wall_slab_joint_definition
+      - drainage_if_projected
+      - movement_joint_definition_if_any
+    archicad_graph:
+      - create_or_confirm: raft_slab
+      - create_or_confirm: basement_walls
+      - attach_relationship: raft_wall_joint
+      - attach_relationship: wall_floor_joint
+      - attach_properties: [BOX_SYSTEM, KR_REVISION, WATERPROOFING_REVISION]
+    hard_fail: [joint_definition_missing, groundwater_exposure_unknown]
+
+  pile_raft_rc:
+    hosts: [piles, raft]
+    required_components:
+      - verified_pile_design
+      - KR_approved_pile_coordinates
+      - KR_approved_pile_head_levels
+      - KR_approved_raft_geometry
+      - pile_raft_connection_definition
+    archicad_graph:
+      - create_or_confirm: piles_from_KR_coordinates
+      - create_or_confirm: raft_slab
+      - attach_relationship: pile_to_raft
+      - attach_properties: [PILE_DESIGN_REVISION, KR_REVISION]
+    hard_fail: [pile_design_missing, pile_head_connection_missing]
+
+  pile_caps_rc:
+    hosts: [piles, caps, columns_or_walls]
+    required_components: [verified_pile_design, KR_approved_caps, KR_approved_cap_to_superstructure_connection]
+    archicad_graph:
+      - create_or_confirm: piles
+      - create_or_confirm: caps
+      - create_or_confirm: tie_beams_if_KR
+      - attach_relationship: pile_cap_support_graph
+    hard_fail: [pile_design_missing, cap_geometry_missing]
+
+  precast_strip_FBS_FL:
+    hosts: [precast_foundation_elements, supported_wall]
+    required_components:
+      - KR_approved_product_marks
+      - verified_layout
+      - bedding_or_leveling_interface_from_project
+      - joint_fill_or_grout_definition
+      - waterproofing_contour_if_required
+    archicad_graph:
+      - place_verified_product: FL_or_other_footing_elements
+      - place_verified_product: FBS_or_verified_basement_blocks
+      - attach_relationship: course_and_support_graph
+      - attach_properties: [PRODUCT_MARKS, KR_REVISION]
+    hard_fail: [product_marks_missing, layout_not_verified]
+
+shared_never_auto_assign:
+  - reinforcement
+  - concrete_class
+  - foundation_dimensions
+  - pile_dimensions_or_capacity
+  - structural_joint_reinforcement
+  - bearing_or_embedment_length

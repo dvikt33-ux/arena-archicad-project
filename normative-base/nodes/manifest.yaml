@@ -1,4 +1,4 @@
-manifest_version: 23
+manifest_version: 24
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -80,6 +80,9 @@ load_order:
   - 63_archicad_roof_edge_penetration_execution_map.yaml
   - 64_floor_finish_wet_zone_nodes.yaml
   - 65_suspended_ceiling_nodes.yaml
+  - 66_archicad_floor_ceiling_execution_map.yaml
+  - 67_floor_ceiling_selector_graph.yaml
+  - 68_floor_ceiling_test_vectors.yaml
   - 64_complex_roof_topology_nodes.yaml
   - 65_dormer_roof_nodes.yaml
   - 66_mansard_break_nodes.yaml
@@ -102,6 +105,8 @@ modules:
   shaft_penetration: SHAFT_AND_PENETRATION_NODE_ENGINEERING
   interior_floor_wet_zone: INTERIOR_FLOOR_WET_ZONE_NODE_ENGINEERING
   suspended_ceiling: SUSPENDED_CEILING_NODE_ENGINEERING
+  interior_floor_ceiling_execution: ARCHICAD_INTERIOR_FLOOR_CEILING_EXECUTION_MAP
+  interior_floor_ceiling_selector: INTERIOR_FLOOR_CEILING_SELECTOR
   roof: ROOF_NODE_ENGINEERING
   roof_wall_material_registry: WALL_MATERIAL_SYSTEM_REGISTRY
   roof_wall_material_adapters: ROOF_WALL_MATERIAL_ADAPTERS
@@ -134,6 +139,7 @@ inherits:
   - ../rules/05_openings_windows_doors.yaml
   - ../rules/08_structural_design_boundaries.yaml
   - ../rules/09_engineering_coordination.yaml
+  - ../rules/12_floors_wet_zones.yaml
   - ../rules/15_roofs.yaml
   - ../rules/16_stair_geometry.yaml
   - ../rules/19_reinforced_concrete_lintels.yaml
@@ -142,6 +148,7 @@ inherits:
   - ../rules/27_thermal_acoustic_envelope.yaml
   - ../rules/63_door_blocks_2026.yaml
   - ../rules/65_drywall_partitions_linings.yaml
+  - ../rules/66_suspended_ceiling_systems.yaml
   - ../rules/67_communication_shafts_electrical_boxes.yaml
   - ../rules/68_facade_systems_2027.yaml
   - ../rules/69_roof_drainage_interfaces.yaml
@@ -189,6 +196,14 @@ hard_fail:
   - shaft_service_volume_or_access_unresolved
   - engineering_penetration_owner_or_geometry_unresolved
   - concealed_electrical_box_offset_failed
+  - wet_zone_exposure_or_waterproofing_strategy_unresolved
+  - floor_drain_system_or_interface_unverified
+  - accessibility_threshold_conflict
+  - floor_finish_build_up_or_level_unresolved
+  - suspended_ceiling_system_unverified
+  - suspended_ceiling_load_or_spacing_unverified
+  - ceiling_MEP_support_owner_unresolved
+  - ceiling_service_zone_collision_unresolved
   - roof_node_scope_unresolved
   - roof_covering_system_missing
   - roof_structural_scheme_missing
@@ -240,6 +255,11 @@ execution_policy:
   internal_structural_wall_geometry_generation: external_KR_only
   shaft_geometry_generation: engineering_service_volume_plus_verified_enclosure_only
   engineering_penetration_generation: approved_engineering_geometry_only
+  floor_finish_layer_thickness_generation: project_specification_or_calculation_only
+  wet_zone_slope_generation: applicable_normative_case_or_project_input_only
+  floor_drain_geometry_generation: verified_product_and_VK_only
+  suspended_ceiling_spacing_and_support_generation: verified_system_or_calculation_only
+  ceiling_attached_equipment_support: verified_owner_and_capacity_only
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only

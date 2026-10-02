@@ -1,0 +1,102 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: EXPERTISE_READINESS_CONTRACT
+purpose: "Machine-readable readiness contract for issuing coordinated project/working documentation for external review without claiming or simulating expert approval."
+
+readiness_levels:
+  - level: L0_MODEL_ONLY
+    meaning: geometry exists; documentation/review gates not complete
+  - level: L1_COORDINATED_MODEL
+    meaning: model interfaces coordinated against current discipline revisions
+  - level: L2_WORKING_DOCUMENTATION_CANDIDATE
+    meaning: required drawings/details/schedules generated and internally checkable
+  - level: L3_EXTERNAL_REVIEW_READY
+    meaning: automated gates pass and no blocking issue is open; package may be submitted for professional review
+
+readiness_policy:
+  - id: expertise.ready.requires_zero_blockers
+    automation: true
+    statement: "L3_EXTERNAL_REVIEW_READY допускается только при нулевом числе blocking issues и подтвержденной актуальности всех использованных исходных данных и нормативных источников."
+  - id: expertise.ready.no_approval_claim
+    automation: true
+    statement: "Движок не вправе выдавать машинную проверку за положительное заключение экспертизы, государственное согласование или подпись ответственного специалиста."
+  - id: expertise.ready.traceability_required
+    automation: true
+    statement: "Каждое критическое решение должно иметь трассировку: модель/чертеж -> NODE_ID/rule id -> исходные данные/КР/продукт -> нормативный источник -> ревизия."
+
+required_evidence:
+  model:
+    - released_model_revision
+    - GUID_inventory
+    - NODE_ID_inventory
+    - model_readback_receipt
+    - unresolved_geometry_conflicts_report
+  architecture:
+    - AR_drawing_register
+    - plans_sections_facades_roof_views_as_applicable
+    - opening_schedule_or_equivalent_traceable_data
+    - finish_and_envelope_information_as_required
+    - detail_and_fragment_register
+  structures:
+    - current_KR_revision_reference
+    - approved_structural_openings
+    - support_bearing_and_joint_inputs_used_by_nodes
+    - foundation_and_geotechnical_reference_where_applicable
+  engineering:
+    - current_interface_revision_set
+    - shaft_opening_penetration_register
+    - equipment_and_service_zone_interfaces_relevant_to_AR
+  compliance:
+    - normative_profile
+    - source_revision_report
+    - fire_interface_check_status
+    - accessibility_check_status
+    - sanitary_or_special_function_check_status_where_applicable
+    - SPDS_documentation_check_status
+  products:
+    - verified_product_system_register
+    - manufacturer_detail_references_for_product_specific_nodes
+
+change_control:
+  invalidates_L3_when:
+    - model_geometry_changed_after_release
+    - AR_revision_changed
+    - KR_revision_changed
+    - engineering_interface_revision_changed
+    - geotechnical_revision_changed
+    - product_system_or_manufacturer_detail_changed
+    - normative_source_set_changed
+    - blocking_issue_reopened
+  action: downgrade_to_highest_verified_lower_level_and_rerun_impacted_gates
+
+submission_package_contract:
+  generate:
+    - document_register
+    - drawing_register
+    - model_revision_receipt
+    - normative_compliance_matrix
+    - node_and_detail_traceability_matrix
+    - unresolved_and_nonblocking_issue_register
+    - cross_discipline_interface_register
+    - source_revision_report
+  prohibit:
+    - hidden_manual_exceptions
+    - unresolved_placeholder_marked_as_final
+    - guessed_structural_calculation_result
+    - guessed_fire_class_or_product_certification
+    - guessed_manufacturer_geometry
+    - stale_drawing_export_from_older_model_revision
+
+external_review_result_handling:
+  accepted_comments:
+    - register_comment
+    - bind_comment_to_GUID_view_NODE_ID_or_rule
+    - classify_discipline_and_severity
+    - create_required_change_or_information_request
+    - invalidate_affected_release_receipts
+    - rebuild_and_rerun_impacted_checks
+  close_comment_only_when:
+    - change_or_response_is_traceable
+    - affected_model_and_drawings_are_synchronized
+    - relevant_gate_passes_again

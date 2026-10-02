@@ -1,0 +1,157 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы сбора ТКО и мусоросборных камер ТРК/общественных зданий.
+  Использует действующий СП 2.1.4284-26 и прямые строительные/пожарные требования; зависимые
+  требования истекающего СанПиН 2.1.3684-21 после 01.03.2027 остаются fail-closed до преемника.
+
+revision_dependencies:
+  - {document: SP_464_1325800_2019, verified_changes: [1], status: active}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SP_4_13130_2013, status: active}
+  - {document: SP_SAN_2_1_4284_26, status: active, effective_from: 2026-09-01}
+  - {document: SANPIN_2_1_3684_21, status: active_until_expiry, effective_until: 2027-03-01}
+
+outdoor_container_site:
+  rules:
+    - id: waste.site.closed_lid_containers
+      source: {document: SP_SAN_2_1_4284_26, clause: "11"}
+      automation: mandatory_validation
+      requirement: containers_with_closing_lids
+      overfill_allowed: false
+
+    - id: waste.site.hard_surface
+      source: {document: SP_SAN_2_1_4284_26, clause: "12"}
+      automation: hard_gate
+      requirement: hard_surface
+
+    - id: waste.trk.container_site_20m_sensitive_neighbors
+      source: {document: SP_464_1325800_2019, clause: "5.8"}
+      automation: conditional
+      condition: "container_site_on_TRK_territory"
+      min_distance_m: 20
+      distance_to:
+        - residential_building_windows
+        - boundary_of_preschool_organization_territory
+        - boundary_of_educational_organization_territory
+        - boundary_of_inpatient_medical_organization_territory
+      dimension_semantics: horizontal_plan_distance
+      statement: >-
+        Число 20 м не переносить на произвольные общественные фасады: п.5.8 СП 464 перечисляет
+        конкретные чувствительные объекты и точки отсчета.
+
+    - id: waste.site.legacy_3684_geometry_after_expiry_gate
+      automation: mandatory_router
+      condition: "target_date >= 2027-03-01"
+      blocked_source: SANPIN_2_1_3684_21
+      blocked_without_successor_confirmation:
+        - old_container_site_enclosure_geometry
+        - old_drainage_geometry
+        - old_access_geometry
+        - other_3684_dependent_numeric_requirements
+      downstream: sanitary_registry_2027.yaml
+      statement: >-
+        После 01.03.2027 не переносить старые числовые/геометрические требования СанПиН 2.1.3684-21
+        до подтверждения официального преемника; прямые требования СП 4284-26 и СП 464 сохраняются.
+
+indoor_refuse_chamber:
+  source: SP_4_13130_2013
+  rules:
+    - id: waste.chamber.fire_separation_public
+      clause: "5.1.6"
+      automation: hard_gate
+      condition: "refuse_collection_chamber_in_public_building"
+      min_partition_fire_resistance: EI60
+      min_floor_fire_resistance: REI60
+      note: "R component applied where structurally relevant; use required tested/verified assembly."
+
+    - id: waste.chamber.independent_entrance
+      clause: "5.1.6"
+      automation: hard_gate
+      requirement: independent_entrance
+      entrance_relation: isolated_from_building_evacuation_exits
+
+    - id: waste.chamber.noncombustible_canopy
+      clause: "5.1.6"
+      automation: conditional
+      condition: "external_refuse_chamber_entrance"
+      canopy_material: noncombustible
+      min_projection_from_external_wall: at_least_door_width
+      statement: >-
+        Над наружным входом предусматривать козырек/конструкцию из негорючих материалов,
+        выступающую от стены не менее ширины двери.
+
+    - id: waste.chamber.no_noise_sensitive_adjacency
+      source: {document: SP_118_13330_2022, clause: "5.72"}
+      automation: hard_gate
+      condition: "refuse_chamber_is_noise_or_vibration_source"
+      prohibited_relative_positions:
+        - adjacent
+        - directly_above
+        - directly_below
+      protected_room_types:
+        - auditorium
+        - rehearsal_hall
+        - sound_control_room
+        - reading_room
+        - hospital_ward
+        - doctor_office
+        - operating_room
+        - child_occupied_room
+        - classroom
+        - other_permanent_occupancy_room
+        - residential_room_inside_public_building
+
+    - id: waste.chamber.basement_plinth_allowed_route
+      source: {document: SP_118_13330_2022, appendix: "В.2.8"}
+      automation: validation_only
+      statement: >-
+        Мусоросборные камеры допускаются в перечне помещений подземных/цокольных этажей,
+        но это разрешение не отменяет отдельный вход, пожарное отделение, эксплуатационный
+        маршрут вывоза и санитарные требования.
+
+TRK_operation:
+  - id: waste.trk.handling_current_sanitary_router
+    source: {document: SP_464_1325800_2019, clause: "10.11"}
+    automation: mandatory_router
+    downstream:
+      - sanitary_registry_2027.yaml
+      - SP_SAN_2_1_4284_26
+    statement: >-
+      Старую ссылочную санитарную норму из текста СП 464 не использовать как самостоятельное
+      основание, если она отменена/истекла; санитарный слой маршрутизировать на текущий реестр.
+
+BIM_required_parameters:
+  - waste_container_site_id
+  - waste_container_site_surface_type
+  - waste_container_lid_status
+  - residential_window_geometry_near_site
+  - sensitive_territory_boundaries
+  - refuse_chamber_id
+  - refuse_chamber_fire_partition_system
+  - refuse_chamber_floor_system
+  - refuse_chamber_entrance_id
+  - evacuation_exit_geometry
+  - refuse_chamber_canopy_geometry
+  - refuse_transport_service_route
+  - adjacent_room_function_types
+  - target_normative_date
+
+hard_fail_conditions:
+  - "TRK container site closer than 20 m to a listed sensitive target"
+  - "container site lacks hard surface under SP 2.1.4284-26"
+  - "public-building refuse chamber lacks EI60/REI60 separation where applicable"
+  - "refuse chamber entrance is not independent or conflicts with evacuation exit"
+  - "expired SANPIN 2.1.3684-21 geometry is used after 2027-03-01 without successor confirmation"
+
+agent_logic:
+  - "Не переносить 20 м СП 464 на объекты, которых нет в перечне п.5.8."
+  - "Пожарная мусоросборная камера и наружная контейнерная площадка — разные сущности с разными проверками."
+  - "После 01.03.2027 зависимые требования СанПиН 3684 остаются заблокированными до официального преемника."
+  - "Маршрут вывоза отходов проверять на пересечение с посетительскими и эвакуационными потоками как эксплуатационную координацию."
+
+sources:
+  - "https://base.garant.ru/73866956/"
+  - "https://base.garant.ru/414329111/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+  - "https://base.garant.ru/404976079/"
+  - "https://internet-law.ru/documents/prod/metodika/0/sp_4.html"

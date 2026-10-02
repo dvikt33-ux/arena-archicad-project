@@ -1,9 +1,9 @@
-manifest_version: 9
+manifest_version: 10
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
-purpose: "Machine-executable construction-node engine: foundations, floors and roof-node topology with fail-closed structural and product gates."
+purpose: "Machine-executable construction-node engine: foundations, floors, frames, stairs, facade edges and roof-node topology with fail-closed structural and product gates."
 
 load_order:
   - 00_engine_contract.yaml
@@ -34,9 +34,18 @@ load_order:
   - 25_foundation_subgrade_preparation_nodes.yaml
   - 26_precast_socket_foundation_nodes.yaml
   - 27_precast_pile_product_adapter.yaml
+  - 28_column_foundation_and_raft_nodes.yaml
+  - 29_column_floor_beam_nodes.yaml
+  - 30_stair_landing_nodes.yaml
+  - 31_parapet_roof_floor_edge_nodes.yaml
+  - 32_facade_slab_edge_nodes.yaml
+  - 33_archicad_frame_edge_execution_map.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
+  frame: FRAME_NODE_ENGINEERING
+  stair: STAIR_NODE_ENGINEERING
+  envelope_edge: ENVELOPE_EDGE_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
 
 inherits:
@@ -46,8 +55,10 @@ inherits:
   - ../schema/dimension_selection_policy.yaml
   - ../rules/08_structural_design_boundaries.yaml
   - ../rules/15_roofs.yaml
+  - ../rules/16_stair_geometry.yaml
   - ../rules/23_precast_slab_layout.yaml
   - ../rules/27_thermal_acoustic_envelope.yaml
+  - ../rules/68_facade_systems_2027.yaml
   - ../rules/69_roof_drainage_interfaces.yaml
   - ../rules/73_deformation_temperature_joints.yaml
   - ../rules/80_geometric_accuracy_tolerances.yaml
@@ -62,6 +73,14 @@ hard_fail:
   - product_geometry_or_manufacturer_data_missing
   - stale_normative_revision
   - target_profile_mismatch
+  - KR_column_joint_missing
+  - KR_beam_joint_missing
+  - KR_punching_check_missing
+  - stair_KR_geometry_missing
+  - stair_egress_clearance_failed
+  - facade_system_not_verified
+  - facade_anchor_layout_missing
+  - parapet_waterproofing_termination_unresolved
   - roof_node_scope_unresolved
   - roof_covering_system_missing
   - roof_structural_scheme_missing
@@ -83,6 +102,9 @@ execution_policy:
   reinforcement_generation: external_KR_only
   bearing_length_generation: external_KR_or_verified_product_system_only
   foundation_depth_width_thickness_generation: external_geotechnical_KR_only
+  frame_joint_geometry_generation: external_KR_only
+  stair_structural_geometry_generation: external_KR_only
+  facade_anchor_geometry_generation: external_KR_or_verified_product_only
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only

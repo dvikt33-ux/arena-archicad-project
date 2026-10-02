@@ -1,0 +1,206 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+suite_id: INTERIOR_FLOOR_CEILING_TESTS_V1
+
+tests:
+  - test_id: generic_room_floor_without_build_up_blocks
+    intent: build_room_floor_system
+    inputs:
+      room_floor_finish_required: true
+      structural_floor_reference: KR_SLAB_01
+      finished_floor_level: 0.000
+      verified_floor_specification_or_project_build_up: null
+    expected:
+      status: blocked_waiting_for_project_specification
+      forbidden_outputs: [screed_thickness, finish_thickness, insulation_thickness]
+
+  - test_id: wet_room_without_exposure_classification_blocks
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      liquid_exposure_classification: null
+      SP30_17_10_applicability_status: null
+      SP29_section7_applicability_status: null
+    expected:
+      status: blocked_waiting_for_AR_or_normative_classification
+      forbidden_outputs: [waterproofing_product, floor_slope, waterproofing_upturn_height]
+
+  - test_id: SP29_waterproofing_upturn_selects_node
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      liquid_exposure_classification: medium
+      SP29_section7_applicability_status: applicable
+      waterproofing_required_and_floor_adjoins_wall: true
+      verified_waterproofing_system_or_project_detail: WP_SYS_01
+      verified_waterproofing_transition_detail: WP_CORNER_01
+      wall_or_partition_system: PART_SYS_01
+      finished_floor_level: 0.000
+      water_jet_exposure_status: false
+    expected:
+      node_ids: [FNSH_FLR_002_WET_ROOM_FLOOR_WITH_WATERPROOFING, FNSH_FLR_003_WET_ROOM_FLOOR_TO_WALL_UPTURN]
+      min_upturn_above_floor_covering_mm: 200
+
+  - test_id: generic_200mm_upturn_without_SP29_scope_forbidden
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      SP29_section7_applicability_status: not_applicable
+      waterproofing_required_and_floor_adjoins_wall: true
+    expected:
+      status: blocked_or_no_upturn_node
+      forbidden_outputs: [waterproofing_upturn_200mm_as_generic_rule]
+
+  - test_id: accessible_route_generic_20mm_threshold_rejected
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      wet_room_boundary_at_door: true
+      accessible_route_status: accessible_route
+      requested_threshold_height_mm: 20
+      threshold_strategy: physical_threshold
+    expected:
+      status: blocked_accessibility_threshold_conflict
+      forbidden_outputs: [threshold_height_mm_20]
+
+  - test_id: accessible_route_permitted_threshold_14mm_or_less
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      wet_room_boundary_at_door: true
+      accessible_route_status: accessible_route
+      threshold_is_permitted_and_required: true
+      requested_threshold_height_mm: 14
+      threshold_strategy: verified_accessible_threshold
+      wet_room_finished_floor_level: -0.014
+      adjacent_finished_floor_level: 0.000
+      door_clearance_and_product_reference: DOOR_01
+      waterproofing_transition_detail: WP_THR_01
+    expected:
+      node_id: FNSH_FLR_005_WET_ROOM_THRESHOLD_OR_LEVEL_DROP
+      threshold_max_mm: 14
+
+  - test_id: universal_one_percent_slope_without_applicable_rule_blocks
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      requested_floor_slope_percent: 1.0
+      shower_rule_applicable: false
+      SP29_clause_4_5_applicable: false
+      project_slope_input: null
+    expected:
+      status: blocked_no_slope_design_basis
+      forbidden_outputs: [generated_one_percent_slope]
+
+  - test_id: shower_slope_1_5_percent_allowed_when_clause_applies
+    intent: build_wet_zone_floor
+    inputs:
+      wet_zone: true
+      shower_rule_applicable: true
+      requested_floor_slope_percent: 1.5
+      explicit_drain_design_intent: SHOWER_DRAIN_01
+    expected:
+      slope_fraction_range: [0.01, 0.02]
+
+  - test_id: floor_drain_without_product_and_VK_blocks
+    intent: build_floor_drain_nodes
+    inputs:
+      floor_drain_or_channel_present: true
+      explicit_drain_design_intent: true
+      verified_drain_or_channel_product: null
+      VK_design_reference: null
+    expected:
+      status: blocked_waiting_for_product_or_VK
+      forbidden_outputs: [drain_body_geometry, outlet_diameter, trap_configuration, structural_opening_geometry]
+
+  - test_id: floor_drain_with_approved_inputs_selects_node
+    intent: build_floor_drain_nodes
+    inputs:
+      floor_drain_or_channel_present: true
+      explicit_drain_design_intent: true
+      verified_drain_or_channel_product: DRAIN_SYS_01
+      VK_design_reference: VK_17
+      drain_position: GRID_C4
+      drain_top_finished_level: -0.015
+      outlet_and_route_reference: VK_ROUTE_17
+      waterproofing_flange_or_bonding_interface: WP_DRAIN_01
+      service_access_strategy: top_service
+      structural_penetration_required: false
+    expected:
+      node_id: FNSH_FLR_004_FLOOR_DRAIN_INTERFACE
+
+  - test_id: ceiling_unverified_system_blocks
+    intent: build_suspended_ceiling_system
+    inputs:
+      suspended_ceiling_type: gypsum_board_system
+      verified_ceiling_system_id: null
+      calculated_or_verified_design_load: null
+    expected:
+      status: blocked_waiting_for_ceiling_system_or_calculation
+      forbidden_outputs: [suspension_spacing, main_profile_spacing, bearing_profile_spacing, anchor_product]
+
+  - test_id: longitudinal_sheet_500mm_spacing_rejected
+    intent: build_suspended_ceiling_system
+    inputs:
+      suspended_ceiling_type: gypsum_board_system
+      verified_ceiling_system_id: CLG_SYS_01
+      calculated_or_verified_design_load: LOAD_01
+      sheet_orientation: longitudinal
+      bearing_profile_spacing_mm: 500
+      system_specific_more_strict_limit_mm: null
+    expected:
+      status: blocked_system_geometry_outside_verified_range
+      reference_max_spacing_mm: 400
+
+  - test_id: wet_room_ceiling_requires_verified_metal_frame
+    intent: build_suspended_ceiling_system
+    inputs:
+      suspended_ceiling_type: gypsum_board_system
+      room_moisture_regime_humid_or_wet: true
+      verified_wet_room_ceiling_system: WET_CLG_01
+      metal_frame_system: null
+      proposed_frame_material: wood
+    expected:
+      status: blocked_waiting_for_verified_metal_frame
+      forbidden_outputs: [wood_frame_as_default]
+
+  - test_id: MEP_device_without_support_owner_blocks
+    intent: build_ceiling_mep_interfaces
+    inputs:
+      device_intersects_or_mounts_in_ceiling: true
+      device_id: DIFFUSER_01
+      engineering_owner: OV_01
+      device_geometry_and_weight: DEVICE_DATA_01
+      support_strategy: null
+    expected:
+      status: blocked_waiting_for_support_design
+      forbidden_outputs: [support_from_ceiling_by_default, hanger_type, extra_profile_layout]
+
+  - test_id: ceiling_device_loading_ceiling_without_capacity_blocks
+    intent: build_ceiling_mep_interfaces
+    inputs:
+      device_intersects_or_mounts_in_ceiling: true
+      device_id: LIGHT_01
+      engineering_owner: EO_01
+      device_geometry_and_weight: LIGHT_DATA_01
+      support_strategy: supported_by_ceiling_frame
+      ceiling_system_capacity_confirmation_if_ceiling_supported: null
+    expected:
+      status: blocked_waiting_for_ceiling_system_or_calculation
+
+  - test_id: ceiling_service_zone_collision_blocks
+    intent: build_suspended_ceiling_system
+    inputs:
+      suspended_ceiling_type: gypsum_board_system
+      verified_ceiling_system_id: CLG_SYS_02
+      calculated_or_verified_design_load: LOAD_02
+      service_zone_coordination_status: collision_open
+    expected:
+      status: blocked_waiting_for_engineering_coordination
+
+validation_policy:
+  - referenced_expected_node_ids_must_exist
+  - generic_floor_and_ceiling_geometry_must_not_replace_verified_system_data
+  - accessibility_override_must_precede_general_wet_room_threshold_rule
+  - no_unowned_MEP_or_structural_opening_writes

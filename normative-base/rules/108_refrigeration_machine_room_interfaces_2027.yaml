@@ -1,0 +1,229 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+purpose: >-
+  Архитектурные интерфейсы холодильных машинных отделений и специальных машинных помещений
+  для ТРК, продуктовой торговли, общепита и иных общественных функций. Использует актуальную
+  серию ГОСТ 34891 вместо замененных ГОСТ EN 378-2014. Не выполняет расчет холодильной системы,
+  количества хладагента, вентиляции, детектирования или акустики.
+
+revision_dependencies:
+  - {document: GOST_34891_1_2022, status: active, effective_from: 2023-02-01, replaces: GOST_EN_378_1_2014}
+  - {document: GOST_34891_3_2022, status: active, effective_from: 2023-02-01, replaces: GOST_EN_378_3_2014}
+  - {document: SP_118_13330_2022, verified_changes: [1,2,3,4,5], status: active}
+  - {document: SP_60_13330_2020, verified_changes: [1,2,3,4,5,6], status: active}
+
+identity_gate:
+  - id: refrigeration.block_old_EN378_architecture_route
+    automation: auto
+    superseded_documents:
+      - GOST_EN_378_1_2014
+      - GOST_EN_378_3_2014
+    current_documents:
+      - GOST_34891_1_2022
+      - GOST_34891_3_2022
+    statement: "Для новой модели 2027 не использовать замененные ГОСТ EN 378-1/3-2014 как текущий источник архитектурных требований."
+
+machine_room_classification:
+  source: GOST_34891_3_2022
+  rules:
+    - id: refrigeration.machine_room.no_long_term_occupancy
+      clause: "5.1"
+      automation: hard_gate
+      long_term_occupancy_allowed: false
+      access: trained_service_personnel
+      statement: >-
+        Машинное отделение не проектировать как рабочую/офисную/складскую комнату с постоянным
+        пребыванием людей; режим доступа и категория помещения должны соответствовать системе.
+
+    - id: refrigeration.machine_room.refrigerant_class_charge_gate
+      clause: "4.3; 5.14"
+      automation: mandatory_router
+      required_inputs:
+        - refrigerant_id
+        - refrigerant_safety_class
+        - refrigerant_charge
+        - room_location_above_or_below_ground
+        - applicable_charge_limit_m1_m2_or_practical_limit
+      statement: >-
+        Требования к обычному/специальному машинному отделению, детекторам, сигнализации и
+        дополнительным мерам зависят от класса и заправки хладагента; агент не угадывает их.
+
+containment_and_air_routes:
+  source: GOST_34891_3_2022
+  rules:
+    - id: refrigeration.machine_room.no_refrigerant_migration
+      clause: "5.2"
+      automation: hard_gate
+      prohibited_refrigerant_migration_to:
+        - adjacent_occupied_room
+        - stair
+        - stair_landing
+        - corridor_or_passage
+        - building_drainage_system
+      exhaust_destination: outdoor_air
+
+    - id: refrigeration.machine_room.no_supply_air_to_occupied_through_room
+      clause: "5.2"
+      automation: hard_gate
+      prohibited_relation: occupied_room_supply_air_path_through_machine_room
+      exception: sealed_duct_preventing_refrigerant_entry
+
+    - id: refrigeration.combustion_air_external_if_shared_room
+      clause: "5.3"
+      automation: conditional
+      condition: "machine_room_contains_combustion_equipment_or_air_compressor"
+      combustion_or_compressor_air_source: outside_machine_room_refrigerant_zone
+
+noise_and_vibration:
+  rules:
+    - id: refrigeration.no_noise_sensitive_adjacency
+      source: {document: SP_118_13330_2022, clause: "5.72"}
+      automation: hard_gate
+      prohibited_relative_positions:
+        - adjacent
+        - directly_above
+        - directly_below
+      protected_room_types:
+        - auditorium
+        - rehearsal_hall
+        - stage
+        - sound_control_room
+        - reading_room
+        - hospital_ward
+        - doctor_office
+        - operating_room
+        - child_occupied_room
+        - classroom
+        - other_permanent_occupancy_room
+        - residential_room_inside_public_building
+
+service_geometry:
+  source: GOST_34891_3_2022
+  rules:
+    - id: refrigeration.machine_room.size_by_service_and_replacement
+      clause: "5.11"
+      automation: forbidden_to_infer
+      statement: >-
+        Размер машинного отделения определять по установке, осмотру, обслуживанию, ремонту,
+        демонтажу и работе персонала в СИЗ; не использовать коэффициент площади ТРК или кВт холода.
+      required_inputs:
+        - equipment_envelopes
+        - manufacturer_service_clearances
+        - PPE_service_envelope
+        - dismantling_route
+        - replacement_route
+
+    - id: refrigeration.machine_room.headroom_under_overhead_equipment
+      clause: "5.11"
+      automation: conditional
+      condition: "equipment_above_passage_or_permanent_workplace"
+      dimension_semantics: clear_vertical
+      min_clear_height_m: 2.1
+
+    - id: refrigeration.machine_room.fixed_access_structures
+      clause: "5.11"
+      automation: conditional
+      condition: "service_points_not_safely_reachable_from_floor"
+      permitted_service_access:
+        - fixed_stair
+        - service_platform
+        - walkway
+      prohibited_service_practice: standing_or_walking_on_pipes_valves_brackets_or_components
+
+doors_and_escape:
+  source: GOST_34891_3_2022
+  rules:
+    - id: refrigeration.machine_room.doors_outward_selfclosing
+      clause: "5.12.1"
+      automation: hard_gate
+      requirements:
+        - doors_open_outward
+        - tight_fitting
+        - self_closing
+        - openable_from_inside
+      fire_resistance_requirement: at_least_1_hour_subject_to_national_fire_requirements
+
+    - id: refrigeration.machine_room.emergency_exit_to_outdoor_route
+      clause: "5.12.2"
+      automation: hard_gate
+      requirement: at_least_one_emergency_exit_to_outdoors_or_passage_leading_outdoors
+
+    - id: refrigeration.machine_room.enclosure_fire_and_tightness
+      clause: "5.12.3"
+      automation: mandatory_validation
+      condition: "machine_room_inside_building"
+      requirements:
+        - walls_floor_ceiling_documented_fire_resistance_at_least_1_hour
+        - enclosure_gastight_as_required_to_prevent_refrigerant_migration
+      conflict_policy: "Более строгие национальные пожарные требования применяются дополнительно."
+
+flammable_or_hazardous_refrigerants:
+  source: GOST_34891_3_2022
+  rules:
+    - id: refrigeration.below_ground_class3_detection_gate
+      clause: "4.3"
+      automation: conditional
+      all_conditions:
+        room_location: below_ground
+        refrigerant_flammability_class: 3
+        charge_relation: above_m2
+      required:
+        - additional_refrigerant_detector
+        - audible_alarm
+        - visual_alarm
+      fail_if_charge_or_class_unknown: true
+
+    - id: refrigeration.hazardous_refrigerant_special_room_router
+      clause: "5.14"
+      automation: mandatory_router
+      refrigerant_classes:
+        - A2L
+        - A2
+        - A3
+        - B2L
+        - B2
+        - B3
+      statement: "Для перечисленных классов применять специальные дополнительные требования раздела 5.14; обычная машинная не считается автоматически достаточной."
+
+BIM_required_parameters:
+  - refrigeration_system_id
+  - refrigerant_id
+  - refrigerant_safety_class
+  - refrigerant_charge
+  - machine_room_id
+  - machine_room_location_level
+  - occupied_room_adjacencies
+  - refrigeration_exhaust_route
+  - occupied_supply_air_routes
+  - equipment_envelopes
+  - manufacturer_service_clearances
+  - dismantling_route
+  - replacement_route
+  - overhead_equipment_bottom_level
+  - service_passage_floor_level
+  - machine_room_door_ids
+  - emergency_exit_route
+  - enclosure_fire_resistance_reference
+  - enclosure_gastightness_reference
+  - refrigerant_detector_ids
+
+hard_fail_conditions:
+  - "old GOST EN 378-1/3-2014 used as current architecture source"
+  - "refrigeration machine room used for long-term occupancy"
+  - "refrigerant can migrate to occupied room, stair, corridor or building drainage"
+  - "occupied supply air route passes through machine room without sealed-duct exception"
+  - "clear height under overhead equipment over passage is below 2.1 m"
+  - "machine-room door does not open outward/self-close/open from inside"
+  - "no emergency exit to outdoors or passage leading outdoors"
+
+agent_logic:
+  - "Сначала получить хладагент, класс опасности и заправку; только потом определять тип помещения и специальные меры."
+  - "Холодильная машинная и холодильная камера продукта — разные объекты BIM с разными нормами."
+  - "Не рассчитывать размер помещения по холодопроизводительности; использовать реальные equipment/service/replacement envelopes."
+  - "Шум, вибрацию, вентиляцию, детектирование и аварийную автоматику подтверждают профильные разделы."
+
+sources:
+  - "https://protect.gost.ru/gost/details/82e02a0d-5d74-4a6a-87f6-bed30ccd2b07"
+  - "https://protect.gost.ru/gost/details/334509b2-0b6b-4b94-9384-762882808a84"
+  - "https://base.garant.ru/404976079/"
+  - "https://base.garant.ru/400536193/"

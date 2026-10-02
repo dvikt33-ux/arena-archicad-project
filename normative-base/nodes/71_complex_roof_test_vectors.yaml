@@ -1,0 +1,117 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+suite_id: COMPLEX_ROOF_NODE_TESTS_V1
+
+tests:
+  - test_id: dormer_without_KR_framing_blocks
+    intent: build_pitched_roof
+    inputs:
+      topology: dormer
+      dormer_type: gable_dormer
+      KR_dormer_opening_reference: KR_OPEN_01
+      KR_dormer_framing_reference: null
+      verified_covering_transition_detail: ROOF_SYS_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [header_section, trimmer_section, doubled_rafter_count]
+
+  - test_id: mansard_break_without_joint_blocks
+    intent: build_pitched_roof
+    inputs:
+      topology: mansard_broken_slope
+      thermal_boundary_mode: insulated_slope
+      KR_break_joint_reference: null
+      verified_covering_break_detail: ROOF_BREAK_SYS_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [rafter_splice_geometry, support_post_section, purlin_section]
+
+  - test_id: T_roof_routes_two_valleys
+    intent: build_pitched_roof
+    inputs:
+      topology: intersecting_T_roof
+      intersection_type: T_intersection
+      elevation_relationship: same_base_elevation
+      KR_intersection_scheme_reference: KR_TX_01
+      KR_support_reference: KR_SUP_01
+      verified_covering_transition_detail: ROOF_TX_SYS_01
+    expected:
+      node_id: ROOF_X_001_T_INTERSECTION_SAME_ELEVATION
+      required_node_families: [valley_left, valley_right, secondary_ridge_termination, local_structural_support]
+
+  - test_id: cross_roof_without_center_joint_blocks
+    intent: build_pitched_roof
+    inputs:
+      topology: intersecting_cross_roof
+      intersection_type: cross_intersection
+      KR_intersection_scheme_reference: KR_X_01
+      compound_center_joint_reference: null
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [compound_center_connection, connector_schedule]
+
+  - test_id: valley_member_not_inferred
+    intent: build_pitched_roof
+    inputs:
+      topology: valley
+      KR_hip_valley_scheme_reference: KR_VAL_01
+      KR_valley_member_reference: null
+      verified_valley_covering_detail: VAL_SYS_01
+      drainage_strategy_reference: DRAIN_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [valley_member_section, doubled_member_requirement, jack_rafter_spacing]
+
+  - test_id: offset_roof_requires_abutment_system
+    intent: build_pitched_roof
+    inputs:
+      topology: offset_elevation_roofs
+      elevation_relationship: high_to_low_roof
+      host_wall_or_upstand_geometry: WALL_UP_01
+      verified_abutment_system: null
+      KR_support_transition_reference: KR_OFF_01
+      drainage_strategy_reference: DRAIN_OFF_01
+    expected:
+      status: blocked_waiting_for_product_data
+
+  - test_id: large_opening_cannot_cut_member_without_KR
+    intent: build_pitched_roof
+    inputs:
+      topology: large_roof_opening
+      opening_class: large_structural_opening
+      approved_opening_geometry: OPEN_L_01
+      KR_trimmed_framing_reference: null
+      waterproofing_transition_reference: WP_OPEN_01
+    expected:
+      status: blocked_waiting_for_KR
+      forbidden_outputs: [header_count, trimmer_count, header_section, trimmer_section]
+
+  - test_id: grouped_skylight_requires_manufacturer_grouping
+    intent: build_pitched_roof
+    inputs:
+      topology: large_roof_opening
+      opening_class: grouped_skylights
+      verified_skylight_system: SKY_SYS_01
+      manufacturer_grouping_detail: null
+      KR_trimmed_framing_reference: KR_SKY_01
+    expected:
+      status: blocked_waiting_for_product_data
+
+  - test_id: simple_hip_axis_can_be_derived_but_member_from_KR
+    intent: build_pitched_roof
+    inputs:
+      topology: simple_hip
+      roof_plane_graph: RPG_01
+      KR_hip_valley_scheme_reference: KR_HIP_01
+      KR_hip_member_reference: KR_HIP_MEMBER_01
+      KR_jack_rafter_layout_reference: KR_JACK_01
+    expected:
+      node_id: HV_001_SIMPLE_HIP_WITH_JACK_RAFTERS
+      allowed_derived_outputs: [hip_axis]
+      forbidden_derived_outputs: [hip_member_section, jack_rafter_spacing]
+
+validation_policy:
+  - blocked_tests_must_not_generate_structural_dimensions
+  - successful_tests_require_traceability_references
+  - all_tests_target_RU_2027_PLUS

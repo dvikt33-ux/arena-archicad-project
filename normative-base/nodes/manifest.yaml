@@ -1,10 +1,8 @@
-manifest_version: 1
+manifest_version: 2
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
 scope: general_buildings
-purpose: "Machine-executable selection and assembly of foundation, wall-foundation and floor-system nodes from verified project inputs."
-
 load_order:
   - 00_engine_contract.yaml
   - 01_foundation_selector.yaml
@@ -13,7 +11,7 @@ load_order:
   - 04_floor_system_selector.yaml
   - 05_floor_connection_nodes.yaml
   - 06_high_level_command_contract.yaml
-
+  - 07_canonical_node_catalog_v1.yaml
 inherits:
   - ../target_2027.yaml
   - ../revision_watch_2027.yaml
@@ -24,7 +22,6 @@ inherits:
   - ../rules/27_thermal_acoustic_envelope.yaml
   - ../rules/73_deformation_temperature_joints.yaml
   - ../rules/80_geometric_accuracy_tolerances.yaml
-
 hard_fail:
   - engineering_geology_missing_for_foundation_selection
   - structural_loads_missing_for_foundation_selection
@@ -35,7 +32,6 @@ hard_fail:
   - product_geometry_or_manufacturer_data_missing
   - stale_normative_revision
   - target_profile_mismatch
-
 execution_policy:
   selector_may_rank_candidates: true
   selector_may_finalize_structural_system_without_KR: false

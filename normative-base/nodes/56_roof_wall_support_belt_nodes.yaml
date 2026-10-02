@@ -1,0 +1,106 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ROOF_WALL_SUPPORT_BELT_NODES
+purpose: "Executable support-belt interfaces for roof bearing on hollow ceramic, AAC and RC walls. Structural dimensions and reinforcement are never synthesized by AR."
+
+source_dependencies:
+  - 45_rafter_wall_connection_variants.yaml
+  - 48_wall_material_system_registry.yaml
+  - 49_roof_wall_material_adapters.yaml
+  - 51_wall_roof_assembly_packages.yaml
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
+  - ../rules/27_thermal_acoustic_envelope.yaml
+
+nodes:
+  - node_id: RWSB_001_WARM_CERAMIC_TO_KR_SUPPORT_BELT
+    family: roof_wall_support_belt
+    applies_if:
+      wall_material_family: large_format_hollow_ceramic
+      wall_structural_role: loadbearing
+      roof_structural_scheme: [rafter_pair, structural_ridge_beam, purlin_post, prefabricated_truss]
+    required_inputs:
+      - verified_wall_product_geometry
+      - KR_support_belt_geometry
+      - KR_reinforcement_reference
+      - KR_roof_support_detail
+      - thermal_bridge_review
+    blockers:
+      - roof_wall_product_geometry_missing
+      - KR_support_belt_geometry_missing
+      - KR_reinforcement_reference_missing
+      - roof_KR_input_missing
+      - roof_thermal_contour_unresolved
+    never_infer:
+      - belt_height
+      - belt_width
+      - concrete_class
+      - reinforcement_diameter
+      - reinforcement_spacing
+      - anchor_layout
+      - mauerlat_presence
+    geometry_actions:
+      - preserve_exact_ceramic_product_course_geometry
+      - create_support_belt_from_KR_geometry_only
+      - bind_roof_support_detail_to_belt
+      - continue_wall_thermal_layer_around_belt_from_verified_project_detail
+    postconditions:
+      - belt_geometry_equals_KR
+      - no_anchor_into_hollow_web_assumed
+      - thermal_bridge_has_verified_resolution
+
+  - node_id: RWSB_002_AAC_TO_KR_SUPPORT_BELT
+    family: roof_wall_support_belt
+    applies_if:
+      wall_material_family: AAC
+      wall_structural_role: loadbearing
+    required_inputs:
+      - verified_AAC_product_geometry
+      - KR_support_belt_geometry
+      - KR_reinforcement_reference
+      - KR_roof_support_detail
+      - verified_AAC_interface_detail
+    blockers:
+      - roof_wall_product_geometry_missing
+      - KR_support_belt_geometry_missing
+      - verified_AAC_interface_detail_missing
+    never_infer:
+      - belt_geometry
+      - local_AAC_reinforcement
+      - anchor_type
+      - anchor_spacing
+    geometry_actions:
+      - create_AAC_wall_to_exact_product_geometry
+      - create_support_belt_from_KR_only
+      - bind_verified_AAC_to_belt_interface
+      - preserve_thermal_air_vapor_contours
+
+  - node_id: RWSB_003_RC_WALL_DIRECT_KR_SUPPORT_ZONE
+    family: roof_wall_support_belt
+    applies_if:
+      wall_material_family: reinforced_concrete
+    required_inputs:
+      - KR_wall_top_geometry
+      - KR_embedded_anchor_or_connection_detail
+      - roof_support_detail_reference
+    blockers:
+      - KR_wall_top_geometry_missing
+      - KR_embedded_connection_missing
+    never_infer:
+      - separate_support_belt_required
+      - embed_plate_geometry
+      - anchor_rods
+    geometry_actions:
+      - use_RC_wall_top_geometry_from_KR
+      - bind_roof_support_connection_to_exact_KR_detail
+
+rules:
+  - id: roof.support_belt.not_default_for_material
+    automation: true
+    statement: "Материал стены сам по себе не является основанием автоматически добавлять армопояс; пояс создается только при наличии подтвержденного решения КР."
+    result_on_missing: roof_wall_support_strategy_ambiguous
+  - id: roof.support_belt.hollow_ceramic_no_generic_anchor
+    automation: true
+    statement: "Для пустотной теплой керамики запрещено автоматически назначать анкеровку в стенки блока без подтвержденного КР/системного решения."
+    result_on_missing: roof_KR_input_missing

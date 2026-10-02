@@ -1,4 +1,4 @@
-manifest_version: 21
+manifest_version: 22
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -78,6 +78,14 @@ load_order:
   - 61_roof_window_nodes.yaml
   - 62_roof_edge_penetration_test_vectors.yaml
   - 63_archicad_roof_edge_penetration_execution_map.yaml
+  - 64_complex_roof_topology_nodes.yaml
+  - 65_dormer_roof_nodes.yaml
+  - 66_mansard_break_nodes.yaml
+  - 67_intersecting_roof_nodes.yaml
+  - 68_complex_hip_valley_nodes.yaml
+  - 69_large_roof_opening_framing_nodes.yaml
+  - 70_archicad_complex_roof_execution_map.yaml
+  - 71_complex_roof_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -104,6 +112,13 @@ modules:
   roof_chimney_penetration: CHIMNEY_ROOF_PENETRATION_NODES
   roof_window: ROOF_WINDOW_NODES
   roof_edge_penetration_execution: ARCHICAD_ROOF_EDGE_PENETRATION_EXECUTION_MAP
+  roof_complex_topology: COMPLEX_ROOF_TOPOLOGY_NODES
+  roof_dormer: DORMER_ROOF_NODES
+  roof_mansard_break: MANSARD_BREAK_NODES
+  roof_intersections: INTERSECTING_ROOF_NODES
+  roof_complex_hip_valley: COMPLEX_HIP_VALLEY_NODES
+  roof_large_opening: LARGE_ROOF_OPENING_FRAMING_NODES
+  roof_complex_archicad_execution: ARCHICAD_COMPLEX_ROOF_EXECUTION_MAP
   working_documentation: WORKING_DOCUMENTATION_RELEASE_GATE
   external_review_readiness: EXPERTISE_READINESS_CONTRACT
 
@@ -181,6 +196,8 @@ hard_fail:
   - roof_wall_assembly_package_missing
   - roof_wall_assembly_package_ambiguous
   - roof_thermal_boundary_mode_unresolved
+  - roof_complex_topology_unresolved
+  - roof_compound_intersection_joint_unresolved
   - roof_required_manufacturer_detail_missing
   - roof_ventilation_mode_unresolved
   - roof_ventilation_input_outside_verified_matrix
@@ -232,6 +249,9 @@ execution_policy:
   roof_mauerlat_generation: exact_KR_only
   chimney_fire_clearance_generation: verified_fire_and_product_detail_only
   roof_window_geometry_generation: verified_product_plus_KR_only
+  complex_roof_axis_derivation: geometric_only
+  complex_roof_member_generation: exact_KR_only
+  complex_roof_product_transition_generation: verified_product_or_project_detail_only
   archicad_package_execution_requires_readback: true
   working_documentation_release_requires_zero_blockers: true
   external_review_ready_may_not_claim_expertise_approval: true

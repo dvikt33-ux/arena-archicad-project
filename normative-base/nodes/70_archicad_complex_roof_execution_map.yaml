@@ -79,6 +79,6 @@ rules:
   - id: roof.archicad.complex_native_first
     automation: true
     statement: "Prefer native Archicad roof, wall, beam, column and opening elements; Morph is fallback, not default."
-  - id: roof.archicad.readback_required
+  - id: roof.archicad.complex_readback_required
     automation: true
     statement: "A complex roof command is not complete until generated model geometry is read back and checked against the selected topology package and KR references."

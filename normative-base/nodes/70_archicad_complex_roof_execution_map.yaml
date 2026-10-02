@@ -1,0 +1,84 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ARCHICAD_COMPLEX_ROOF_EXECUTION_MAP
+purpose: "Map complex roof topology packages to Archicad-native modeling operations while preserving KR ownership of structural geometry."
+
+source_dependencies:
+  - 18_archicad_roof_execution_map.yaml
+  - 47_roof_execution_decision_graph.yaml
+  - 64_complex_roof_topology_nodes.yaml
+  - 65_dormer_roof_nodes.yaml
+  - 66_mansard_break_nodes.yaml
+  - 67_intersecting_roof_nodes.yaml
+  - 68_complex_hip_valley_nodes.yaml
+  - 69_large_roof_opening_framing_nodes.yaml
+
+archicad_object_mapping:
+  roof_planes:
+    preferred_tools: [Roof, Shell]
+    rule: "Use native Roof where plane semantics are sufficient; Shell only when verified project geometry requires it."
+  structural_members:
+    preferred_tools: [Beam, Column, Morph_only_if_no_native_equivalent]
+    rule: "Create only from exact KR geometry; never infer cross-sections or connection cuts."
+  dormer_walls:
+    preferred_tools: [Wall]
+  roof_openings:
+    preferred_tools: [RoofOpening, SEO_if_required_by_verified_workflow]
+    rule: "Opening contour equals approved geometry reference."
+  flashings_and_covering_accessories:
+    preferred_tools: [Object, Morph, Profile]
+    rule: "Use verified product/detail geometry; do not synthesize proprietary accessory dimensions."
+  membranes_and_contour_markers:
+    preferred_tools: [RoofComposite, Morph, 2DDetail, Properties]
+
+execution_sequence:
+  - read_high_level_command_contract
+  - resolve_complex_roof_topology
+  - load_exact_KR_roof_scheme
+  - create_or_update_roof_planes
+  - instantiate_required_structural_joint_references
+  - instantiate_dormer_or_opening_geometry_if_requested
+  - instantiate_valley_hip_ridge_abutment_node_families
+  - apply_verified_covering_system_adapters
+  - reconnect_thermal_air_vapor_water_ventilation_contours
+  - assign_traceability_properties
+  - run_model_readback
+  - run_contour_and_node_postconditions
+
+traceability_properties:
+  - NODE_INSTANCE_ID
+  - NODE_FAMILY_ID
+  - KR_REFERENCE
+  - PRODUCT_SYSTEM_REFERENCE
+  - SOURCE_REVISION
+  - TARGET_PROFILE
+  - TOPOLOGY_CLASS
+  - CONTOUR_STATUS
+  - EXECUTION_STATUS
+
+readback_requirements:
+  - every_generated_roof_plane_has_expected_slope_and_level
+  - every_structural_member_matches_KR_reference
+  - every_required_valley_hip_ridge_abutment_instance_exists
+  - every_opening_matches_approved_geometry
+  - no_unapproved_member_cut_exists
+  - water_path_status_is_resolved
+  - thermal_air_vapor_contours_resolved_when_applicable
+  - no_unverified_product_detail_was_generated
+
+hard_fail:
+  - model_readback_failed
+  - generated_geometry_differs_from_KR
+  - required_node_instance_missing
+  - roof_water_path_unresolved
+  - thermal_or_air_vapor_contour_unresolved
+  - unverified_product_geometry_detected
+
+rules:
+  - id: roof.archicad.complex_native_first
+    automation: true
+    statement: "Prefer native Archicad roof, wall, beam, column and opening elements; Morph is fallback, not default."
+  - id: roof.archicad.readback_required
+    automation: true
+    statement: "A complex roof command is not complete until generated model geometry is read back and checked against the selected topology package and KR references."

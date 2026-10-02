@@ -1,0 +1,48 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+purpose: "Machine-executable slab-edge-to-facade nodes. Structural slab edge and facade anchorage remain KR/manufacturer-owned; engine coordinates thermal, air, fire and water contours."
+
+nodes:
+  - node_id: FCD_EDGE_001_MASONRY_EXTERNAL_WALL_AT_SLAB_EDGE
+    family: facade_slab_edge
+    hosts: [floor_slab_edge, masonry_external_wall]
+    applies_if: ["facade_system=masonry_or_multilayer_masonry"]
+    require: [KR_slab_edge_geometry, wall_system, thermal_bridge_review, floor_edge_fire_interface_if_applicable]
+    blockers: [KR_slab_edge_geometry_missing, thermal_review_missing]
+    contours: [thermal_continuity, air_tightness, fire, acoustic_if_required, movement_and_tolerance]
+    geometry_actions: [preserve_structural_slab_edge, continue_wall_layers, link_thermal_review, create_detail_output]
+    never_infer: [slab_edge_reinforcement, insulation_thickness, masonry_support_angle, ties_or_anchors]
+
+  - node_id: FCD_EDGE_002_VENTILATED_FACADE_AT_SLAB_EDGE
+    family: facade_slab_edge
+    hosts: [floor_slab_edge, ventilated_facade]
+    applies_if: ["facade_system=ventilated_facade"]
+    require: [KR_slab_edge_geometry, verified_facade_system, manufacturer_anchor_layout_or_KR, fire_cutoff_strategy, thermal_review]
+    blockers: [verified_facade_system_missing, anchor_layout_missing, fire_cutoff_strategy_missing]
+    contours: [thermal_continuity, air_tightness, fire, bulk_water, drainage_and_drying, movement_and_tolerance]
+    geometry_actions: [place_facade_zone_from_verified_system, preserve_ventilation_gap, place_fire_cutoff_reference, preserve_drainage_path]
+    never_infer: [anchor_type, anchor_spacing, bracket_geometry, fire_barrier_product, insulation_thickness]
+
+  - node_id: FCD_EDGE_003_CURTAIN_WALL_AT_SLAB_EDGE
+    family: facade_slab_edge
+    hosts: [floor_slab_edge, curtain_wall_system]
+    applies_if: ["facade_system=curtain_wall"]
+    require: [KR_slab_edge_geometry, verified_curtain_wall_system, manufacturer_anchor_zone, perimeter_fire_seal_strategy_if_applicable, air_water_transition_strategy]
+    blockers: [curtain_wall_system_missing, anchor_zone_missing]
+    contours: [load_path_reference, air_tightness, bulk_water, thermal_continuity, fire, movement_and_tolerance]
+    geometry_actions: [preserve_anchor_reservation_zone, coordinate_curtain_wall_grid_to_slab_edge, create_perimeter_seal_detail_reference]
+    never_infer: [anchor_geometry, transom_mullion_size, fire_seal_product, shim_or_fastener_geometry]
+
+execution_policy:
+  archicad_major_elements: [CreateWalls, CreateSlabs, CreateProfiles, CreateObjects]
+  facade_product_geometry: verified_manufacturer_system_only
+  structural_anchor_execution: external_KR_or_verified_system_only
+  micro_seals_and_tapes: detail_2d_plus_properties_by_default
+
+postconditions:
+  - facade_host_relation_exists
+  - slab_edge_geometry_matches_KR_reference
+  - no_unverified_anchor_geometry_created
+  - thermal_air_fire_water_contours_resolved_or_node_blocked

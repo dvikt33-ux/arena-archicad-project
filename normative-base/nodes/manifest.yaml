@@ -1,4 +1,4 @@
-manifest_version: 22
+manifest_version: 23
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -78,6 +78,8 @@ load_order:
   - 61_roof_window_nodes.yaml
   - 62_roof_edge_penetration_test_vectors.yaml
   - 63_archicad_roof_edge_penetration_execution_map.yaml
+  - 64_floor_finish_wet_zone_nodes.yaml
+  - 65_suspended_ceiling_nodes.yaml
   - 64_complex_roof_topology_nodes.yaml
   - 65_dormer_roof_nodes.yaml
   - 66_mansard_break_nodes.yaml
@@ -98,6 +100,8 @@ modules:
   external_wall: EXTERNAL_WALL_NODE_ENGINEERING
   internal_partition: INTERNAL_PARTITION_NODE_ENGINEERING
   shaft_penetration: SHAFT_AND_PENETRATION_NODE_ENGINEERING
+  interior_floor_wet_zone: INTERIOR_FLOOR_WET_ZONE_NODE_ENGINEERING
+  suspended_ceiling: SUSPENDED_CEILING_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
   roof_wall_material_registry: WALL_MATERIAL_SYSTEM_REGISTRY
   roof_wall_material_adapters: ROOF_WALL_MATERIAL_ADAPTERS

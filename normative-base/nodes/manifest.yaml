@@ -1,4 +1,4 @@
-manifest_version: 19
+manifest_version: 20
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -65,6 +65,11 @@ load_order:
   - 53_wall_roof_package_test_vectors.yaml
   - 54_cold_attic_wall_roof_packages.yaml
   - 55_archicad_wall_roof_package_execution_map.yaml
+  - 51_internal_partition_nodes.yaml
+  - 52_shaft_penetration_nodes.yaml
+  - 53_archicad_internal_execution_map.yaml
+  - 54_internal_selector_graph.yaml
+  - 55_internal_node_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -75,6 +80,8 @@ modules:
   entrance: ENTRANCE_NODE_ENGINEERING
   deformation_joint: DEFORMATION_JOINT_NODE_ENGINEERING
   external_wall: EXTERNAL_WALL_NODE_ENGINEERING
+  internal_partition: INTERNAL_PARTITION_NODE_ENGINEERING
+  shaft_penetration: SHAFT_AND_PENETRATION_NODE_ENGINEERING
   roof: ROOF_NODE_ENGINEERING
   roof_wall_material_registry: WALL_MATERIAL_SYSTEM_REGISTRY
   roof_wall_material_adapters: ROOF_WALL_MATERIAL_ADAPTERS
@@ -100,6 +107,8 @@ inherits:
   - ../rules/24_masonry_opening_layout.yaml
   - ../rules/27_thermal_acoustic_envelope.yaml
   - ../rules/63_door_blocks_2026.yaml
+  - ../rules/65_drywall_partitions_linings.yaml
+  - ../rules/67_communication_shafts_electrical_boxes.yaml
   - ../rules/68_facade_systems_2027.yaml
   - ../rules/69_roof_drainage_interfaces.yaml
   - ../rules/73_deformation_temperature_joints.yaml
@@ -140,6 +149,12 @@ hard_fail:
   - opening_lintel_or_bearing_unresolved
   - plinth_waterproofing_or_grade_interface_unresolved
   - external_wall_contour_unresolved
+  - internal_partition_system_unverified
+  - internal_partition_top_joint_unresolved
+  - internal_door_jamb_or_certified_opening_unresolved
+  - shaft_service_volume_or_access_unresolved
+  - engineering_penetration_owner_or_geometry_unresolved
+  - concealed_electrical_box_offset_failed
   - roof_node_scope_unresolved
   - roof_covering_system_missing
   - roof_structural_scheme_missing
@@ -185,6 +200,10 @@ execution_policy:
   lintel_and_opening_bearing_generation: external_KR_only
   mounting_joint_generation: verified_system_or_project_detail_only
   wall_envelope_component_generation: verified_system_and_calculation_only
+  internal_partition_system_generation: verified_system_only
+  internal_structural_wall_geometry_generation: external_KR_only
+  shaft_geometry_generation: engineering_service_volume_plus_verified_enclosure_only
+  engineering_penetration_generation: approved_engineering_geometry_only
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only

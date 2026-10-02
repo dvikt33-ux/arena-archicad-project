@@ -1,0 +1,110 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: ARCHICAD_WALL_ROOF_PACKAGE_EXECUTION_MAP
+purpose: "Compile selected wall-roof packages into deterministic Archicad host elements, relationships, properties and detail outputs."
+
+inputs:
+  - selected_wall_roof_package_id
+  - approved_wall_geometry
+  - approved_roof_geometry
+  - KR_roof_support_geometry
+  - verified_product_geometry
+  - facade_system_reference
+  - resolved_contour_graph
+
+semantic_mapping:
+  wall_primary_host:
+    preferred: Wall
+    fallback: Profile_or_Morph_only_if_native_wall_cannot_represent_verified_geometry
+  roof_primary_host:
+    preferred: Roof
+    alternative: Shell_only_when_project_geometry_requires
+  structural_rafter_or_beam:
+    preferred: Beam
+    constraint: exact_KR_geometry_only
+  wall_top_bearing_element:
+    preferred: Beam_or_Object_by_actual_semantics
+    constraint: exact_KR_or_verified_product_geometry_only
+  insulation_geometry:
+    preferred: Composite_or_Profile_or_separate_model_element_by_project_LOD
+    constraint: thickness_from_calculation_or_verified_system_only
+  membranes:
+    preferred: property_relationship_plus_detail_2d
+    model_3d_only_if: explicit_coordination_or_documentation_requirement
+  facade_cladding:
+    preferred: Wall_Profile_CurtainWall_Object_or_Morph_by_verified_system_semantics
+  flashings_and_edge_products:
+    preferred: verified_Profile_or_Object
+    fallback: detail_2d_if_not_required_for_coordination
+
+operation_sequence:
+  - verify_selected_package_and_source_revisions
+  - bind_existing_wall_and_roof_hosts
+  - verify_wall_product_geometry_against_registry
+  - verify_roof_support_geometry_against_KR
+  - create_or_update_structural_roof_members_from_KR_only
+  - create_or_update_verified_wall_top_bearing_element_if_present
+  - apply_facade_top_termination_reference
+  - apply_roof_edge_node
+  - write_contour_relationships
+  - create_required_detail_2d_outputs
+  - readback_host_geometry
+  - validate_contour_graph
+  - emit_node_receipt
+
+property_writes:
+  required:
+    - NODE_PACKAGE_ID
+    - NODE_PACKAGE_REVISION
+    - WALL_SYSTEM_FAMILY
+    - WALL_PRODUCT_ID
+    - WALL_PRODUCT_GEOMETRY_SOURCE
+    - FACADE_SYSTEM_ID
+    - ROOF_THERMAL_BOUNDARY_MODE
+    - ROOF_SUPPORT_KR_REFERENCE
+    - ROOF_COVERING_SYSTEM_ID
+    - CONTOUR_THERMAL_STATUS
+    - CONTOUR_AIR_STATUS
+    - CONTOUR_VAPOR_STATUS
+    - CONTOUR_WATER_STATUS
+    - CONTOUR_VENTILATION_STATUS
+    - CONTOUR_FIRE_STATUS
+
+idempotency:
+  key_components:
+    - building_id
+    - host_wall_GUID
+    - host_roof_GUID
+    - selected_wall_roof_package_id
+    - KR_revision
+    - AR_revision
+    - facade_system_revision
+  on_same_key: update_in_place_or_noop
+  on_changed_key: invalidate_previous_node_receipt_then_rebuild
+
+prohibited_operations:
+  - stretch_verified_ceramic_block_product_to_match_nominal_wall_thickness
+  - substitute_380_440_510_wall_geometry_without_product_match
+  - generate_reinforced_belt_without_KR
+  - generate_mauerlat_or_bearing_element_without_KR
+  - generate_anchor_or_fastener_pattern
+  - merge_roof_and_facade_ventilation_cavities_without_verified_detail
+  - mark_contour_as_resolved_from_2d_graphics_without_source_reference
+  - convert_unresolved_package_to_generic_Morph_and_release
+
+readback_checks:
+  - host_wall_thickness_matches_verified_product_or_approved_assembly
+  - roof_support_member_geometry_matches_KR
+  - selected_package_matches_actual_wall_and_facade_system
+  - thermal_boundary_mode_matches_actual_insulation_location
+  - no_missing_applicable_contour
+  - every_detail_2d_output_links_back_to_NODE_PACKAGE_ID
+
+rules:
+  - id: archicad.wall_roof.native_semantics_first
+    automation: true
+    statement: "Исполнение предпочитает нативные семантические элементы Archicad; Morph не используется как скрытый универсальный обход отсутствующего узла."
+  - id: archicad.wall_roof.readback_required
+    automation: true
+    statement: "После построения узла обязательна обратная проверка фактической геометрии и связей; несовпадение с КР или выбранным пакетом блокирует выпуск."

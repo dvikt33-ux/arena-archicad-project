@@ -1,0 +1,69 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+module: MAUERLAT_SUPPORT_NODES
+purpose: "Executable mauerlat interfaces. Mauerlat is a KR-selected bearing element, not an architectural default."
+
+source_dependencies:
+  - 45_rafter_wall_connection_variants.yaml
+  - 56_roof_wall_support_belt_nodes.yaml
+  - ../rules/08_structural_design_boundaries.yaml
+  - ../rules/15_roofs.yaml
+
+nodes:
+  - node_id: MAU_001_TIMBER_MAUERLAT_ON_KR_SUPPORT_ZONE
+    family: mauerlat_support
+    applies_if:
+      KR_bearing_element_type: timber_mauerlat
+    required_inputs:
+      - exact_mauerlat_geometry_from_KR
+      - KR_support_zone_geometry
+      - KR_anchor_schedule
+      - KR_rafter_to_mauerlat_joint
+      - moisture_separation_detail
+    blockers:
+      - roof_KR_input_missing
+      - exact_mauerlat_geometry_missing
+      - anchor_schedule_missing
+      - rafter_joint_missing
+      - moisture_separation_detail_missing
+    never_infer:
+      - mauerlat_section
+      - timber_grade
+      - anchor_diameter
+      - anchor_spacing
+      - embedment
+      - rafter_notch
+      - strap_or_wire_tie
+    geometry_actions:
+      - place_mauerlat_from_exact_KR_geometry
+      - place_moisture_separation_from_verified_detail
+      - place_rafter_joint_from_KR
+      - tag_connection_with_KR_reference
+
+  - node_id: MAU_002_STEEL_OR_ENGINEERED_BEARING_RAIL
+    family: mauerlat_support
+    applies_if:
+      KR_bearing_element_type: [steel_bearing_rail, engineered_bearing_member]
+    required_inputs:
+      - verified_member_schedule
+      - KR_support_detail
+      - KR_connector_schedule
+    never_infer:
+      - profile_section
+      - bracket_type
+      - fastener_pattern
+      - corrosion_protection
+    geometry_actions:
+      - place_member_from_verified_schedule
+      - bind_support_and_rafter_connections_to_KR
+
+rules:
+  - id: roof.mauerlat.require_explicit_KR_selection
+    automation: true
+    statement: "Мауэрлат не добавляется по умолчанию для кирпичной, керамической, AAC или ЖБ стены; требуется явное решение КР."
+    result_on_missing: roof_wall_support_strategy_ambiguous
+  - id: roof.mauerlat.no_fastener_synthesis
+    automation: true
+    statement: "Размер, материал и анкеровка мауэрлата принимаются только из КР/проверенной системы."
+    result_on_missing: roof_KR_input_missing

@@ -1,0 +1,146 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+module: INTERNAL_PARTITION_NODE_ENGINEERING
+purpose: "Machine-selectable internal wall and partition nodes for working-documentation generation without inventing structural, fire, acoustic or product properties."
+
+source_dependencies:
+  - ../rules/21_doors_egress_openings.yaml
+  - ../rules/29_corridor_clearances.yaml
+  - ../rules/54_stairwell_door_interfaces.yaml
+  - ../rules/63_door_blocks_2026.yaml
+  - ../rules/65_drywall_partitions_linings.yaml
+  - ../rules/67_communication_shafts_electrical_boxes.yaml
+  - ../rules/77_fire_finish_materials_2027.yaml
+
+nodes:
+  - node_id: INT_WALL_001_MASONRY_INTERNAL_WALL_TO_FLOOR_AND_SLAB
+    family: internal_masonry_wall_support
+    hosts: [floor_or_structural_slab, internal_masonry_wall, upper_structure]
+    required_inputs:
+      - wall_structural_role
+      - wall_material_system
+      - approved_wall_geometry
+      - lower_support_condition
+      - upper_connection_strategy
+      - fire_and_acoustic_requirements_if_applicable
+    blockers:
+      - wall_structural_role_unresolved
+      - wall_product_or_system_unverified
+      - structural_support_condition_unresolved_when_load_bearing
+    never_infer:
+      - bearing_capacity
+      - masonry_strength
+      - reinforcement
+      - anchors_or_ties
+      - fire_resistance
+      - acoustic_index
+    contours: [load_path_if_structural, movement_and_tolerance, fire_if_required, acoustic_if_required]
+    geometry_actions:
+      - create_wall_from_approved_geometry
+      - attach_support_and_top_interface_metadata
+      - preserve_structural_role_and_revision
+    archicad_representation:
+      host: Wall
+      joints: properties_plus_detail_2d_unless_verified_3d_required
+    postconditions:
+      - structural_role_written
+      - unresolved_structural_connection_blocks_release
+
+  - node_id: INT_PART_001_DRYWALL_PARTITION_BASE
+    family: framed_gypsum_partition
+    hosts: [floor_finish_or_slab, framed_partition, ceiling_or_slab]
+    required_inputs:
+      - verified_partition_system
+      - partition_height
+      - room_moisture_mode
+      - fire_requirement_if_any
+      - acoustic_requirement_if_any
+      - floor_deflection_input_from_KR_if_top_joint_depends_on_it
+    blockers:
+      - partition_system_unverified
+      - required_fire_or_acoustic_system_unresolved
+      - top_joint_strategy_unresolved
+    never_infer:
+      - stud_section
+      - stud_spacing
+      - sheathing_layers
+      - insulation_type
+      - fire_rating
+      - acoustic_rating
+    contours: [movement_and_tolerance, acoustic, fire_if_required, moisture_if_required]
+    geometry_actions:
+      - create_partition_from_verified_system_geometry
+      - apply_system_classification_and_finish_interfaces
+      - route_top_joint_to_fixed_or_sliding_strategy_from_verified_input
+    archicad_representation:
+      host: Wall_or_Composite_Wall
+      system_detail: properties_plus_detail_2d
+    postconditions:
+      - verified_system_id_written
+      - top_joint_strategy_resolved
+
+  - node_id: INT_PART_002_DRYWALL_PARTITION_SLIDING_TOP
+    family: framed_partition_sliding_head
+    hosts: [framed_partition, upper_slab_or_beam]
+    required_inputs:
+      - base_partition_node
+      - KR_floor_deflection_reference
+      - verified_sliding_head_system
+    blockers:
+      - floor_deflection_reference_missing
+      - sliding_head_system_unverified
+    never_infer: [deflection, head_gap, fastener_spacing, profile_geometry]
+    contours: [movement_and_tolerance, fire_if_required, acoustic_if_required]
+    geometry_actions:
+      - preserve_verified_sliding_head_geometry
+      - prevent_rigid_top_lock_when_sliding_joint_required
+    archicad_representation:
+      joint: properties_plus_detail_2d_or_verified_profile
+    postconditions:
+      - partition_not_rigidly_locked_to_deflecting_structure_when_sliding_joint_required
+
+  - node_id: INT_PART_003_DRYWALL_DOOR_OPENING
+    family: framed_partition_door_opening
+    hosts: [framed_partition, door_block]
+    required_inputs:
+      - verified_partition_system
+      - verified_door_product
+      - door_mass
+      - opening_geometry
+      - jamb_reinforcement_strategy
+      - fire_or_acoustic_opening_system_if_required
+    blockers:
+      - door_product_unverified
+      - jamb_reinforcement_strategy_missing
+      - certified_opening_system_missing_when_required
+    never_infer: [door_mass, jamb_profile, reinforcement_profile, fire_rating, acoustic_rating]
+    contours: [movement_and_tolerance, fire_if_required, acoustic_if_required]
+    geometry_actions:
+      - create_or_verify_door_opening
+      - apply_verified_jamb_reinforcement_system
+      - place_verified_door_product
+    archicad_representation:
+      opening: Door_or_Opening
+      framing: properties_plus_detail_2d_or_verified_profile
+    postconditions:
+      - door_opening_reinforcement_resolved
+      - special_performance_not_synthesized
+
+  - node_id: INT_PART_004_PARTITION_INTERSECTION
+    family: internal_partition_intersection
+    hosts: [partition_A, partition_B]
+    required_inputs:
+      - system_A
+      - system_B
+      - verified_intersection_detail
+    blockers: [intersection_detail_missing]
+    never_infer: [insert_profile, tie_pattern, fastener_spacing]
+    contours: [movement_and_tolerance, fire_if_required, acoustic_if_required]
+    geometry_actions:
+      - intersect_hosts_only_per_verified_system_detail
+      - attach_intersection_detail_reference
+    archicad_representation:
+      intersection: native_Wall_intersection_plus_detail_reference
+    postconditions:
+      - intersection_not_resolved_by_surface_cleanup_only

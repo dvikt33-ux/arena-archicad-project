@@ -1,0 +1,87 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: CONSTRUCTION_NODE_ENGINE
+
+sources:
+  - {document: SP_45_13330_2017, changes: [1,2,3,4], target_profile: RU_2027_PLUS, role: foundation_execution_and_subgrade_preparation}
+  - {document: SP_22_13330_2016, changes: [1,2,3,4,5], role: foundation_design_inputs}
+
+nodes:
+  - node_id: FDN_015_CLAY_SUBGRADE_LEVELING
+    family: subgrade_preparation
+    source_clause: SP_45_13330_2017_11_36
+    applies_if:
+      - "foundation_base_soil=clayey"
+      - "natural_or_project_base_surface=true"
+    required_material_semantics:
+      leveling_layer: non_silty_sand
+    normative_geometry:
+      thickness_mm: {min: 50, max: 100}
+    execution_sequence:
+      - verify_accepted_subgrade
+      - place_non_silty_sand_leveling_layer
+      - verify_final_foundation_base_level
+    blockers: [subgrade_acceptance_missing]
+
+  - node_id: FDN_016_MONOLITHIC_FOUNDATION_LEAN_CONCRETE_PREP
+    family: monolithic_foundation_preparation
+    source_clause: SP_45_13330_2017_11_37
+    applies_if:
+      - "foundation_construction=monolithic"
+    required_components:
+      - lean_concrete_preparation
+    purpose_contours:
+      - allow_screed_for_waterproofing
+      - prevent_cement_paste_loss_from_foundation_concrete
+    require_project_inputs: [preparation_concrete_specification, preparation_geometry]
+    never_infer: [preparation_thickness, preparation_concrete_class]
+    blockers: [preparation_geometry_missing]
+
+  - node_id: FDN_017_ENGINEERED_FILL_OR_SOIL_CUSHION
+    family: engineered_subgrade
+    source_clauses: [SP_45_13330_2017_11_27, SP_45_13330_2017_11_29]
+    applies_if:
+      - "geotechnical_project_requires_replacement_compaction_or_cushion=true"
+    require:
+      - RD_required_density
+      - RD_material
+      - RD_geometry
+      - PPR_or_execution_parameters_where_required
+    execution_sequence:
+      - reserve_project_defined_excavation_or_fill_zone
+      - apply_project_defined_material_and_geometry
+      - store_required_control_parameters
+      - block_foundation_until_acceptance_status_passes
+    never_infer: [cushion_thickness, material, compaction_ratio, number_of_passes]
+
+  - node_id: FDN_018_BACKFILL_ADJACENT_TO_WATERPROOFED_FOUNDATION
+    family: foundation_backfill_interface
+    source_clause: SP_45_13330_2017_11_30
+    applies_if:
+      - "backfill_adjacent_to_foundation_or_basement_wall=true"
+    require:
+      - waterproofing_protection_layer_status
+      - adjacent_underground_utility_geometry
+      - backfill_project_definition
+    execution_sequence:
+      - verify_waterproofing_and_protection_before_backfill
+      - verify_underground_utility_clearances_from_project
+      - permit_backfill_operation_only_after_protection_gate
+    hard_fail: [waterproofing_protection_unverified]
+
+  - node_id: FDN_019_FOUNDATION_BASE_ACCEPTANCE_GATE
+    family: construction_acceptance
+    source_clause: SP_45_13330_2017_11_39
+    applies_if:
+      - "foundation_execution_requested=true"
+    require:
+      - excavation_location_and_dimensions_verified
+      - foundation_base_elevation_verified
+      - actual_soil_stratigraphy_checked_against_RD
+      - actual_soil_properties_acceptance_status
+    result_if_missing: block_foundation_execution
+
+execution_policy:
+  - preparation_nodes_are_not_structural_design_substitutes
+  - all_geotechnical_geometry_and_compaction_parameters_come_from_RD_or_KR
+  - foundation_host_creation_must_follow_FDN_019_acceptance_gate_when_execution_mode_is_used

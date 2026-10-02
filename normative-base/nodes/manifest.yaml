@@ -1,4 +1,4 @@
-manifest_version: 9
+manifest_version: 10
 checked_at: 2026-10-02
 target_profile: RU_2027_PLUS
 package: CONSTRUCTION_NODE_ENGINE
@@ -34,6 +34,12 @@ load_order:
   - 25_foundation_subgrade_preparation_nodes.yaml
   - 26_precast_socket_foundation_nodes.yaml
   - 27_precast_pile_product_adapter.yaml
+  - roof_rafter_connection_nodes.yaml
+  - roof_rafter_member_graph.yaml
+  - roof_canonical_node_catalog.yaml
+  - roof_gable_verge_node.yaml
+  - roof_penetration_node.yaml
+  - roof_test_vectors.yaml
 
 modules:
   foundation_floor: CONSTRUCTION_NODE_ENGINE_CORE
@@ -66,6 +72,7 @@ hard_fail:
   - roof_covering_system_missing
   - roof_structural_scheme_missing
   - roof_KR_input_missing
+  - roof_structural_connection_schedule_missing
   - roof_required_manufacturer_detail_missing
   - roof_ventilation_mode_unresolved
   - roof_ventilation_input_outside_verified_matrix
@@ -86,3 +93,4 @@ execution_policy:
   roof_member_geometry_generation: external_KR_only
   roof_connection_fastener_generation: external_KR_or_verified_product_only
   roof_covering_detail_generation: verified_code_and_product_adapter_only
+  roof_structural_collision_resolution: external_KR_only

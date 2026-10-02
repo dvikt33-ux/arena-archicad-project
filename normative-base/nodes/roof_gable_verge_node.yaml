@@ -1,0 +1,42 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: gable_verge
+purpose: machine_node_for_free_sloping_roof_edge_at_gable
+
+required_inputs:
+  - roof_plane
+  - gable_edge
+  - covering_system_id
+  - wind_edge_product_or_system_detail
+  - underroof_water_control_layer
+  - fascia_or_edge_substrate_if_present
+
+rules:
+  - id: roof.verge.covering_adapter_required
+    automation: true
+    statement: "Торцевая кромка ската формируется через adapter выбранного покрытия; ширина планки, нахлест, крепеж и шаг крепления не принимаются из generic шаблона."
+    result_on_missing: roof_required_manufacturer_detail_missing
+  - id: roof.verge.water_shedding
+    automation: true
+    statement: "Наружный край покрытия и подкровельного слоя должен отводить воду наружу, не направляя ее за фронтонную отделку или в торец утеплителя."
+  - id: roof.verge.wind_edge_not_structural_guess
+    automation: true
+    statement: "Дополнительные несущие доски/профили, выносные консоли и их крепление создаются только если предусмотрены КР или проверенной кровельной системой."
+    result_on_missing: needs_edge_support_detail
+  - id: roof.verge.ventilation_preserved
+    automation: validation_only
+    statement: "Торцевой узел не должен перекрывать продольный вентиляционный канал или создавать боковой неуправляемый подсос/задув, если система требует направленного потока от карниза к выходу."
+
+geometry_operations:
+  - classify_free_sloping_edge
+  - apply_covering_specific_verge_adapter
+  - terminate_underroof_water_layer_to_exterior
+  - preserve_KR_edge_support_geometry
+  - close_thermal_air_vapor_contours_at_gable_if_envelope_crosses_edge
+
+postconditions:
+  - water_path_outward
+  - covering_edge_system_verified
+  - no_unapproved_structural_edge_member
+  - envelope_contours_checked

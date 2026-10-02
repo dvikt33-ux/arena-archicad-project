@@ -1,0 +1,74 @@
+checked_at: 2026-10-02
+target_profile: RU_2027_PLUS
+package: ROOF_NODE_ENGINEERING
+node_family: roof_penetration
+purpose: reusable_machine_node_for_roof_penetrations_across_building_types
+
+source_stack:
+  - {document: SP_17_13330_2017, changes: [1,2,3,4,5], role: roof_waterproofing_interface}
+  - {document: SP_7_13130_2013, changes: [1,2,3], role: fire_HVAC_when_applicable}
+  - {document: SP_60_13330_2020, changes: [1,2,3,4,5,6], role: HVAC_when_applicable}
+  - {document: GOST_R_72602_2026, effective_from: 2027-01-01, role: flue_gas_construction_when_applicable}
+
+penetration_classes:
+  - flue_or_chimney
+  - ventilation_duct_or_shaft
+  - smoke_control_duct_or_shaft
+  - sewer_vent_or_small_pipe
+  - cable_or_service_bundle
+  - roof_drain_or_system_specific_penetration
+  - skylight_or_roof_window
+
+required_inputs:
+  - penetration_class
+  - penetrating_system_reference
+  - exact_outer_geometry
+  - roof_host
+  - covering_system_id
+  - structural_opening_status
+  - fire_classification_if_applicable
+  - support_and_movement_solution
+  - manufacturer_penetration_detail_if_system_specific
+
+rules:
+  - id: roof.penetration.structural_opening_gate
+    automation: true
+    statement: "Пересечение стропила, фермы, балки, панели или другого расчетного элемента требует утвержденного КР-решения отверстия/обрамления; архитектурный движок не разрезает элемент автоматически."
+    result_on_missing: structural_penetration_not_approved
+  - id: roof.penetration.fire_product_gate
+    automation: conditional
+    when: {penetration_class: [flue_or_chimney, smoke_control_duct_or_shaft]}
+    statement: "Пожарные зазоры, разделки и огнезащита принимаются по применимому нормативу и конкретной системе; generic clearance запрещен."
+    result_on_missing: roof_fire_gate_unresolved
+  - id: roof.penetration.water_path
+    automation: true
+    statement: "Верхний, боковые и нижний участки примыкания формируют непрерывный водоотвод вокруг проходки; подкровельная вода также перехватывается и возвращается наружу."
+  - id: roof.penetration.envelope_contours
+    automation: validation_only
+    statement: "Тепловой, воздухонепроницаемый и парорегулирующий контуры восстанавливаются вокруг проходки совместимым системным решением; сама монтажная пена/зазор не считается автоматически герметичным узлом."
+  - id: roof.penetration.no_load_on_covering
+    automation: true
+    statement: "Масса и температурные деформации дымохода/воздуховода/оборудования не передаются на кровельное покрытие как на случайную опору."
+    result_on_missing: needs_penetrating_system_support
+  - id: roof.penetration.product_geometry_required
+    automation: true
+    statement: "Размер фартука, EPDM-элемента, оклада окна, проходного элемента и его крепеж не выводятся из диаметра проходки; требуется проверенный продуктовый/системный узел."
+    result_on_missing: roof_required_manufacturer_detail_missing
+
+geometry_operations:
+  - reserve_or_create_KR_approved_opening
+  - place_penetrating_system_from_verified_geometry
+  - apply_covering_specific_penetration_adapter
+  - create_upper_side_lower_water_diversion
+  - connect_underroof_water_control_layer
+  - restore_thermal_air_vapor_contours
+  - attach_fire_and_product_metadata
+
+postconditions:
+  - penetration_classified
+  - structural_cut_approved_or_no_primary_member_affected
+  - product_or_system_reference_present
+  - water_path_verified
+  - fire_gate_passed_if_applicable
+  - support_and_movement_solution_present
+  - no_generic_clearance_inferred

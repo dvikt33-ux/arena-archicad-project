@@ -1,0 +1,28 @@
+document_id: SP_309_1325800_2017
+title: "Здания театрально-зрелищные. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, THEATRE, CINEMA, CONCERT]
+object_class_router:
+  include_when_subject_applies: [PUBLIC, TRK]
+  gate: theatre_cinema_concert_building_or_functional_zone
+revision:
+  verified_changes: [1]
+  latest_change: 1
+  latest_change_effective_from: 2024-01-29
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"
+scope:
+  proof_state: official_card_verified
+  max_height_m: 50
+  max_underground_depth_m: 15
+  note: "New and reconstructed theatre, cinema and concert-hall buildings within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - theatre_cinema_concert_zone_classification_required

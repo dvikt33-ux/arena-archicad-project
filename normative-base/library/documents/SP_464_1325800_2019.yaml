@@ -1,0 +1,28 @@
+document_id: SP_464_1325800_2019
+title: "Здания торгово-развлекательных комплексов. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [TRK, PUBLIC]
+object_class_router:
+  include_when_subject_applies: [TRK]
+  exclude_by_default: [IZHS, MKD, INDUSTRIAL]
+revision:
+  verified_changes: [1]
+  latest_change: 1
+  latest_change_effective_from: 2024-01-16
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+scope:
+  proof_state: official_card_verified
+  max_height_m: 50
+  max_underground_depth_m: 15
+  note: "New, reconstructed and capital-repaired shopping and entertainment complexes within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - active_functional_zone_required_for_cinema_sport_foodservice_and_other_special_rules

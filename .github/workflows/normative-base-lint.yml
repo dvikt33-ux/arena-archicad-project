@@ -25,3 +25,5 @@ jobs:
         run: python normative-base/tools/validate.py
       - name: Validate functional-zone scopes
         run: python normative-base/tools/validate_functional_scope.py
+      - name: Validate engineering-system scopes
+        run: python normative-base/tools/validate_engineering_scope.py

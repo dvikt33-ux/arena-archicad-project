@@ -1,4 +1,4 @@
-library_version: 17
+library_version: 18
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -27,6 +27,7 @@ invariants:
   - non_IZHS_locator_backlog_never_counts_as_locator_PASS
   - primary_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
   - p1_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
+  - parking_geometry_and_parking_fire_documents_must_remain_separate_but_jointly_routed
 
 object_classes:
   IZHS:
@@ -98,6 +99,7 @@ change_maps:
   - change_maps/SP_160_1325800_2014.yaml
   - change_maps/SP_267_1325800_2016.yaml
   - change_maps/SP_550_1311500_2026.yaml
+  - change_maps/SP_551_1311500_2026.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -153,6 +155,16 @@ coverage:
     new_library_PASS: 0
     urgent_profile: PARKING
     urgent_reason: "SP113 Change 4 effective 2026-10-03; current locator text must be rechecked before promotion."
+  parking_fire_evidence:
+    document: SP_551_1311500_2026
+    document_card: documents/SP_551_1311500_2026.yaml
+    change_map: change_maps/SP_551_1311500_2026.yaml
+    rule_file: "../rules/64_parking_fire_safety_2026.yaml"
+    effective_from: 2026-06-01
+    role: parking_fire_protection
+    paired_planning_document: SP_113_13330_2023
+    locator_evidence_state: existing_rule_traceability_pending
+    new_library_PASS: 0
   additional_product_document_cards:
     count: 1
     documents: [GOST_25772_2025]
@@ -203,6 +215,7 @@ document_cards:
   - documents/SP_257_1325800_2020.yaml
   - documents/SP_332_1325800_2017.yaml
   - documents/SP_113_13330_2023.yaml
+  - documents/SP_551_1311500_2026.yaml
   - documents/SP_56_13330_2021.yaml
   - documents/SP_160_1325800_2014.yaml
   - documents/SP_267_1325800_2016.yaml
@@ -287,6 +300,12 @@ resolved_safety_gaps:
     resolution: >-
       profile_p1_locator_extraction_registry.yaml now tracks all seven P1 profiles plus SPORTS
       completion, each linked to an official revision map without granting production authority.
+  - id: PARKING_FIRE_LIBRARY_TRACEABILITY_MISSING
+    status: resolved_initial_evidence_route
+    resolved_at: 2026-10-04
+    resolution: >-
+      SP551 now has its own document card, revision map and global revision-watch entry; production
+      parking fire rules remain preserved while their locator-level evidence migration is pending.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
@@ -312,6 +331,12 @@ known_safety_gaps:
     source: multi_profile_locator_backlog.yaml
     profiles: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
     effect: "Existing rule values remain governed by their current production audit history; no new library PASS until direct locator migration."
+  - id: SP551_LOCATOR_DURABLE_TRACEABILITY
+    status: open
+    severity: high
+    document: SP_551_1311500_2026
+    rule_file: "../rules/64_parking_fire_safety_2026.yaml"
+    effect: "Existing SP551 parking-fire rules are preserved; no new library PASS until direct current locator evidence is migrated."
   - id: SP113_CHANGE4_CURRENT_LOCATOR_REAUDIT
     status: open
     severity: high

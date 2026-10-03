@@ -1,4 +1,4 @@
-library_version: 19
+library_version: 20
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -29,6 +29,7 @@ invariants:
   - p1_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
   - parking_geometry_and_parking_fire_documents_must_remain_separate_but_jointly_routed
   - highrise_architectural_and_fire_documents_must_remain_separate_but_jointly_routed
+  - every_document_card_change_map_reference_must_be_registered_and_exist
 
 object_classes:
   IZHS:
@@ -85,6 +86,9 @@ change_maps:
   - change_maps/SP_4_13130_2013.yaml
   - change_maps/SP_402_1325800_2018.yaml
   - change_maps/GOST_25772_2025.yaml
+  - change_maps/SP_54_13330_2022.yaml
+  - change_maps/SP_118_13330_2022.yaml
+  - change_maps/SP_464_1325800_2019.yaml
   - change_maps/SP_251_1325800_2016.yaml
   - change_maps/SP_252_1325800_2016.yaml
   - change_maps/SP_158_13330_2014.yaml
@@ -149,6 +153,14 @@ coverage:
     library_PASS_promotions: 0
     fail_closed: true
     rule: "P1 research remains first-class but never bypasses direct current locator evidence."
+  existing_profile_revision_evidence:
+    profiles: [MKD, PUBLIC_GENERAL, TRK]
+    documents: [SP_54_13330_2022, SP_118_13330_2022, SP_464_1325800_2019]
+    change_maps_registered: true
+    document_cards_linked: true
+    locator_state: existing_rule_traceability_pending
+    production_promotions: 0
+    rule: "Revision metadata and change cards never reinterpret existing production locator values."
   multi_profile_locator_backlog:
     source: multi_profile_locator_backlog.yaml
     profiles_with_existing_rule_locator_backlog: 8
@@ -325,6 +337,12 @@ resolved_safety_gaps:
     resolution: >-
       SP550 now has its own document card and revision map tied to the existing high-rise fire rule
       file while the underlying architectural/functional profile remains mandatory.
+  - id: EXISTING_NON_IZHS_REVISION_MAP_GAPS
+    status: resolved_initial_core_profiles
+    resolved_at: 2026-10-04
+    resolution: >-
+      MKD SP54, general PUBLIC SP118 and TRK SP464 now each have a registered revision/change map,
+      linked document card and explicit existing-rule locator migration state.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS

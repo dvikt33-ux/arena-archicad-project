@@ -1,4 +1,4 @@
-library_version: 3
+library_version: 4
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -21,6 +21,7 @@ object_classes:
     include_tags: [IZHS, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
     exclude_special_tags: [MKD, PUBLIC, INDUSTRIAL, TRK]
     primary_functional_document: SP_55_13330_2016
+    global_router_status: present
   MKD:
     include_tags: [MKD, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
     exclude_special_tags: [IZHS, INDUSTRIAL, TRK]
@@ -66,16 +67,12 @@ resolved_safety_gaps:
     status: resolved
     resolved_at: 2026-10-03
     resolution: SP_64_13330_2017_added_to_revision_watch_2027_at_official_latest_change_4
+  - id: GLOBAL_ROUTER_HAS_NO_IZHS_SP55_ROUTE
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: residential_single_family_route_added_to_rules_28_functional_code_router_with_SP55_scope_gate
 
 known_safety_gaps:
-  - id: GLOBAL_ROUTER_HAS_NO_IZHS_SP55_ROUTE
-    status: open
-    severity: high
-    statement: >-
-      rules/28_functional_code_router.yaml has a multifamily residential route to SP54 but no
-      explicit single-family/IZHS route to SP55. The IZH package has an internal SP55 scope gate,
-      so the global and package routers are not fully reconciled.
-    effect: explicit_IZH_package_selection_required
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
     status: open
     severity: high

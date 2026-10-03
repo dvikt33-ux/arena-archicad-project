@@ -62,6 +62,13 @@ core_documents:
     effective_from: 2026-06-01
     scope: "F1.3 fire height >75 m; public including multifunctional fire height >50 m"
     source_url: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
+  - document: SP_551_1311500_2026
+    topic: parking_fire_safety
+    official_latest_change: null
+    status: active
+    effective_from: 2026-06-01
+    target_2027_action: "use together with SP_113_13330_2023; SP551 supplies parking fire-protection requirements while SP113 supplies planning/geometry"
+    source_url: "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
 
 functional_documents:
   - {document: SP_44_13330_2011, topic: industrial_admin_amenity, official_latest_change: 4, latest_change_effective_from: 2022-01-08, status: active, source_url: "https://protect.gost.ru/sp/details/d4e8fda2-e2a9-45a4-b686-d21347d36ab2"}

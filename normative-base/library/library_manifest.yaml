@@ -1,4 +1,4 @@
-library_version: 4
+library_version: 5
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -47,16 +47,38 @@ proof_states:
 catalogs:
   - izh_dependency_catalog.yaml
 
-initial_document_cards:
+coverage:
+  IZHS_direct_dependency_graph:
+    dependencies_checked: 17
+    document_cards_present: 17
+    working_revision_gates: 17
+    missing_revision_gates: 0
+  IZHS_cross_cutting_cards:
+    count: 4
+    documents: [SP_52_13330_2016, SP_131_13330_2025, SP_2_13130_2020, SP_4_13130_2013]
+
+document_cards:
   - documents/SP_55_13330_2016.yaml
   - documents/SP_20_13330_2016.yaml
+  - documents/SP_22_13330_2016.yaml
+  - documents/SP_24_13330_2021.yaml
+  - documents/SP_63_13330_2018.yaml
+  - documents/SP_64_13330_2017.yaml
+  - documents/SP_15_13330_2020.yaml
+  - documents/SP_16_13330_2017.yaml
   - documents/SP_50_13330_2024.yaml
+  - documents/SP_17_13330_2017.yaml
+  - documents/SP_28_13330_2017.yaml
+  - documents/SP_29_13330_2011.yaml
+  - documents/SP_71_13330_2017.yaml
+  - documents/SP_30_13330_2020.yaml
+  - documents/SP_60_13330_2020.yaml
+  - documents/SP_256_1325800_2016.yaml
+  - documents/SP_402_1325800_2018.yaml
   - documents/SP_52_13330_2016.yaml
   - documents/SP_131_13330_2025.yaml
-  - documents/SP_17_13330_2017.yaml
   - documents/SP_2_13130_2020.yaml
   - documents/SP_4_13130_2013.yaml
-  - documents/SP_64_13330_2017.yaml
 
 resolved_safety_gaps:
   - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH

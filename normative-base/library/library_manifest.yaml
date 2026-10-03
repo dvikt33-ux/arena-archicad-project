@@ -1,4 +1,4 @@
-library_version: 11
+library_version: 12
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -106,10 +106,15 @@ coverage:
   engineering_system_scope_enforcement:
     source: "engineering_system_scope_registry.yaml"
     CI_validator: "../tools/validate_engineering_scope.py"
-    files_registered: 13
+    files_registered: 16
     evaluation_order: [system_or_equipment_presence, normative_scope, object_or_function_section, machine_rule]
     missing_system_result: not_applicable
     unknown_requirement_result: engineering_design_required
+  root_manifest_integration:
+    root_manifest: "../manifest.yaml"
+    library_loaded_before_rules: true
+    CI_validator: "../tools/validate_library_integration.py"
+    production_authority: false
 
 document_cards:
   - documents/SP_55_13330_2016.yaml
@@ -165,8 +170,14 @@ resolved_safety_gaps:
     resolved_at: 2026-10-03
     resolution: >-
       library/engineering_system_scope_registry.yaml requires system/equipment presence and
-      normative-scope validation before evaluating the first 13 high-impact engineering/fire files;
+      normative-scope validation before evaluating 16 high-impact engineering/fire files;
       tools/validate_engineering_scope.py is executed by CI.
+  - id: LIBRARY_NOT_IN_ROOT_LOAD_ORDER
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: >-
+      manifest.yaml loads library/library_manifest.yaml before rules/*.yaml; the library remains
+      production_authority false and may only route/block/preserve evidence states.
 
 known_safety_gaps:
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT

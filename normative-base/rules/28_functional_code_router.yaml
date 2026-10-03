@@ -157,6 +157,95 @@ mixed_function_algorithm:
     - "5. For mixed-use/ТРК additionally load applicable fire-safety SP for multifunctional buildings/atriums/galleries and special functions such as cinema/sport/hotel/parking."
     - "6. If the object's parameters exceed a special SP scope, return needs_special_technical_conditions_or_additional_basis rather than extrapolating the SP."
 
+rule_file_scope_registry:
+  mode: hard_gate_before_rule_evaluation
+  policy:
+    - "Факт загрузки YAML-файла глобальным manifest не означает применимость его machine rules к текущему классу объекта."
+    - "Для файла/секции из этого реестра сначала проверяется object class; несовпадающие секции считаются not_applicable и не участвуют в выборе числового требования."
+    - "IZHS не наследует нормы СП54 только потому, что файл называется residential."
+    - "Общий/product standard может использоваться в ИЖС только в своей области и не заменяет проектное требование СП55 или другого применимого СП."
+  files:
+    35_residential_planning_minima.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+    36_residential_wet_zone_stacking.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+    37_residential_balconies_loggias.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+      note: "Сквозные ссылки на СП1/СП7 не превращают весь файл в общий: их общие требования должны приходить через собственные rule-файлы."
+    40_residential_vertical_transport.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+    53_garant_residential_planning_verification.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+    61_residential_entrance_vestibules_climate.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_54_13330_2022
+    65_timber_apartment_fire_2026.yaml:
+      allowed_object_classes: [MKD]
+      forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_549_1311500_2026
+    100_residential_gas_architectural_interfaces_2027.yaml:
+      allowed_object_classes: [IZHS, MKD]
+      forbidden_object_classes: [PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: true
+      normative_basis: SP_402_1325800_2018
+      section_overrides:
+        multifamily_residential:
+          allowed_object_classes: [MKD]
+          forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+        locator_5_16:
+          allowed_object_classes: [MKD]
+          forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+    07_guardrails_roofs.yaml:
+      allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: section_scoped
+      section_overrides:
+        metal_guardrail_types:
+          allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+          role: product_classification_only
+        standard_product_parameters:
+          allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+          role: product_geometry_only
+          note: "Стандарт изделия не задает сам по себе проектную требуемую высоту ограждения."
+        residential_project_requirements:
+          allowed_object_classes: [MKD]
+          forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+          normative_basis: SP_54_13330_2022
+        public_project_requirements:
+          allowed_object_classes: [PUBLIC]
+          forbidden_object_classes: [IZHS, MKD, TRK, INDUSTRIAL]
+          normative_basis: SP_118_13330_2022
+          note: "TRK получает общественные требования только через явно подтвержденную применимость общего слоя/специального СП, не автоматически."
+    04_architectural_baseline.yaml:
+      allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+      hard_gate: section_scoped
+      section_overrides:
+        building_height_rules.residential_apartments:
+          allowed_object_classes: [MKD]
+          forbidden_object_classes: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+          normative_basis: SP_54_13330_2022
+        building_height_rules.public_buildings:
+          allowed_object_classes: [PUBLIC]
+          forbidden_object_classes: [IZHS, MKD, TRK, INDUSTRIAL]
+          normative_basis: SP_118_13330_2022
+
 BIM_required_parameters:
   - building_primary_function
   - functional_zones
@@ -172,6 +261,7 @@ BIM_required_parameters:
 agent_logic:
   - "Название проекта 'ТРК', 'школа', 'больница' или 'жилой дом' должно преобразовываться в набор нормативных профилей до генерации помещений."
   - "Одноквартирный дом должен быть явно классифицирован в профиль IZHS/SP55; профиль МКД SP54 не применяется к нему только по общему слову 'жилой'."
+  - "Перед вычислением любого machine rule проверять rule_file_scope_registry; несовпадающий класс объекта дает not_applicable, а не более слабый fallback."
   - "Не применять таблицы площадей/высот/санузлов/лестниц из СП 118, если специальный СП объекта задает собственное требование."
   - "Не использовать замененный СП 278.1325800.2016 для вузов; профиль 2027 использует СП 278.1325800.2024."
   - "Не использовать замененный СП 257.1325800.2016 для гостиниц; использовать СП 257.1325800.2020 с Изм. №1."

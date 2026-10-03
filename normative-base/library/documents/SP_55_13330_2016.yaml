@@ -1,0 +1,70 @@
+document_id: SP_55_13330_2016
+title: "Дома жилые одноквартирные"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [IZHS]
+object_class_router:
+  include: [IZHS]
+  exclude_by_default: [MKD, PUBLIC, INDUSTRIAL, TRK]
+  role: primary_functional_document
+
+scope:
+  official_card_verified: true
+  summary: >-
+    Проектирование, строительство и реконструкция жилых одноквартирных домов
+    с количеством наземных этажей не более трех, отдельно стоящих или блокированной
+    застройки; также дома со встроенными/пристроенными нежилыми помещениями в пределах
+    области применения документа.
+
+revision:
+  base_approval_order: "725/пр"
+  base_approval_date: 2016-10-20
+  effective_from: 2017-04-21
+  replaces: SP_55_13330_2011
+  verified_changes: [1, 2]
+  change_1:
+    approval_order: "415/пр"
+    approval_date: 2018-07-10
+    effective_from: 2019-01-11
+    official_card: "https://protect.gost.ru/sp/changesdetails/9fa33eb9-3be0-4645-b362-5c2b707e42b9"
+    proof_state: official_card_verified
+  change_2:
+    approval_order: "350/пр"
+    approval_date: 2023-05-17
+    registered_date: 2023-06-14
+    effective_from: 2023-06-18
+    official_publication_date: 2023-06-15
+    official_card: "https://protect.gost.ru/sp/changesdetails/c03b2bb8-b87d-4f52-87a0-7ca68372209b"
+    proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  authority: Rosstandart
+  base_card_proof_state: official_card_verified
+
+locators:
+  - locator: "9.18"
+    topic: daylight_window_to_floor_ratio
+    proof_state: blocked_pending_locator
+    production_allowed: false
+    blocker: >-
+      Точный действующий текст пункта 9.18 не прочитан непосредственно в официальном
+      документе или авторизованном locator действующей редакции. Вторичные актуальные
+      копии не удовлетворяют evidence policy.
+    secondary_corrob_only:
+      reported_values: ["1:8", "1:10 for attic rooms"]
+      use_for_production: false
+
+release_gates:
+  - SP55_revision_must_be_present_in_global_revision_watch
+  - exact_locator_text_required_for_numeric_rules
+  - later_SP55_change_requires_locator_reaudit
+
+known_gaps:
+  - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
+    status: open
+    effect: fail_closed_for_SP55_dependent_locators_until_revision_gate_is_added_and_audited

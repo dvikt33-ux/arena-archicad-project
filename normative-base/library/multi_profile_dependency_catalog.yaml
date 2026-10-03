@@ -1,0 +1,221 @@
+catalog_version: 1
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+purpose: >-
+  Центральный граф нормативных профилей по типам объектов. Каталог определяет, какие
+  функциональные и специальные документы должны рассматриваться для конкретного типа здания
+  или функциональной зоны. Наличие документа в каталоге не доказывает текст отдельного пункта
+  и не разрешает числовое production-правило без locator-level evidence.
+
+invariants:
+  - classify_building_and_functional_zones_before_loading_special_codes
+  - primary_functional_code_never_replaced_by_general_public_code
+  - mixed_use_loads_each_active_functional_zone_independently
+  - embedded_special_function_applies_to_its_zone_not_to_entire_host_building
+  - highrise_is_overlay_not_replacement_for_underlying_functional_profile
+  - parking_is_independent_special_profile_when_SP113_scope_matches
+  - industrial_storage_route_does_not_auto_cover_excluded_special_storage
+  - official_card_proves_identity_status_scope_and_revision_metadata_only
+  - numeric_or_imperative_locator_requires_direct_locator_evidence
+  - absent_function_or_system_result_is_not_applicable
+
+common_cross_cutting_routes:
+  fire_safety: [SP_1_13130_2020, SP_2_13130_2020, SP_4_13130_2013]
+  accessibility: [SP_59_13330_2020]
+  loads_and_climate: [SP_20_13330_2016, SP_131_13330_2025]
+  thermal_acoustic_lighting: [SP_50_13330_2024, SP_51_13330_2011, SP_52_13330_2016]
+  engineering_coordination: [SP_30_13330_2020, SP_60_13330_2020, SP_256_1325800_2016]
+  note: >-
+    Cross-cutting documents are loaded only where their own scope/trigger applies. This list is
+    a routing family, not an instruction to execute every rule for every object.
+
+profiles:
+  MKD:
+    primary_document: SP_54_13330_2022
+    host_class: MKD
+    official_status: active
+    verified_changes: [1, 2]
+    required_base_profiles: [FIRE, ACCESSIBILITY, CLIMATE, THERMAL, ACOUSTIC, LIGHTING]
+    optional_special_routes:
+      - SP_113_13330_2023_when_parking_scope_matches
+      - SP_158_13330_2014_for_embedded_medical_zone
+      - SP_257_1325800_2020_for_hotel_zone_in_nonresidential_part
+      - PUBLIC_zone_routes_for_embedded_public_functions
+    forbidden_primary_substitutions: [SP_55_13330_2016, SP_118_13330_2022]
+
+  PUBLIC_GENERAL:
+    primary_document: SP_118_13330_2022
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3, 4, 5]
+    role: general_public_layer
+    rule: >-
+      SP118 is the general public-building layer and does not replace a more specific functional SP.
+
+  TRK:
+    primary_document: SP_464_1325800_2019
+    host_class: TRK
+    official_status: active
+    verified_changes: [1]
+    required_general_layer: SP_118_13330_2022
+    conditional_overlays: [SP_160_1325800_2014, SP_456_1311500_2020]
+    active_zone_routes: [CINEMA, SPORTS, FOODSERVICE, FOOD_RETAIL, CHILD_PLAY, PARKING, HOTEL]
+    scope_limits:
+      max_height_m: 50
+      max_underground_depth_m: 15
+    out_of_scope_result: needs_special_technical_conditions_or_additional_basis
+
+  MIXED_USE:
+    primary_document: SP_160_1325800_2014
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3]
+    required_general_layer: SP_118_13330_2022
+    fire_overlay: SP_456_1311500_2020
+    scope_limits:
+      max_building_height_m: 75
+      public_premises_max_height_m: 55
+      max_underground_depth_m: 15
+    rule: load_each_functional_zone_profile_independently
+
+  SCHOOL_GENERAL_EDUCATION:
+    primary_document: SP_251_1325800_2016
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3, 4, 5, 6, 7]
+    required_general_layer: SP_118_13330_2022
+    functional_fire_class_route: F4_1
+    scope: new_and_reconstructed_general_education_buildings_and_complexes
+
+  PRESCHOOL:
+    primary_document: SP_252_1325800_2016
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3]
+    required_general_layer: SP_118_13330_2022
+    functional_fire_class_route: F1_1
+    scope: new_and_reconstructed_preschool_organization_buildings
+
+  HIGHER_EDUCATION:
+    primary_document: SP_278_1325800_2024
+    host_class: PUBLIC
+    official_status: active
+    effective_from: 2025-01-26
+    replaces: SP_278_1325800_2016
+    required_general_layer: SP_118_13330_2022
+
+  VOCATIONAL_EDUCATION:
+    primary_document: SP_279_1325800_2016
+    host_class: PUBLIC
+    official_status: active
+    required_general_layer: SP_118_13330_2022
+    verified_changes: [1]
+
+  MEDICAL:
+    primary_document: SP_158_13330_2014
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3, 4, 5, 6, 7]
+    required_general_layer: SP_118_13330_2022
+    embedded_zone_allowed_in_host_classes: [MKD, PUBLIC, INDUSTRIAL]
+    rule: medical_requirements_apply_to_medical_zone_even_when_embedded_in_another_host_class
+
+  HOTEL:
+    primary_document: SP_257_1325800_2020
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1]
+    replaces: SP_257_1325800_2016
+    required_general_layer: SP_118_13330_2022
+    embedded_zone_allowed_in_host_classes: [PUBLIC, MKD]
+    max_underground_depth_m: 15
+
+  SPORTS:
+    primary_document: SP_332_1325800_2017
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1, 2, 3, 4]
+    required_general_layer: SP_118_13330_2022
+    related_documents: [SP_415_1325800_2023]
+
+  THEATRE_CINEMA_CONCERT:
+    primary_document: SP_309_1325800_2017
+    host_class: PUBLIC
+    official_status: active
+    verified_changes: [1]
+    required_general_layer: SP_118_13330_2022
+    scope_limits:
+      max_height_m: 50
+      max_underground_depth_m: 15
+
+  PARKING:
+    primary_document: SP_113_13330_2023
+    host_class: SPECIAL_ZONE
+    official_status: active
+    verified_changes: [1, 2, 3, 4]
+    latest_change_effective_from: 2026-10-03
+    applies_to_host_classes: [MKD, PUBLIC, TRK, INDUSTRIAL]
+    independent_scope_gate: true
+    note: >-
+      Parking rules activate only when the building/structure/site/room is within SP113 scope;
+      an ordinary private IZHS garage or EV charger does not activate SP113 automatically.
+
+  INDUSTRIAL_PRODUCTION_STORAGE:
+    primary_document: SP_56_13330_2021
+    host_class: INDUSTRIAL
+    official_status: active
+    verified_changes: []
+    scope_fire_classes: [F5_1, F5_2]
+    includes_embedded_F5_1_F5_2_rooms_in_other_classes: true
+    exclusions_require_separate_special_route: true
+
+  INDUSTRIAL_ADMIN_AMENITY:
+    primary_document: SP_44_13330_2011
+    host_class: INDUSTRIAL
+    official_status: active
+    role: admin_and_amenity_buildings_of_industrial_enterprises
+    scope_limit_height_m: 55
+
+  HIGH_RISE_OVERLAY:
+    primary_document: SP_267_1325800_2016
+    host_class: OVERLAY
+    official_status: active
+    verified_changes: [1, 2, 3]
+    latest_change_effective_from: 2026-07-15
+    rule: >-
+      High-rise profile supplements but does not replace the underlying MKD/PUBLIC/MIXED_USE/
+      HOTEL/etc functional profile. Apply only after high-rise scope is confirmed.
+
+  CHILDREN_HEALTH_CAMP:
+    primary_document: SP_535_1325800_2024
+    host_class: PUBLIC
+    official_status: active
+    effective_from: 2024-03-09
+    required_general_layer: SP_118_13330_2022
+
+research_priority:
+  P0:
+    - MKD
+    - PUBLIC_GENERAL
+    - TRK
+    - PARKING
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - MEDICAL
+    - HOTEL
+    - SPORTS
+    - INDUSTRIAL_PRODUCTION_STORAGE
+  P1:
+    - MIXED_USE
+    - HIGH_RISE_OVERLAY
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - THEATRE_CINEMA_CONCERT
+    - INDUSTRIAL_ADMIN_AMENITY
+    - CHILDREN_HEALTH_CAMP
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  applicability_graph_expanded: true

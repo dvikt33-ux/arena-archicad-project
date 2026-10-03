@@ -1,0 +1,32 @@
+change_map_version: 1
+checked_at: 2026-10-03
+document: SP_17_13330_2017
+target_profile: RU_2027_PLUS
+production_authority: false
+verified_changes: [1, 2, 3, 4, 5]
+latest_change: 5
+latest_change_effective_from: 2025-01-10
+
+policy:
+  - amendment_cards_identify_revision_chain_but_do_not_replace_full_change_text
+  - existing_locator_PASS_is_inherited_only_from_durable_post_amendment_audit
+  - any_change_after_5_invalidates_inherited_locator_PASS_until_reaudit
+
+amendment_cards:
+  - {number: 1, url: "https://protect.gost.ru/sp/changesdetails/aeb33d57-953a-4e3e-8a55-790277f76bd9"}
+  - {number: 2, url: "https://protect.gost.ru/sp/changesdetails/f3c78bd9-3f6d-42ce-95a5-78e924755afd"}
+  - {number: 3, url: "https://protect.gost.ru/sp/changesdetails/72382777-f91c-4226-83c9-31e8bd834c54"}
+  - {number: 4, url: "https://protect.gost.ru/sp/changesdetails/75bd9f2b-b5b8-468a-871b-5fdcaa23cf88"}
+  - {number: 5, url: "https://protect.gost.ru/sp/changesdetails/c660c8fe-0ace-4b25-b976-8acad8a8154e"}
+
+post_amendment_audit:
+  file: "../../audits/2026-10-01_core_2027_cycle.md"
+  audit_date: 2026-10-01
+  locator: "Table 4.1"
+  result: inherited_scoped_pass
+  rule_file: "../../rules/15_roofs.yaml"
+  statement: "Durable audit explicitly records the full base roof-slope table as verified for SP17 with Changes 1-5."
+
+future_watch:
+  if_official_latest_change_gt: 5
+  action: invalidate_Table_4_1_inherited_scoped_pass_until_reaudit

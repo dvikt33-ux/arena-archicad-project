@@ -1,0 +1,137 @@
+backlog_version: 1
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+purpose: >-
+  Инвентаризация locator-level evidence, которое требуется мигрировать для уже существующих
+  non-IZHS production rules. Наличие записи означает только, что rule-файл ссылается на этот
+  locator. До прямой проверки действующего текста locator не получает новый library PASS.
+
+proof_state: existing_rule_traceability_pending
+invariants:
+  - backlog_entry_never_promotes_numeric_rule
+  - rule_file_text_is_not_independent_normative_evidence
+  - current_revision_locator_must_be_read_before_new_library_PASS
+  - amendment_card_metadata_does_not_prove_locator_text
+  - special_profile_locator_must_be_verified_in_its_own_scope
+
+profiles:
+  MKD:
+    primary_document: SP_54_13330_2022
+    rule_files: [35_residential_planning_minima.yaml]
+    locators:
+      - {locator: "5.2; table 5.1", topic: apartment_area_reference, state: existing_rule_traceability_pending}
+      - {locator: "5.11", topic: room_areas_and_geometry, state: existing_rule_traceability_pending}
+      - {locator: "A.1.4", topic: room_area_measurement, state: existing_rule_traceability_pending}
+      - {locator: "A.1.4 note 1", topic: kitchen_niche_area, state: existing_rule_traceability_pending}
+      - {locator: "5.12", topic: clear_height_cross_reference, state: existing_rule_traceability_pending}
+    promotion_allowed: false
+
+  PUBLIC_GENERAL:
+    primary_document: SP_118_13330_2022
+    rule_files: [43_public_sanitary_facilities.yaml, 59_public_lift_lobby_exceptions.yaml]
+    locators:
+      - {locator: "5.54", topic: sanitary_staff_visitors_and_small_building_conditions, state: existing_rule_traceability_pending}
+      - {locator: "5.55", topic: sanitary_fixture_calculation_fallbacks, state: existing_rule_traceability_pending}
+      - {locator: "5.57", topic: toilet_location_distance, state: existing_rule_traceability_pending}
+      - {locator: "5.16", topic: passenger_lift_distance_and_special_lobby_conditions, state: existing_rule_traceability_pending}
+    promotion_allowed: false
+
+  TRK:
+    primary_document: SP_464_1325800_2019
+    rule_files: [70_trk_multifunctional_planning_2027.yaml, 89_trk_loading_logistics_2027.yaml]
+    locators:
+      - {locator: "1", topic: scope_height_and_underground_depth, state: existing_rule_traceability_pending}
+      - {locator: "5.6", topic: site_and_flow_separation, state: existing_rule_traceability_pending}
+      - {locator: "6.20", topic: loading_count_and_platform_route, state: existing_rule_traceability_pending}
+      - {locator: "6.21", topic: loading_configuration, state: existing_rule_traceability_pending}
+      - {locator: "Appendix B; B.4", topic: storage_corridors_and_doors, state: existing_rule_traceability_pending}
+      - {locator: "8.6 Change 1", topic: sales_route_thresholds, state: existing_rule_traceability_pending}
+      - {locator: "6.10", topic: accessible_lifts_route, state: existing_rule_traceability_pending}
+      - {locator: "6.18", topic: freight_lift_route, state: existing_rule_traceability_pending}
+    promotion_allowed: false
+
+  MIXED_USE:
+    primary_document: SP_160_1325800_2014
+    fire_overlay_document: SP_456_1311500_2020
+    rule_files: [34_multifunctional_atriums.yaml, 70_trk_multifunctional_planning_2027.yaml]
+    locators:
+      - {document: SP_456_1311500_2020, locator: "1", topic: multifunctional_scope, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "3.2", topic: atrium_definition, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "6.2.1", topic: atrium_fire_scope, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "6.2.2", topic: compartment_area_accounting, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "6.2.3", topic: atrium_roof_glazing, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "6.2.4", topic: atrium_height_and_depth, state: existing_rule_traceability_pending}
+      - {document: SP_456_1311500_2020, locator: "7.1", topic: shared_stair_compartment_relation, state: existing_rule_traceability_pending}
+      - {document: SP_160_1325800_2014, locator: "scope/current applicable sections", topic: mixed_use_primary_layer, state: locator_inventory_incomplete}
+    promotion_allowed: false
+
+  SPORTS:
+    primary_document: SP_332_1325800_2017
+    rule_files: [71_public_special_functions_2027.yaml]
+    locators:
+      - {locator: "6.2", topic: hall_height_route, state: existing_rule_traceability_pending}
+      - {locator: "table 6 note", topic: changing_room_door_clearance, state: existing_rule_traceability_pending}
+      - {locator: "table 7", topic: changing_room_passages, state: existing_rule_traceability_pending}
+      - {locator: "changing-room planning section", topic: athlete_route_separation, state: locator_not_precise_enough}
+    promotion_allowed: false
+
+  THEATRE_CINEMA_CONCERT:
+    primary_document: SP_309_1325800_2017
+    rule_files: [71_public_special_functions_2027.yaml]
+    locators:
+      - {locator: "6.1.2.8; table 3", topic: cinema_area_per_seat, state: existing_rule_traceability_pending}
+      - {locator: "Appendix B; table B.3", topic: hall_length_and_sightline, state: existing_rule_traceability_pending}
+      - {locator: "6.1.2.9", topic: accessible_seats_route, state: existing_rule_traceability_pending}
+    promotion_allowed: false
+
+  PARKING:
+    primary_document: SP_113_13330_2023
+    rule_files: [14_parking_geometry.yaml, 45_parking_ramps.yaml, 64_parking_fire_safety_2026.yaml, 82_site_parking_urban_planning_2027.yaml, 102_ev_charging_parking_architectural_interfaces_2027.yaml]
+    current_revision: "through Change 4 effective 2026-10-03"
+    locators:
+      - {locator: "Appendix A; table A.1 note 4", topic: ordinary_parking_space, state: needs_change4_current_text_confirmation}
+      - {locator: "5.6", topic: accessible_parking_space, state: needs_change4_current_text_confirmation}
+      - {locator: "Appendix A; table A.1", topic: vehicle_classes_and_safety_clearances, state: needs_change4_current_text_confirmation}
+      - {locator: "5.4", topic: aisles_and_ramps_route, state: needs_change4_current_text_confirmation}
+      - {locator: "4.4", topic: site_coordination, state: needs_change4_current_text_confirmation}
+      - {locator: "6.2.12", topic: EV_fire_section, state: needs_change4_current_text_confirmation}
+      - {locator: "6.2.30", topic: EV_automatic_fire_suppression, state: needs_change4_current_text_confirmation}
+      - {locator: "7.10.2", topic: EV_parking_scope_and_deep_underground_charge, state: needs_change4_current_text_confirmation}
+      - {locator: "7.10.5", topic: EV_service_geometry, state: needs_change4_current_text_confirmation}
+    promotion_allowed: false
+    priority: P0_urgent_due_to_change4_effective_2026_10_03
+
+  HIGH_RISE_OVERLAY:
+    primary_document: SP_267_1325800_2016
+    fire_overlay_document: SP_550_1311500_2026
+    rule_files: [47_highrise_fire_2027.yaml]
+    locators:
+      - {document: SP_550_1311500_2026, locator: "1.1; 3.2", topic: highrise_scope, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "6.1", topic: fire_resistance_and_structural_class, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "5", topic: fire_compartment_floor_area, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "5.6", topic: atrium_height, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "8.1", topic: firefighter_lifts, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "9.3", topic: smokeproof_stairwells, state: inherited_authorized_text_needs_library_migration}
+      - {document: SP_550_1311500_2026, locator: "9.4", topic: stair_clear_width, state: inherited_authorized_text_needs_library_migration}
+    primary_SP267_locator_inventory: not_started
+    promotion_allowed: false
+
+profiles_without_primary_rule_locator_backlog_yet:
+  - SCHOOL_GENERAL_EDUCATION
+  - PRESCHOOL
+  - HIGHER_EDUCATION
+  - VOCATIONAL_EDUCATION
+  - MEDICAL
+  - HOTEL
+  - INDUSTRIAL_PRODUCTION_STORAGE
+  - INDUSTRIAL_ADMIN_AMENITY
+  - CHILDREN_HEALTH_CAMP
+reason: "No dedicated primary-document rule layer exists yet; first build verified locator extraction from the primary document."
+
+summary:
+  profiles_with_existing_rule_locator_backlog: 8
+  profiles_waiting_for_primary_rule_layer: 9
+  new_library_PASS: 0
+  production_rules_promoted: 0

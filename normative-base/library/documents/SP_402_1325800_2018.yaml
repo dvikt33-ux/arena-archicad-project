@@ -19,6 +19,7 @@ revision_gate:
   status: present
 official_sources:
   base_card: "https://protect.gost.ru/sp/details/615c425a-edaa-47d2-86f6-445f33f192c1"
+  change_1_card: "https://protect.gost.ru/sp/changesdetails/aa38119a-eff7-4154-a8de-8dc4b07c43e2"
   authority: Rosstandart
   proof_state: official_card_verified
 scope:
@@ -26,14 +27,32 @@ scope:
   note: >-
     Системы газопотребления одноквартирных и блокированных жилых домов и жилых
     многоквартирных зданий с природным газом в пределах официальной области применения.
-locators: []
+
+change_map: "../change_maps/SP_402_1325800_2018.yaml"
+
+locators:
+  - {locator: "5.1", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.5", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml", known_ambiguity: true}
+  - {locator: "5.9", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.10", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.11", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.12", proof_state: existing_rule_traceability_pending, object_classes: [IZHS, MKD], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.16", proof_state: existing_rule_traceability_pending, object_classes: [MKD], forbidden_for_IZHS: true, rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+
 known_blockers:
   - id: SP402_5_5_COMBINATION_AMBIGUITY
     status: fail_closed
     note: "Существующая в revision_watch_adjacent_2027.yaml неоднозначность п.5.5 не разрешается этой карточкой."
+  - id: SP402_LOCATOR_DURABLE_TRACEABILITY
+    status: open
+    note: >-
+      Конкретные production rules существуют, но отдельная durable locator-evidence цепочка
+      для пп.5.1, 5.5, 5.9-5.12 и 5.16 еще не завершена. Library не повышает и не понижает
+      эти правила до прямой проверки или отдельного durable-аудита.
 release_gates:
   - gas_system_presence_required
   - exact_scope_match_required
   - profile_gas_design_required
   - architecture_agent_must_not_infer_pipe_sizes_or_equipment_capacity
-  - exact_locator_evidence_required_for_numeric_rules
+  - exact_locator_evidence_required_for_library_PASS
+  - MKD_only_locator_5_16_forbidden_for_IZHS

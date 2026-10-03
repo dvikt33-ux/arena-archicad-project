@@ -1,5 +1,5 @@
-library_version: 12
-checked_at: 2026-10-03
+library_version: 13
+checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
 role: evidence_and_scope_router
@@ -21,6 +21,8 @@ invariants:
   - global_yaml_loading_never_implies_cross_class_rule_applicability
   - mixed_use_special_rules_require_active_functional_zone_or_special_profile_match
   - engineering_rule_files_require_system_or_equipment_presence_before_rule_evaluation
+  - functional_profile_coverage_must_not_be_IZHS_only
+  - each_primary_functional_profile_requires_its_own_document_card
 
 object_classes:
   IZHS:
@@ -41,6 +43,11 @@ object_classes:
     include_tags: [TRK, PUBLIC, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
     exclude_special_tags: [IZHS, MKD, INDUSTRIAL]
     primary_functional_document: SP_464_1325800_2019
+  INDUSTRIAL:
+    include_tags: [INDUSTRIAL, GENERAL, FIRE, STRUCTURAL, CLIMATE, SITE]
+    exclude_special_tags: [IZHS, MKD, TRK]
+    primary_functional_document: SP_56_13330_2021
+    note: "Special production/storage exclusions and industrial admin/amenity buildings use their own profile routes."
 
 proof_states:
   - official_clause_verified
@@ -55,6 +62,7 @@ proof_states:
 
 catalogs:
   - izh_dependency_catalog.yaml
+  - multi_profile_dependency_catalog.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
   - engineering_system_scope_registry.yaml
@@ -77,6 +85,14 @@ coverage:
   IZHS_cross_cutting_cards:
     count: 4
     documents: [SP_52_13330_2016, SP_131_13330_2025, SP_2_13130_2020, SP_4_13130_2013]
+  multi_profile_functional_coverage:
+    source: multi_profile_dependency_catalog.yaml
+    CI_validator: "../tools/validate_multi_profile_catalog.py"
+    profiles_registered: 17
+    P0_profiles: [MKD, PUBLIC_GENERAL, TRK, PARKING, SCHOOL_GENERAL_EDUCATION, PRESCHOOL, MEDICAL, HOTEL, SPORTS, INDUSTRIAL_PRODUCTION_STORAGE]
+    P1_profiles: [MIXED_USE, HIGH_RISE_OVERLAY, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, THEATRE_CINEMA_CONCERT, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
+    primary_or_overlay_document_cards_added_this_cycle: 18
+    non_IZHS_research_is_first_class: true
   additional_product_document_cards:
     count: 1
     documents: [GOST_25772_2025]
@@ -118,6 +134,24 @@ coverage:
 
 document_cards:
   - documents/SP_55_13330_2016.yaml
+  - documents/SP_54_13330_2022.yaml
+  - documents/SP_118_13330_2022.yaml
+  - documents/SP_464_1325800_2019.yaml
+  - documents/SP_251_1325800_2016.yaml
+  - documents/SP_252_1325800_2016.yaml
+  - documents/SP_158_13330_2014.yaml
+  - documents/SP_257_1325800_2020.yaml
+  - documents/SP_332_1325800_2017.yaml
+  - documents/SP_113_13330_2023.yaml
+  - documents/SP_56_13330_2021.yaml
+  - documents/SP_160_1325800_2014.yaml
+  - documents/SP_267_1325800_2016.yaml
+  - documents/SP_309_1325800_2017.yaml
+  - documents/SP_278_1325800_2024.yaml
+  - documents/SP_279_1325800_2016.yaml
+  - documents/SP_44_13330_2011.yaml
+  - documents/SP_535_1325800_2024.yaml
+  - documents/SP_456_1311500_2020.yaml
   - documents/SP_20_13330_2016.yaml
   - documents/SP_22_13330_2016.yaml
   - documents/SP_24_13330_2021.yaml
@@ -178,6 +212,12 @@ resolved_safety_gaps:
     resolution: >-
       manifest.yaml loads library/library_manifest.yaml before rules/*.yaml; the library remains
       production_authority false and may only route/block/preserve evidence states.
+  - id: MULTI_PROFILE_LIBRARY_MISSING
+    status: resolved_initial_profile_graph
+    resolved_at: 2026-10-04
+    resolution: >-
+      multi_profile_dependency_catalog.yaml now defines 17 non-IZHS and cross-class functional profiles,
+      18 primary/overlay document cards were added, and CI validates primary-card and P0/P1 coverage.
 
 known_safety_gaps:
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT

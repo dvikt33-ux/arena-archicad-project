@@ -1,0 +1,143 @@
+audit_id: P1_PROFILE_AND_PARKING_FIRE_EVIDENCE_PASS_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+numeric_values_added_to_production: 0
+library_PASS_promoted: 0
+
+objectives:
+  - make_P1_special_profiles_first_class_in_evidence_workflow
+  - create_revision_maps_for_all_P1_profiles_and_sports_completion
+  - preserve_underlying_functional_profile_beneath_highrise_overlay
+  - close_parking_fire_evidence_library_gap_for_SP551
+  - keep_SP113_planning_and_SP551_fire_roles_separate
+
+P1_locator_extraction:
+  registry: "../library/profile_p1_locator_extraction_registry.yaml"
+  validator: "../tools/validate_p1_locator_extraction.py"
+  profiles:
+    - MIXED_USE
+    - HIGH_RISE_OVERLAY
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - THEATRE_CINEMA_CONCERT
+    - INDUSTRIAL_ADMIN_AMENITY
+    - CHILDREN_HEALTH_CAMP
+  partial_profile_expansion:
+    - SPORTS
+  production_promotion_allowed: false
+  unresolved_result: profile_requirement_pending
+
+revision_maps_added:
+  - {document: SP_278_1325800_2024, latest_change: null, effective_from: 2025-01-26}
+  - {document: SP_279_1325800_2016, latest_change: 1, latest_change_effective_from: 2024-01-29}
+  - {document: SP_44_13330_2011, latest_change: 4, latest_change_effective_from: 2022-01-08}
+  - {document: SP_535_1325800_2024, latest_change: null, effective_from: 2024-03-09}
+  - {document: SP_309_1325800_2017, latest_change: 1, latest_change_effective_from: 2024-01-29}
+  - {document: SP_332_1325800_2017, latest_change: 4, latest_change_effective_from: 2024-01-29}
+  - {document: SP_160_1325800_2014, latest_change: 3, latest_change_effective_from: 2024-01-29}
+  - {document: SP_267_1325800_2016, latest_change: 3, latest_change_effective_from: 2026-07-15}
+  - {document: SP_550_1311500_2026, latest_change: null, effective_from: 2026-06-01}
+  - {document: SP_551_1311500_2026, latest_change: null, effective_from: 2026-06-01}
+
+highrise_revision_note:
+  document: SP_267_1325800_2016
+  latest_change: 3
+  official_card: "https://protect.gost.ru/sp/changesdetails/f62e4140-c0e1-4685-8f54-d05ddad6314f"
+  effective_from: 2026-07-15
+  public_card_summary_role: revision_and_reference_route_only
+  important_reference_updates_include:
+    - GOST_25772_2025
+    - SP_54_13330_2022_change_2
+    - SP_59_13330_2020_change_4
+    - SP_113_13330_2023_changes_1_2_3
+    - SP_118_13330_2022_change_5
+    - SP_131_13330_2025
+    - SP_256_1325800_2016_change_9
+  locator_promotion_from_card: false
+
+parking_fire_transition:
+  planning_document: SP_113_13330_2023
+  planning_current_change: 4
+  planning_change_effective_from: 2026-10-03
+  fire_document: SP_551_1311500_2026
+  fire_document_effective_from: 2026-06-01
+  official_fire_card: "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+  existing_rule_file: "../rules/64_parking_fire_safety_2026.yaml"
+  finding: >-
+    Existing production routing is already conceptually correct: SP113 is used for parking planning
+    geometry while SP551 is used for parking fire-protection requirements. The evidence library had
+    lacked a dedicated SP551 document card/revision map/global revision-watch entry; this pass closes
+    that metadata/traceability gap without changing production rule values.
+  new_document_card: "../library/documents/SP_551_1311500_2026.yaml"
+  new_change_map: "../library/change_maps/SP_551_1311500_2026.yaml"
+  revision_watch_added: true
+  locator_state: existing_rule_traceability_pending
+  new_library_PASS: 0
+
+medical_change7_observation:
+  document: SP_158_13330_2014
+  latest_change: 7
+  effective_from: 2026-08-10
+  direct_public_GARANT_change_text_found: true
+  observation: >-
+    Change 7 contains substantive text edits in addition to reference updates, including corrections
+    affecting clause 5.2 and wording in section 6. Therefore older medical candidate requirements
+    must not be presumed unchanged merely from revision metadata.
+  production_promotion_from_this_observation: false
+  current_consolidated_locator_still_required: true
+
+library_manifest:
+  version: 18
+  P1_queue_integrated: true
+  SP551_document_card_integrated: true
+  SP551_change_map_integrated: true
+  parking_geometry_fire_role_separation_invariant: true
+
+CI:
+  workflow: "../../.github/workflows/normative-base-lint.yml"
+  added_validator: "../tools/validate_p1_locator_extraction.py"
+  expected_result: all_existing_validators_plus_P1_pass
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rule_values_reinterpreted: false
+  production_rules_promoted: 0
+  library_PASS_promoted: 0
+  evidence_routing_hardened: true
+
+open_priority_work:
+  P0_direct_locators:
+    - SP251_school
+    - SP252_preschool
+    - SP158_medical
+    - SP257_hotel
+    - SP56_industrial
+    - SP113_change4_current_locators
+  P1_direct_locators:
+    - SP160_mixed_use
+    - SP267_highrise_architecture
+    - SP278_higher_education
+    - SP279_vocational_education
+    - SP309_theatre_cinema_concert
+    - SP44_industrial_admin_amenity
+    - SP535_children_health_camp
+    - SP332_full_sports_completion
+  existing_rule_evidence_migration:
+    - SP54_MKD
+    - SP118_PUBLIC
+    - SP464_TRK
+    - SP550_highrise_fire
+    - SP551_parking_fire
+
+unchanged_blockers:
+  - authorized_Opera_GARANT_Consultant_locator_access_disconnected
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification

@@ -1,0 +1,28 @@
+document_id: SP_278_1325800_2024
+title: "Здания образовательных организаций высшего образования. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, EDUCATION, HIGHER_EDUCATION]
+object_class_router:
+  include_when_subject_applies: [PUBLIC]
+  gate: higher_education_building_or_campus
+revision:
+  verified_changes: []
+  latest_change: null
+  effective_from: 2025-01-26
+replacement:
+  replaces: SP_278_1325800_2016
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/ceef6cd1-aabc-4be1-81a4-edcc348b9974"
+scope:
+  proof_state: official_card_verified
+  note: "Higher-education buildings and campuses within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - higher_education_profile_required

@@ -1,0 +1,30 @@
+document_id: SP_256_1325800_2016
+title: "Электроустановки жилых и общественных зданий. Правила проектирования и монтажа"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  latest_change: 9
+  latest_change_effective_from: 2026-01-26
+revision_gate:
+  files: [revision_watch_2027.yaml, revision_watch_adjacent_2027.yaml]
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование и монтаж электроустановок жилых и общественных зданий в пределах официальной области применения."
+locators: []
+release_gates:
+  - electrical_design_inputs_required
+  - profile_calculation_required
+  - architecture_agent_must_not_infer_power_cable_or_protection_sizes
+  - exact_locator_evidence_required_for_numeric_rules

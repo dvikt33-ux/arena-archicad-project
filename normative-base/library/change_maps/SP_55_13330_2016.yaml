@@ -1,0 +1,49 @@
+change_map_version: 1
+checked_at: 2026-10-03
+document: SP_55_13330_2016
+target_profile: RU_2027_PLUS
+production_authority: false
+purpose: "Карта изменений СП55 для locator-level аудита одноквартирных домов. Публичное описание карточки изменения не считается полным текстом изменения."
+
+policy:
+  - amendment_card_metadata_proves_revision_identity_and_dates_only
+  - visible_reference_summary_does_not_prove_that_clause_9_18_was_unchanged
+  - direct_current_locator_text_required_before_numeric_promotion
+
+amendments:
+  - number: 1
+    approval_order: "415/пр"
+    approval_date: 2018-07-10
+    effective_from: 2019-01-11
+    official_card: "https://protect.gost.ru/sp/changesdetails/9fa33eb9-3be0-4645-b362-5c2b707e42b9"
+    visible_card_summary_kind: reference_updates
+    visible_card_summary_note: >-
+      Публичная карточка показывает исключение, добавление и замену нормативных ссылок,
+      включая переходы на актуальные СП17, СП20, СП22, СП28, СП30, СП52 и другие документы.
+    impact_on_locator_9_18: not_proven_by_card
+  - number: 2
+    approval_order: "350/пр"
+    approval_date: 2023-05-17
+    registered_date: 2023-06-14
+    effective_from: 2023-06-18
+    official_publication_date: 2023-06-15
+    official_card: "https://protect.gost.ru/sp/changesdetails/c03b2bb8-b87d-4f52-87a0-7ca68372209b"
+    visible_card_summary_kind: reference_catalog
+    visible_card_summary_note: >-
+      Публичная карточка содержит обновленный перечень нормативных ссылок, включая
+      СП52.13330.2016 с Изм. №1-2, но не показывает полный постатейный текст изменения.
+    impact_on_locator_9_18: not_proven_by_card
+
+locator_risk:
+  - locator: "9.18"
+    topic: daylight_window_to_floor_ratio
+    current_state: blocked_pending_locator
+    unresolved_amendment_impact: [1, 2]
+    secondary_corrob_only:
+      reported_values: ["1:8", "1:10 for attic rooms"]
+      production_allowed: false
+
+safe_conclusion:
+  production_promotion: forbidden
+  daylight_ratio_generation_from_SP55_9_18: forbidden
+  direct_current_locator_read_required: true

@@ -1,0 +1,42 @@
+document_id: SP_64_13330_2017
+title: "Деревянные конструкции"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, STRUCTURAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  gate: timber_structural_system_selected
+
+revision:
+  replaces: SP_64_13330_2011
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+  latest_change_approval_order: "1014/пр"
+  latest_change_approval_date: 2023-12-28
+  latest_change_effective_from: 2024-01-29
+  latest_change_card: "https://protect.gost.ru/sp/changesdetails/b5542d34-122f-4a6e-b8c6-1f82e70f7f92"
+  latest_change_proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+locators: []
+
+revision_gate:
+  declared_by_izh_scope_inputs: revision_watch_2027.yaml
+  observed_status: missing_from_declared_watch
+  result: fail_closed_gap
+  production_effect: >-
+    До добавления/исправления revision-gate нельзя считать timber-зависимые locator'ы
+    автоматически подтвержденными только по версии rule/node файла.
+
+release_gates:
+  - current_revision_gate_required
+  - structural_calculation_required
+  - exact_clause_or_table_evidence_required_for_numeric_rules

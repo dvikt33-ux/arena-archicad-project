@@ -1,0 +1,30 @@
+document_id: SP_22_13330_2016
+title: "Основания зданий и сооружений"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, STRUCTURAL, SITE]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  replaces: SP_22_13330_2011
+  verified_changes: [1, 2, 3, 4, 5]
+  latest_change: 5
+  latest_change_effective_from: 2024-01-08
+revision_gate:
+  file: revision_watch_adjacent_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/71e96332-a446-4a15-87a0-2db895479f61"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование оснований вновь строящихся и реконструируемых зданий и сооружений в пределах официальной области применения."
+locators: []
+release_gates:
+  - engineering_geology_required
+  - structural_calculation_required
+  - exact_locator_evidence_required_for_numeric_rules

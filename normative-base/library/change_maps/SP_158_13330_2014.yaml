@@ -25,6 +25,18 @@ source_layers:
     effective_from: 2026-08-10
     url: "https://protect.gost.ru/sp/changesdetails/61857d2f-e38b-4971-9112-77b21d98fcf8"
     card_summary_role: revision_metadata_and_reference_update_summary_only
+  direct_public_garant_change_text:
+    authority: GARANT
+    url: "https://base.garant.ru/414693011/"
+    state: amendment_text_read_directly
+    role: invalidate_and_reaudit_map_only
+    does_not_prove: consolidated_current_locator_text
+  FCS_clarification_letter:
+    authority: FAU_FCS
+    date: 2026-07-24
+    number: "Исх-4699"
+    url: "https://base.garant.ru/414756127/"
+    role: corroborates_change7_effect_on_clause_5_2
   change_6_card:
     authority: Rosstandart
     change: 6
@@ -51,16 +63,49 @@ source_layers:
       session could not obtain consolidated current locator text through the public index.
 
 latest_revision_observation:
-  change_7_summary_type: reference_document_updates
-  important_updates:
+  change_7_summary_type: substantive_text_and_reference_updates
+  important_reference_updates:
     - SP_60_13330_2020_updated_to_change_6
     - SP_113_13330_2023_updated_to_change_3
     - SP_256_1325800_2016_updated_to_change_9
     - SP_370_1325800_2017_added
     - legacy_fire_references_removed_from_reference_list
+  known_substantive_locator_effects_non_exhaustive:
+    - locator: "1"
+      effect: scope_text_revised
+      state: needs_current_consolidated_locator
+    - locator: "5.2"
+      effect: "first and second listed site-area values changed from 0.25 ha to 0.16 ha"
+      corroboration: FAU_FCS_letter_2026_07_24_Исх_4699
+      state: affected_by_change7
+    - locator: "6.12.3.2"
+      effect: fourth_sentence_wording_changed
+      state: affected_by_change7
+    - locator: "6.12.3.3"
+      effect: third_sentence_wording_changed
+      state: affected_by_change7
+    - locator: "6.12.3.5"
+      effect: wording_changed
+      state: affected_by_change7
+    - locator: "7.5.6"
+      effect: heading_removed
+      state: affected_by_change7
+    - locator: "7.6.8"
+      effect: heading_revised
+      state: affected_by_change7
+    - locator: "7.6.9"
+      effect: heading_removed
+      state: affected_by_change7
+    - locator: "7.6.10"
+      effect: heading_removed
+      state: affected_by_change7
+    - locator: "9"
+      effect: section_heading_added_or_revised_to_fire_safety_requirements
+      state: affected_by_change7
   evidence_limit: >-
-    Reference-update summaries do not establish that room geometry, departmental separation,
-    medical-flow or other architectural locators are unchanged. Current locator text must be read.
+    The directly read amendment proves that Change 7 is not merely a reference update. The list
+    above is deliberately non-exhaustive and does not substitute for reading the consolidated
+    current locator before creating or changing a production rule.
 
 locator_migration:
   state: blocked_pending_direct_current_locator
@@ -79,6 +124,7 @@ release_gate:
   - direct_current_locator_text_required
   - exact_clause_table_or_appendix_required
   - amendment_effect_on_locator_must_be_resolved
+  - change7_known_affected_locators_must_not_reuse_pre_change_values_without_reaudit
   - embedded_medical_zone_must_be_classified_before_applying_SP158
   - host_building_general_rules_must_not_replace_SP158_specific_requirement
 

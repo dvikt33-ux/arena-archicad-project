@@ -1,4 +1,4 @@
-library_version: 9
+library_version: 10
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -19,6 +19,7 @@ invariants:
   - inherited_scoped_PASS_must_link_to_durable_audit_and_change_map
   - product_standard_geometry_never_replaces_object_class_project_requirement
   - global_yaml_loading_never_implies_cross_class_rule_applicability
+  - mixed_use_special_rules_require_active_functional_zone_or_special_profile_match
 
 object_classes:
   IZHS:
@@ -54,6 +55,7 @@ proof_states:
 catalogs:
   - izh_dependency_catalog.yaml
   - locator_registry.yaml
+  - functional_scope_registry.yaml
 
 change_maps:
   - change_maps/SP_20_13330_2016.yaml
@@ -89,6 +91,16 @@ coverage:
     MKD_only_files_hard_forbidden_for_IZHS: 7
     mixed_section_scoped_files: [04_architectural_baseline.yaml, 07_guardrails_roofs.yaml]
     IZHS_MKD_shared_files_with_section_overrides: [100_residential_gas_architectural_interfaces_2027.yaml]
+  functional_zone_scope_enforcement:
+    source: "functional_scope_registry.yaml"
+    CI_validator: "../tools/validate_functional_scope.py"
+    files_registered: 10
+    PUBLIC_TRK_functional_zone_or_profile_files: 10
+    IZHS_allowed_in_this_registry: 0
+    pure_TRK_SP464_files: [89_trk_loading_logistics_2027.yaml]
+    embedded_public_function_policy: >-
+      Embedded public/retail/foodservice functions in an MKD are evaluated as explicitly
+      classified PUBLIC functional zones; apartment/residential zones remain ineligible.
 
 document_cards:
   - documents/SP_55_13330_2016.yaml
@@ -133,6 +145,12 @@ resolved_safety_gaps:
     resolution: >-
       rules/28_functional_code_router.yaml now contains rule_file_scope_registry and tools/validate.py
       hard-checks the initial high-risk residential/mixed files. Coverage expansion remains iterative.
+  - id: PUBLIC_TRK_NO_FUNCTIONAL_ZONE_CI_GATE
+    status: resolved_initial_high_risk_cluster
+    resolved_at: 2026-10-03
+    resolution: >-
+      library/functional_scope_registry.yaml defines active functional-zone/special-profile gates
+      for the first PUBLIC/TRK cluster and tools/validate_functional_scope.py is executed by CI.
 
 known_safety_gaps:
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT

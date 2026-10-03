@@ -8,8 +8,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_MANIFEST = ROOT / "manifest.yaml"
-LIBRARY_MANIFEST = ROOT / "library" / "library_manifest.yaml"
-LOCATOR_BACKLOG = ROOT / "library" / "multi_profile_locator_backlog.yaml"
+LIBRARY_ROOT = ROOT / "library"
+LIBRARY_MANIFEST = LIBRARY_ROOT / "library_manifest.yaml"
+LOCATOR_BACKLOG = LIBRARY_ROOT / "multi_profile_locator_backlog.yaml"
 REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
     "multi_profile_dependency_catalog.yaml",
@@ -88,22 +89,61 @@ def main() -> int:
         errors.append("root manifest does not load library/library_manifest.yaml")
     if rules_priority is None:
         errors.append("root manifest does not load rules/*.yaml")
-    if isinstance(library_priority, int) and isinstance(rules_priority, int):
-        if library_priority >= rules_priority:
-            errors.append("library must load before production rules")
+    if isinstance(library_priority, int) and isinstance(rules_priority, int) and library_priority >= rules_priority:
+        errors.append("library must load before production rules")
 
     catalogs = set(library.get("catalogs") or [])
     missing_catalogs = sorted(REQUIRED_CATALOGS - catalogs)
     if missing_catalogs:
         errors.append(f"library manifest missing required catalogs: {missing_catalogs}")
     for catalog in REQUIRED_CATALOGS:
-        if not (ROOT / "library" / catalog).exists():
+        if not (LIBRARY_ROOT / catalog).exists():
             errors.append(f"required library catalog file missing: {catalog}")
 
-    document_cards = set(library.get("document_cards") or [])
+    change_maps_raw = library.get("change_maps")
+    if not isinstance(change_maps_raw, list):
+        errors.append("library manifest change_maps must be a list")
+        change_maps_raw = []
+    change_maps = {str(x) for x in change_maps_raw}
+    for rel in sorted(change_maps):
+        if not (LIBRARY_ROOT / rel).exists():
+            errors.append(f"manifest-listed change map missing: {rel}")
+
+    document_cards_raw = library.get("document_cards")
+    if not isinstance(document_cards_raw, list):
+        errors.append("library manifest document_cards must be a list")
+        document_cards_raw = []
+    document_cards = {str(x) for x in document_cards_raw}
     missing_fire_cards = sorted(REQUIRED_FIRE_CARDS - document_cards)
     if missing_fire_cards:
         errors.append(f"library manifest missing required fire overlay document cards: {missing_fire_cards}")
+
+    library_root_resolved = LIBRARY_ROOT.resolve()
+    for rel in sorted(document_cards):
+        card_path = LIBRARY_ROOT / rel
+        if not card_path.exists():
+            errors.append(f"manifest-listed document card missing: {rel}")
+            continue
+        try:
+            card = load(card_path)
+        except Exception as exc:
+            errors.append(f"document card unreadable {rel}: {exc}")
+            continue
+        if not isinstance(card, dict):
+            errors.append(f"document card must be a mapping: {rel}")
+            continue
+        change_map_ref = card.get("change_map")
+        if change_map_ref:
+            target = (card_path.parent / str(change_map_ref)).resolve()
+            try:
+                normalized = target.relative_to(library_root_resolved).as_posix()
+            except ValueError:
+                errors.append(f"document card change_map escapes library root: {rel} -> {change_map_ref}")
+                continue
+            if not target.exists():
+                errors.append(f"document card references missing change_map: {rel} -> {normalized}")
+            if normalized not in change_maps:
+                errors.append(f"document card change_map not registered in library manifest: {rel} -> {normalized}")
 
     coverage = library.get("coverage")
     coverage_row = coverage.get("profile_rule_coverage") if isinstance(coverage, dict) else None
@@ -234,7 +274,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority; P0/P1 queues, SP550/SP551 overlay routes and locator backlogs are integrated without new PASS promotion."
+        "OK: library manifest/card/change-map references are closed; P0/P1 queues and SP550/SP551 overlay routes remain fail-closed with no new PASS promotion."
     )
     return 0
 

@@ -1,4 +1,4 @@
-library_version: 6
+library_version: 7
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -15,6 +15,7 @@ invariants:
   - cross_class_loading_requires_explicit_normative_basis
   - later_revision_requires_reaudit_of_affected_locators
   - amendment_card_summary_never_proves_full_amendment_text
+  - inherited_scoped_PASS_must_link_to_durable_audit_and_change_map
 
 object_classes:
   IZHS:
@@ -53,6 +54,9 @@ catalogs:
 change_maps:
   - change_maps/SP_20_13330_2016.yaml
   - change_maps/SP_55_13330_2016.yaml
+  - change_maps/SP_17_13330_2017.yaml
+  - change_maps/SP_2_13130_2020.yaml
+  - change_maps/SP_4_13130_2013.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -65,7 +69,9 @@ coverage:
     documents: [SP_52_13330_2016, SP_131_13330_2025, SP_2_13130_2020, SP_4_13130_2013]
   locator_index:
     inherited_scoped_pass_locators: 6
+    inherited_scoped_pass_with_change_maps: 6
     blocked_pending_locator: 3
+    blocked_with_change_maps: 3
 
 document_cards:
   - documents/SP_55_13330_2016.yaml

@@ -1,0 +1,39 @@
+document_id: SP_402_1325800_2018
+title: "Здания жилые. Правила проектирования систем газопотребления"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [IZHS, MKD]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD]
+  exclude_by_default: [PUBLIC, INDUSTRIAL, TRK]
+  gate: natural_gas_system_present_and_within_SP402_scope
+revision:
+  verified_changes: [1]
+  latest_change: 1
+  latest_change_effective_from: 2023-01-20
+revision_gate:
+  file: revision_watch_adjacent_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/615c425a-edaa-47d2-86f6-445f33f192c1"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: >-
+    Системы газопотребления одноквартирных и блокированных жилых домов и жилых
+    многоквартирных зданий с природным газом в пределах официальной области применения.
+locators: []
+known_blockers:
+  - id: SP402_5_5_COMBINATION_AMBIGUITY
+    status: fail_closed
+    note: "Существующая в revision_watch_adjacent_2027.yaml неоднозначность п.5.5 не разрешается этой карточкой."
+release_gates:
+  - gas_system_presence_required
+  - exact_scope_match_required
+  - profile_gas_design_required
+  - architecture_agent_must_not_infer_pipe_sizes_or_equipment_capacity
+  - exact_locator_evidence_required_for_numeric_rules

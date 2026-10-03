@@ -12,6 +12,9 @@ REGISTRY = ROOT / "library" / "engineering_system_scope_registry.yaml"
 EXPECTED_PROFILE = "RU_2027_PLUS"
 OBJECT_CLASSES = {"IZHS", "MKD", "PUBLIC", "TRK", "INDUSTRIAL"}
 EXPECTED_FILES = {
+    "91_engineering_architectural_interfaces_2027.yaml",
+    "92_ventilation_exhaust_facade_roof_2027.yaml",
+    "93_smoke_control_architectural_interfaces_2027.yaml",
     "94_fire_suppression_pump_room_interfaces_2027.yaml",
     "95_internal_fire_water_architectural_interfaces_2027.yaml",
     "96_fire_electrical_routing_architectural_interfaces_2027.yaml",
@@ -99,6 +102,25 @@ def main() -> int:
 
         if not row.get("normative_basis"):
             errors.append(f"{filename} missing normative_basis")
+
+    smoke = rows.get("93_smoke_control_architectural_interfaces_2027.yaml")
+    if isinstance(smoke, dict):
+        if smoke.get("required_system") != "smoke_control_ventilation_system":
+            errors.append("smoke-control rule file must require smoke-control system presence")
+        if not smoke.get("applicability_gate"):
+            errors.append("smoke-control rule file must require independent fire-rule applicability gate")
+
+    exhaust = rows.get("92_ventilation_exhaust_facade_roof_2027.yaml")
+    if isinstance(exhaust, dict):
+        overrides = exhaust.get("section_overrides")
+        embedded = overrides.get("clean_exhaust_embedded_public_in_residential") if isinstance(overrides, dict) else None
+        if not isinstance(embedded, dict):
+            errors.append("ventilation exhaust scope must protect embedded PUBLIC-in-residential branch")
+        else:
+            if embedded.get("active_zone_class") != "PUBLIC":
+                errors.append("embedded public ventilation branch must be evaluated as PUBLIC functional zone")
+            if set(embedded.get("allowed_host_object_classes") or []) != {"MKD"}:
+                errors.append("embedded public ventilation branch host must remain MKD-only")
 
     tp = rows.get("101_transformer_substation_architectural_interfaces_2027.yaml")
     if isinstance(tp, dict):

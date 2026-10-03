@@ -1,5 +1,5 @@
-manifest_version: 95
-checked_at: 2026-10-02
+manifest_version: 96
+checked_at: 2026-10-03
 target_profile: RU_2027_PLUS
 
 load_order:
@@ -28,15 +28,18 @@ load_order:
     file: schema/dimension_selection_policy.yaml
     role: dimension semantics and conflict policy
   - priority: 9
-    files: rules/*.yaml
-    role: verified architectural and BIM rules
+    file: library/library_manifest.yaml
+    role: non-production evidence, locator, object-class, functional-zone and engineering-system scope gates
   - priority: 10
+    files: rules/*.yaml
+    role: verified architectural and BIM production rules evaluated only after library scope/evidence gates
+  - priority: 11
     file: nodes/manifest.yaml
     role: general construction node selector and executable assembly engine for foundations and floor systems
-  - priority: 11
+  - priority: 12
     file: izh/manifest.yaml
     role: detached-house construction-system and node-engineering package; material-specific recipes inherit all global 2027 gates
-  - priority: 12
+  - priority: 13
     file: AUDIT.md
     role: human-readable audit trail
 
@@ -47,6 +50,10 @@ precedence_rules:
   - functional_revision_audit_2027.yaml overrides stale special-code revision metadata and can block amendment-specific rules when effective status is ambiguous.
   - registry_additions_2027.yaml may supplement or update revision metadata for the same document id but must not change document identity without explicit replacement metadata.
   - sanitary_registry_2027.yaml overrides stale sanitary references when a sanitary act is repealed or replaced.
+  - library/library_manifest.yaml is non-production authority; it may block, route or mark a locator pending, but it cannot create or strengthen a numeric production rule by itself.
+  - A library blocked_pending_locator cannot supply a BIM numeric value or applicability route until direct locator evidence or a preserved durable scoped PASS exists.
+  - A rule-file, functional-zone or engineering-system scope mismatch resolves to not_applicable; it must not fall back to a rule for another object class.
+  - An engineering rule file is evaluated only after the required system/equipment presence and normative scope are confirmed.
   - Special functional, fire, accessibility or sanitary requirements apply within their explicit scope before general rules.
   - Direct numeric requirements cannot be replaced by modular rounding.
   - Calculation requirements cannot be replaced by typical values.
@@ -199,6 +206,9 @@ hard_fail_states:
   - dimension_semantics_unknown
   - object_classification_missing
   - package_scope_mismatch
+  - required_scope_gate_missing
+  - blocked_locator_used_for_numeric_generation
+  - engineering_system_scope_unknown_for_selected_rule
   - engineering_geology_missing_for_foundation_selection
   - KR_structural_approval_missing_for_node_execution
 
@@ -206,6 +216,10 @@ release_gate:
   require:
     - all YAML files parse successfully
     - no duplicate machine rule ids across rules and loaded packages
+    - library/library_manifest.yaml is loaded before rules/*.yaml
+    - object-class, functional-zone and engineering-system scope validators pass
+    - blocked_pending_locator never supplies a production numeric value or applicability route
+    - existing_rule_traceability_pending never counts as a new library PASS
     - no automatic rule references a superseded clause or superseded document for target 2027
     - numeric automatic rules have source document and clause or table
     - future transitions have official effective dates

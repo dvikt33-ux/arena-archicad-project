@@ -1,4 +1,4 @@
-library_version: 1
+library_version: 2
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -43,6 +43,9 @@ proof_states:
   - superseded
   - not_applicable
 
+catalogs:
+  - izh_dependency_catalog.yaml
+
 initial_document_cards:
   - documents/SP_55_13330_2016.yaml
   - documents/SP_20_13330_2016.yaml
@@ -52,6 +55,7 @@ initial_document_cards:
   - documents/SP_17_13330_2017.yaml
   - documents/SP_2_13130_2020.yaml
   - documents/SP_4_13130_2013.yaml
+  - documents/SP_64_13330_2017.yaml
 
 known_safety_gaps:
   - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
@@ -63,6 +67,21 @@ known_safety_gaps:
       normative-base-v1 state. Library routing therefore treats SP55 revision verification
       as mandatory before any SP55-dependent production release.
     effect: fail_closed_for_unverified_SP55_locators
+  - id: SP64_MISSING_FROM_DECLARED_REVISION_WATCH
+    status: open
+    severity: high
+    statement: >-
+      izh/00_scope_inputs_2027.yaml declares revision_watch_2027.yaml as the revision gate
+      for SP_64_13330_2017, but that document is absent from the declared watch file.
+    effect: timber_structural_locators_require_manual_revision_confirmation
+  - id: GLOBAL_ROUTER_HAS_NO_IZHS_SP55_ROUTE
+    status: open
+    severity: high
+    statement: >-
+      rules/28_functional_code_router.yaml has a multifamily residential route to SP54 but no
+      explicit single-family/IZHS route to SP55. The IZH package has an internal SP55 scope gate,
+      so the global and package routers are not fully reconciled.
+    effect: explicit_IZH_package_selection_required
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
     status: open
     severity: high

@@ -11,6 +11,7 @@ ROOT_MANIFEST = ROOT / "manifest.yaml"
 LIBRARY_MANIFEST = ROOT / "library" / "library_manifest.yaml"
 REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
+    "multi_profile_dependency_catalog.yaml",
     "locator_registry.yaml",
     "functional_scope_registry.yaml",
     "engineering_system_scope_registry.yaml",

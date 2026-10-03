@@ -39,6 +39,7 @@ revision:
     effective_from: 2024-09-25
     official_card: "https://protect.gost.ru/sp/changesdetails/e26e8b63-c763-4846-a800-a2a79586c725"
     proof_state: official_card_verified
+  change_impact_map: "../change_maps/SP_20_13330_2016.yaml"
 
 official_sources:
   base_card: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"
@@ -50,6 +51,8 @@ locators:
     topic: snow_load_territorial_selection
     proof_state: blocked_pending_locator
     production_allowed: false
+    amendment_impact_state: unresolved_across_changes_1_through_6
+    change_map: "../change_maps/SP_20_13330_2016.yaml"
     blocker: >-
       В публичных слоях обнаружено противоречие между представлением действующего
       корневого текста и схемой, связанной с Изменением №2. Официальная карточка
@@ -59,6 +62,8 @@ locators:
     topic: normative_snow_weight_for_listed_cities
     proof_state: blocked_pending_locator
     production_allowed: false
+    amendment_impact_state: unresolved_across_changes_1_through_6
+    change_map: "../change_maps/SP_20_13330_2016.yaml"
     blocker: >-
       До разрешения пункта 10.2 нельзя автоматически выбирать приложение К как
       применимый источник для конкретного населенного пункта.

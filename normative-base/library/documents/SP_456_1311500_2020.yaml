@@ -1,0 +1,25 @@
+document_id: SP_456_1311500_2020
+title: "Многофункциональные здания. Требования пожарной безопасности"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [FIRE, MIXED_USE, TRK, PUBLIC]
+object_class_router:
+  include_when_subject_applies: [PUBLIC, TRK]
+  gate: multifunctional_building_within_SP456_scope
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/e2b220a4-086b-4aa3-9bf8-f64ab65ab3d0"
+scope:
+  proof_state: official_card_verified
+  max_height_m: 50
+  note: >-
+    Fire-safety requirements for multifunctional buildings containing combinations of applicable
+    cinema/concert/exhibition, trade/foodservice, office, parking, hotel/apartment and other listed functions.
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - multifunctional_fire_scope_required

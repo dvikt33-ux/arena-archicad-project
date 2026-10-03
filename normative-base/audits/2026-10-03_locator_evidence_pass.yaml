@@ -1,0 +1,91 @@
+audit_id: LOCATOR_EVIDENCE_PASS_2026_10_03
+audit_version: 1
+checked_at: 2026-10-03
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+
+objectives:
+  - build_locator_level_evidence_index
+  - map_amendment_chains_for_blocked_and_existing_PASS_locators
+  - preserve_existing_scoped_PASS_without_reinterpretation
+  - keep_unread_current_locators_fail_closed
+
+research_results:
+  SP20:
+    document: SP_20_13330_2016
+    verified_changes: [1, 2, 3, 4, 5, 6]
+    amendment_cards_inspected: [1, 2, 3, 4, 5, 6]
+    public_card_observations:
+      change_1_summary: empty
+      change_2_visible_summary_kind: reference_update
+      change_3_visible_summary_kind: reference_update
+      change_4_summary: empty
+      change_5_visible_summary_kind: reference_update
+      change_6_summary: empty
+    interpretation_limit: >-
+      Видимое содержание карточек изменений не является полным текстом изменения и не
+      доказывает отсутствие иных постатейных изменений. Поэтому оно не разрешает конфликт
+      действующего текста п.10.2 и не доказывает применимость приложения К.
+    blocked_locators: ["10.2", "Appendix K"]
+    change_map: "../library/change_maps/SP_20_13330_2016.yaml"
+
+  SP55:
+    document: SP_55_13330_2016
+    verified_changes: [1, 2]
+    amendment_cards_inspected: [1, 2]
+    public_card_observations:
+      change_1_visible_summary_kind: reference_updates
+      change_2_visible_summary_kind: reference_catalog
+    interpretation_limit: >-
+      Публичные карточки показывают обновление ссылочной базы, но не полный текст изменений.
+      Следовательно, по ним нельзя доказать, что п.9.18 не менялся, и нельзя повышать 1:8/1:10.
+    blocked_locators: ["9.18"]
+    change_map: "../library/change_maps/SP_55_13330_2016.yaml"
+
+  inherited_PASS_chain:
+    source_audit: "2026-10-01_core_2027_cycle.md"
+    locators:
+      - {document: SP_17_13330_2017, locator: "Table 4.1", changes: [1,2,3,4,5], rule_file: "../rules/15_roofs.yaml", change_map: "../library/change_maps/SP_17_13330_2017.yaml"}
+      - {document: SP_4_13130_2013, locator: "Table 1", changes: [1,2,3,4], rule_file: "../rules/81_fire_separation_matrix.yaml", change_map: "../library/change_maps/SP_4_13130_2013.yaml"}
+      - {document: SP_2_13130_2020, locator: "Table 6.8", changes: [1,2], rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "../library/change_maps/SP_2_13130_2020.yaml"}
+      - {document: SP_2_13130_2020, locator: "Table 6.9", changes: [1,2], rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "../library/change_maps/SP_2_13130_2020.yaml"}
+      - {document: SP_2_13130_2020, locator: "Table 6.10", changes: [1,2], rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "../library/change_maps/SP_2_13130_2020.yaml"}
+      - {document: SP_2_13130_2020, locator: "Table 6.11", changes: [1,2], rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "../library/change_maps/SP_2_13130_2020.yaml"}
+    rule: >-
+      Эти locator'ы не переоцениваются данным проходом; их existing scoped PASS наследуется
+      из durable-аудита, выполненного после указанных изменений. Новое действующее изменение
+      должно переводить только затронутые locator'ы в needs_reaudit.
+
+library_changes:
+  added:
+    - "../library/locator_registry.yaml"
+    - "../library/change_maps/SP_20_13330_2016.yaml"
+    - "../library/change_maps/SP_55_13330_2016.yaml"
+    - "../library/change_maps/SP_17_13330_2017.yaml"
+    - "../library/change_maps/SP_2_13130_2020.yaml"
+    - "../library/change_maps/SP_4_13130_2013.yaml"
+  updated:
+    - "../library/library_manifest.yaml"
+    - "../library/documents/SP_20_13330_2016.yaml"
+    - "../library/documents/SP_55_13330_2016.yaml"
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_added: 0
+  existing_scoped_PASS_demoted: 0
+  existing_scoped_PASS_promoted: 0
+  blocked_locators_unblocked: 0
+
+open_blockers:
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - authorized_GARANT_or_Consultant_locator_access
+
+next_safe_passes:
+  - continue_locator_registry_migration_from_durable_audits
+  - map_change_chains_for_other_high_impact_IZHS_documents
+  - read_blocked_current_locators_directly_when_authorized_or_official_full_text_is_available
+  - keep_geographic_values_blocked_until_actual_project_location_is_known

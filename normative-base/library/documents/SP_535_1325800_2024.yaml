@@ -1,0 +1,24 @@
+document_id: SP_535_1325800_2024
+title: "Детские оздоровительные лагеря. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, CHILDREN_CAMP]
+object_class_router:
+  include_when_subject_applies: [PUBLIC]
+  gate: stationary_children_health_or_recreation_camp_with_overnight_stay
+revision:
+  effective_from: 2024-03-09
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/0b6088cc-24f7-4dd4-8b4c-b4f994a91717"
+scope:
+  proof_state: official_card_verified
+  note: "Stationary children health/recreation camps within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - children_camp_profile_required

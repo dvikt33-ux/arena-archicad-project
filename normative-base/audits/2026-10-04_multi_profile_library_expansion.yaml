@@ -1,0 +1,145 @@
+audit_id: MULTI_PROFILE_LIBRARY_EXPANSION_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+production_rules_promoted: 0
+numeric_values_added_to_production: 0
+southern_russia_started: false
+
+reason:
+  statement: >-
+    Previous library build-out was disproportionately centered on IZHS. This cycle establishes
+    non-IZHS functional profiles as first-class research and routing targets without weakening
+    locator evidence requirements.
+
+new_catalog:
+  file: "../library/multi_profile_dependency_catalog.yaml"
+  production_authority: false
+  profiles_registered: 17
+  profiles:
+    - MKD
+    - PUBLIC_GENERAL
+    - TRK
+    - MIXED_USE
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - MEDICAL
+    - HOTEL
+    - SPORTS
+    - THEATRE_CINEMA_CONCERT
+    - PARKING
+    - INDUSTRIAL_PRODUCTION_STORAGE
+    - INDUSTRIAL_ADMIN_AMENITY
+    - HIGH_RISE_OVERLAY
+    - CHILDREN_HEALTH_CAMP
+
+research_priority:
+  P0:
+    - MKD
+    - PUBLIC_GENERAL
+    - TRK
+    - PARKING
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - MEDICAL
+    - HOTEL
+    - SPORTS
+    - INDUSTRIAL_PRODUCTION_STORAGE
+  P1:
+    - MIXED_USE
+    - HIGH_RISE_OVERLAY
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - THEATRE_CINEMA_CONCERT
+    - INDUSTRIAL_ADMIN_AMENITY
+    - CHILDREN_HEALTH_CAMP
+
+new_primary_or_overlay_document_cards:
+  count: 18
+  documents:
+    - SP_54_13330_2022
+    - SP_118_13330_2022
+    - SP_464_1325800_2019
+    - SP_251_1325800_2016
+    - SP_252_1325800_2016
+    - SP_158_13330_2014
+    - SP_257_1325800_2020
+    - SP_332_1325800_2017
+    - SP_113_13330_2023
+    - SP_56_13330_2021
+    - SP_160_1325800_2014
+    - SP_267_1325800_2016
+    - SP_309_1325800_2017
+    - SP_278_1325800_2024
+    - SP_279_1325800_2016
+    - SP_44_13330_2011
+    - SP_535_1325800_2024
+    - SP_456_1311500_2020
+
+key_scope_findings:
+  - id: PARKING_IS_INDEPENDENT_PROFILE
+    statement: >-
+      SP113 parking scope is evaluated independently from TRK/MKD/public host class; an ordinary
+      private IZHS garage or EV charger does not activate SP113 automatically.
+  - id: MEDICAL_EMBEDDED_ZONE
+    statement: >-
+      SP158 explicitly covers medical-purpose premises embedded in residential, public and
+      production buildings, so the medical profile attaches to the zone rather than replacing the host profile.
+  - id: INDUSTRIAL_F5_EMBEDDED_ZONE
+    statement: >-
+      SP56 covers applicable F5.1/F5.2 rooms including embedded rooms in buildings of other functional
+      fire classes; excluded special storage/production categories require separate routes.
+  - id: HIGHRISE_IS_OVERLAY
+    statement: >-
+      SP267 supplements the underlying functional profile and never replaces MKD/public/mixed-use/hotel routing.
+  - id: MIXED_USE_ZONE_ROUTING
+    statement: >-
+      SP160 and SP456 require independent classification of active functional zones and do not justify
+      applying cinema/sport/hotel/parking rules to absent functions.
+
+fresh_revision_finding:
+  document: SP_113_13330_2023
+  latest_change: 4
+  approved: 2026-09-02
+  registered: 2026-09-23
+  effective_from: 2026-10-03
+  proof_state: official_card_verified
+  effect_summary: >-
+    Official Change 4 metadata updates referenced standards including SP42.13330.2026,
+    SP60 through Change 6, SP70 through Change 8 and SP256 through Change 9.
+  evidence_limit: >-
+    Rosstandart currently exposes the change card/content summary while the change PDF is absent;
+    the card therefore does not promote any clause-level numeric rule.
+
+CI:
+  validator: "../tools/validate_multi_profile_catalog.py"
+  workflow: "../../.github/workflows/normative-base-lint.yml"
+  checks:
+    - all_17_profiles_present
+    - each_primary_document_has_library_card
+    - primary_cards_remain_non_production_authority
+    - evidence_state_present
+    - P0_and_P1_research_coverage_complete
+    - parking_routes_to_SP113_change4_current_state
+    - industrial_route_uses_SP56
+    - highrise_preserves_underlying_functional_profile
+  library_integration_validator_now_requires_multi_profile_catalog: true
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_scoped_PASS_promoted: 0
+  existing_scoped_PASS_demoted: 0
+  applicability_graph_expanded: true
+  document_metadata_and_scope_cards_added: true
+
+next_research_passes:
+  - build_locator_level_maps_for_MKD_SP54_and_PUBLIC_SP118_existing_numeric_rules
+  - build_TRK_SP464_and_SP456_locator_map_then_special_function_overlays
+  - build_school_preschool_medical_hotel_sports_locator_maps_in_parallel
+  - audit_SP113_change4_impact_on_existing_parking_rules_without_assuming_card_summary_proves_clause_text
+  - build_SP56_industrial_exclusion_and_embedded_F5_route_map
+  - expand_revision_watch_gates_for_all_new_primary_cards_if_any_are_missing

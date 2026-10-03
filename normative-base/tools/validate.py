@@ -11,6 +11,20 @@ RULES = ROOT / "rules"
 IZH = ROOT / "izh"
 NODES = ROOT / "nodes"
 EXPECTED_PROFILE = "RU_2027_PLUS"
+FUNCTIONAL_ROUTER = RULES / "28_functional_code_router.yaml"
+ALLOWED_OBJECT_CLASSES = {"IZHS", "MKD", "PUBLIC", "TRK", "INDUSTRIAL"}
+EXPECTED_FILE_SCOPES: dict[str, set[str]] = {
+    "35_residential_planning_minima.yaml": {"MKD"},
+    "36_residential_wet_zone_stacking.yaml": {"MKD"},
+    "37_residential_balconies_loggias.yaml": {"MKD"},
+    "40_residential_vertical_transport.yaml": {"MKD"},
+    "53_garant_residential_planning_verification.yaml": {"MKD"},
+    "61_residential_entrance_vestibules_climate.yaml": {"MKD"},
+    "65_timber_apartment_fire_2026.yaml": {"MKD"},
+    "100_residential_gas_architectural_interfaces_2027.yaml": {"IZHS", "MKD"},
+    "07_guardrails_roofs.yaml": {"IZHS", "MKD", "PUBLIC", "TRK", "INDUSTRIAL"},
+    "04_architectural_baseline.yaml": {"IZHS", "MKD", "PUBLIC", "TRK", "INDUSTRIAL"},
+}
 
 
 def is_machine_rule(node: dict[str, Any]) -> bool:
@@ -89,6 +103,109 @@ def validate_package_manifest(
         errors.append(f"{name} manifest lists absent YAML files: {stale}")
     if manifest.get("target_profile") != EXPECTED_PROFILE:
         errors.append(f"{name} manifest target_profile mismatch")
+
+
+def validate_rule_file_scope_registry(parsed: dict[Path, Any], errors: list[str]) -> None:
+    router = parsed.get(FUNCTIONAL_ROUTER)
+    if not isinstance(router, dict):
+        errors.append("functional router missing or invalid for object-class scope validation")
+        return
+    registry = router.get("rule_file_scope_registry")
+    if not isinstance(registry, dict):
+        errors.append("functional router missing rule_file_scope_registry")
+        return
+    if registry.get("mode") != "hard_gate_before_rule_evaluation":
+        errors.append("rule_file_scope_registry must use hard_gate_before_rule_evaluation")
+    files = registry.get("files")
+    if not isinstance(files, dict):
+        errors.append("rule_file_scope_registry.files must be a mapping")
+        return
+
+    for filename, expected_allowed in EXPECTED_FILE_SCOPES.items():
+        row = files.get(filename)
+        if not isinstance(row, dict):
+            errors.append(f"scope registry missing required rule file: {filename}")
+            continue
+        if not (RULES / filename).exists():
+            errors.append(f"scope registry references absent rule file: {filename}")
+        allowed = set(row.get("allowed_object_classes") or [])
+        forbidden = set(row.get("forbidden_object_classes") or [])
+        unknown = (allowed | forbidden) - ALLOWED_OBJECT_CLASSES
+        if unknown:
+            errors.append(f"scope registry {filename} has unknown object classes: {sorted(unknown)}")
+        if allowed != expected_allowed:
+            errors.append(
+                f"scope registry {filename} allowed classes {sorted(allowed)} do not match expected {sorted(expected_allowed)}"
+            )
+        overlap = allowed & forbidden
+        if overlap:
+            errors.append(f"scope registry {filename} both allows and forbids: {sorted(overlap)}")
+        hard_gate = row.get("hard_gate")
+        if hard_gate not in (True, "section_scoped"):
+            errors.append(f"scope registry {filename} must have a hard gate")
+
+    mkd_only = {
+        "35_residential_planning_minima.yaml",
+        "36_residential_wet_zone_stacking.yaml",
+        "37_residential_balconies_loggias.yaml",
+        "40_residential_vertical_transport.yaml",
+        "53_garant_residential_planning_verification.yaml",
+        "61_residential_entrance_vestibules_climate.yaml",
+        "65_timber_apartment_fire_2026.yaml",
+    }
+    for filename in mkd_only:
+        row = files.get(filename)
+        if isinstance(row, dict):
+            allowed = set(row.get("allowed_object_classes") or [])
+            forbidden = set(row.get("forbidden_object_classes") or [])
+            if "IZHS" in allowed or "IZHS" not in forbidden:
+                errors.append(f"MKD-only rule file {filename} must hard-forbid IZHS")
+
+    gas = files.get("100_residential_gas_architectural_interfaces_2027.yaml")
+    if isinstance(gas, dict):
+        overrides = gas.get("section_overrides")
+        if not isinstance(overrides, dict):
+            errors.append("SP402 scope registry must define section_overrides")
+        else:
+            for section in ("multifamily_residential", "locator_5_16"):
+                row = overrides.get(section)
+                if not isinstance(row, dict):
+                    errors.append(f"SP402 scope registry missing section override {section}")
+                    continue
+                allowed = set(row.get("allowed_object_classes") or [])
+                forbidden = set(row.get("forbidden_object_classes") or [])
+                if allowed != {"MKD"} or "IZHS" not in forbidden:
+                    errors.append(f"SP402 section {section} must be MKD-only and forbid IZHS")
+
+    guardrails = files.get("07_guardrails_roofs.yaml")
+    if isinstance(guardrails, dict):
+        overrides = guardrails.get("section_overrides")
+        if not isinstance(overrides, dict):
+            errors.append("guardrails scope registry must define section_overrides")
+        else:
+            residential = overrides.get("residential_project_requirements")
+            public = overrides.get("public_project_requirements")
+            if not isinstance(residential, dict) or set(residential.get("allowed_object_classes") or []) != {"MKD"}:
+                errors.append("guardrails residential_project_requirements must be MKD-only")
+            if isinstance(residential, dict) and "IZHS" not in set(residential.get("forbidden_object_classes") or []):
+                errors.append("guardrails residential_project_requirements must forbid IZHS")
+            if not isinstance(public, dict) or set(public.get("allowed_object_classes") or []) != {"PUBLIC"}:
+                errors.append("guardrails public_project_requirements must be PUBLIC-only")
+
+    baseline = files.get("04_architectural_baseline.yaml")
+    if isinstance(baseline, dict):
+        overrides = baseline.get("section_overrides")
+        if not isinstance(overrides, dict):
+            errors.append("architectural baseline scope registry must define section_overrides")
+        else:
+            residential = overrides.get("building_height_rules.residential_apartments")
+            public = overrides.get("building_height_rules.public_buildings")
+            if not isinstance(residential, dict) or set(residential.get("allowed_object_classes") or []) != {"MKD"}:
+                errors.append("architectural baseline residential heights must be MKD-only")
+            if isinstance(residential, dict) and "IZHS" not in set(residential.get("forbidden_object_classes") or []):
+                errors.append("architectural baseline residential heights must forbid IZHS")
+            if not isinstance(public, dict) or set(public.get("allowed_object_classes") or []) != {"PUBLIC"}:
+                errors.append("architectural baseline public heights must be PUBLIC-only")
 
 
 def validate_node_test_references(
@@ -277,6 +394,7 @@ def main() -> int:
             else:
                 seen_node_ids[node_id] = (file, node_path)
 
+    validate_rule_file_scope_registry(parsed, errors)
     validate_node_test_references(parsed, set(seen_node_ids), errors)
     validate_intent_contract(parsed, errors)
     validate_documentation_release_contracts(parsed, errors)
@@ -307,7 +425,7 @@ def main() -> int:
         f"OK: {len(yaml_files)} YAML files parsed; "
         f"{len(seen_rule_ids)} unique machine rule ids; "
         f"{len(seen_node_ids)} unique construction node ids; manifests synchronized; "
-        "high-level intents and documentation release contracts validated."
+        "object-class routing, high-level intents and documentation release contracts validated."
     )
     return 0
 

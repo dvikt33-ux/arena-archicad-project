@@ -1,0 +1,86 @@
+locator_registry_version: 1
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+production_authority: false
+purpose: "Единый индекс пунктов, таблиц и приложений, связывающий evidence-state с rule-файлами. Реестр не меняет production-правила и не повышает доказательность сам по себе."
+
+proof_policy:
+  official_clause_verified: "текст locator напрямую прочитан в допустимом первичном источнике"
+  authorized_locator_verified: "текст locator напрямую прочитан в авторизованной действующей системе"
+  inherited_scoped_pass: "locator уже закрыт отдельным durable audit/rule cycle; библиотека наследует PASS без переинтерпретации"
+  blocked_pending_locator: "точный действующий locator не прочитан; production promotion запрещен"
+
+locators:
+  - document: SP_17_13330_2017
+    locator: "Table 4.1"
+    topic: roof_minimum_slopes_by_roofing_system
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/15_roofs.yaml"
+    production_state: existing_scoped_pass_preserved
+    note: "Аудит 2026-10-01 фиксирует проверенную полную базовую таблицу уклонов по СП17 с Изм. №1-5."
+
+  - document: SP_4_13130_2013
+    locator: "Table 1"
+    topic: fire_separation_distances_base_matrix
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/81_fire_separation_matrix.yaml"
+    production_state: existing_scoped_pass_preserved
+
+  - document: SP_2_13130_2020
+    locator: "Table 6.8"
+    topic: fire_compartment_F1_3
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
+    production_state: existing_scoped_pass_preserved
+  - document: SP_2_13130_2020
+    locator: "Table 6.9"
+    topic: fire_compartment_public_base_group
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
+    production_state: existing_scoped_pass_preserved
+  - document: SP_2_13130_2020
+    locator: "Table 6.10"
+    topic: fire_compartment_F3_5
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
+    production_state: existing_scoped_pass_preserved
+  - document: SP_2_13130_2020
+    locator: "Table 6.11"
+    topic: fire_compartment_F3_1
+    proof_state: inherited_scoped_pass
+    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
+    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
+    production_state: existing_scoped_pass_preserved
+
+  - document: SP_20_13330_2016
+    locator: "10.2"
+    topic: snow_load_territorial_selection
+    proof_state: blocked_pending_locator
+    change_map: "change_maps/SP_20_13330_2016.yaml"
+    production_state: blocked
+    effect: no_automatic_snow_territorial_route
+  - document: SP_20_13330_2016
+    locator: "Appendix K"
+    topic: normative_snow_weight_for_listed_cities
+    proof_state: blocked_pending_locator
+    change_map: "change_maps/SP_20_13330_2016.yaml"
+    production_state: blocked
+    effect: no_automatic_snow_value
+
+  - document: SP_55_13330_2016
+    locator: "9.18"
+    topic: daylight_window_to_floor_ratio
+    proof_state: blocked_pending_locator
+    change_map: "change_maps/SP_55_13330_2016.yaml"
+    production_state: blocked
+    effect: no_production_daylight_ratio
+
+summary:
+  inherited_scoped_pass_locators: 6
+  blocked_pending_locator: 3
+  production_promotions_from_this_registry: 0

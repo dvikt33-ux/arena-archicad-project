@@ -1,0 +1,36 @@
+document_id: SP_131_13330_2025
+title: "Строительная климатология"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, CLIMATE]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  gate: geographic_location_required
+
+revision:
+  base_approval_order: "470/пр"
+  base_approval_date: 2025-08-08
+  effective_from: 2025-09-09
+  replaces: SP_131_13330_2020
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+scope:
+  proof_state: official_card_verified
+  note: >-
+    Документ устанавливает климатические параметры для проектирования зданий и
+    сооружений, инженерных систем, планировки и застройки на территории РФ.
+
+locators: []
+
+release_gates:
+  - geographic_location_or_site_required_before_climate_value_generation
+  - exact_table_or_locator_evidence_required_for_numeric_climate_values
+  - no_substitution_of_previous_SP131_revision

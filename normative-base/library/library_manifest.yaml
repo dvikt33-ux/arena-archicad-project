@@ -1,4 +1,4 @@
-library_version: 15
+library_version: 16
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -25,6 +25,7 @@ invariants:
   - each_primary_functional_profile_requires_its_own_document_card
   - document_card_or_general_shared_rules_never_count_as_complete_special_profile_rule_coverage
   - non_IZHS_locator_backlog_never_counts_as_locator_PASS
+  - primary_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
 
 object_classes:
   IZHS:
@@ -66,6 +67,7 @@ catalogs:
   - izh_dependency_catalog.yaml
   - multi_profile_dependency_catalog.yaml
   - profile_rule_coverage_registry.yaml
+  - profile_primary_locator_extraction_registry.yaml
   - multi_profile_locator_backlog.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
@@ -79,6 +81,12 @@ change_maps:
   - change_maps/SP_4_13130_2013.yaml
   - change_maps/SP_402_1325800_2018.yaml
   - change_maps/GOST_25772_2025.yaml
+  - change_maps/SP_251_1325800_2016.yaml
+  - change_maps/SP_252_1325800_2016.yaml
+  - change_maps/SP_158_13330_2014.yaml
+  - change_maps/SP_257_1325800_2020.yaml
+  - change_maps/SP_56_13330_2021.yaml
+  - change_maps/SP_113_13330_2023.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -107,6 +115,16 @@ coverage:
     dedicated_rule_gaps: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
     dedicated_rule_gap_count: 9
     rule: "Coverage state is independent from locator evidence state; general SP118 rules never close a special-profile gap."
+  primary_profile_locator_extraction:
+    source: profile_primary_locator_extraction_registry.yaml
+    CI_validator: "../tools/validate_primary_locator_extraction.py"
+    P0_profiles_in_queue: 5
+    profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE]
+    production_promotions: 0
+    fail_closed: true
+    parking_reaudit_active: true
+    direct_locator_access_current_session: unavailable
+    rule: "A ready source chain never counts as dedicated rule coverage or locator PASS."
   multi_profile_locator_backlog:
     source: multi_profile_locator_backlog.yaml
     profiles_with_existing_rule_locator_backlog: 8
@@ -236,6 +254,12 @@ resolved_safety_gaps:
     status: resolved_as_explicit_inventory
     resolved_at: 2026-10-04
     resolution: "profile_rule_coverage_registry.yaml explicitly separates substantive, partial and missing dedicated rule layers across all 17 profiles."
+  - id: P0_PRIMARY_LOCATOR_EXTRACTION_UNSTRUCTURED
+    status: resolved_as_fail_closed_queue
+    resolved_at: 2026-10-04
+    resolution: >-
+      profile_primary_locator_extraction_registry.yaml now tracks five P0 special profiles and the
+      SP113 Change 4 reaudit without treating source-chain readiness as rule coverage or locator PASS.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
@@ -243,12 +267,23 @@ known_safety_gaps:
     severity: high
     profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
     effect: "Do not claim complete profile coverage or substitute general/public rules for absent primary-document requirements."
+  - id: P0_SPECIAL_PROFILE_DIRECT_LOCATORS_UNAVAILABLE
+    status: open
+    severity: high
+    source: profile_primary_locator_extraction_registry.yaml
+    profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE]
+    effect: "No P0 special-profile numeric or imperative production promotion until direct current locator text is read."
   - id: NON_IZHS_EXISTING_RULE_LOCATOR_MIGRATION
     status: open
     severity: high
     source: multi_profile_locator_backlog.yaml
     profiles: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
     effect: "Existing rule values remain governed by their current production audit history; no new library PASS until direct locator migration."
+  - id: SP113_CHANGE4_CURRENT_LOCATOR_REAUDIT
+    status: open
+    severity: high
+    source: change_maps/SP_113_13330_2023.yaml
+    effect: "Existing parking rules are preserved without reinterpretation; no new PASS until current Change 4 locators are directly read."
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
     status: open
     severity: high

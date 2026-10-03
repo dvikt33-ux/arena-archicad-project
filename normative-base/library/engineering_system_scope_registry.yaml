@@ -1,0 +1,142 @@
+registry_version: 1
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+production_authority: false
+role: engineering_system_presence_and_scope_gate
+
+scope_semantics:
+  evaluation_order:
+    - confirm_system_or_equipment_presence
+    - confirm_normative_document_scope
+    - confirm_object_or_function_section_scope
+    - evaluate_machine_rules
+  missing_system_result: not_applicable
+  unknown_system_requirement_result: engineering_design_required
+  missing_scope_input_result: object_classification_required
+
+invariants:
+  - globally_loaded_engineering_rule_file_is_inactive_when_system_is_absent
+  - architecture_agent_does_not_create_engineering_system_to_make_rule_applicable
+  - system_requirement_must_come_from_applicable_norm_or_engineering_design
+  - section_specific_building_class_rules_do_not_leak_to_other_classes
+  - engineering_calculation_is_not_replaced_by_architectural_default
+  - IZHS_does_not_run_fire_or_public_engineering_system_rules_without_actual_trigger
+
+file_scopes:
+  94_fire_suppression_pump_room_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: automatic_fire_suppression_system_with_pump_station
+    normative_basis: SP_485_1311500_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    note: "File is inactive unless AUPT is actually required/provided and a pump station is in project scope."
+
+  95_internal_fire_water_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: internal_fire_water_supply_VPV
+    normative_basis: SP_10_13130_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    applicability_gate: building_or_part_requires_VPV_under_current_fire_rules
+
+  96_fire_electrical_routing_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: fire_protection_electrical_and_communication_systems
+    normative_basis: SP_6_13130_2025
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    applicability_gate: applicable_fire_protection_system_requires_power_or_communication_routes
+
+  97_fire_alarm_post_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: fire_automation_system_with_fire_post_or_control_devices
+    normative_basis: SP_484_1311500_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    applicability_gate: SPA_required_or_provided
+
+  98_external_fire_water_site_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: external_fire_water_supply_with_hydrants_or_equivalent_project_route
+    normative_basis: SP_8_13130_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    applicability_gate: external_fire_water_required_for_site_or_object
+
+  99_heat_point_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [embedded_ITP, central_heat_point_CTP, zonal_ITP]
+    normative_basis: SP_510_1325800_2022
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    note: "District/central heat interface rules are inactive for autonomous buildings without ITP/CTP."
+
+  101_transformer_substation_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [embedded_transformer_substation, attached_transformer_substation, embedded_RP]
+    normative_basis: SP_256_1325800_2016
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK]
+    forbidden_object_classes: [INDUSTRIAL]
+    note: "This file is the residential/public-building route; industrial substations require separate industrial basis."
+
+  102_ev_charging_parking_architectural_interfaces_2027.yaml:
+    gate_type: system_and_special_scope
+    required_system: EV_charging_spaces
+    required_scope: parking_object_or_parking_zone_within_SP113_scope
+    normative_basis: [SP_113_13330_2023, SP_256_1325800_2016]
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    IZHS_note: >-
+      A private driveway/garage charger in ordinary IZHS does not activate SP113 parking rules
+      merely because an EV charger exists; SP113 parking scope must independently match.
+
+  104_integrated_heat_generator_100_360kw_2027.yaml:
+    gate_type: equipment_scope
+    required_special_profile: SP_281_1325800_2016
+    required_condition: "total_heat_output_kw > 100 AND total_heat_output_kw <= 360"
+    excluded_route: "total_heat_output_kw <= 100 -> SP_282_1325800_2023"
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    section_overrides:
+      public_buildings:
+        allowed_object_classes: [PUBLIC, TRK]
+        forbidden_object_classes: [IZHS, MKD, INDUSTRIAL]
+    normative_basis: SP_281_1325800_2016
+
+  107_diesel_generator_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [indoor_diesel_generator_room, outdoor_diesel_generator_installation]
+    normative_basis: SP_4_13130_2013
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    section_overrides:
+      public_basement_permission:
+        allowed_object_classes: [PUBLIC, TRK]
+        normative_basis: SP_118_13330_2022
+
+  108_refrigeration_machine_room_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: refrigeration_machine_room_or_special_machine_room
+    normative_basis: [GOST_34891_1_2022, GOST_34891_3_2022]
+    allowed_object_classes: [PUBLIC, TRK]
+    forbidden_object_classes: [IZHS, MKD, INDUSTRIAL]
+    note: >-
+      This file is scoped to TRK/food retail/foodservice/other public functions. Industrial
+      refrigeration requires a separate industrial route rather than automatic inheritance.
+
+  109_domestic_water_meter_pump_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [water_meter_node, domestic_potable_booster_pump_installation]
+    normative_basis: SP_30_13330_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+
+  110_drainage_sumps_underground_rooms_2027.yaml:
+    gate_type: system_presence
+    required_system: underground_drainage_sump_or_firewater_collection_sump
+    normative_basis: SP_30_13330_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    section_overrides:
+      underground_parking_fire_water_collection:
+        required_function: underground_vehicle_storage
+        missing_function_result: not_applicable
+
+coverage:
+  files_registered: 13
+  fire_system_files: [94_fire_suppression_pump_room_interfaces_2027.yaml, 95_internal_fire_water_architectural_interfaces_2027.yaml, 96_fire_electrical_routing_architectural_interfaces_2027.yaml, 97_fire_alarm_post_architectural_interfaces_2027.yaml, 98_external_fire_water_site_interfaces_2027.yaml]
+  building_engineering_files: [99_heat_point_architectural_interfaces_2027.yaml, 101_transformer_substation_architectural_interfaces_2027.yaml, 102_ev_charging_parking_architectural_interfaces_2027.yaml, 104_integrated_heat_generator_100_360kw_2027.yaml, 107_diesel_generator_architectural_interfaces_2027.yaml, 108_refrigeration_machine_room_interfaces_2027.yaml, 109_domestic_water_meter_pump_interfaces_2027.yaml, 110_drainage_sumps_underground_rooms_2027.yaml]
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  applicability_gates_added: true

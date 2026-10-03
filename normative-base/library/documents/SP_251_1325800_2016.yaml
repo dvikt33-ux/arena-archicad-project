@@ -17,10 +17,17 @@ proof:
   state: official_card_verified
   authority: Rosstandart
   official_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+change_map: "../change_maps/SP_251_1325800_2016.yaml"
 scope:
   proof_state: official_card_verified
   note: "New and reconstructed general-education organization buildings and complexes, including applicable school-internat educational/common-school rooms."
+locator_research:
+  state: source_chain_ready_locator_pending
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: unavailable_in_current_session
+  production_promotion_allowed: false
 locators: []
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - school_profile_required
+  - SP118_general_rules_do_not_close_SP251_specific_gap

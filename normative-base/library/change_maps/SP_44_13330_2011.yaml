@@ -1,0 +1,22 @@
+document: SP_44_13330_2011
+checked_at: 2026-10-04
+production_authority: false
+policy: fail_closed
+status: active
+revision:
+  official_latest_change: 4
+  latest_change_effective_from: 2022-01-08
+proof:
+  state: official_card_verified
+  source_url: "https://protect.gost.ru/sp/details/d4e8fda2-e2a9-45a4-b686-d21347d36ab2"
+  latest_change_url: "https://protect.gost.ru/sp/changesdetails/a3fbc989-c9a7-4c4c-8ecb-6762764d9a6a"
+change_effect:
+  latest_change_kind: textual_and_reference_updates
+  public_card_summary_available: true
+  exact_current_locator_verification_required: true
+production_impact:
+  numeric_rules_changed: false
+  promotion_allowed_from_this_map: false
+release_gate:
+  - direct_current_locator_required_before_new_machine_rule
+  - industrial_admin_amenity_scope_required

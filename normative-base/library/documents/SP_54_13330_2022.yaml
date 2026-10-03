@@ -1,0 +1,25 @@
+document_id: SP_54_13330_2022
+title: "Здания жилые многоквартирные"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [MKD]
+object_class_router:
+  include_when_subject_applies: [MKD]
+  exclude_by_default: [IZHS, PUBLIC, TRK, INDUSTRIAL]
+revision:
+  verified_changes: [1, 2]
+  latest_change: 2
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+scope:
+  proof_state: official_card_verified
+  note: "Primary functional code for multifamily residential buildings within its official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - do_not_apply_to_IZHS_by_residential_name_only

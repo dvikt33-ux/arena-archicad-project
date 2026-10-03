@@ -1,0 +1,43 @@
+document_id: SP_2_13130_2020
+title: "Системы противопожарной защиты. Обеспечение огнестойкости объектов защиты"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, FIRE]
+object_class_router:
+  include_when_fire_scope_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  role: fire_overlay
+
+revision:
+  base_approval_order: "151"
+  base_approval_date: 2020-03-12
+  effective_from: 2020-09-12
+  replaces: SP_2_13130_2012
+  verified_changes: [1, 2]
+  latest_change: 2
+  latest_change_approval_order: "999"
+  latest_change_approval_date: 2025-11-06
+  latest_change_effective_from: 2026-01-01
+  latest_change_card: "https://protect.gost.ru/sp/changesdetails/fd8720c4-ae0b-496f-8796-eec45a151fbf"
+  latest_change_proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+scope:
+  proof_state: official_card_verified
+  note: >-
+    Общие требования по обеспечению огнестойкости объектов защиты, включая здания,
+    сооружения и пожарные отсеки, в пределах официальной области применения.
+
+locators: []
+
+release_gates:
+  - exact_clause_or_table_evidence_required_for_fire_design_rules
+  - functional_fire_class_and_building_parameters_required
+  - later_change_requires_affected_locator_reaudit

@@ -1,0 +1,22 @@
+document_id: SP_44_13330_2011
+title: "Административные и бытовые здания"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [INDUSTRIAL, ADMIN, AMENITY]
+object_class_router:
+  include_when_subject_applies: [INDUSTRIAL]
+  gate: admin_or_amenity_building_of_industrial_enterprise_within_scope
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/d4e8fda2-e2a9-45a4-b686-d21347d36ab2"
+scope:
+  proof_state: official_card_verified
+  note: "Administrative and amenity buildings of industrial enterprises within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - industrial_admin_amenity_scope_required

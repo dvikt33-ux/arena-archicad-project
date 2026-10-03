@@ -13,6 +13,7 @@ object_class_router:
 revision:
   verified_changes: [1, 2, 3, 4, 5]
   latest_change: 5
+  latest_change_effective_from: 2025-02-25
 proof:
   state: official_card_verified
   authority: Rosstandart
@@ -22,7 +23,16 @@ scope:
   note: >-
     General public-building layer. A more specific functional SP remains primary for schools,
     preschools, medical buildings, hotels, sports, theatres/cinemas and other special functions.
-locators: []
+change_map: "../change_maps/SP_118_13330_2022.yaml"
+rule_files:
+  - "../../rules/43_public_sanitary_facilities.yaml"
+  - "../../rules/59_public_lift_lobby_exceptions.yaml"
+locators:
+  - {locator: "5.16", state: existing_rule_traceability_pending}
+  - {locator: "5.54", state: existing_rule_traceability_pending}
+  - {locator: "5.55", state: existing_rule_traceability_pending}
+  - {locator: "5.57", state: existing_rule_traceability_pending}
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - special_functional_code_precedes_general_public_rule
+  - change5_card_never_counts_as_current_locator_text

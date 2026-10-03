@@ -1,5 +1,5 @@
 audit_id: IZHS_DEPENDENCY_GATE_AUDIT_2026_10_03
-audit_version: 1
+audit_version: 2
 checked_at: 2026-10-03
 branch: normative-base-v1
 policy: fail_closed
@@ -18,64 +18,76 @@ results:
     severity: info
     result: pass
     statement: >-
-      IZH_NODE_ENGINEERING and 00_scope_inputs_2027.yaml correctly identify
-      SP_55_13330_2016 as the primary functional document for single-family housing.
+      IZH_NODE_ENGINEERING and 00_scope_inputs_2027.yaml identify SP_55_13330_2016
+      as the primary functional document for single-family housing.
 
   - id: SP55_GLOBAL_REVISION_GATE
     severity: high
-    result: fail_closed_gap
-    statement: >-
-      SP_55_13330_2016 is absent from revision_watch_2027.yaml even though the IZH package
-      is explicitly scoped by SP55. Official Rosstandart metadata confirms the base document
-      is active and has Changes No.1 and No.2.
-    required_fix: add_SP55_revision_watch_entry_after_exact_metadata_reconciliation
-    until_fixed: block_unverified_SP55_locator_promotion
+    result: resolved
+    initial_finding: >-
+      SP_55_13330_2016 was absent from revision_watch_2027.yaml while the IZH package
+      was explicitly scoped by SP55.
+    remediation: >-
+      Added SP_55_13330_2016 to revision_watch_2027.yaml with official_latest_change 2
+      and latest_change_effective_from 2023-06-18 from Rosstandart metadata.
+    production_effect: revision_metadata_gate_only
+    locator_9_18_status: blocked_pending_locator
 
   - id: SP64_TIMBER_REVISION_GATE
     severity: high
-    result: fail_closed_gap
-    statement: >-
-      00_scope_inputs_2027.yaml declares revision_watch_2027.yaml as the gate for
-      SP_64_13330_2017, but that document is absent from revision_watch_2027.yaml.
-      Rosstandart confirms SP64 is active with Changes No.1-4; Change No.4 became effective
-      2024-01-29.
+    result: resolved
+    initial_finding: >-
+      00_scope_inputs_2027.yaml declared revision_watch_2027.yaml as the gate for
+      SP_64_13330_2017, but SP64 was absent from that watch file.
+    remediation: >-
+      Added SP_64_13330_2017 to revision_watch_2027.yaml with official_latest_change 4
+      and latest_change_effective_from 2024-01-29 from Rosstandart metadata.
     official_card: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
     latest_change_card: "https://protect.gost.ru/sp/changesdetails/b5542d34-122f-4a6e-b8c6-1f82e70f7f92"
-    required_fix: add_SP64_revision_watch_entry_or_redirect_declared_gate_to_verified_adjacent_watch
-    until_fixed: timber_structural_rules_require_manual_revision_confirmation
+    production_effect: revision_metadata_gate_only
 
   - id: GLOBAL_FUNCTIONAL_ROUTER_IZHS_ROUTE
     severity: high
-    result: routing_gap
-    statement: >-
-      rules/28_functional_code_router.yaml contains residential_multifamily -> SP54 and
-      multiple public/special profiles, but no explicit single-family/IZHS -> SP55 catalog route.
-      The IZH package has an internal SP55 gate, so the two routing layers are not fully reconciled.
-    required_fix: add_explicit_single_family_route_to_global_router_without_changing_numeric_rules
-    until_fixed: object_classification_must_explicitly_select_IZH_package
+    result: resolved
+    initial_finding: >-
+      rules/28_functional_code_router.yaml contained residential_multifamily -> SP54
+      and public/special profiles, but no explicit single-family/IZHS -> SP55 route.
+    remediation: >-
+      Added functional.router.single_family_to_SP55 and catalog.residential_single_family.
+      The route requires explicit object classification and validation that the object is
+      within SP55 scope; it explicitly prevents substitution by SP54/SP118.
+    production_effect: routing_scope_only_no_numeric_rule_added
 
   - id: IZHS_DEPENDENCY_REVISION_COVERAGE
-    severity: medium
-    result: partial_pass
+    severity: info
+    result: pass
     dependencies_checked: 17
-    working_revision_gates: 15
-    missing_revision_gates: 2
-    missing_gate_documents: [SP_55_13330_2016, SP_64_13330_2017]
-    note: >-
-      Other declared structural, envelope and engineering dependencies inspected in this pass
-      have a corresponding current revision-watch entry in revision_watch_2027.yaml and/or
-      revision_watch_adjacent_2027.yaml.
+    working_revision_gates: 17
+    missing_revision_gates: 0
+    missing_gate_documents: []
+
+remaining_blockers:
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    result: blocked_pending_locator
+    production_effect: no_automatic_snow_value_or_territorial_route
+  - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
+    result: blocked_pending_locator
+    production_effect: no_production_daylight_ratio_from_SP55_9_18
+  - id: AUTHORIZED_BROWSER_LOCATOR_ACCESS
+    result: unavailable
+    observed_error: "Browser not connected"
+    production_effect: no_substitution_with_search_snippets
 
 production_effect:
   numeric_rules_changed: false
-  rule_values_changed: false
+  numeric_values_added: 0
   production_promotions: 0
-  library_metadata_added: true
-  safe_state: preserve_existing_scoped_PASS_and_fail_closed_blockers
+  revision_gates_strengthened: 2
+  functional_routes_reconciled: 1
+  safe_state: preserve_existing_scoped_PASS_and_fail_closed_locator_blockers
 
 next_actions:
-  - reconcile_SP55_and_SP64_into_revision_watch
-  - add_explicit_IZHS_route_to_global_functional_router
   - direct_read_SP55_9_18_before_daylight_ratio_promotion
   - direct_read_SP20_10_2_before_snow_route_promotion
   - continue_library_expansion_from_IZHS_dependencies_outward
+  - keep_Southern_Russia_out_of_scope_until_explicitly_started

@@ -12,6 +12,7 @@ object_class_router:
 revision:
   verified_changes: [1, 2]
   latest_change: 2
+  latest_change_effective_from: 2025-02-25
 proof:
   state: official_card_verified
   authority: Rosstandart
@@ -19,7 +20,16 @@ proof:
 scope:
   proof_state: official_card_verified
   note: "Primary functional code for multifamily residential buildings within its official scope."
-locators: []
+change_map: "../change_maps/SP_54_13330_2022.yaml"
+rule_files:
+  - "../../rules/35_residential_planning_minima.yaml"
+locators:
+  - {locator: "5.2; table 5.1", state: existing_rule_traceability_pending}
+  - {locator: "5.11", state: existing_rule_traceability_pending}
+  - {locator: "5.12", state: existing_rule_traceability_pending}
+  - {locator: "A.1.4", state: existing_rule_traceability_pending}
+  - {locator: "A.1.4 note 1", state: existing_rule_traceability_pending}
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - do_not_apply_to_IZHS_by_residential_name_only
+  - change2_card_never_counts_as_current_locator_text

@@ -1,0 +1,107 @@
+audit_id: OBJECT_CLASS_SCOPE_TRACEABILITY_2026_10_03
+audit_version: 1
+checked_at: 2026-10-03
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+
+objectives:
+  - detect_cross_class_leakage_risk_from_global_rules_glob
+  - hard_gate_high_risk_residential_rule_files_by_object_class
+  - add_CI_enforcement_for_scope_registry
+  - extend_locator_traceability_to_SP402_and_GOST25772
+
+findings:
+  - id: GLOBAL_RULE_GLOB_SCOPE_RISK
+    severity: high
+    result: confirmed
+    evidence:
+      manifest: "../manifest.yaml"
+      behavior: "rules/*.yaml are loaded globally before izh/manifest.yaml"
+      validator_before_fix: "tools/validate.py did not validate object-class applicability"
+    consequence: >-
+      A machine consumer could theoretically evaluate an SP54/SP118 rule for IZHS merely because
+      the YAML file is globally loaded, unless scope routing is enforced separately.
+
+  - id: MKD_ONLY_GLOBAL_RULE_CLUSTER
+    severity: high
+    result: confirmed
+    files:
+      - 35_residential_planning_minima.yaml
+      - 36_residential_wet_zone_stacking.yaml
+      - 37_residential_balconies_loggias.yaml
+      - 40_residential_vertical_transport.yaml
+      - 53_garant_residential_planning_verification.yaml
+      - 61_residential_entrance_vestibules_climate.yaml
+      - 65_timber_apartment_fire_2026.yaml
+    normative_bases: [SP_54_13330_2022, SP_549_1311500_2026]
+    required_scope: MKD_only
+    IZHS_action: not_applicable
+
+  - id: MIXED_RULE_07_GUARDRAILS
+    severity: high
+    result: section_scope_required
+    common_product_standard: GOST_25772_2025
+    MKD_section: residential_project_requirements
+    PUBLIC_section: public_project_requirements
+    IZHS_rule: >-
+      Product type/geometry may be used when applicable, but SP54 project heights are forbidden
+      for IZHS; an IZHS project requirement must come from an applicable IZHS/common source.
+
+  - id: MIXED_RULE_100_SP402
+    severity: high
+    result: section_scope_required
+    file_scope: [IZHS, MKD]
+    forbidden_classes: [PUBLIC, TRK, INDUSTRIAL]
+    MKD_only_sections: [multifamily_residential, locator_5_16]
+
+scope_hardening:
+  router: "../rules/28_functional_code_router.yaml"
+  registry_mode: hard_gate_before_rule_evaluation
+  high_risk_files_registered: 10
+  MKD_only_files_hard_forbidden_for_IZHS: 7
+  section_scoped_files: [04_architectural_baseline.yaml, 07_guardrails_roofs.yaml, 100_residential_gas_architectural_interfaces_2027.yaml]
+  CI_validator: "../tools/validate.py"
+  CI_behavior: >-
+    Lint fails if required scope entries disappear, expected allowed classes change, MKD-only files
+    allow IZHS, or critical section overrides lose their narrower object-class gates.
+
+traceability_findings:
+  SP402:
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "../library/change_maps/SP_402_1325800_2018.yaml"
+    pending_locators: ["5.1", "5.5", "5.9", "5.10", "5.11", "5.12", "5.16"]
+    state: existing_rule_traceability_pending
+    production_effect: preserve_existing_rule_without_new_library_PASS
+    known_ambiguity: "5.5"
+  GOST25772:
+    rule_file: "../rules/07_guardrails_roofs.yaml"
+    document_card: "../library/documents/GOST_25772_2025.yaml"
+    change_map: "../library/change_maps/GOST_25772_2025.yaml"
+    pending_locators: ["4.2, Table 1", "5.1.1, Table 3"]
+    correction_effective_from: 2026-06-17
+    correction_text_visible_in_public_card: false
+    state: existing_rule_traceability_pending
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rule_values_promoted_by_library: 0
+  existing_rule_values_demoted_by_library: 0
+  routing_gates_added: true
+  CI_scope_checks_added: true
+
+open_blockers:
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification
+  - authorized_GARANT_or_Consultant_locator_access
+
+next_safe_passes:
+  - audit_PUBLIC_TRK_and_industrial_function_specific_rule_files_for_global_scope_leakage
+  - expand_CI_scope_registry_to_each_confirmed_special_class_file
+  - continue_locator_registry_migration_from_existing_numeric_rules
+  - direct_read_blocked_locators_when_authorized_or_official_full_text_becomes_accessible

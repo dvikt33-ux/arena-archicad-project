@@ -1,0 +1,157 @@
+audit_id: P0_SPECIAL_PROFILES_LOCATOR_EXTRACTION_PASS_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+numeric_values_added_to_production: 0
+existing_production_values_changed: false
+
+objectives:
+  - establish_revision_change_maps_for_first_P0_special_profiles
+  - separate_source_chain_readiness_from_locator_level_proof
+  - prevent_general_SP118_or_host_rules_from_filling_missing_special_requirements
+  - create_machine_extraction_queue_for_profiles_without_dedicated_rule_layers
+  - reaudit_SP113_change4_without_reinterpreting_existing_parking_values
+
+session_source_state:
+  authorized_opera_connector: disconnected
+  official_public_Rosstandart_cards: available
+  official_Minstroy_publication_index: available_for_base_and_selected_change_entries
+  consolidated_current_locator_text_via_authorized_source: unavailable
+  consequence: no_new_locator_PASS_and_no_numeric_promotion
+
+P0_special_profiles:
+  SCHOOL_GENERAL_EDUCATION:
+    document: SP_251_1325800_2016
+    change_map: "../library/change_maps/SP_251_1325800_2016.yaml"
+    revision: {verified_changes: [1, 2, 3, 4, 5, 6, 7], latest_change: 7, effective_from: 2026-01-01}
+    latest_change_card_observation: reference_document_updates_summary
+    locator_state: source_chain_ready_locator_pending
+    dedicated_rule_gap_preserved: true
+  PRESCHOOL:
+    document: SP_252_1325800_2016
+    change_map: "../library/change_maps/SP_252_1325800_2016.yaml"
+    revision: {verified_changes: [1, 2, 3], latest_change: 3, effective_from: 2025-01-21}
+    latest_change_card_observation: reference_document_updates_summary
+    locator_state: source_chain_ready_locator_pending
+    dedicated_rule_gap_preserved: true
+  MEDICAL:
+    document: SP_158_13330_2014
+    change_map: "../library/change_maps/SP_158_13330_2014.yaml"
+    revision: {verified_changes: [1, 2, 3, 4, 5, 6, 7], latest_change: 7, effective_from: 2026-08-10}
+    latest_change_card_observation: reference_document_updates_summary
+    locator_state: source_chain_ready_locator_pending
+    embedded_zone_classification_required: true
+    dedicated_rule_gap_preserved: true
+  HOTEL:
+    document: SP_257_1325800_2020
+    change_map: "../library/change_maps/SP_257_1325800_2020.yaml"
+    revision: {verified_changes: [1], latest_change: 1, effective_from: 2024-01-29}
+    latest_change_card_observation: card_has_revision_metadata_but_no_content_summary
+    locator_state: source_chain_ready_locator_pending
+    embedded_zone_classification_required: true
+    dedicated_rule_gap_preserved: true
+  INDUSTRIAL_PRODUCTION_STORAGE:
+    document: SP_56_13330_2021
+    change_map: "../library/change_maps/SP_56_13330_2021.yaml"
+    revision: {verified_changes: [], latest_change: null, effective_from: 2022-01-28}
+    current_document_gate: must_not_fall_back_to_SP56_13330_2011
+    locator_state: source_chain_ready_locator_pending
+    F5_scope_and_exclusion_check_required: true
+    dedicated_rule_gap_preserved: true
+
+parking_reaudit:
+  document: SP_113_13330_2023
+  change_map: "../library/change_maps/SP_113_13330_2023.yaml"
+  latest_change: 4
+  effective_from: 2026-10-03
+  official_card_observation: >-
+    The public Rosstandart Change 4 card lists reference-document substitutions/additions/removals,
+    including transition to SP42.13330.2026 and later revisions of SP60, SP70 and SP256.
+  evidence_limit: >-
+    Project policy does not treat the change-card summary as proof that Appendix A or listed clauses
+    are unchanged; direct current locator reading remains required before any new PASS.
+  priority_locators:
+    - "Appendix A; Table A.1"
+    - "Appendix A; Table A.1 note 4"
+    - "4.4"
+    - "5.4"
+    - "5.6"
+    - "6.2.12"
+    - "6.2.30"
+    - "7.10.2"
+    - "7.10.5"
+  existing_rules_preserved_without_reinterpretation: true
+  new_library_PASS: 0
+
+new_library_artifacts:
+  catalogs:
+    - "../library/profile_primary_locator_extraction_registry.yaml"
+  change_maps:
+    - "../library/change_maps/SP_251_1325800_2016.yaml"
+    - "../library/change_maps/SP_252_1325800_2016.yaml"
+    - "../library/change_maps/SP_158_13330_2014.yaml"
+    - "../library/change_maps/SP_257_1325800_2020.yaml"
+    - "../library/change_maps/SP_56_13330_2021.yaml"
+    - "../library/change_maps/SP_113_13330_2023.yaml"
+  CI_validator:
+    - "../tools/validate_primary_locator_extraction.py"
+  document_cards_linked_back_to_maps_and_queue:
+    - SP_251_1325800_2016
+    - SP_252_1325800_2016
+    - SP_158_13330_2014
+    - SP_257_1325800_2020
+    - SP_56_13330_2021
+    - SP_113_13330_2023
+
+machine_semantics:
+  source_chain_ready_locator_pending: >-
+    Identity, active revision chain and source route are established, but direct current locator
+    text is not available; this state cannot generate numeric or imperative production rules.
+  profile_requirement_pending: >-
+    If the selected special profile needs a requirement whose current locator has not been verified,
+    the agent must return a pending/blocked state rather than substitute a generic or neighboring profile rule.
+  dedicated_rule_gap_remains_open_until_verified_rules_exist: true
+
+library_manifest:
+  version: 16
+  added_catalog: profile_primary_locator_extraction_registry.yaml
+  added_change_maps: 6
+  new_known_gaps:
+    - P0_SPECIAL_PROFILE_DIRECT_LOCATORS_UNAVAILABLE
+    - SP113_CHANGE4_CURRENT_LOCATOR_REAUDIT
+
+CI_expected:
+  existing_validators_preserved: true
+  new_validator: validate_primary_locator_extraction.py
+  new_validator_requirements:
+    - exactly_5_P0_profiles_in_queue
+    - all_5_profiles_keep_coverage_gap_no_dedicated_rules
+    - production_promotion_allowed_false_for_all
+    - change_maps_exist
+    - parking_change4_reaudit_remains_blocked
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rule_values_reinterpreted: false
+  production_rules_promoted: 0
+  library_PASS_promoted: 0
+  evidence_and_research_routing_hardened: true
+
+open_next_priority:
+  when_authorized_locator_access_returns:
+    - SP_251_current_high_value_architectural_locators
+    - SP_252_current_high_value_architectural_locators
+    - SP_158_current_high_value_architectural_locators
+    - SP_257_current_high_value_architectural_locators
+    - SP_56_current_high_value_architectural_locators
+    - SP_113_Change4_priority_locators
+  independent_existing_blockers:
+    - SP20_10_2_exact_current_text
+    - SP20_Appendix_K_current_route
+    - SP55_9_18_exact_current_text
+    - SP402_durable_locator_evidence_migration
+    - GOST25772_correction_text_and_table_locator_verification

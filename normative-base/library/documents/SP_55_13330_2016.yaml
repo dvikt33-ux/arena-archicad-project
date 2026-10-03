@@ -46,6 +46,16 @@ official_sources:
   authority: Rosstandart
   base_card_proof_state: official_card_verified
 
+revision_gate:
+  file: revision_watch_2027.yaml
+  status: present
+  official_latest_change: 2
+  latest_change_effective_from: 2023-06-18
+  resolved_at: 2026-10-03
+  note: >-
+    Revision-gate подтверждает идентичность и уровень редакции СП55, но не доказывает
+    текст конкретного пункта и не снимает locator-level блокировки.
+
 locators:
   - locator: "9.18"
     topic: daylight_window_to_floor_ratio
@@ -60,11 +70,17 @@ locators:
       use_for_production: false
 
 release_gates:
-  - SP55_revision_must_be_present_in_global_revision_watch
+  - SP55_revision_must_match_global_revision_watch
   - exact_locator_text_required_for_numeric_rules
   - later_SP55_change_requires_locator_reaudit
 
-known_gaps:
+resolved_gaps:
   - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: SP_55_13330_2016_added_to_revision_watch_2027_with_official_latest_change_2
+
+open_gaps:
+  - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
     status: open
-    effect: fail_closed_for_SP55_dependent_locators_until_revision_gate_is_added_and_audited
+    effect: no_production_daylight_ratio_from_SP55_9_18

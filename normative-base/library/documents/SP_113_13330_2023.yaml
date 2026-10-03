@@ -21,6 +21,7 @@ proof:
   authority: Rosstandart
   official_url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131"
   latest_change_url: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+change_map: "../change_maps/SP_113_13330_2023.yaml"
 scope:
   proof_state: official_card_verified
   note: >-
@@ -32,8 +33,15 @@ latest_change_metadata:
     Change 4 updates referenced standards including SP42.13330.2026, SP60 change 6,
     SP70 change 8 and SP256 change 9. Public card currently exposes metadata/content summary
     but no uploaded change PDF; locator-level numeric text is not inferred from the card.
+locator_reaudit:
+  state: blocked_pending_direct_current_locator
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: unavailable_in_current_session
+  production_promotion_allowed: false
+  preserve_existing_rules_without_reinterpretation: true
 locators: []
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - independent_SP113_scope_match_required
   - ordinary_private_IZHS_garage_or_EV_charger_does_not_auto_activate_SP113
+  - change4_current_locators_required_before_new_library_PASS

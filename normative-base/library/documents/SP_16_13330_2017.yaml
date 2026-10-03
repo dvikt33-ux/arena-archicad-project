@@ -1,0 +1,29 @@
+document_id: SP_16_13330_2017
+title: "Стальные конструкции"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, STRUCTURAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4, 5, 6]
+  latest_change: 6
+  latest_change_effective_from: 2025-01-10
+revision_gate:
+  file: revision_watch_adjacent_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/43076552-945c-4733-81c2-cfbe454e1d6d"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование и расчет стальных строительных конструкций в пределах официальной области применения и ее исключений."
+locators: []
+release_gates:
+  - structural_system_and_operating_conditions_required
+  - structural_calculation_required
+  - exact_locator_evidence_required_for_numeric_rules

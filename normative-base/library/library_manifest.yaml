@@ -1,4 +1,4 @@
-library_version: 10
+library_version: 11
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -20,6 +20,7 @@ invariants:
   - product_standard_geometry_never_replaces_object_class_project_requirement
   - global_yaml_loading_never_implies_cross_class_rule_applicability
   - mixed_use_special_rules_require_active_functional_zone_or_special_profile_match
+  - engineering_rule_files_require_system_or_equipment_presence_before_rule_evaluation
 
 object_classes:
   IZHS:
@@ -56,6 +57,7 @@ catalogs:
   - izh_dependency_catalog.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
+  - engineering_system_scope_registry.yaml
 
 change_maps:
   - change_maps/SP_20_13330_2016.yaml
@@ -101,6 +103,13 @@ coverage:
     embedded_public_function_policy: >-
       Embedded public/retail/foodservice functions in an MKD are evaluated as explicitly
       classified PUBLIC functional zones; apartment/residential zones remain ineligible.
+  engineering_system_scope_enforcement:
+    source: "engineering_system_scope_registry.yaml"
+    CI_validator: "../tools/validate_engineering_scope.py"
+    files_registered: 13
+    evaluation_order: [system_or_equipment_presence, normative_scope, object_or_function_section, machine_rule]
+    missing_system_result: not_applicable
+    unknown_requirement_result: engineering_design_required
 
 document_cards:
   - documents/SP_55_13330_2016.yaml
@@ -151,6 +160,13 @@ resolved_safety_gaps:
     resolution: >-
       library/functional_scope_registry.yaml defines active functional-zone/special-profile gates
       for the first PUBLIC/TRK cluster and tools/validate_functional_scope.py is executed by CI.
+  - id: ENGINEERING_FILES_NO_SYSTEM_PRESENCE_GATE
+    status: resolved_initial_high_risk_cluster
+    resolved_at: 2026-10-03
+    resolution: >-
+      library/engineering_system_scope_registry.yaml requires system/equipment presence and
+      normative-scope validation before evaluating the first 13 high-impact engineering/fire files;
+      tools/validate_engineering_scope.py is executed by CI.
 
 known_safety_gaps:
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT

@@ -13,6 +13,7 @@ REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
     "multi_profile_dependency_catalog.yaml",
     "profile_rule_coverage_registry.yaml",
+    "multi_profile_locator_backlog.yaml",
     "locator_registry.yaml",
     "functional_scope_registry.yaml",
     "engineering_system_scope_registry.yaml",
@@ -94,6 +95,15 @@ def main() -> int:
         if coverage_row.get("dedicated_rule_gap_count") != 9:
             errors.append("profile_rule_coverage dedicated_rule_gap_count must reflect current explicit inventory")
 
+    backlog_row = coverage.get("multi_profile_locator_backlog") if isinstance(coverage, dict) else None
+    if not isinstance(backlog_row, dict):
+        errors.append("library manifest missing multi_profile_locator_backlog summary")
+    else:
+        if backlog_row.get("source") != "multi_profile_locator_backlog.yaml":
+            errors.append("multi_profile_locator_backlog source mismatch")
+        if backlog_row.get("new_library_PASS") != 0:
+            errors.append("locator backlog must not declare a new library PASS")
+
     hard_fails = set(root.get("hard_fail_states") or [])
     missing_hard_fails = sorted(REQUIRED_HARD_FAILS - hard_fails)
     if missing_hard_fails:
@@ -122,7 +132,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage catalogs are integrated."
+        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/evidence-backlog catalogs are integrated."
     )
     return 0
 

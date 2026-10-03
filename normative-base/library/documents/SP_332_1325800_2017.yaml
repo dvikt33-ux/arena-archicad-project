@@ -1,0 +1,27 @@
+document_id: SP_332_1325800_2017
+title: "Спортивные сооружения. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, SPORTS]
+object_class_router:
+  include_when_subject_applies: [PUBLIC, TRK]
+  gate: sports_facility_or_sports_functional_zone
+revision:
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
+scope:
+  proof_state: official_card_verified
+  note: "Sports facilities and applicable sports functional zones within official scope."
+related_documents:
+  - SP_415_1325800_2023
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - sport_type_and_zone_classification_required

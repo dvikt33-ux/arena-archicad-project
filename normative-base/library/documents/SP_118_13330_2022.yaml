@@ -1,0 +1,28 @@
+document_id: SP_118_13330_2022
+title: "Общественные здания и сооружения"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC]
+object_class_router:
+  include_when_subject_applies: [PUBLIC, TRK]
+  exclude_by_default: [IZHS, INDUSTRIAL]
+  gate: general_public_layer_or_explicit_public_functional_zone
+revision:
+  verified_changes: [1, 2, 3, 4, 5]
+  latest_change: 5
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
+scope:
+  proof_state: official_card_verified
+  note: >-
+    General public-building layer. A more specific functional SP remains primary for schools,
+    preschools, medical buildings, hotels, sports, theatres/cinemas and other special functions.
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - special_functional_code_precedes_general_public_rule

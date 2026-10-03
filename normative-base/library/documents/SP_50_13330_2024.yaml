@@ -1,0 +1,46 @@
+document_id: SP_50_13330_2024
+title: "Тепловая защита зданий"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, THERMAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  gate: building_scope_and_exclusions_must_match
+
+revision:
+  base_approval_order: "327/пр"
+  base_approval_date: 2024-05-15
+  effective_from: 2024-06-16
+  replaces: SP_50_13330_2012
+  official_card_has_no_changes_on_checked_state: true
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+scope:
+  proof_state: official_card_verified
+  note: >-
+    Официальная карточка распространяет СП на тепловую защиту строящихся и
+    реконструируемых жилых, общественных, производственных, сельскохозяйственных
+    и складских зданий общей площадью более 50 м2 при необходимости поддержания
+    температурно-влажностного режима, с перечисленными в документе исключениями.
+
+locators:
+  - locator: "Table 3"
+    topic: required_thermal_resistance_lookup
+    proof_state: blocked_pending_locator
+    production_allowed_from_library_card: false
+    note: >-
+      Карточка документа не доказывает значения таблицы. Использовать числовые
+      значения можно только из отдельного clause/table evidence record после прямого чтения.
+
+release_gates:
+  - exact_table_or_clause_evidence_required_for_numeric_rules
+  - project_climate_inputs_required
+  - scope_exclusions_checked

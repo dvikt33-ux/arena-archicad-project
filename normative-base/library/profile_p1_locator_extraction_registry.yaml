@@ -1,0 +1,148 @@
+registry_version: 1
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+role: P1_profile_locator_extraction_queue
+
+purpose: >-
+  Очередь следующего приоритета для специальных профилей и overlay, которые не должны ждать
+  завершения ИЖС/P0. Реестр не является нормативным правилом и не разрешает числовое применение.
+
+invariants:
+  - P1_queue_never_counts_as_rule_coverage
+  - official_card_never_proves_clause_or_table_text
+  - amendment_metadata_never_proves_unchanged_locator_text
+  - no_numeric_value_without_direct_current_locator
+  - partial_existing_rules_never_count_as_complete_primary_document_coverage
+  - overlay_never_replaces_underlying_functional_profile
+  - unresolved_locator_returns_profile_requirement_pending_not_inferred_value
+
+profiles:
+  MIXED_USE:
+    primary_document: SP_160_1325800_2014
+    primary_change_map: change_maps/SP_160_1325800_2014.yaml
+    fire_overlay_document: SP_456_1311500_2020
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 3, effective_from: 2024-01-29}
+    coverage_state: substantive_existing_but_primary_SP160_incomplete
+    target_topics:
+      - primary_scope_and_function_combinations
+      - functional_zone_separation
+      - common_and_separate_entrances
+      - vertical_transport_and_shared_cores
+      - parking_loading_and_service_interfaces
+      - atrium_and_fire_compartment_interfaces
+    fallback_if_locator_missing: mixed_use_profile_requirement_pending
+    production_promotion_allowed: false
+
+  HIGH_RISE_OVERLAY:
+    primary_document: SP_267_1325800_2016
+    primary_change_map: change_maps/SP_267_1325800_2016.yaml
+    fire_overlay_document: SP_550_1311500_2026
+    fire_change_map: change_maps/SP_550_1311500_2026.yaml
+    state: source_chain_ready_locator_pending
+    current_architectural_revision: {latest_change: 3, effective_from: 2026-07-15}
+    current_fire_revision: {latest_change: null, effective_from: 2026-06-01}
+    preserves_underlying_profile: true
+    target_topics:
+      - SP267_height_and_function_scope
+      - structural_and_planning_zoning
+      - vertical_transport_and_refuge_interfaces
+      - facade_roof_and_service_floor_interfaces
+      - SP550_fire_compartment_and_egress_overlay
+    fallback_if_locator_missing: highrise_overlay_requirement_pending
+    production_promotion_allowed: false
+
+  HIGHER_EDUCATION:
+    primary_document: SP_278_1325800_2024
+    change_map: change_maps/SP_278_1325800_2024.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: null, effective_from: 2025-01-26}
+    target_topics:
+      - campus_and_site_zoning
+      - teaching_laboratory_and_research_room_groups
+      - lecture_hall_and_auditorium_geometry
+      - student_staff_service_and_foodservice_interfaces
+      - accessibility_vertical_transport_and_egress
+    fallback_if_locator_missing: higher_education_profile_requirement_pending
+    production_promotion_allowed: false
+
+  VOCATIONAL_EDUCATION:
+    primary_document: SP_279_1325800_2016
+    change_map: change_maps/SP_279_1325800_2016.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 1, effective_from: 2024-01-29}
+    target_topics:
+      - site_and_functional_zoning
+      - teaching_and_training_workshop_groups
+      - industrial_training_safety_interfaces
+      - sanitary_and_staff_support_spaces
+      - accessibility_and_egress
+    fallback_if_locator_missing: vocational_education_profile_requirement_pending
+    production_promotion_allowed: false
+
+  THEATRE_CINEMA_CONCERT:
+    primary_document: SP_309_1325800_2017
+    change_map: change_maps/SP_309_1325800_2017.yaml
+    state: existing_partial_rules_current_locator_migration_pending
+    current_revision: {latest_change: 1, effective_from: 2024-01-29}
+    existing_partial_rule_file: 71_public_special_functions_2027.yaml
+    target_topics:
+      - full_scope_and_building_limits
+      - auditorium_geometry_and_sightlines
+      - stage_backstage_and_service_groups
+      - audience_artist_and_loading_flow_separation
+      - evacuation_and_accessibility_interfaces
+    fallback_if_locator_missing: theatre_cinema_profile_requirement_pending
+    production_promotion_allowed: false
+
+  INDUSTRIAL_ADMIN_AMENITY:
+    primary_document: SP_44_13330_2011
+    change_map: change_maps/SP_44_13330_2011.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 4, effective_from: 2022-01-08}
+    target_topics:
+      - sanitary_amenity_room_calculation
+      - wardrobes_showers_washbasins_and_toilets
+      - occupational_process_group_routing
+      - administrative_room_groups
+      - embedded_and_attached_ABK_interfaces
+    fallback_if_locator_missing: industrial_admin_amenity_requirement_pending
+    production_promotion_allowed: false
+
+  CHILDREN_HEALTH_CAMP:
+    primary_document: SP_535_1325800_2024
+    change_map: change_maps/SP_535_1325800_2024.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: null, effective_from: 2024-03-09}
+    target_topics:
+      - territory_and_functional_zoning
+      - residential_group_composition
+      - dining_medical_sports_and_club_interfaces
+      - seasonal_vs_year_round_building_conditions
+      - inclusive_group_accessibility_and_safe_routes
+    fallback_if_locator_missing: children_health_camp_requirement_pending
+    production_promotion_allowed: false
+
+partial_profile_expansions:
+  SPORTS:
+    primary_document: SP_332_1325800_2017
+    change_map: change_maps/SP_332_1325800_2017.yaml
+    state: existing_partial_rules_current_locator_migration_pending
+    current_revision: {latest_change: 4, effective_from: 2024-01-29}
+    existing_partial_rule_file: 71_public_special_functions_2027.yaml
+    target_topics:
+      - full_sports_facility_scope
+      - sport_specific_hall_and_field_geometry_routes
+      - spectator_and_athlete_flow_separation
+      - changing_sanitary_and_support_room_groups
+      - accessibility_and_egress_interfaces
+    production_promotion_allowed: false
+
+summary:
+  P1_profiles_in_queue: 7
+  partial_profile_expansions: 1
+  numeric_promotions: 0
+  library_PASS_promotions: 0
+  unresolved_profiles_fail_closed: true

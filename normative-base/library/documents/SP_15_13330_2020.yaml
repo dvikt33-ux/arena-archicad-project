@@ -1,0 +1,29 @@
+document_id: SP_15_13330_2020
+title: "Каменные и армокаменные конструкции"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, STRUCTURAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  replaces: SP_15_13330_2012
+  verified_changes: [1]
+  latest_change: 1
+revision_gate:
+  file: revision_watch_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование каменных и армокаменных конструкций в пределах официальной области применения документа."
+locators: []
+release_gates:
+  - masonry_system_and_material_required
+  - structural_calculation_required
+  - exact_locator_evidence_required_for_numeric_rules

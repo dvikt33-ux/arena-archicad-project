@@ -1,0 +1,26 @@
+document: SP_550_1311500_2026
+checked_at: 2026-10-04
+production_authority: false
+policy: fail_closed
+status: active
+revision:
+  base_effective_from: 2026-06-01
+  official_latest_change: null
+  official_card_has_no_changes: true
+proof:
+  state: official_card_verified
+  source_url: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
+scope:
+  functional_fire_classes:
+    - {class: F1_3, fire_height_strictly_over_m: 75}
+    - {class: PUBLIC_OR_MULTIFUNCTIONAL, fire_height_strictly_over_m: 50}
+  source_scope_state: official_card_verified
+change_effect:
+  exact_locator_effect: not_applicable_no_registered_changes
+  base_text_locator_verification_required: true
+production_impact:
+  numeric_rules_changed: false
+  promotion_allowed_from_this_map: false
+release_gate:
+  - direct_current_locator_required_before_new_library_PASS
+  - highrise_fire_overlay_scope_required

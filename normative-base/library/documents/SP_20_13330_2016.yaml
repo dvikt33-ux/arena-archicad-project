@@ -1,0 +1,74 @@
+document_id: SP_20_13330_2016
+title: "Нагрузки и воздействия"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, STRUCTURAL, CLIMATE]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  role: common_loads_document
+
+scope:
+  official_card_verified: true
+  summary: >-
+    Требования по назначению нагрузок, воздействий и их сочетаний для расчетов зданий
+    и сооружений по предельным состояниям первой и второй групп.
+
+revision:
+  base_approval_order: "891/пр"
+  base_approval_date: 2016-12-03
+  effective_from: 2017-06-04
+  replaces: SP_20_13330_2011
+  verified_changes: [1, 2, 3, 4, 5, 6]
+  latest_change: 6
+  change_2:
+    approval_order: "49/пр"
+    approval_date: 2019-01-28
+    registered_date: 2019-03-14
+    effective_from: 2019-07-29
+    official_publication_date: 2019-04-03
+    official_card: "https://protect.gost.ru/sp/changesdetails/1a5a6ff2-93a4-40b0-bc97-526e12b60445"
+    proof_state: official_card_verified
+  change_6:
+    approval_order: "597/пр"
+    approval_date: 2024-09-05
+    registered_date: 2024-09-16
+    effective_from: 2024-09-25
+    official_card: "https://protect.gost.ru/sp/changesdetails/e26e8b63-c763-4846-a800-a2a79586c725"
+    proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"
+  authority: Rosstandart
+  base_card_proof_state: official_card_verified
+
+locators:
+  - locator: "10.2"
+    topic: snow_load_territorial_selection
+    proof_state: blocked_pending_locator
+    production_allowed: false
+    blocker: >-
+      В публичных слоях обнаружено противоречие между представлением действующего
+      корневого текста и схемой, связанной с Изменением №2. Официальная карточка
+      Росстандарта подтверждает само Изменение №2 и даты, но карточка не доказывает
+      точный действующий текст пункта 10.2. Требуется прямое чтение current locator.
+  - locator: "Appendix K"
+    topic: normative_snow_weight_for_listed_cities
+    proof_state: blocked_pending_locator
+    production_allowed: false
+    blocker: >-
+      До разрешения пункта 10.2 нельзя автоматически выбирать приложение К как
+      применимый источник для конкретного населенного пункта.
+
+release_gates:
+  - exact_current_clause_10_2_text_required
+  - settlement_or_site_required_before_snow_value_generation
+  - later_SP20_change_requires_affected_locator_reaudit
+
+known_gaps:
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    status: open
+    effect: no_automatic_snow_value_or_territorial_route

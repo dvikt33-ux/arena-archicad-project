@@ -1,4 +1,4 @@
-library_version: 18
+library_version: 19
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -28,6 +28,7 @@ invariants:
   - primary_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
   - p1_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
   - parking_geometry_and_parking_fire_documents_must_remain_separate_but_jointly_routed
+  - highrise_architectural_and_fire_documents_must_remain_separate_but_jointly_routed
 
 object_classes:
   IZHS:
@@ -165,6 +166,17 @@ coverage:
     paired_planning_document: SP_113_13330_2023
     locator_evidence_state: existing_rule_traceability_pending
     new_library_PASS: 0
+  highrise_fire_evidence:
+    document: SP_550_1311500_2026
+    document_card: documents/SP_550_1311500_2026.yaml
+    change_map: change_maps/SP_550_1311500_2026.yaml
+    rule_file: "../rules/47_highrise_fire_2027.yaml"
+    effective_from: 2026-06-01
+    role: highrise_fire_overlay
+    paired_architectural_document: SP_267_1325800_2016
+    preserves_underlying_functional_profile: true
+    locator_evidence_state: inherited_authorized_text_needs_library_migration
+    new_library_PASS: 0
   additional_product_document_cards:
     count: 1
     documents: [GOST_25772_2025]
@@ -219,6 +231,7 @@ document_cards:
   - documents/SP_56_13330_2021.yaml
   - documents/SP_160_1325800_2014.yaml
   - documents/SP_267_1325800_2016.yaml
+  - documents/SP_550_1311500_2026.yaml
   - documents/SP_309_1325800_2017.yaml
   - documents/SP_278_1325800_2024.yaml
   - documents/SP_279_1325800_2016.yaml
@@ -306,6 +319,12 @@ resolved_safety_gaps:
     resolution: >-
       SP551 now has its own document card, revision map and global revision-watch entry; production
       parking fire rules remain preserved while their locator-level evidence migration is pending.
+  - id: HIGHRISE_FIRE_LIBRARY_TRACEABILITY_MISSING
+    status: resolved_initial_evidence_route
+    resolved_at: 2026-10-04
+    resolution: >-
+      SP550 now has its own document card and revision map tied to the existing high-rise fire rule
+      file while the underlying architectural/functional profile remains mandatory.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
@@ -331,6 +350,12 @@ known_safety_gaps:
     source: multi_profile_locator_backlog.yaml
     profiles: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
     effect: "Existing rule values remain governed by their current production audit history; no new library PASS until direct locator migration."
+  - id: SP550_LOCATOR_DURABLE_TRACEABILITY
+    status: open
+    severity: high
+    document: SP_550_1311500_2026
+    rule_file: "../rules/47_highrise_fire_2027.yaml"
+    effect: "Existing SP550 high-rise fire rules are preserved; no new library PASS until direct current locator evidence is migrated."
   - id: SP551_LOCATOR_DURABLE_TRACEABILITY
     status: open
     severity: high

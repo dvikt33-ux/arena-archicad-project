@@ -1,0 +1,171 @@
+audit_id: MULTI_PROFILE_DEPTH_AND_LOCATOR_PASS_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+numeric_values_added_to_production: 0
+
+objectives:
+  - close_revision_watch_gaps_for_new_non_IZHS_profiles
+  - distinguish_document_presence_from_actual_machine_rule_coverage
+  - expose_special_profiles_without_dedicated_rule_layers
+  - inventory_existing_non_IZHS_rule_locators_for_future_direct_evidence_migration
+  - keep_all_new_metadata_and_backlog_layers_non_production_authority
+
+revision_watch_expansion:
+  file: "../revision_watch_2027.yaml"
+  added_documents:
+    - document: SP_56_13330_2021
+      topic: industrial_production_storage
+      official_latest_change: null
+      official_card_has_no_changes: true
+      effective_from: 2022-01-28
+      evidence_level: official_card_metadata_only
+    - document: SP_44_13330_2011
+      topic: industrial_admin_amenity
+      official_latest_change: 4
+      latest_change_effective_from: 2022-01-08
+      evidence_level: official_card_and_change_metadata_only
+    - document: SP_456_1311500_2020
+      topic: multifunctional_fire_safety
+      official_latest_change: null
+      official_card_has_no_changes: true
+      effective_from: 2020-07-01
+      evidence_level: official_card_metadata_only
+    - document: SP_535_1325800_2024
+      topic: children_health_camps
+      official_latest_change: null
+      official_card_has_no_changes: true
+      effective_from: 2024-03-09
+      evidence_level: official_card_metadata_only
+  clause_text_promoted_from_cards: false
+
+profile_rule_coverage:
+  registry: "../library/profile_rule_coverage_registry.yaml"
+  validator: "../tools/validate_profile_rule_coverage.py"
+  profiles_total: 17
+  substantive_existing:
+    - MKD
+    - PUBLIC_GENERAL
+    - TRK
+    - MIXED_USE
+    - PARKING
+  partial_special_function:
+    - SPORTS
+    - THEATRE_CINEMA_CONCERT
+  overlay_existing:
+    - HIGH_RISE_OVERLAY
+  explicit_dedicated_rule_gaps:
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - MEDICAL
+    - HOTEL
+    - INDUSTRIAL_PRODUCTION_STORAGE
+    - INDUSTRIAL_ADMIN_AMENITY
+    - CHILDREN_HEALTH_CAMP
+  gap_count: 9
+  important_semantics:
+    - document_card_presence_is_not_rule_coverage
+    - SP118_shared_rules_do_not_close_special_profile_gap
+    - coverage_state_is_not_locator_evidence_state
+    - missing_special_profile_rule_is_fail_closed_not_analogy
+
+representative_existing_rule_findings:
+  MKD:
+    file: "../rules/35_residential_planning_minima.yaml"
+    primary_document: SP_54_13330_2022
+    existing_locator_examples: ["5.2 table 5.1", "5.11", "A.1.4", "5.12"]
+    library_state: traceability_migration_pending
+  PUBLIC_GENERAL:
+    file: "../rules/43_public_sanitary_facilities.yaml"
+    primary_document: SP_118_13330_2022
+    existing_locator_examples: ["5.54", "5.55", "5.57"]
+    library_state: traceability_migration_pending
+  TRK:
+    file: "../rules/70_trk_multifunctional_planning_2027.yaml"
+    primary_document: SP_464_1325800_2019
+    existing_locator_examples: ["1", "5.6", "6.20", "6.21", "Appendix B B.4", "8.6 Change 1"]
+    library_state: traceability_migration_pending
+  MIXED_USE:
+    file: "../rules/34_multifunctional_atriums.yaml"
+    primary_fire_document: SP_456_1311500_2020
+    existing_locator_examples: ["1", "3.2", "6.2.1", "6.2.2", "6.2.3", "6.2.4", "7.1"]
+    library_state: traceability_migration_pending
+  SPORTS_AND_CINEMA:
+    file: "../rules/71_public_special_functions_2027.yaml"
+    documents: [SP_332_1325800_2017, SP_309_1325800_2017]
+    library_state: traceability_migration_pending
+  PARKING:
+    file: "../rules/14_parking_geometry.yaml"
+    primary_document: SP_113_13330_2023
+    current_revision: "Change 4 effective 2026-10-03"
+    library_state: needs_change4_current_locator_confirmation
+  HIGH_RISE_FIRE_OVERLAY:
+    file: "../rules/47_highrise_fire_2027.yaml"
+    document: SP_550_1311500_2026
+    library_state: inherited_authorized_text_needs_library_migration
+
+locator_backlog:
+  file: "../library/multi_profile_locator_backlog.yaml"
+  profiles_with_existing_rule_locator_backlog: 8
+  profiles_waiting_for_primary_rule_layer: 9
+  new_library_PASS: 0
+  promotion_allowed_from_backlog: false
+  parking_priority: P0_urgent_due_to_SP113_change4
+
+library_manifest:
+  version: 15
+  new_catalogs:
+    - profile_rule_coverage_registry.yaml
+    - multi_profile_locator_backlog.yaml
+  new_known_gaps:
+    - SPECIAL_PROFILE_DEDICATED_RULE_GAPS
+    - NON_IZHS_EXISTING_RULE_LOCATOR_MIGRATION
+
+CI:
+  workflow: "../../.github/workflows/normative-base-lint.yml"
+  new_validator: "../tools/validate_profile_rule_coverage.py"
+  library_integration_requires:
+    - profile_rule_coverage_registry.yaml
+    - multi_profile_locator_backlog.yaml
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rule_values_reinterpreted: false
+  production_rules_promoted: 0
+  library_PASS_promoted: 0
+  applicability_or_evidence_visibility_hardened: true
+
+open_priority_work:
+  P0_direct_primary_rule_buildout:
+    - SCHOOL_GENERAL_EDUCATION_SP251
+    - PRESCHOOL_SP252
+    - MEDICAL_SP158
+    - HOTEL_SP257
+    - INDUSTRIAL_PRODUCTION_STORAGE_SP56
+  P0_locator_migration_existing_layers:
+    - MKD_SP54
+    - PUBLIC_SP118
+    - TRK_SP464
+    - PARKING_SP113_change4_current_text
+  P1:
+    - HIGHER_EDUCATION_SP278
+    - VOCATIONAL_EDUCATION_SP279
+    - INDUSTRIAL_ADMIN_AMENITY_SP44
+    - CHILDREN_HEALTH_CAMP_SP535
+    - THEATRE_CINEMA_CONCERT_full_SP309
+    - SPORTS_full_SP332
+    - SP160_primary_mixed_use_completion
+
+unchanged_blockers:
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification
+  - authorized_GARANT_or_Consultant_locator_access

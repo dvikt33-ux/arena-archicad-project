@@ -1,0 +1,229 @@
+registry_version: 1
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+role: profile_rule_coverage_inventory
+
+purpose: >-
+  Отделяет наличие нормативного профиля/карточки документа от фактического покрытия machine rules.
+  Реестр не доказывает правильность чисел и не повышает locator evidence state. Он показывает,
+  для каких типов объектов уже существует самостоятельный production rule-layer, где покрытие
+  только частичное, а где специальные нормы пока представлены лишь маршрутизацией/metadata.
+
+coverage_states:
+  substantive_existing: >-
+    Есть несколько самостоятельных профильных rule-секций/файлов с архитектурными требованиями.
+    Это не означает locator-level PASS: доказательность каждого числового правила проверяется отдельно.
+  partial_special_function: >-
+    Есть содержательные правила только по части функций/тем профиля; нельзя считать профиль полным.
+  shared_general_only: >-
+    Есть общие межпрофильные правила, но нет достаточного самостоятельного слоя primary document.
+  coverage_gap_no_dedicated_rules: >-
+    Primary document зарегистрирован, но dedicated machine-rule слой по нему пока отсутствует.
+  overlay_existing: >-
+    Есть содержательный overlay, который применяется поверх базового функционального профиля.
+
+invariants:
+  - document_card_presence_never_counts_as_rule_coverage
+  - shared_SP118_rules_never_count_as_complete_special_profile_coverage
+  - coverage_state_never_counts_as_locator_evidence_PASS
+  - coverage_gap_is_fail_closed_for_missing_special_requirement
+  - missing_dedicated_profile_must_not_be_filled_by_analogy_from_another_object_class
+  - rule_file_reference_must_exist_on_branch
+  - highrise_overlay_never_replaces_underlying_functional_profile
+  - embedded_special_zone_rules_apply_only_to_classified_zone
+
+profiles:
+  MKD:
+    primary_document: SP_54_13330_2022
+    coverage_state: substantive_existing
+    dedicated_rule_files:
+      - 35_residential_planning_minima.yaml
+      - 36_residential_wet_zone_stacking.yaml
+      - 37_residential_balconies_loggias.yaml
+      - 40_residential_vertical_transport.yaml
+      - 53_garant_residential_planning_verification.yaml
+      - 61_residential_entrance_vestibules_climate.yaml
+      - 65_timber_apartment_fire_2026.yaml
+      - 83_residential_site_open_space_2027.yaml
+    locator_evidence_state: mixed_not_yet_fully_migrated
+    note: "Rule coverage is substantial, but exact locator evidence must be migrated rule-by-rule."
+
+  PUBLIC_GENERAL:
+    primary_document: SP_118_13330_2022
+    coverage_state: substantive_existing
+    dedicated_rule_files:
+      - 43_public_sanitary_facilities.yaml
+      - 59_public_lift_lobby_exceptions.yaml
+    shared_rule_files:
+      - 04_architectural_baseline.yaml
+      - 07_guardrails_roofs.yaml
+      - 17_vertical_transport.yaml
+      - 25_entrance_vestibules_lobbies.yaml
+    locator_evidence_state: mixed_not_yet_fully_migrated
+    limitation: "SP118 has many more architectural topics than the two dedicated files currently inventory."
+
+  TRK:
+    primary_document: SP_464_1325800_2019
+    coverage_state: substantive_existing
+    dedicated_rule_files:
+      - 70_trk_multifunctional_planning_2027.yaml
+      - 87_trk_children_foodservice_2027.yaml
+      - 89_trk_loading_logistics_2027.yaml
+      - 106_trk_waste_collection_interfaces_2027.yaml
+    related_overlay_files:
+      - 34_multifunctional_atriums.yaml
+    locator_evidence_state: mixed_not_yet_fully_migrated
+
+  MIXED_USE:
+    primary_document: SP_160_1325800_2014
+    fire_overlay_document: SP_456_1311500_2020
+    coverage_state: substantive_existing
+    dedicated_rule_files:
+      - 34_multifunctional_atriums.yaml
+      - 70_trk_multifunctional_planning_2027.yaml
+    locator_evidence_state: mixed_not_yet_fully_migrated
+    limitation: "Rule 70 mixes SP160/SP464 routing; full SP160 primary-document coverage is not yet complete."
+
+  SCHOOL_GENERAL_EDUCATION:
+    primary_document: SP_251_1325800_2016
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+    rule: "Do not substitute SP118 generic rules for missing SP251-specific planning requirements."
+
+  PRESCHOOL:
+    primary_document: SP_252_1325800_2016
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+    rule: "Do not substitute school or generic SP118 rules for missing SP252-specific requirements."
+
+  HIGHER_EDUCATION:
+    primary_document: SP_278_1325800_2024
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml, 59_public_lift_lobby_exceptions.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+
+  VOCATIONAL_EDUCATION:
+    primary_document: SP_279_1325800_2016
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml, 59_public_lift_lobby_exceptions.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+
+  MEDICAL:
+    primary_document: SP_158_13330_2014
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+    embedded_zone_semantics: true
+    rule: "SP158-specific requirements apply to classified medical zone even in MKD/PUBLIC/INDUSTRIAL host; generic host rules do not replace them."
+
+  HOTEL:
+    primary_document: SP_257_1325800_2020
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml, 59_public_lift_lobby_exceptions.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+
+  SPORTS:
+    primary_document: SP_332_1325800_2017
+    coverage_state: partial_special_function
+    dedicated_rule_files:
+      - 71_public_special_functions_2027.yaml
+    locator_evidence_state: existing_rule_traceability_pending
+    covered_topics: [hall_height_route, changing_door_clearance, changing_room_passages, athlete_route_separation]
+    limitation: "One shared special-functions file is not full SP332 coverage."
+
+  THEATRE_CINEMA_CONCERT:
+    primary_document: SP_309_1325800_2017
+    coverage_state: partial_special_function
+    dedicated_rule_files:
+      - 71_public_special_functions_2027.yaml
+    locator_evidence_state: existing_rule_traceability_pending
+    covered_topics: [cinema_area_per_seat, hall_length, sightline_route, accessibility_route]
+    limitation: "Cinema subset exists; complete theatre/concert profile is not yet represented."
+
+  PARKING:
+    primary_document: SP_113_13330_2023
+    coverage_state: substantive_existing
+    dedicated_rule_files:
+      - 14_parking_geometry.yaml
+      - 45_parking_ramps.yaml
+      - 64_parking_fire_safety_2026.yaml
+      - 82_site_parking_urban_planning_2027.yaml
+      - 102_ev_charging_parking_architectural_interfaces_2027.yaml
+    locator_evidence_state: mixed_not_yet_fully_migrated
+    current_revision_gate: "SP113 Change 4 effective 2026-10-03"
+    warning: "Change-card metadata does not prove unchanged clause/table text."
+
+  INDUSTRIAL_PRODUCTION_STORAGE:
+    primary_document: SP_56_13330_2021
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files:
+      - 81_fire_separation_matrix.yaml
+      - 86_fire_compartment_base_matrices_2027.yaml
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+    embedded_F5_zone_semantics: true
+    rule: "Do not treat generic fire matrices as full SP56 planning coverage."
+
+  INDUSTRIAL_ADMIN_AMENITY:
+    primary_document: SP_44_13330_2011
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+
+  HIGH_RISE_OVERLAY:
+    primary_document: SP_267_1325800_2016
+    fire_overlay_document: SP_550_1311500_2026
+    coverage_state: overlay_existing
+    dedicated_rule_files:
+      - 47_highrise_fire_2027.yaml
+    locator_evidence_state: partial_authorized_text_history
+    limitation: "Existing dedicated file is fire overlay SP550, not complete architectural SP267 coverage."
+    preserves_underlying_profile: true
+
+  CHILDREN_HEALTH_CAMP:
+    primary_document: SP_535_1325800_2024
+    coverage_state: coverage_gap_no_dedicated_rules
+    dedicated_rule_files: []
+    shared_general_files: [43_public_sanitary_facilities.yaml]
+    locator_evidence_state: no_primary_locator_layer
+    hard_gap: true
+
+summary:
+  profiles_total: 17
+  substantive_existing: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, PARKING]
+  partial_special_function: [SPORTS, THEATRE_CINEMA_CONCERT]
+  overlay_existing: [HIGH_RISE_OVERLAY]
+  coverage_gap_no_dedicated_rules:
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - HIGHER_EDUCATION
+    - VOCATIONAL_EDUCATION
+    - MEDICAL
+    - HOTEL
+    - INDUSTRIAL_PRODUCTION_STORAGE
+    - INDUSTRIAL_ADMIN_AMENITY
+    - CHILDREN_HEALTH_CAMP
+  gap_count: 9
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0
+  coverage_visibility_hardened: true

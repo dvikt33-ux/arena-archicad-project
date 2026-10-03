@@ -9,6 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_MANIFEST = ROOT / "manifest.yaml"
 LIBRARY_MANIFEST = ROOT / "library" / "library_manifest.yaml"
+LOCATOR_BACKLOG = ROOT / "library" / "multi_profile_locator_backlog.yaml"
 REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
     "multi_profile_dependency_catalog.yaml",
@@ -24,6 +25,10 @@ REQUIRED_HARD_FAILS = {
     "required_scope_gate_missing",
     "blocked_locator_used_for_numeric_generation",
     "engineering_system_scope_unknown_for_selected_rule",
+}
+REQUIRED_FIRE_CARDS = {
+    "documents/SP_550_1311500_2026.yaml",
+    "documents/SP_551_1311500_2026.yaml",
 }
 
 
@@ -43,6 +48,11 @@ def main() -> int:
     except Exception as exc:
         print(f"LIBRARY INTEGRATION VALIDATION FAILED\n- library manifest unreadable: {exc}")
         return 1
+    try:
+        backlog = load(LOCATOR_BACKLOG)
+    except Exception as exc:
+        print(f"LIBRARY INTEGRATION VALIDATION FAILED\n- locator backlog unreadable: {exc}")
+        return 1
 
     if not isinstance(root, dict):
         errors.append("root manifest must be a mapping")
@@ -50,6 +60,9 @@ def main() -> int:
     if not isinstance(library, dict):
         errors.append("library manifest must be a mapping")
         library = {}
+    if not isinstance(backlog, dict):
+        errors.append("locator backlog must be a mapping")
+        backlog = {}
 
     if library.get("production_authority") is not False:
         errors.append("library must remain production_authority: false")
@@ -86,6 +99,11 @@ def main() -> int:
     for catalog in REQUIRED_CATALOGS:
         if not (ROOT / "library" / catalog).exists():
             errors.append(f"required library catalog file missing: {catalog}")
+
+    document_cards = set(library.get("document_cards") or [])
+    missing_fire_cards = sorted(REQUIRED_FIRE_CARDS - document_cards)
+    if missing_fire_cards:
+        errors.append(f"library manifest missing required fire overlay document cards: {missing_fire_cards}")
 
     coverage = library.get("coverage")
     coverage_row = coverage.get("profile_rule_coverage") if isinstance(coverage, dict) else None
@@ -134,6 +152,60 @@ def main() -> int:
         if backlog_row.get("new_library_PASS") != 0:
             errors.append("locator backlog must not declare a new library PASS")
 
+    parking_fire = coverage.get("parking_fire_evidence") if isinstance(coverage, dict) else None
+    if not isinstance(parking_fire, dict):
+        errors.append("library manifest missing parking_fire_evidence summary")
+    else:
+        if parking_fire.get("document") != "SP_551_1311500_2026":
+            errors.append("parking_fire_evidence must route to SP551")
+        if parking_fire.get("paired_planning_document") != "SP_113_13330_2023":
+            errors.append("SP551 parking fire evidence must remain paired with SP113 planning")
+        if parking_fire.get("new_library_PASS") != 0:
+            errors.append("SP551 evidence route must not declare a new library PASS")
+
+    highrise_fire = coverage.get("highrise_fire_evidence") if isinstance(coverage, dict) else None
+    if not isinstance(highrise_fire, dict):
+        errors.append("library manifest missing highrise_fire_evidence summary")
+    else:
+        if highrise_fire.get("document") != "SP_550_1311500_2026":
+            errors.append("highrise_fire_evidence must route to SP550")
+        if highrise_fire.get("paired_architectural_document") != "SP_267_1325800_2016":
+            errors.append("SP550 highrise fire evidence must remain paired with SP267 architecture")
+        if highrise_fire.get("preserves_underlying_functional_profile") is not True:
+            errors.append("SP550 fire overlay must preserve underlying functional profile")
+        if highrise_fire.get("new_library_PASS") != 0:
+            errors.append("SP550 evidence route must not declare a new library PASS")
+
+    backlog_profiles = backlog.get("profiles")
+    if not isinstance(backlog_profiles, dict):
+        errors.append("locator backlog profiles must be a mapping")
+        backlog_profiles = {}
+
+    parking = backlog_profiles.get("PARKING")
+    if not isinstance(parking, dict):
+        errors.append("locator backlog missing PARKING profile")
+    else:
+        if parking.get("primary_document") != "SP_113_13330_2023":
+            errors.append("PARKING backlog primary document must remain SP113")
+        if parking.get("fire_overlay_document") != "SP_551_1311500_2026":
+            errors.append("PARKING backlog fire overlay must be SP551")
+        fire_locators = parking.get("fire_overlay_locators")
+        if not isinstance(fire_locators, list) or not fire_locators:
+            errors.append("PARKING backlog must contain SP551 fire overlay locators")
+        elif not all(isinstance(row, dict) and row.get("document") == "SP_551_1311500_2026" for row in fire_locators):
+            errors.append("all PARKING fire overlay backlog locators must route to SP551")
+
+    highrise = backlog_profiles.get("HIGH_RISE_OVERLAY")
+    if not isinstance(highrise, dict):
+        errors.append("locator backlog missing HIGH_RISE_OVERLAY profile")
+    else:
+        if highrise.get("primary_document") != "SP_267_1325800_2016":
+            errors.append("HIGH_RISE_OVERLAY backlog primary document must remain SP267")
+        if highrise.get("fire_overlay_document") != "SP_550_1311500_2026":
+            errors.append("HIGH_RISE_OVERLAY backlog fire overlay must remain SP550")
+        if highrise.get("promotion_allowed") is not False:
+            errors.append("HIGH_RISE_OVERLAY backlog must not allow promotion")
+
     hard_fails = set(root.get("hard_fail_states") or [])
     missing_hard_fails = sorted(REQUIRED_HARD_FAILS - hard_fails)
     if missing_hard_fails:
@@ -162,7 +234,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/P0/P1 extraction/evidence-backlog catalogs are integrated."
+        "OK: evidence/scope library is non-production authority; P0/P1 queues, SP550/SP551 overlay routes and locator backlogs are integrated without new PASS promotion."
     )
     return 0
 

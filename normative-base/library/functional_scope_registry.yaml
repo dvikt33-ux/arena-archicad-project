@@ -1,0 +1,139 @@
+registry_version: 1
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+production_authority: false
+role: functional_zone_and_special_profile_scope_gate
+
+scope_semantics:
+  active_scope_unit: >-
+    Rules are evaluated against the active functional zone / fire compartment when a mixed-use
+    building contains different functions. The marketing or primary class of the whole building
+    never makes every functional rule applicable to every zone.
+  object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+  mismatch_result: not_applicable
+  missing_required_functional_zone: object_classification_required
+  missing_required_special_profile: object_classification_required
+
+invariants:
+  - global_yaml_loading_does_not_imply_rule_applicability
+  - embedded_public_function_in_MKD_is_evaluated_as_its_explicit_PUBLIC_functional_zone
+  - embedded_food_retail_or_foodservice_rules_never_apply_to_residential_apartment_zones
+  - TRK_does_not_inherit_every_PUBLIC_special_function_without_function_presence
+  - generic_PUBLIC_does_not_inherit_SP464_or_SP160_rules_without_profile_scope_match
+  - special_function_rules_apply_only_to_their_classified_functional_zone
+  - IZHS_excludes_PUBLIC_TRK_function_rules_by_default
+
+file_scopes:
+  43_public_sanitary_facilities.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_context: public_sanitary_facilities_context
+    normative_basis: [SP_118_13330_2022, SP_59_13330_2020]
+    note: >-
+      In an MKD with embedded public premises, classify the embedded premises as a PUBLIC
+      functional zone. Do not apply public sanitary fixture rules to apartment/residential zones.
+
+  59_public_lift_lobby_exceptions.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_context: public_vertical_transport_context
+    normative_basis: SP_118_13330_2022
+
+  70_trk_multifunctional_planning_2027.yaml:
+    allowed_active_zone_classes: [TRK, PUBLIC]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: special_profile
+    required_special_profiles_any: [SP_464_1325800_2019, SP_160_1325800_2014]
+    generic_PUBLIC_without_special_profile: not_applicable
+    normative_basis: [SP_464_1325800_2019, SP_160_1325800_2014]
+
+  71_public_special_functions_2027.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_functions_any:
+      - cinema_or_auditorium
+      - sports_or_fitness
+      - library_or_mediateka
+      - dining_hall_or_foodservice_public_area
+    generic_PUBLIC_without_listed_function: not_applicable
+    normative_basis: [SP_118_13330_2022, SP_309_1325800_2017, SP_332_1325800_2017]
+
+  87_trk_children_foodservice_2027.yaml:
+    allowed_active_zone_classes: [TRK, PUBLIC]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_functions_any: [children_play_or_entertainment, foodservice]
+    required_building_context_any: [TRK, multifunctional_public_building, explicit_applicable_public_context]
+    generic_PUBLIC_without_function: not_applicable
+    normative_basis: [SP_464_1325800_2019, SP_160_1325800_2014, SP_118_13330_2022]
+
+  88_food_retail_sanitary_2027.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_function: food_retail
+    embedded_in_MKD_rule: >-
+      When food retail is embedded/attached to MKD, only the explicitly classified PUBLIC food-retail
+      zone is evaluated under this file. Residential zones remain MKD and are not eligible.
+    normative_basis: SP_SAN_2_3_6_4281_26
+
+  89_trk_loading_logistics_2027.yaml:
+    allowed_active_zone_classes: [TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, PUBLIC, INDUSTRIAL]
+    gate_type: special_profile
+    required_special_profile: SP_464_1325800_2019
+    normative_basis: SP_464_1325800_2019
+    note: "Generic public loading does not inherit SP464 TRK logistics by analogy."
+
+  103_public_gas_architectural_interfaces_2027.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_context: public_gas_using_equipment_present
+    explicit_exclusion: residential_SP402_route
+    normative_basis: [SP_62_13330_2011, GOST_R_58095_0_2024, SP_282_1325800_2023]
+
+  105_foodservice_wastewater_grease_interfaces_2027.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_functions_any: [foodservice, food_processing, shop_production_zone]
+    embedded_in_MKD_rule: >-
+      An embedded foodservice/shop production area must be classified as a PUBLIC functional zone;
+      the rule file never applies to residential apartment drainage merely because it shares a building.
+    normative_basis: SP_30_13330_2020
+
+  106_trk_waste_collection_interfaces_2027.yaml:
+    allowed_active_zone_classes: [PUBLIC, TRK]
+    forbidden_active_zone_classes: [IZHS, MKD, INDUSTRIAL]
+    gate_type: functional_zone
+    required_context: public_or_TRK_waste_collection_system
+    section_overrides:
+      waste.trk.container_site_20m_sensitive_neighbors:
+        allowed_active_zone_classes: [TRK]
+        required_special_profile: SP_464_1325800_2019
+      waste.chamber.fire_separation_public:
+        allowed_active_zone_classes: [PUBLIC, TRK]
+    normative_basis: [SP_464_1325800_2019, SP_118_13330_2022, SP_4_13130_2013, SP_SAN_2_1_4284_26]
+
+coverage:
+  files_registered: 10
+  pure_TRK_special_profile_files: [89_trk_loading_logistics_2027.yaml]
+  PUBLIC_TRK_functional_zone_files:
+    - 43_public_sanitary_facilities.yaml
+    - 59_public_lift_lobby_exceptions.yaml
+    - 71_public_special_functions_2027.yaml
+    - 87_trk_children_foodservice_2027.yaml
+    - 88_food_retail_sanitary_2027.yaml
+    - 103_public_gas_architectural_interfaces_2027.yaml
+    - 105_foodservice_wastewater_grease_interfaces_2027.yaml
+    - 106_trk_waste_collection_interfaces_2027.yaml
+  special_profile_files: [70_trk_multifunctional_planning_2027.yaml, 89_trk_loading_logistics_2027.yaml]
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  applicability_gates_added: true

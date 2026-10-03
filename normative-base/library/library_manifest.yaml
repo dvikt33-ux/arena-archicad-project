@@ -1,4 +1,4 @@
-library_version: 7
+library_version: 8
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -11,6 +11,7 @@ invariants:
   - official_card_metadata_never_proves_clause_text
   - numeric_rule_requires_direct_locator_evidence_or_preserved_durable_scoped_PASS
   - blocked_locator_must_not_generate_BIM_value
+  - existing_rule_traceability_pending_never_counts_as_library_PASS
   - special_functional_document_requires_matching_object_class
   - cross_class_loading_requires_explicit_normative_basis
   - later_revision_requires_reaudit_of_affected_locators
@@ -41,6 +42,7 @@ proof_states:
   - official_clause_verified
   - authorized_locator_verified
   - inherited_scoped_pass
+  - existing_rule_traceability_pending
   - official_card_verified
   - secondary_corrob_only
   - blocked_pending_locator
@@ -57,6 +59,7 @@ change_maps:
   - change_maps/SP_17_13330_2017.yaml
   - change_maps/SP_2_13130_2020.yaml
   - change_maps/SP_4_13130_2013.yaml
+  - change_maps/SP_402_1325800_2018.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -70,6 +73,7 @@ coverage:
   locator_index:
     inherited_scoped_pass_locators: 6
     inherited_scoped_pass_with_change_maps: 6
+    existing_rule_traceability_pending_locators: 7
     blocked_pending_locator: 3
     blocked_with_change_maps: 3
 
@@ -126,3 +130,11 @@ known_safety_gaps:
       Official amendment metadata is verified, while secondary current copies are insufficient
       under project evidence policy to prove the exact current text of clause 9.18.
     effect: no_production_daylight_ratio_from_SP55_9_18
+  - id: SP402_LOCATOR_DURABLE_TRACEABILITY
+    status: open
+    severity: high
+    statement: >-
+      Exact SP402 numeric production rules exist in rules/100_residential_gas_architectural_interfaces_2027.yaml,
+      but clauses 5.1, 5.5, 5.9-5.12 and 5.16 are not yet linked to a durable locator-level evidence audit.
+      Library state is existing_rule_traceability_pending and must not be interpreted as PASS.
+    effect: no_new_library_promotion_from_SP402_until_durable_evidence_migration

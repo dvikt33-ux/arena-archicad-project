@@ -1,0 +1,80 @@
+library_version: 1
+checked_at: 2026-10-03
+jurisdiction: RU
+target_profile: RU_2027_PLUS
+role: evidence_and_scope_router
+production_authority: false
+
+invariants:
+  - library_metadata_never_overrides_rules
+  - document_presence_never_implies_applicability
+  - official_card_metadata_never_proves_clause_text
+  - numeric_rule_requires_direct_locator_evidence
+  - blocked_locator_must_not_generate_BIM_value
+  - special_functional_document_requires_matching_object_class
+  - cross_class_loading_requires_explicit_normative_basis
+  - later_revision_requires_reaudit_of_affected_locators
+
+object_classes:
+  IZHS:
+    description: detached_single_family_houses_within_SP55_scope
+    include_tags: [IZHS, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
+    exclude_special_tags: [MKD, PUBLIC, INDUSTRIAL, TRK]
+    primary_functional_document: SP_55_13330_2016
+  MKD:
+    include_tags: [MKD, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
+    exclude_special_tags: [IZHS, INDUSTRIAL, TRK]
+    primary_functional_document: SP_54_13330_2022
+  PUBLIC:
+    include_tags: [PUBLIC, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
+    exclude_special_tags: [IZHS, MKD, INDUSTRIAL]
+    primary_functional_document: SP_118_13330_2022
+  TRK:
+    include_tags: [TRK, PUBLIC, GENERAL, FIRE, STRUCTURAL, CLIMATE, THERMAL, LIGHTING, ROOF, SITE]
+    exclude_special_tags: [IZHS, MKD, INDUSTRIAL]
+    primary_functional_document: SP_464_1325800_2019
+
+proof_states:
+  - official_clause_verified
+  - authorized_locator_verified
+  - official_card_verified
+  - secondary_corrob_only
+  - blocked_pending_locator
+  - superseded
+  - not_applicable
+
+initial_document_cards:
+  - documents/SP_55_13330_2016.yaml
+  - documents/SP_20_13330_2016.yaml
+  - documents/SP_50_13330_2024.yaml
+  - documents/SP_52_13330_2016.yaml
+  - documents/SP_131_13330_2025.yaml
+  - documents/SP_17_13330_2017.yaml
+  - documents/SP_2_13130_2020.yaml
+  - documents/SP_4_13130_2013.yaml
+
+known_safety_gaps:
+  - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
+    status: open
+    severity: high
+    statement: >-
+      IZH_NODE_ENGINEERING declares scope detached_single_family_houses_within_SP55_scope,
+      but SP_55_13330_2016 is absent from revision_watch_2027.yaml as of the inspected
+      normative-base-v1 state. Library routing therefore treats SP55 revision verification
+      as mandatory before any SP55-dependent production release.
+    effect: fail_closed_for_unverified_SP55_locators
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    status: open
+    severity: high
+    statement: >-
+      Current public renderings used in the 2026-10-03 audit conflict on the operative text
+      of SP 20.13330.2016 clause 10.2. Official revision metadata is verified, but clause 10.2
+      remains blocked until the actual current locator is read directly.
+    effect: no_automatic_snow_value_from_clause_10_2
+  - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
+    status: open
+    severity: high
+    statement: >-
+      Official amendment metadata is verified, while secondary current copies are insufficient
+      under project evidence policy to prove the exact current text of clause 9.18.
+    effect: no_production_daylight_ratio_from_SP55_9_18

@@ -1,0 +1,29 @@
+document_id: SP_29_13330_2011
+title: "Полы"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+  latest_change_effective_from: 2025-11-28
+revision_gate:
+  file: revision_watch_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/a2711156-c40f-4d0f-89f1-7e3c366bc430"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Требования к конструкциям полов и их слоям в пределах официальной области применения документа."
+locators: []
+release_gates:
+  - room_function_and_exposure_required
+  - wet_zone_and_waterproofing_conditions_required_when_applicable
+  - exact_locator_evidence_required_for_numeric_or_layer_rules

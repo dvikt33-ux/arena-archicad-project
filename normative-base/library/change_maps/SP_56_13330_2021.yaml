@@ -1,0 +1,59 @@
+document_id: SP_56_13330_2021
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: []
+  latest_change: null
+  effective_from: 2022-01-28
+  replaces: SP_56_13330_2011
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
+    proves: [document_identity, active_status, effective_date, replacement, scope_summary, no_published_changes_on_checked_card]
+    does_not_prove: locator_text
+  official_ministry_publication_search:
+    authority: Minstroy_Russia
+    status: current_2021_document_not_resolved_to_direct_locator_in_session
+    note: >-
+      Search results exposed older SP56.13330.2011 amendment entries as well as the current Rosstandart
+      card for SP56.13330.2021. The 2011 document must not be used as the current production basis.
+
+scope_and_exclusion_gate:
+  state: official_card_verified_only
+  functional_fire_classes: [F5_1, F5_2]
+  embedded_room_route_allowed: true
+  excluded_special_industrial_and_storage_categories_require_separate_route: true
+  rule: >-
+    The current SP56 scope must be checked before loading any production/storage rule. A special
+    excluded production or storage type must not inherit SP56 by analogy.
+
+locator_migration:
+  state: blocked_pending_direct_current_locator
+  production_promotion_allowed: false
+  target_topics:
+    - scope_and_exclusions
+    - building_and_fire_compartment_geometry
+    - floor_area_height_and_storey_constraints
+    - production_and_storage_room_placement
+    - gates_loading_and_internal_transport_interfaces
+    - mezzanines_platforms_and_technical_levels
+    - evacuation_and_fire_safety_architectural_interfaces
+    - embedded_F5_room_conditions_in_other_building_classes
+
+release_gate:
+  - direct_current_locator_text_required
+  - exact_clause_table_or_appendix_required
+  - current_SP56_2021_must_be_used_not_SP56_2011
+  - scope_exclusions_must_be_resolved_before_rule_application
+  - generic_fire_matrices_must_not_be_treated_as_full_SP56_planning_coverage
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0

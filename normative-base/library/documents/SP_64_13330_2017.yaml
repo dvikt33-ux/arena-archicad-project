@@ -30,11 +30,19 @@ locators: []
 
 revision_gate:
   declared_by_izh_scope_inputs: revision_watch_2027.yaml
-  observed_status: missing_from_declared_watch
-  result: fail_closed_gap
-  production_effect: >-
-    До добавления/исправления revision-gate нельзя считать timber-зависимые locator'ы
-    автоматически подтвержденными только по версии rule/node файла.
+  status: present
+  official_latest_change: 4
+  latest_change_effective_from: 2024-01-29
+  resolved_at: 2026-10-03
+  note: >-
+    Revision-gate подтверждает актуальный уровень редакции, но не разрешает агенту
+    выполнять конструктивный расчет и не доказывает текст отдельных locator'ов.
+
+resolved_gaps:
+  - id: SP64_MISSING_FROM_DECLARED_REVISION_WATCH
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: SP_64_13330_2017_added_to_revision_watch_2027_with_official_latest_change_4
 
 release_gates:
   - current_revision_gate_required

@@ -1,4 +1,4 @@
-registry_version: 1
+registry_version: 2
 checked_at: 2026-10-03
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -23,6 +23,37 @@ invariants:
   - IZHS_does_not_run_fire_or_public_engineering_system_rules_without_actual_trigger
 
 file_scopes:
+  91_engineering_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [mechanical_ventilation, internal_water_or_sewer_system, electrical_installation]
+    normative_basis: [SP_60_13330_2020, SP_30_13330_2020, SP_256_1325800_2016]
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    section_overrides:
+      ventilation_equipment_rooms.residential_unit_no_adjacent_vent_equipment:
+        allowed_object_classes: [IZHS, MKD]
+        required_context: residential_building_mechanical_ventilation_equipment
+
+  92_ventilation_exhaust_facade_roof_2027.yaml:
+    gate_type: system_presence
+    required_system_any: [mechanical_exhaust_outlet, outdoor_air_intake]
+    normative_basis: SP_60_13330_2020
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    section_overrides:
+      clean_exhaust_embedded_public_in_residential:
+        required_context: embedded_or_attached_PUBLIC_functional_zone_in_residential_building
+        allowed_host_object_classes: [MKD]
+        active_zone_class: PUBLIC
+      odorous_or_harmful_exhaust:
+        required_context: exhaust_contains_harmful_substances_or_odors
+
+  93_smoke_control_architectural_interfaces_2027.yaml:
+    gate_type: system_presence
+    required_system: smoke_control_ventilation_system
+    normative_basis: SP_7_13130_2013
+    allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    applicability_gate: current_fire_rules_require_or_project_provides_smoke_control
+    note: "Smoke-control geometry is inactive when no applicable smoke-control system is required/provided."
+
   94_fire_suppression_pump_room_interfaces_2027.yaml:
     gate_type: system_presence
     required_system: automatic_fire_suppression_system_with_pump_station
@@ -132,8 +163,9 @@ file_scopes:
         missing_function_result: not_applicable
 
 coverage:
-  files_registered: 13
-  fire_system_files: [94_fire_suppression_pump_room_interfaces_2027.yaml, 95_internal_fire_water_architectural_interfaces_2027.yaml, 96_fire_electrical_routing_architectural_interfaces_2027.yaml, 97_fire_alarm_post_architectural_interfaces_2027.yaml, 98_external_fire_water_site_interfaces_2027.yaml]
+  files_registered: 16
+  general_engineering_interface_files: [91_engineering_architectural_interfaces_2027.yaml, 92_ventilation_exhaust_facade_roof_2027.yaml]
+  fire_system_files: [93_smoke_control_architectural_interfaces_2027.yaml, 94_fire_suppression_pump_room_interfaces_2027.yaml, 95_internal_fire_water_architectural_interfaces_2027.yaml, 96_fire_electrical_routing_architectural_interfaces_2027.yaml, 97_fire_alarm_post_architectural_interfaces_2027.yaml, 98_external_fire_water_site_interfaces_2027.yaml]
   building_engineering_files: [99_heat_point_architectural_interfaces_2027.yaml, 101_transformer_substation_architectural_interfaces_2027.yaml, 102_ev_charging_parking_architectural_interfaces_2027.yaml, 104_integrated_heat_generator_100_360kw_2027.yaml, 107_diesel_generator_architectural_interfaces_2027.yaml, 108_refrigeration_machine_room_interfaces_2027.yaml, 109_domestic_water_meter_pump_interfaces_2027.yaml, 110_drainage_sumps_underground_rooms_2027.yaml]
 
 production_impact:

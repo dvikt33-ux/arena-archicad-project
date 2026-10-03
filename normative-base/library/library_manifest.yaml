@@ -1,4 +1,4 @@
-library_version: 14
+library_version: 15
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -24,6 +24,7 @@ invariants:
   - functional_profile_coverage_must_not_be_IZHS_only
   - each_primary_functional_profile_requires_its_own_document_card
   - document_card_or_general_shared_rules_never_count_as_complete_special_profile_rule_coverage
+  - non_IZHS_locator_backlog_never_counts_as_locator_PASS
 
 object_classes:
   IZHS:
@@ -65,6 +66,7 @@ catalogs:
   - izh_dependency_catalog.yaml
   - multi_profile_dependency_catalog.yaml
   - profile_rule_coverage_registry.yaml
+  - multi_profile_locator_backlog.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
   - engineering_system_scope_registry.yaml
@@ -105,6 +107,13 @@ coverage:
     dedicated_rule_gaps: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
     dedicated_rule_gap_count: 9
     rule: "Coverage state is independent from locator evidence state; general SP118 rules never close a special-profile gap."
+  multi_profile_locator_backlog:
+    source: multi_profile_locator_backlog.yaml
+    profiles_with_existing_rule_locator_backlog: 8
+    profiles_waiting_for_primary_rule_layer: 9
+    new_library_PASS: 0
+    urgent_profile: PARKING
+    urgent_reason: "SP113 Change 4 effective 2026-10-03; current locator text must be rechecked before promotion."
   additional_product_document_cards:
     count: 1
     documents: [GOST_25772_2025]
@@ -234,6 +243,12 @@ known_safety_gaps:
     severity: high
     profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
     effect: "Do not claim complete profile coverage or substitute general/public rules for absent primary-document requirements."
+  - id: NON_IZHS_EXISTING_RULE_LOCATOR_MIGRATION
+    status: open
+    severity: high
+    source: multi_profile_locator_backlog.yaml
+    profiles: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
+    effect: "Existing rule values remain governed by their current production audit history; no new library PASS until direct locator migration."
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
     status: open
     severity: high

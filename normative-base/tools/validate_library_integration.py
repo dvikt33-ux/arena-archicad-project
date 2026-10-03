@@ -13,6 +13,7 @@ REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
     "multi_profile_dependency_catalog.yaml",
     "profile_rule_coverage_registry.yaml",
+    "profile_primary_locator_extraction_registry.yaml",
     "multi_profile_locator_backlog.yaml",
     "locator_registry.yaml",
     "functional_scope_registry.yaml",
@@ -95,6 +96,19 @@ def main() -> int:
         if coverage_row.get("dedicated_rule_gap_count") != 9:
             errors.append("profile_rule_coverage dedicated_rule_gap_count must reflect current explicit inventory")
 
+    extraction_row = coverage.get("primary_profile_locator_extraction") if isinstance(coverage, dict) else None
+    if not isinstance(extraction_row, dict):
+        errors.append("library manifest missing primary_profile_locator_extraction summary")
+    else:
+        if extraction_row.get("source") != "profile_primary_locator_extraction_registry.yaml":
+            errors.append("primary_profile_locator_extraction source mismatch")
+        if extraction_row.get("P0_profiles_in_queue") != 5:
+            errors.append("primary_profile_locator_extraction P0 profile count must be 5")
+        if extraction_row.get("production_promotions") != 0:
+            errors.append("primary profile extraction must not declare production promotions")
+        if extraction_row.get("fail_closed") is not True:
+            errors.append("primary profile extraction must remain fail_closed")
+
     backlog_row = coverage.get("multi_profile_locator_backlog") if isinstance(coverage, dict) else None
     if not isinstance(backlog_row, dict):
         errors.append("library manifest missing multi_profile_locator_backlog summary")
@@ -132,7 +146,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/evidence-backlog catalogs are integrated."
+        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/extraction/evidence-backlog catalogs are integrated."
     )
     return 0
 

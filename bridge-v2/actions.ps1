@@ -1,6 +1,10 @@
 # actions.ps1 — action table + executor + repo guard for Arena Bridge v2.
 # Dot-source after arena-common.ps1.
 
+# Resolve the trusted local Archicad launcher at load time. Remote tasks never
+# supply an executable path, script path or arguments beyond a fixed action ID.
+$script:ArchicadLauncher = Join-Path $PSScriptRoot 'archicad\run-archicad.ps1'
+
 # Action table: action_id -> { Public; PublicResult; Run = scriptblock($WorkDir) }.
 # Run must return native command output (stdout+stderr merged). No shell strings,
 # no user input reaches these invocations — arguments are fixed constants.
@@ -15,6 +19,25 @@ $script:Actions = @{
     GIT_LOG10   = @{ Public = $true;  PublicResult = 'log-summary';     Critical = $false; ArgNames = @(); OkExit = @(0);    Run = { param($wd) & git -C $wd log --oneline -10 2>&1 } }
     # git diff exits 1 when there ARE changes — that is success, not failure.
     GIT_DIFF    = @{ Public = $false; PublicResult = 'none';            Critical = $false; ArgNames = @(); OkExit = @(0, 1); Run = { param($wd) & git -C $wd diff 2>&1 } }
+
+    # Archicad 29 JSON/Python backend. These are deliberately read-only and use
+    # fixed arguments. Raw Archicad output is kept local (PublicResult=none).
+    ARCHICAD_PING = @{
+        Public = $false; PublicResult = 'none'; Critical = $false; ArgNames = @(); OkExit = @(0)
+        Run = { param($wd) & $script:ArchicadLauncher -Action ping 2>&1 }
+    }
+    ARCHICAD_PRODUCT_INFO = @{
+        Public = $false; PublicResult = 'none'; Critical = $false; ArgNames = @(); OkExit = @(0)
+        Run = { param($wd) & $script:ArchicadLauncher -Action product_info 2>&1 }
+    }
+    ARCHICAD_SELECTION = @{
+        Public = $false; PublicResult = 'none'; Critical = $false; ArgNames = @(); OkExit = @(0)
+        Run = { param($wd) & $script:ArchicadLauncher -Action selection 2>&1 }
+    }
+    ARCHICAD_WALL_COUNT = @{
+        Public = $false; PublicResult = 'none'; Critical = $false; ArgNames = @(); OkExit = @(0)
+        Run = { param($wd) & $script:ArchicadLauncher -Action wall_count 2>&1 }
+    }
 }
 
 function Invoke-Action {
@@ -36,14 +59,14 @@ function Convert-ToFullPath {
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) { return '' }
     $p = $Path.Trim().Trim('"').Trim("'")
-    if ($env:OS -eq 'Windows_NT') { $p = $p -replace '/', '\' }
+    if ($env:OS -eq 'Windows_NT') { $p = $p -replace '/', '\\' }
     try { return [System.IO.Path]::GetFullPath($p) } catch { return $p }
 }
 
 function Test-SamePath {
     param([string]$A, [string]$B)
-    $fa = (Convert-ToFullPath $A).TrimEnd('\', '/')
-    $fb = (Convert-ToFullPath $B).TrimEnd('\', '/')
+    $fa = (Convert-ToFullPath $A).TrimEnd('\\', '/')
+    $fb = (Convert-ToFullPath $B).TrimEnd('\\', '/')
     if ($env:OS -eq 'Windows_NT') { return ($fa -ieq $fb) }
     return ($fa -eq $fb)
 }

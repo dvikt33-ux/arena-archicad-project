@@ -1,0 +1,78 @@
+document_id: SP_252_1325800_2016
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: [1, 2, 3]
+  latest_change: 3
+  latest_change_effective_from: 2025-01-21
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+    proves: [document_identity, active_status, scope_summary, change_inventory]
+    does_not_prove: current_locator_text
+  latest_change_card:
+    authority: Rosstandart
+    change: 3
+    order: "887/пр"
+    approved_at: 2024-12-20
+    registered_at: 2025-01-16
+    effective_from: 2025-01-21
+    url: "https://protect.gost.ru/sp/changesdetails/e7ca9118-ffd2-4ebf-b8bd-05a0b12932ac"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  change_1_card:
+    authority: Rosstandart
+    change: 1
+    order: "873/пр"
+    url: "https://protect.gost.ru/sp/changesdetails/fd4b2603-cd23-408c-aa76-63e38de2cec6"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  official_ministry_publication_index:
+    authority: Minstroy_Russia
+    status: base_and_change_3_publication_entries_found
+    note: >-
+      Official Minstroy index exposes the base SP252 and Change 3 publication entries, but the current
+      session could not obtain consolidated current locator text through the public index.
+
+latest_change_card_observation:
+  summary_type: reference_document_updates
+  examples:
+    - SP_50_13330_2024_reference_introduced
+    - SP_54_13330_2022_updated_to_change_1
+    - SP_55_13330_2016_updated_to_change_2
+    - SP_59_13330_2020_updated_to_change_3
+    - SP_113_13330_2023_reference_updated
+    - SP_118_13330_2022_updated_to_change_4
+    - SP_160_1325800_2014_added
+    - SP_251_1325800_2016_reference_updated
+  evidence_limit: >-
+    Amendment-card summaries do not prove unchanged architectural clause/table text. Direct current
+    locator reading is required before any production numeric or imperative rule is created.
+
+locator_migration:
+  state: blocked_pending_direct_current_locator
+  production_promotion_allowed: false
+  target_topics:
+    - site_and_group_play_area_zoning
+    - group_cell_composition_and_areas
+    - age_group_separation_and_vertical_placement
+    - entrances_stairs_and_safe_routes
+    - foodservice_laundry_and_service_interfaces
+    - sanitary_rooms_and_hygiene_interfaces
+    - daylight_and_microclimate_interfaces
+    - embedded_preschool_or_shared_complex_conditions
+
+release_gate:
+  - direct_current_locator_text_required
+  - exact_clause_table_or_appendix_required
+  - amendment_effect_on_locator_must_be_resolved
+  - school_or_SP118_rules_must_not_substitute_missing_SP252_specific_requirement
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0

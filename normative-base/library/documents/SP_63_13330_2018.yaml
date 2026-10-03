@@ -1,0 +1,29 @@
+document_id: SP_63_13330_2018
+title: "Бетонные и железобетонные конструкции. Основные положения"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, STRUCTURAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  replaces: SP_63_13330_2012
+  verified_changes: [1, 2]
+  latest_change: 2
+revision_gate:
+  file: revision_watch_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c667"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование бетонных и железобетонных конструкций зданий и сооружений в пределах официальной области применения."
+locators: []
+release_gates:
+  - structural_calculation_required
+  - material_and_exposure_conditions_required
+  - exact_locator_evidence_required_for_numeric_rules

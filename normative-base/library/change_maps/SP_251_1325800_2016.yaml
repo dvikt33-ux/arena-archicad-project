@@ -1,0 +1,80 @@
+document_id: SP_251_1325800_2016
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: [1, 2, 3, 4, 5, 6, 7]
+  latest_change: 7
+  latest_change_effective_from: 2026-01-01
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+    proves: [document_identity, active_status, scope_summary, change_inventory]
+    does_not_prove: current_locator_text
+  latest_change_card:
+    authority: Rosstandart
+    change: 7
+    order: "762/пр"
+    approved_at: 2025-11-28
+    registered_at: 2026-01-14
+    effective_from: 2026-01-01
+    url: "https://protect.gost.ru/sp/changesdetails/22851f99-de6b-44bc-aecf-063bd7681867"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  prior_change_6_card:
+    authority: Rosstandart
+    change: 6
+    order: "886/пр"
+    approved_at: 2024-12-20
+    registered_at: 2025-01-16
+    effective_from: 2025-01-21
+    url: "https://protect.gost.ru/sp/changesdetails/6ea95881-2cc4-4ec7-b995-bbac5f11aac8"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  official_ministry_publication_index:
+    authority: Minstroy_Russia
+    status: base_and_amendment_publication_index_found
+    note: >-
+      Official Minstroy document index exposes the base SP251 publication and later amendment entries,
+      but the current session could not open a consolidated current locator text through the public index.
+
+latest_change_card_observation:
+  summary_type: reference_document_updates
+  examples:
+    - SP_1_13130_2020_updated_to_change_3
+    - SP_17_13330_2017_updated_to_change_5
+    - SP_30_13330_2020_updated_to_change_5
+    - SP_59_13330_2020_updated_to_change_4
+    - SP_118_13330_2022_updated_to_change_5
+    - SP_252_1325800_2016_updated_to_change_3
+    - SP_256_1325800_2016_updated_to_change_8
+  evidence_limit: >-
+    The amendment-card summary is not treated as proof that any architectural locator outside the
+    listed reference updates is unchanged. Direct current locator reading is still required.
+
+locator_migration:
+  state: blocked_pending_direct_current_locator
+  production_promotion_allowed: false
+  target_topics:
+    - site_and_functional_zoning
+    - room_composition_and_minimum_areas
+    - classroom_and_laboratory_geometry
+    - floor_and_vertical_placement_constraints
+    - sanitary_and_foodservice_interfaces
+    - sports_and_assembly_space_interfaces
+    - accessibility_and_egress_interfaces
+    - natural_lighting_and_engineering_interfaces
+
+release_gate:
+  - direct_current_locator_text_required
+  - exact_clause_table_or_appendix_required
+  - amendment_effect_on_locator_must_be_resolved
+  - SP118_general_rules_must_not_substitute_missing_SP251_specific_requirement
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0

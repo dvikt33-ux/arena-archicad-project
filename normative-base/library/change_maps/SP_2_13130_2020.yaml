@@ -1,0 +1,31 @@
+change_map_version: 1
+checked_at: 2026-10-03
+document: SP_2_13130_2020
+target_profile: RU_2027_PLUS
+production_authority: false
+verified_changes: [1, 2]
+latest_change: 2
+latest_change_effective_from: 2026-01-01
+
+policy:
+  - amendment_cards_identify_revision_chain_but_do_not_replace_full_change_text
+  - existing_locator_PASS_is_inherited_only_from_durable_post_amendment_audit
+  - any_change_after_2_invalidates_affected_fire_table_PASS_until_reaudit
+
+amendment_cards:
+  - {number: 1, url: "https://protect.gost.ru/sp/changesdetails/e3448856-9058-4c5b-9c42-d9c36aa83ed6", effective_from: 2023-12-20}
+  - {number: 2, url: "https://protect.gost.ru/sp/changesdetails/fd8720c4-ae0b-496f-8796-eec45a151fbf", effective_from: 2026-01-01}
+
+post_amendment_audit:
+  file: "../../audits/2026-10-01_core_2027_cycle.md"
+  audit_date: 2026-10-01
+  locators: ["Table 6.8", "Table 6.9", "Table 6.10", "Table 6.11"]
+  result: inherited_scoped_pass
+  rule_file: "../../rules/86_fire_compartment_base_matrices_2027.yaml"
+  statement: >-
+    Durable audit explicitly records the base fire-compartment tables for F1.3,
+    the main public-building group, F3.5 and F3.1 as verified with Changes 1-2.
+
+future_watch:
+  if_official_latest_change_gt: 2
+  action: invalidate_affected_tables_6_8_to_6_11_until_reaudit

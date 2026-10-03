@@ -1,0 +1,81 @@
+change_map_version: 1
+checked_at: 2026-10-03
+document: SP_20_13330_2016
+target_profile: RU_2027_PLUS
+production_authority: false
+purpose: "Карта изменений СП20 для определения того, какие locator'ы требуют прямого чтения действующей редакции. Карточка изменения Росстандарта не заменяет полный текст изменения."
+
+policy:
+  - amendment_card_metadata_proves_revision_identity_and_dates_only
+  - visible_card_change_summary_may_narrow_research_but_does_not_prove_absence_of_other_locator_changes
+  - empty_public_change_summary_means_impact_unknown_not_no_change
+  - clause_10_2_and_appendix_K_remain_blocked_until_direct_current_text_read
+
+amendments:
+  - number: 1
+    approval_order: "402/пр"
+    approval_date: 2018-07-05
+    effective_from: 2019-01-06
+    official_card: "https://protect.gost.ru/sp/changesdetails/ae4e2b57-6316-413c-95df-e6dc33f3e616"
+    card_change_summary_state: empty
+    impact_on_locator_10_2: unknown
+    impact_on_appendix_K: unknown
+  - number: 2
+    approval_order: "49/пр"
+    approval_date: 2019-01-28
+    effective_from: 2019-07-29
+    official_card: "https://protect.gost.ru/sp/changesdetails/1a5a6ff2-93a4-40b0-bc97-526e12b60445"
+    visible_card_summary: "Добавлена нормативная ссылка СП 296.1325800.2017."
+    visible_summary_kind: reference_update
+    impact_on_locator_10_2: not_proven_by_card
+    impact_on_appendix_K: not_proven_by_card
+  - number: 3
+    approval_order: "897/пр"
+    approval_date: 2020-12-30
+    effective_from: 2021-07-01
+    official_card: "https://protect.gost.ru/sp/changesdetails/7e4074b2-defc-467a-861c-53dcb95aee65"
+    visible_card_summary: "Заменена ссылка на СП 131; исключены СП 296 и СН 2.2.4/2.1.8.566."
+    visible_summary_kind: reference_update
+    impact_on_locator_10_2: not_proven_by_card
+    impact_on_appendix_K: not_proven_by_card
+  - number: 4
+    approval_order: "430/пр"
+    approval_date: 2022-05-30
+    effective_from: 2022-06-29
+    official_card: "https://protect.gost.ru/sp/changesdetails/2bfd1441-d243-49cf-a5a8-5c34de838b95"
+    card_change_summary_state: empty
+    impact_on_locator_10_2: unknown
+    impact_on_appendix_K: unknown
+  - number: 5
+    approval_order: "918/пр"
+    approval_date: 2023-12-14
+    effective_from: 2024-01-15
+    official_card: "https://protect.gost.ru/sp/changesdetails/0d7e172f-7dbd-4f77-bd6d-5a66ca26f9ef"
+    visible_card_summary: "Обновлены и добавлены нормативные ссылки, включая СП 131, СП 14, СП 296 и СП 385."
+    visible_summary_kind: reference_update
+    impact_on_locator_10_2: not_proven_by_card
+    impact_on_appendix_K: not_proven_by_card
+  - number: 6
+    approval_order: "597/пр"
+    approval_date: 2024-09-05
+    effective_from: 2024-09-25
+    official_card: "https://protect.gost.ru/sp/changesdetails/e26e8b63-c763-4846-a800-a2a79586c725"
+    card_change_summary_state: empty
+    impact_on_locator_10_2: unknown
+    impact_on_appendix_K: unknown
+
+locator_risk:
+  - locator: "10.2"
+    current_state: blocked_pending_locator
+    unresolved_amendment_impact: [1, 2, 3, 4, 5, 6]
+    note: >-
+      Публичные карточки изменений не дают достаточного основания утверждать, какая именно
+      редакция текста 10.2 действует после последовательного применения всех изменений.
+  - locator: "Appendix K"
+    current_state: blocked_pending_locator
+    unresolved_amendment_impact: [1, 2, 3, 4, 5, 6]
+
+safe_conclusion:
+  production_promotion: forbidden
+  snow_territorial_route_generation: forbidden
+  geographic_input_required_after_locator_resolution: true

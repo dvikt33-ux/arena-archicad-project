@@ -1,4 +1,4 @@
-catalog_version: 1
+catalog_version: 2
 checked_at: 2026-10-03
 target_profile: RU_2027_PLUS
 object_class: IZHS
@@ -18,8 +18,9 @@ primary_functional_document:
   official_latest_change: 2
   official_card: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
   revision_gate_expected: revision_watch_2027.yaml
-  revision_gate_status: missing
-  result: fail_closed_gap
+  revision_gate_status: present
+  result: pass_revision_metadata_only
+  locator_note: "Пункты СП55 требуют отдельного locator-level proof; 9.18 остается blocked_pending_locator."
 
 structural:
   - document: SP_20_13330_2016
@@ -51,9 +52,9 @@ structural:
     topic: timber_structures
     official_latest_change: 4
     latest_change_effective_from: 2024-01-29
-    gate_declared_in_izh_scope: revision_watch_2027.yaml
-    gate_status: missing
-    result: fail_closed_gap
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    result: pass_revision_metadata_only
     official_card: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
     latest_change_card: "https://protect.gost.ru/sp/changesdetails/b5542d34-122f-4a6e-b8c6-1f82e70f7f92"
   - document: SP_15_13330_2020
@@ -142,9 +143,18 @@ cross_cutting_library_cards:
   - SP_2_13130_2020
   - SP_4_13130_2013
 
+resolved_revision_gate_gaps:
+  - SP_55_13330_2016
+  - SP_64_13330_2017
+
+open_non_revision_gaps:
+  - GLOBAL_ROUTER_HAS_NO_IZHS_SP55_ROUTE
+  - SP20_10_2_CURRENT_TEXT_CONFLICT
+  - SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
+
 summary:
   dependencies_checked: 17
-  working_revision_gates: 15
-  missing_revision_gates: 2
-  missing_gate_documents: [SP_55_13330_2016, SP_64_13330_2017]
+  working_revision_gates: 17
+  missing_revision_gates: 0
+  missing_gate_documents: []
   production_rules_promoted: 0

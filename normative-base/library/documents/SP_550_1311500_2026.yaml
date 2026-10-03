@@ -1,0 +1,43 @@
+document_id: SP_550_1311500_2026
+title: "Здания высотные. Требования пожарной безопасности"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [HIGH_RISE, FIRE, MKD, PUBLIC, MIXED_USE]
+object_class_router:
+  include_when_subject_applies: [MKD, PUBLIC, TRK]
+  gate: highrise_fire_scope_after_underlying_functional_profile_classification
+  preserves_underlying_functional_profile: true
+revision:
+  verified_changes: []
+  latest_change: null
+  effective_from: 2026-06-01
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
+scope:
+  proof_state: official_card_verified
+  thresholds:
+    F1_3_fire_height_strictly_over_m: 75
+    public_or_multifunctional_fire_height_strictly_over_m: 50
+  note: >-
+    Fire-safety overlay for high-rise buildings. It does not replace the underlying functional
+    document such as SP54, SP118, SP160 or another applicable primary profile.
+change_map: "../change_maps/SP_550_1311500_2026.yaml"
+rule_files:
+  - "../../rules/47_highrise_fire_2027.yaml"
+locators:
+  - {locator: "1.1; 3.2", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "5", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "5.6", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "6.1", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "8.1", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "9.3", state: inherited_authorized_text_needs_library_migration}
+  - {locator: "9.4", state: inherited_authorized_text_needs_library_migration}
+release_gates:
+  - exact_locator_evidence_required_for_new_library_PASS
+  - highrise_fire_scope_required
+  - underlying_functional_profile_must_remain_active

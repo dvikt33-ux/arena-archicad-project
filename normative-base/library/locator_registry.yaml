@@ -1,4 +1,4 @@
-locator_registry_version: 2
+locator_registry_version: 3
 checked_at: 2026-10-03
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -8,6 +8,7 @@ proof_policy:
   official_clause_verified: "текст locator напрямую прочитан в допустимом первичном источнике"
   authorized_locator_verified: "текст locator напрямую прочитан в авторизованной действующей системе"
   inherited_scoped_pass: "locator уже закрыт отдельным durable audit/rule cycle; библиотека наследует PASS без переинтерпретации"
+  existing_rule_traceability_pending: "production rule уже существует, но его locator еще не мигрирован в durable evidence chain; библиотека не повышает и не понижает правило автоматически"
   blocked_pending_locator: "точный действующий locator не прочитан; production promotion запрещен"
 
 locators:
@@ -86,9 +87,69 @@ locators:
     production_state: blocked
     effect: no_production_daylight_ratio
 
+  - document: SP_402_1325800_2018
+    locator: "5.1"
+    topics: [stove_room_height, ventilation_interfaces, door_air_inlet, minimum_volume_by_burners]
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.5"
+    topics: [combined_equipment_volume, separate_heat_generator_room]
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: partial_rules_present_with_ambiguity_gate
+    known_ambiguity: true
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.9"
+    topic: natural_ventilation
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.10"
+    topic: lightweight_explosion_relief
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.11"
+    topic: gas_equipment_room_door_swing
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.12"
+    topic: equipment_clearance_by_manufacturer
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD]
+  - document: SP_402_1325800_2018
+    locator: "5.16"
+    topics: [mkd_gas_stove_kitchen_niche, mkd_route]
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+    change_map: "change_maps/SP_402_1325800_2018.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [MKD]
+    forbidden_for_IZHS: true
+
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
+  existing_rule_traceability_pending_locators: 7
   blocked_pending_locator: 3
   blocked_locators_with_change_maps: 3
   production_promotions_from_this_registry: 0

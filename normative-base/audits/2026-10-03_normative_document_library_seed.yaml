@@ -1,5 +1,5 @@
 audit_id: NORMATIVE_DOCUMENT_LIBRARY_SEED_2026_10_03
-audit_version: 1
+audit_version: 2
 checked_at: 2026-10-03
 branch: normative-base-v1
 base_commit_before_pass: 683384438ea07bc4d2a8c1f7f0532a1a376ae4d5
@@ -33,12 +33,23 @@ remote_state_findings:
       remote normative-base-v1 state. They were not reconstructed from memory/chat text.
     production_effect: none
   - id: SP55_GLOBAL_REVISION_WATCH_GAP
-    result: fail_closed_gap
-    severity: high
-    statement: >-
-      IZH_NODE_ENGINEERING declares detached_single_family_houses_within_SP55_scope,
-      while SP_55_13330_2016 is absent from revision_watch_2027.yaml in the inspected state.
-    required_action: add_and_audit_SP55_revision_gate_before_releasing_SP55_dependent_locators
+    initial_result: fail_closed_gap
+    final_result: resolved
+    remediation: >-
+      SP_55_13330_2016 added to revision_watch_2027.yaml at official latest Change No.2,
+      effective 2023-06-18. This resolves revision metadata only; locator 9.18 remains blocked.
+  - id: SP64_DECLARED_REVISION_WATCH_GAP
+    initial_result: fail_closed_gap
+    final_result: resolved
+    remediation: >-
+      SP_64_13330_2017 added to revision_watch_2027.yaml at official latest Change No.4,
+      effective 2024-01-29. Structural calculation and locator proof gates remain unchanged.
+  - id: GLOBAL_IZHS_ROUTING_GAP
+    initial_result: routing_gap
+    final_result: resolved
+    remediation: >-
+      Added explicit residential_single_family -> SP_55_13330_2016 route with scope validation
+      to rules/28_functional_code_router.yaml. No numeric requirement was introduced.
 
 primary_source_checks:
   - document: SP_55_13330_2016
@@ -51,6 +62,7 @@ primary_source_checks:
     change_2_approval_order: "350/пр"
     change_2_approval_date: 2023-05-17
     change_2_effective_from: 2023-06-18
+    revision_gate: present
     locator_9_18: blocked_pending_locator
   - document: SP_20_13330_2016
     official_base_card: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"
@@ -93,39 +105,41 @@ primary_source_checks:
     status: active
     verified_changes: [1, 2, 3, 4]
     latest_change_effective_from: 2023-12-01
+  - document: SP_64_13330_2017
+    official_base_card: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+    status: active
+    verified_changes: [1, 2, 3, 4]
+    latest_change_effective_from: 2024-01-29
+    revision_gate: present
 
 library_changes:
-  production_rule_files_modified: false
-  existing_registry_files_modified: false
-  existing_revision_watch_modified: false
-  files_added:
-    - library/README.md
-    - library/library_manifest.yaml
-    - library/documents/SP_55_13330_2016.yaml
-    - library/documents/SP_20_13330_2016.yaml
-    - library/documents/SP_50_13330_2024.yaml
-    - library/documents/SP_52_13330_2016.yaml
-    - library/documents/SP_131_13330_2025.yaml
-    - library/documents/SP_17_13330_2017.yaml
-    - library/documents/SP_2_13130_2020.yaml
-    - library/documents/SP_4_13130_2013.yaml
+  production_numeric_rule_files_modified: false
+  registry_files_modified: false
+  revision_watch_metadata_strengthened: true
+  functional_router_scope_strengthened: true
+  evidence_cards_added_or_reconciled: true
 
 production_impact:
-  promoted_rules: 0
-  demoted_rules: 0
+  promoted_numeric_rules: 0
+  demoted_numeric_rules: 0
   numeric_values_added_to_rules: 0
-  status: no_production_change
+  revision_gates_added: 2
+  functional_routes_added: 1
+  status: no_numeric_production_change
 
 open_blockers:
   - SP20_10_2_exact_current_text
   - SP20_appendix_K_applicability_route
   - SP55_9_18_exact_current_text
-  - SP55_missing_global_revision_watch_gate
   - authorized_browser_locator_access_unavailable
+
+resolved_in_this_pass:
+  - SP55_missing_global_revision_watch_gate
+  - SP64_missing_declared_revision_watch_gate
+  - global_router_missing_IZHS_SP55_route
 
 next_safe_passes:
   - direct_read_SP20_10_2_and_affected_change_document_when_authorized_or_official_text_is_accessible
   - direct_read_SP55_9_18_in_current_revision
-  - add_SP55_to_revision_watch_only_after_metadata_and_change_level_reconciliation
   - expand_library_with_remaining_IZHS_core_dependencies_before_other_object_classes
   - keep_Southern_Russia_out_of_scope_until_explicitly_started

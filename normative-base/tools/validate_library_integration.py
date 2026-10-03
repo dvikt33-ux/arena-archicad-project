@@ -14,6 +14,7 @@ REQUIRED_CATALOGS = {
     "multi_profile_dependency_catalog.yaml",
     "profile_rule_coverage_registry.yaml",
     "profile_primary_locator_extraction_registry.yaml",
+    "profile_p1_locator_extraction_registry.yaml",
     "multi_profile_locator_backlog.yaml",
     "locator_registry.yaml",
     "functional_scope_registry.yaml",
@@ -109,6 +110,21 @@ def main() -> int:
         if extraction_row.get("fail_closed") is not True:
             errors.append("primary profile extraction must remain fail_closed")
 
+    p1_row = coverage.get("p1_profile_locator_extraction") if isinstance(coverage, dict) else None
+    if not isinstance(p1_row, dict):
+        errors.append("library manifest missing p1_profile_locator_extraction summary")
+    else:
+        if p1_row.get("source") != "profile_p1_locator_extraction_registry.yaml":
+            errors.append("p1_profile_locator_extraction source mismatch")
+        if p1_row.get("P1_profiles_in_queue") != 7:
+            errors.append("p1_profile_locator_extraction P1 profile count must be 7")
+        if p1_row.get("production_promotions") != 0:
+            errors.append("P1 profile extraction must not declare production promotions")
+        if p1_row.get("library_PASS_promotions") != 0:
+            errors.append("P1 profile extraction must not declare library PASS promotions")
+        if p1_row.get("fail_closed") is not True:
+            errors.append("P1 profile extraction must remain fail_closed")
+
     backlog_row = coverage.get("multi_profile_locator_backlog") if isinstance(coverage, dict) else None
     if not isinstance(backlog_row, dict):
         errors.append("library manifest missing multi_profile_locator_backlog summary")
@@ -146,7 +162,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/extraction/evidence-backlog catalogs are integrated."
+        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage/P0/P1 extraction/evidence-backlog catalogs are integrated."
     )
     return 0
 

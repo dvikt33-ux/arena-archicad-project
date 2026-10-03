@@ -1,0 +1,41 @@
+document_id: SP_551_1311500_2026
+title: "Системы противопожарной защиты. Стоянки автомобилей. Требования пожарной безопасности"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PARKING, FIRE, MKD, PUBLIC, TRK, INDUSTRIAL]
+object_class_router:
+  include_when_subject_applies: [MKD, PUBLIC, TRK, INDUSTRIAL]
+  gate: parking_within_SP551_scope
+  exclude_by_default: [IZHS]
+revision:
+  verified_changes: []
+  latest_change: null
+  effective_from: 2026-06-01
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+scope:
+  proof_state: official_card_verified
+  note: >-
+    Fire-protection requirements for automobile and related parking facilities within the official
+    scope. Use together with SP 113.13330.2023 for planning geometry; do not treat either document
+    as a substitute for the other.
+change_map: "../change_maps/SP_551_1311500_2026.yaml"
+rule_files:
+  - "../../rules/64_parking_fire_safety_2026.yaml"
+locators:
+  - {locator: "5.1", state: existing_rule_traceability_pending}
+  - {locator: "5.7", state: existing_rule_traceability_pending}
+  - {locator: "7.15", state: existing_rule_traceability_pending}
+  - {locator: "7.16", state: existing_rule_traceability_pending}
+  - {locator: "10.4", state: existing_rule_traceability_pending}
+  - {locator: "11.1", state: existing_rule_traceability_pending}
+  - {locator: "11.2", state: existing_rule_traceability_pending}
+release_gates:
+  - exact_locator_evidence_required_for_new_library_PASS
+  - independent_SP551_scope_match_required
+  - use_with_SP113_not_instead_of_SP113

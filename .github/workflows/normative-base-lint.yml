@@ -27,5 +27,7 @@ jobs:
         run: python normative-base/tools/validate_functional_scope.py
       - name: Validate engineering-system scopes
         run: python normative-base/tools/validate_engineering_scope.py
+      - name: Validate multi-profile functional coverage
+        run: python normative-base/tools/validate_multi_profile_catalog.py
       - name: Validate library integration
         run: python normative-base/tools/validate_library_integration.py

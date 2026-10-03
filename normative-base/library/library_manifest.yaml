@@ -1,4 +1,4 @@
-library_version: 13
+library_version: 14
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -23,6 +23,7 @@ invariants:
   - engineering_rule_files_require_system_or_equipment_presence_before_rule_evaluation
   - functional_profile_coverage_must_not_be_IZHS_only
   - each_primary_functional_profile_requires_its_own_document_card
+  - document_card_or_general_shared_rules_never_count_as_complete_special_profile_rule_coverage
 
 object_classes:
   IZHS:
@@ -63,6 +64,7 @@ proof_states:
 catalogs:
   - izh_dependency_catalog.yaml
   - multi_profile_dependency_catalog.yaml
+  - profile_rule_coverage_registry.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
   - engineering_system_scope_registry.yaml
@@ -91,8 +93,18 @@ coverage:
     profiles_registered: 17
     P0_profiles: [MKD, PUBLIC_GENERAL, TRK, PARKING, SCHOOL_GENERAL_EDUCATION, PRESCHOOL, MEDICAL, HOTEL, SPORTS, INDUSTRIAL_PRODUCTION_STORAGE]
     P1_profiles: [MIXED_USE, HIGH_RISE_OVERLAY, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, THEATRE_CINEMA_CONCERT, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
-    primary_or_overlay_document_cards_added_this_cycle: 18
+    primary_or_overlay_document_cards: 18
     non_IZHS_research_is_first_class: true
+  profile_rule_coverage:
+    source: profile_rule_coverage_registry.yaml
+    CI_validator: "../tools/validate_profile_rule_coverage.py"
+    profiles_inventoried: 17
+    substantive_existing: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, PARKING]
+    partial_special_function: [SPORTS, THEATRE_CINEMA_CONCERT]
+    overlay_existing: [HIGH_RISE_OVERLAY]
+    dedicated_rule_gaps: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
+    dedicated_rule_gap_count: 9
+    rule: "Coverage state is independent from locator evidence state; general SP118 rules never close a special-profile gap."
   additional_product_document_cards:
     count: 1
     documents: [GOST_25772_2025]
@@ -190,64 +202,51 @@ resolved_safety_gaps:
   - id: GLOBAL_RULES_NO_OBJECT_CLASS_CI_GATE
     status: resolved_initial_high_risk_cluster
     resolved_at: 2026-10-03
-    resolution: >-
-      rules/28_functional_code_router.yaml now contains rule_file_scope_registry and tools/validate.py
-      hard-checks the initial high-risk residential/mixed files. Coverage expansion remains iterative.
+    resolution: "rules/28_functional_code_router.yaml and tools/validate.py hard-check the initial high-risk residential/mixed files."
   - id: PUBLIC_TRK_NO_FUNCTIONAL_ZONE_CI_GATE
     status: resolved_initial_high_risk_cluster
     resolved_at: 2026-10-03
-    resolution: >-
-      library/functional_scope_registry.yaml defines active functional-zone/special-profile gates
-      for the first PUBLIC/TRK cluster and tools/validate_functional_scope.py is executed by CI.
+    resolution: "functional_scope_registry.yaml and validate_functional_scope.py enforce initial PUBLIC/TRK functional-zone gates."
   - id: ENGINEERING_FILES_NO_SYSTEM_PRESENCE_GATE
     status: resolved_initial_high_risk_cluster
     resolved_at: 2026-10-03
-    resolution: >-
-      library/engineering_system_scope_registry.yaml requires system/equipment presence and
-      normative-scope validation before evaluating 16 high-impact engineering/fire files;
-      tools/validate_engineering_scope.py is executed by CI.
+    resolution: "engineering_system_scope_registry.yaml requires system/equipment presence before 16 engineering/fire rule files."
   - id: LIBRARY_NOT_IN_ROOT_LOAD_ORDER
     status: resolved
     resolved_at: 2026-10-03
-    resolution: >-
-      manifest.yaml loads library/library_manifest.yaml before rules/*.yaml; the library remains
-      production_authority false and may only route/block/preserve evidence states.
+    resolution: "manifest.yaml loads library/library_manifest.yaml before rules/*.yaml while library remains production_authority false."
   - id: MULTI_PROFILE_LIBRARY_MISSING
     status: resolved_initial_profile_graph
     resolved_at: 2026-10-04
-    resolution: >-
-      multi_profile_dependency_catalog.yaml now defines 17 non-IZHS and cross-class functional profiles,
-      18 primary/overlay document cards were added, and CI validates primary-card and P0/P1 coverage.
+    resolution: "multi_profile_dependency_catalog.yaml defines 17 functional profiles and CI validates their document-card coverage."
+  - id: NEW_PROFILE_REVISION_WATCH_GAPS
+    status: resolved
+    resolved_at: 2026-10-04
+    resolution: "SP56, SP44, SP456 and SP535 were added to revision_watch_2027.yaml using official card metadata only."
+  - id: SPECIAL_PROFILE_RULE_COVERAGE_HIDDEN
+    status: resolved_as_explicit_inventory
+    resolved_at: 2026-10-04
+    resolution: "profile_rule_coverage_registry.yaml explicitly separates substantive, partial and missing dedicated rule layers across all 17 profiles."
 
 known_safety_gaps:
+  - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
+    status: open
+    severity: high
+    profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
+    effect: "Do not claim complete profile coverage or substitute general/public rules for absent primary-document requirements."
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
     status: open
     severity: high
-    statement: >-
-      Current public renderings used in the 2026-10-03 audit conflict on the operative text
-      of SP 20.13330.2016 clause 10.2. Official revision metadata is verified, but clause 10.2
-      remains blocked until the actual current locator is read directly.
     effect: no_automatic_snow_value_from_clause_10_2
   - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
     status: open
     severity: high
-    statement: >-
-      Official amendment metadata is verified, while secondary current copies are insufficient
-      under project evidence policy to prove the exact current text of clause 9.18.
     effect: no_production_daylight_ratio_from_SP55_9_18
   - id: SP402_LOCATOR_DURABLE_TRACEABILITY
     status: open
     severity: high
-    statement: >-
-      Exact SP402 numeric production rules exist in rules/100_residential_gas_architectural_interfaces_2027.yaml,
-      but clauses 5.1, 5.5, 5.9-5.12 and 5.16 are not yet linked to a durable locator-level evidence audit.
-      Library state is existing_rule_traceability_pending and must not be interpreted as PASS.
     effect: no_new_library_promotion_from_SP402_until_durable_evidence_migration
   - id: GOST25772_TABLE_TRACEABILITY_AND_CORRECTION_EFFECT
     status: open
     severity: high
-    statement: >-
-      rules/07_guardrails_roofs.yaml contains exact Table 1/Table 3 values from GOST 25772-2025.
-      Rosstandart confirms a correction effective 2026-06-17 but its public card does not reveal
-      the correction text. These tables remain existing_rule_traceability_pending in the library.
     effect: no_new_library_promotion_from_GOST25772_tables_until_correction_and_locator_text_are_verified

@@ -12,6 +12,7 @@ LIBRARY_MANIFEST = ROOT / "library" / "library_manifest.yaml"
 REQUIRED_CATALOGS = {
     "izh_dependency_catalog.yaml",
     "multi_profile_dependency_catalog.yaml",
+    "profile_rule_coverage_registry.yaml",
     "locator_registry.yaml",
     "functional_scope_registry.yaml",
     "engineering_system_scope_registry.yaml",
@@ -83,6 +84,16 @@ def main() -> int:
         if not (ROOT / "library" / catalog).exists():
             errors.append(f"required library catalog file missing: {catalog}")
 
+    coverage = library.get("coverage")
+    coverage_row = coverage.get("profile_rule_coverage") if isinstance(coverage, dict) else None
+    if not isinstance(coverage_row, dict):
+        errors.append("library manifest missing profile_rule_coverage summary")
+    else:
+        if coverage_row.get("source") != "profile_rule_coverage_registry.yaml":
+            errors.append("profile_rule_coverage source mismatch")
+        if coverage_row.get("dedicated_rule_gap_count") != 9:
+            errors.append("profile_rule_coverage dedicated_rule_gap_count must reflect current explicit inventory")
+
     hard_fails = set(root.get("hard_fail_states") or [])
     missing_hard_fails = sorted(REQUIRED_HARD_FAILS - hard_fails)
     if missing_hard_fails:
@@ -111,7 +122,7 @@ def main() -> int:
         return 1
 
     print(
-        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope catalogs are integrated."
+        "OK: evidence/scope library is non-production authority, loaded before rules, and all required scope/coverage catalogs are integrated."
     )
     return 0
 

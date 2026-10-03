@@ -1,4 +1,4 @@
-library_version: 2
+library_version: 3
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -57,23 +57,17 @@ initial_document_cards:
   - documents/SP_4_13130_2013.yaml
   - documents/SP_64_13330_2017.yaml
 
-known_safety_gaps:
+resolved_safety_gaps:
   - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
-    status: open
-    severity: high
-    statement: >-
-      IZH_NODE_ENGINEERING declares scope detached_single_family_houses_within_SP55_scope,
-      but SP_55_13330_2016 is absent from revision_watch_2027.yaml as of the inspected
-      normative-base-v1 state. Library routing therefore treats SP55 revision verification
-      as mandatory before any SP55-dependent production release.
-    effect: fail_closed_for_unverified_SP55_locators
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: SP_55_13330_2016_added_to_revision_watch_2027_at_official_latest_change_2
   - id: SP64_MISSING_FROM_DECLARED_REVISION_WATCH
-    status: open
-    severity: high
-    statement: >-
-      izh/00_scope_inputs_2027.yaml declares revision_watch_2027.yaml as the revision gate
-      for SP_64_13330_2017, but that document is absent from the declared watch file.
-    effect: timber_structural_locators_require_manual_revision_confirmation
+    status: resolved
+    resolved_at: 2026-10-03
+    resolution: SP_64_13330_2017_added_to_revision_watch_2027_at_official_latest_change_4
+
+known_safety_gaps:
   - id: GLOBAL_ROUTER_HAS_NO_IZHS_SP55_ROUTE
     status: open
     severity: high

@@ -1,0 +1,88 @@
+document_id: SP_158_13330_2014
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: [1, 2, 3, 4, 5, 6, 7]
+  latest_change: 7
+  latest_change_effective_from: 2026-08-10
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+    proves: [document_identity, active_status, change_inventory]
+    does_not_prove: current_locator_text
+  latest_change_card:
+    authority: Rosstandart
+    change: 7
+    order: "436/пр"
+    approved_at: 2026-07-09
+    registered_at: 2026-07-27
+    effective_from: 2026-08-10
+    url: "https://protect.gost.ru/sp/changesdetails/61857d2f-e38b-4971-9112-77b21d98fcf8"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  change_6_card:
+    authority: Rosstandart
+    change: 6
+    order: "784/пр"
+    approved_at: 2025-12-12
+    registered_at: 2026-01-14
+    effective_from: 2026-01-13
+    url: "https://protect.gost.ru/sp/changesdetails/8a3b89b1-1f1b-4c67-be69-75d15759194f"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  change_5_card:
+    authority: Rosstandart
+    change: 5
+    order: "901/пр"
+    approved_at: 2024-12-24
+    registered_at: 2025-01-22
+    effective_from: 2025-01-25
+    url: "https://protect.gost.ru/sp/changesdetails/55ed91bc-d0b8-4df8-964d-b8e63351cd00"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+  official_ministry_publication_index:
+    authority: Minstroy_Russia
+    status: base_and_change_publication_entries_found
+    note: >-
+      Official Minstroy index exposes the base SP158 publication and later changes, but the current
+      session could not obtain consolidated current locator text through the public index.
+
+latest_revision_observation:
+  change_7_summary_type: reference_document_updates
+  important_updates:
+    - SP_60_13330_2020_updated_to_change_6
+    - SP_113_13330_2023_updated_to_change_3
+    - SP_256_1325800_2016_updated_to_change_9
+    - SP_370_1325800_2017_added
+    - legacy_fire_references_removed_from_reference_list
+  evidence_limit: >-
+    Reference-update summaries do not establish that room geometry, departmental separation,
+    medical-flow or other architectural locators are unchanged. Current locator text must be read.
+
+locator_migration:
+  state: blocked_pending_direct_current_locator
+  production_promotion_allowed: false
+  target_topics:
+    - medical_zone_scope_and_embedded_zone_conditions
+    - department_and_clean_dirty_flow_separation
+    - corridor_door_and_transport_geometry
+    - room_composition_and_minimum_areas
+    - floor_placement_and_vertical_connections
+    - isolation_and_infection_control_planning_interfaces
+    - sanitary_and_patient_staff_support_rooms
+    - ventilation_medical_gas_and_engineering_architectural_interfaces
+
+release_gate:
+  - direct_current_locator_text_required
+  - exact_clause_table_or_appendix_required
+  - amendment_effect_on_locator_must_be_resolved
+  - embedded_medical_zone_must_be_classified_before_applying_SP158
+  - host_building_general_rules_must_not_replace_SP158_specific_requirement
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0

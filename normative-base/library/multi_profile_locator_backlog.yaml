@@ -1,4 +1,4 @@
-backlog_version: 1
+backlog_version: 2
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -15,6 +15,7 @@ invariants:
   - current_revision_locator_must_be_read_before_new_library_PASS
   - amendment_card_metadata_does_not_prove_locator_text
   - special_profile_locator_must_be_verified_in_its_own_scope
+  - fire_overlay_locator_never_replaces_primary_planning_or_functional_locator
 
 profiles:
   MKD:
@@ -88,20 +89,32 @@ profiles:
 
   PARKING:
     primary_document: SP_113_13330_2023
+    fire_overlay_document: SP_551_1311500_2026
     rule_files: [14_parking_geometry.yaml, 45_parking_ramps.yaml, 64_parking_fire_safety_2026.yaml, 82_site_parking_urban_planning_2027.yaml, 102_ev_charging_parking_architectural_interfaces_2027.yaml]
-    current_revision: "through Change 4 effective 2026-10-03"
-    locators:
-      - {locator: "Appendix A; table A.1 note 4", topic: ordinary_parking_space, state: needs_change4_current_text_confirmation}
-      - {locator: "5.6", topic: accessible_parking_space, state: needs_change4_current_text_confirmation}
-      - {locator: "Appendix A; table A.1", topic: vehicle_classes_and_safety_clearances, state: needs_change4_current_text_confirmation}
-      - {locator: "5.4", topic: aisles_and_ramps_route, state: needs_change4_current_text_confirmation}
-      - {locator: "4.4", topic: site_coordination, state: needs_change4_current_text_confirmation}
-      - {locator: "6.2.12", topic: EV_fire_section, state: needs_change4_current_text_confirmation}
-      - {locator: "6.2.30", topic: EV_automatic_fire_suppression, state: needs_change4_current_text_confirmation}
-      - {locator: "7.10.2", topic: EV_parking_scope_and_deep_underground_charge, state: needs_change4_current_text_confirmation}
-      - {locator: "7.10.5", topic: EV_service_geometry, state: needs_change4_current_text_confirmation}
+    current_revision: "SP113 through Change 4 effective 2026-10-03; SP551 active from 2026-06-01"
+    planning_locators:
+      - {document: SP_113_13330_2023, locator: "Appendix A; table A.1 note 4", topic: ordinary_parking_space, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "5.6", topic: accessible_parking_space, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "Appendix A; table A.1", topic: vehicle_classes_and_safety_clearances, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "5.4", topic: aisles_and_ramps_route, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "4.4", topic: site_coordination, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "6.2.12", topic: EV_fire_section, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "6.2.30", topic: EV_automatic_fire_suppression, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "7.10.2", topic: EV_parking_scope_and_deep_underground_charge, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "7.10.5", topic: EV_service_geometry, state: needs_change4_current_text_confirmation}
+    fire_overlay_locators:
+      - {document: SP_551_1311500_2026, locator: "4.1", topic: fire_distance_router, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "5.1", topic: fire_compartment_and_split_level_semantics, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "5.7", topic: firefighter_lift_trigger, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "5.8", topic: gas_vehicle_closed_parking_route, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "7.15", topic: fuel_spread_control, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "7.16", topic: ramp_fire_separation_and_airlock, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "10.4", topic: LPG_underground_prohibition, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "11.1", topic: egress_route_to_SP1, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "11.2", topic: one_storey_underground_stair_exception, state: existing_rule_traceability_pending}
+    role_separation: "SP113 planning/geometry; SP551 fire-protection overlay"
     promotion_allowed: false
-    priority: P0_urgent_due_to_change4_effective_2026_10_03
+    priority: P0_urgent_due_to_SP113_change4_and_SP551_evidence_migration
 
   HIGH_RISE_OVERLAY:
     primary_document: SP_267_1325800_2016
@@ -133,5 +146,6 @@ reason: "No dedicated primary-document rule layer exists yet; first build verifi
 summary:
   profiles_with_existing_rule_locator_backlog: 8
   profiles_waiting_for_primary_rule_layer: 9
+  fire_overlay_documents_in_backlog: [SP_456_1311500_2020, SP_550_1311500_2026, SP_551_1311500_2026]
   new_library_PASS: 0
   production_rules_promoted: 0

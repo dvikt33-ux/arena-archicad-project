@@ -17,10 +17,17 @@ proof:
   state: official_card_verified
   authority: Rosstandart
   official_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+change_map: "../change_maps/SP_158_13330_2014.yaml"
 scope:
   proof_state: official_card_verified
   note: "New, reconstructed and capital-repaired medical organization buildings and medical-purpose rooms embedded in residential, public or production buildings."
+locator_research:
+  state: source_chain_ready_locator_pending
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: unavailable_in_current_session
+  production_promotion_allowed: false
 locators: []
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - medical_zone_classification_required_when_embedded
+  - host_building_general_rules_do_not_close_SP158_specific_gap

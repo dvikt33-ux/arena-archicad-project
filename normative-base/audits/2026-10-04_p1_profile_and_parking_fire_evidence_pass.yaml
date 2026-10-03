@@ -1,5 +1,5 @@
 audit_id: P1_PROFILE_AND_PARKING_FIRE_EVIDENCE_PASS_2026_10_04
-audit_version: 1
+audit_version: 2
 checked_at: 2026-10-04
 branch: normative-base-v1
 policy: fail_closed
@@ -13,7 +13,10 @@ objectives:
   - create_revision_maps_for_all_P1_profiles_and_sports_completion
   - preserve_underlying_functional_profile_beneath_highrise_overlay
   - close_parking_fire_evidence_library_gap_for_SP551
+  - close_highrise_fire_evidence_library_gap_for_SP550
   - keep_SP113_planning_and_SP551_fire_roles_separate
+  - keep_SP267_architecture_and_SP550_fire_roles_separate
+  - record_known_substantive_SP158_change7_effects_without_promoting_current_values
 
 P1_locator_extraction:
   registry: "../library/profile_p1_locator_extraction_registry.yaml"
@@ -59,6 +62,20 @@ highrise_revision_note:
     - SP_256_1325800_2016_change_9
   locator_promotion_from_card: false
 
+highrise_fire_evidence:
+  architectural_document: SP_267_1325800_2016
+  fire_document: SP_550_1311500_2026
+  fire_document_effective_from: 2026-06-01
+  official_fire_card: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
+  existing_rule_file: "../rules/47_highrise_fire_2027.yaml"
+  new_document_card: "../library/documents/SP_550_1311500_2026.yaml"
+  change_map: "../library/change_maps/SP_550_1311500_2026.yaml"
+  locator_backlog: "../library/multi_profile_locator_backlog.yaml"
+  locator_state: inherited_authorized_text_needs_library_migration
+  role_separation: "SP267 architecture/high-rise planning; SP550 high-rise fire overlay"
+  preserves_underlying_functional_profile: true
+  new_library_PASS: 0
+
 parking_fire_transition:
   planning_document: SP_113_13330_2023
   planning_current_change: 4
@@ -75,7 +92,9 @@ parking_fire_transition:
   new_document_card: "../library/documents/SP_551_1311500_2026.yaml"
   new_change_map: "../library/change_maps/SP_551_1311500_2026.yaml"
   revision_watch_added: true
+  locator_backlog_updated: true
   locator_state: existing_rule_traceability_pending
+  role_separation: "SP113 planning/geometry; SP551 parking fire overlay"
   new_library_PASS: 0
 
 medical_change7_observation:
@@ -83,24 +102,68 @@ medical_change7_observation:
   latest_change: 7
   effective_from: 2026-08-10
   direct_public_GARANT_change_text_found: true
+  direct_change_text_url: "https://base.garant.ru/414693011/"
+  FCS_clarification_url: "https://base.garant.ru/414756127/"
+  known_affected_locators_non_exhaustive:
+    - {locator: "1", effect: scope_text_revised}
+    - {locator: "5.2", effect: "first and second listed site-area values 0.25 ha -> 0.16 ha"}
+    - {locator: "6.12.3.2", effect: fourth_sentence_wording_changed}
+    - {locator: "6.12.3.3", effect: third_sentence_wording_changed}
+    - {locator: "6.12.3.5", effect: wording_changed}
+    - {locator: "7.5.6", effect: heading_removed}
+    - {locator: "7.6.8", effect: heading_revised}
+    - {locator: "7.6.9", effect: heading_removed}
+    - {locator: "7.6.10", effect: heading_removed}
+    - {locator: "9", effect: section_heading_added_or_revised_to_fire_safety_requirements}
   observation: >-
-    Change 7 contains substantive text edits in addition to reference updates, including corrections
-    affecting clause 5.2 and wording in section 6. Therefore older medical candidate requirements
-    must not be presumed unchanged merely from revision metadata.
+    Change 7 contains substantive text edits in addition to reference updates. Therefore older
+    medical candidate requirements must not be presumed unchanged merely from revision metadata.
+  evidence_role: invalidate_and_reaudit_map_only
   production_promotion_from_this_observation: false
   current_consolidated_locator_still_required: true
 
+locator_backlog:
+  file: "../library/multi_profile_locator_backlog.yaml"
+  version: 2
+  profiles_with_existing_rule_locator_backlog: 8
+  fire_overlay_documents_in_backlog:
+    - SP_456_1311500_2020
+    - SP_550_1311500_2026
+    - SP_551_1311500_2026
+  SP551_fire_locators_added:
+    - "4.1"
+    - "5.1"
+    - "5.7"
+    - "5.8"
+    - "7.15"
+    - "7.16"
+    - "10.4"
+    - "11.1"
+    - "11.2"
+  new_library_PASS: 0
+
 library_manifest:
-  version: 18
+  version: 19
   P1_queue_integrated: true
+  SP550_document_card_integrated: true
+  SP550_change_map_integrated: true
   SP551_document_card_integrated: true
   SP551_change_map_integrated: true
   parking_geometry_fire_role_separation_invariant: true
+  highrise_architecture_fire_role_separation_invariant: true
 
 CI:
   workflow: "../../.github/workflows/normative-base-lint.yml"
-  added_validator: "../tools/validate_p1_locator_extraction.py"
-  expected_result: all_existing_validators_plus_P1_pass
+  validators:
+    - "../tools/validate_p1_locator_extraction.py"
+    - "../tools/validate_library_integration.py"
+  library_integration_checks:
+    - SP550_document_card_present
+    - SP551_document_card_present
+    - SP267_SP550_pair_preserved
+    - SP113_SP551_pair_preserved
+    - SP550_SP551_backlog_routes_present
+    - no_new_library_PASS_from_overlay_backlog
 
 production_impact:
   numeric_rules_changed: false
@@ -114,7 +177,7 @@ open_priority_work:
   P0_direct_locators:
     - SP251_school
     - SP252_preschool
-    - SP158_medical
+    - SP158_medical_current_consolidated
     - SP257_hotel
     - SP56_industrial
     - SP113_change4_current_locators

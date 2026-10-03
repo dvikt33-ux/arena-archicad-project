@@ -1,0 +1,25 @@
+document_id: SP_252_1325800_2016
+title: "Здания дошкольных образовательных организаций. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, EDUCATION, PRESCHOOL]
+object_class_router:
+  include_when_subject_applies: [PUBLIC]
+  gate: preschool_organization_building
+revision:
+  verified_changes: [1, 2, 3]
+  latest_change: 3
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+scope:
+  proof_state: official_card_verified
+  note: "New and reconstructed preschool educational organization buildings."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - preschool_profile_required

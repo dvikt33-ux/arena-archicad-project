@@ -1,0 +1,80 @@
+document_id: SP_113_13330_2023
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+  latest_change_effective_from: 2026-10-03
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131"
+    proves: [document_identity, active_status, change_inventory]
+    does_not_prove: current_locator_text
+  change_4_card:
+    authority: Rosstandart
+    change: 4
+    order: "584/пр"
+    approved_at: 2026-09-02
+    registered_at: 2026-09-23
+    effective_from: 2026-10-03
+    url: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+    card_summary_role: revision_metadata_and_reference_update_summary_only
+
+change_4_card_observation:
+  summary_type: reference_document_updates_only_on_public_card
+  replaced_references_include:
+    - SP_29_13330_2011_updated_to_change_4
+    - SP_32_13330_2018_updated_to_change_5
+    - SP_42_13330_2026_replaces_SP_42_13330_2016_reference
+    - SP_60_13330_2020_updated_to_change_6
+    - SP_70_13330_2012_updated_to_change_8
+    - SP_256_1325800_2016_updated_to_change_9
+  removed_reference_examples:
+    - SP_1_13130_2020
+    - SP_2_13130_2020
+    - SP_3_13130_2009
+    - SP_4_13130_2013
+    - SP_6_13130_2021
+    - SP_7_13130_2013
+    - SP_8_13130_2020
+    - SP_10_13130_2020
+    - SP_12_13130_2009
+    - SP_484_1311500_2020
+    - SP_485_1311500_2020
+    - SP_486_1311500_2020
+  evidence_limit: >-
+    The public amendment card indicates reference-document edits, but project policy does not treat
+    that summary as proof that Appendix A, clauses 4.4, 5.4, 5.6, 6.2.12, 6.2.30, 7.10.2 or 7.10.5
+    are unchanged. Those current locators still require direct reading before a new library PASS.
+
+priority_locator_reaudit:
+  state: needs_current_locator_confirmation
+  production_promotion_allowed: false
+  locators:
+    - "Appendix A; Table A.1"
+    - "Appendix A; Table A.1 note 4"
+    - "4.4"
+    - "5.4"
+    - "5.6"
+    - "6.2.12"
+    - "6.2.30"
+    - "7.10.2"
+    - "7.10.5"
+
+release_gate:
+  - direct_current_locator_text_required_for_new_PASS
+  - existing_rules_preserved_without_reinterpretation_until_reaudit
+  - removed_reference_list_must_not_be_misread_as_deletion_of_all_corresponding_safety_requirements
+  - SP42_13330_2026_reference_transition_must_be_resolved_for_site_coordination
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rules_demoted: 0
+  production_rules_promoted: 0

@@ -29,5 +29,7 @@ jobs:
         run: python normative-base/tools/validate_engineering_scope.py
       - name: Validate multi-profile functional coverage
         run: python normative-base/tools/validate_multi_profile_catalog.py
+      - name: Validate profile rule coverage inventory
+        run: python normative-base/tools/validate_profile_rule_coverage.py
       - name: Validate library integration
         run: python normative-base/tools/validate_library_integration.py

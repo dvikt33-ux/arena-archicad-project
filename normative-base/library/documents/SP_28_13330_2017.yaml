@@ -1,0 +1,29 @@
+document_id: SP_28_13330_2017
+title: "Защита строительных конструкций от коррозии"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, STRUCTURAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+  latest_change_effective_from: 2024-06-09
+revision_gate:
+  file: revision_watch_adjacent_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/bd3c594c-26c7-41a9-9c76-510d0fa1ca92"
+  latest_change_card: "https://protect.gost.ru/sp/changesdetails/cc050ce0-5534-4788-8156-f617adc28fc1"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Защита от коррозии строительных конструкций перечисленных типов в пределах официальной области применения."
+locators: []
+release_gates:
+  - material_and_exposure_environment_required
+  - exact_locator_evidence_required_for_protection_system_rules

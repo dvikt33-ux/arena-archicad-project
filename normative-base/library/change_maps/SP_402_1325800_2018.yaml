@@ -1,0 +1,51 @@
+document_id: SP_402_1325800_2018
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+production_authority: false
+
+revision:
+  base_status: active
+  verified_changes: [1]
+  latest_change: 1
+  change_1:
+    approval_order: "1076/пр"
+    approval_date: 2022-12-19
+    registration_date: 2023-01-23
+    effective_from: 2023-01-20
+    official_publication_date: 2023-01-31
+    official_card: "https://protect.gost.ru/sp/changesdetails/aa38119a-eff7-4154-a8de-8dc4b07c43e2"
+    visible_card_kind: [textual, reference_documents_changed]
+    visible_card_summary: >-
+      Публичная карточка Росстандарта перечисляет замененные, добавленные и исключенные
+      ссылочные НД. Карточка не является полным 12-страничным текстом Изменения №1 и не
+      доказывает отсутствие иных текстовых правок конкретных пунктов.
+
+production_rule_source:
+  file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"
+  checked_at: 2026-10-02
+  existing_rule_state: preserve_pending_traceability_migration
+  note: >-
+    Файл содержит конкретные значения и ссылки на пункты СП402. Наличие rule-файла само по
+    себе не переводится библиотекой в locator PASS. До durable locator-аудита библиотека
+    хранит эти locator'ы как existing_rule_traceability_pending, не меняя production-файл.
+
+locators_requiring_durable_migration:
+  - {locator: "5.1", topics: [stove_room_height, ventilation_interfaces, door_air_inlet, minimum_volume_by_burners], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.5", topics: [combined_equipment_volume, separate_heat_generator_room], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml", known_ambiguity: true}
+  - {locator: "5.9", topics: [natural_ventilation], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.10", topics: [lightweight_explosion_relief], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.11", topics: [gas_equipment_room_door_swing], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.12", topics: [equipment_clearance_by_manufacturer], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml"}
+  - {locator: "5.16", topics: [mkd_gas_stove_kitchen_niche, mkd_route], rule_file: "../../rules/100_residential_gas_architectural_interfaces_2027.yaml", object_class: MKD}
+
+release_policy:
+  - do_not_infer_clause_text_from_official_card_summary
+  - direct_current_locator_or_durable_audit_required_for_library_PASS
+  - clause_5_5_ambiguity_remains_fail_closed
+  - IZHS_must_not_load_MKD_only_locator_5_16
+  - PUBLIC_TRK_INDUSTRIAL_do_not_load_SP402_without_separate_basis
+
+production_impact:
+  numeric_rules_changed: false
+  existing_rule_values_changed: false
+  locator_promotions: 0

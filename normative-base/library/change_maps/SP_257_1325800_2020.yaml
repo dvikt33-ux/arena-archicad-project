@@ -1,0 +1,54 @@
+document_id: SP_257_1325800_2020
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+revision_chain:
+  base_status: active
+  verified_changes: [1]
+  latest_change: 1
+  latest_change_effective_from: 2024-01-29
+  replaces: SP_257_1325800_2016
+
+source_layers:
+  official_document_card:
+    authority: Rosstandart
+    url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
+    proves: [document_identity, active_status, scope_summary, replacement, change_inventory]
+    does_not_prove: current_locator_text
+  latest_change_card:
+    authority: Rosstandart
+    change: 1
+    order: "1004/пр"
+    approved_at: 2023-12-28
+    registered_at: 2024-02-02
+    effective_from: 2024-01-29
+    url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"
+    card_summary_role: revision_metadata_only
+    content_summary_available_on_card: false
+
+locator_migration:
+  state: blocked_pending_direct_current_locator
+  production_promotion_allowed: false
+  target_topics:
+    - hotel_scope_and_embedded_zone_conditions
+    - guestroom_types_and_room_composition
+    - guestroom_and_service_area_requirements
+    - public_guest_and_service_flow_separation
+    - vertical_transport_and_floor_placement
+    - sanitary_support_and_housekeeping_interfaces
+    - accessible_room_and_route_interfaces
+    - site_access_loading_and_parking_interfaces
+
+release_gate:
+  - direct_current_locator_text_required
+  - exact_clause_table_or_appendix_required
+  - change_1_effect_on_locator_must_be_resolved
+  - embedded_hotel_zone_must_be_classified_before_applying_SP257
+  - SP118_general_rules_must_not_substitute_missing_SP257_specific_requirement
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  production_rules_promoted: 0

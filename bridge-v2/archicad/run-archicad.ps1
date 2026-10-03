@@ -13,13 +13,14 @@ if (-not (Test-Path -LiteralPath $runner -PathType Leaf)) {
     exit 13
 }
 
+$script:RunnerExitCode = 1
 function Invoke-PythonRunner {
     param([string]$Exe, [string[]]$PrefixArgs)
     $args = @()
     $args += $PrefixArgs
     $args += @($runner, '--action', $Action)
     & $Exe @args
-    return $LASTEXITCODE
+    $script:RunnerExitCode = $LASTEXITCODE
 }
 
 # Explicit override wins. It must be a local executable path configured by the
@@ -30,21 +31,21 @@ if (-not [string]::IsNullOrWhiteSpace($env:ARENA_ARCHICAD_PYTHON)) {
         Write-Output '{"protocol":1,"backend":"archicad-python-json","ok":false,"error":"configured-python-missing"}'
         exit 14
     }
-    $code = Invoke-PythonRunner -Exe $python -PrefixArgs @()
-    exit $code
+    Invoke-PythonRunner -Exe $python -PrefixArgs @()
+    exit $script:RunnerExitCode
 }
 
 # Prefer the Windows py launcher when available, then fall back to python.
 $py = Get-Command py -ErrorAction SilentlyContinue
 if ($null -ne $py) {
-    $code = Invoke-PythonRunner -Exe $py.Source -PrefixArgs @('-3')
-    exit $code
+    Invoke-PythonRunner -Exe $py.Source -PrefixArgs @('-3')
+    exit $script:RunnerExitCode
 }
 
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if ($null -ne $pythonCmd) {
-    $code = Invoke-PythonRunner -Exe $pythonCmd.Source -PrefixArgs @()
-    exit $code
+    Invoke-PythonRunner -Exe $pythonCmd.Source -PrefixArgs @()
+    exit $script:RunnerExitCode
 }
 
 Write-Output '{"protocol":1,"backend":"archicad-python-json","ok":false,"error":"python-not-found"}'

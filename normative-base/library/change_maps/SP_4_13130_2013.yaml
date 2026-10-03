@@ -1,0 +1,35 @@
+change_map_version: 1
+checked_at: 2026-10-03
+document: SP_4_13130_2013
+target_profile: RU_2027_PLUS
+production_authority: false
+verified_changes: [1, 2, 3, 4]
+latest_change: 4
+latest_change_effective_from: 2023-12-01
+
+policy:
+  - amendment_cards_identify_revision_chain_but_do_not_replace_full_change_text
+  - existing_locator_PASS_is_inherited_only_from_durable_post_amendment_audit
+  - draft_changes_5_and_6_do_not_apply
+  - any_active_change_after_4_invalidates_affected_Table_1_PASS_until_reaudit
+
+amendment_cards:
+  - {number: 1, url: "https://protect.gost.ru/sp/changesdetails/5d214bad-8f59-434f-986b-662825b8fd3b", effective_from: 2020-08-14}
+  - {number: 2, url: "https://protect.gost.ru/sp/changesdetails/f5b78020-3219-4b70-8ef6-afe2e9cd56c4", effective_from: 2022-03-01}
+  - {number: 3, url: "https://protect.gost.ru/sp/changesdetails/b3719d17-e5a4-4f55-ba52-8b2cc4182bbc"}
+  - {number: 4, url: "https://protect.gost.ru/sp/changesdetails/3eb645aa-f0d2-4607-8c18-71cb4bffef04", effective_from: 2023-12-01}
+
+post_amendment_audit:
+  file: "../../audits/2026-10-01_core_2027_cycle.md"
+  audit_date: 2026-10-01
+  locator: "Table 1"
+  result: inherited_scoped_pass
+  rule_file: "../../rules/81_fire_separation_matrix.yaml"
+  statement: >-
+    Durable audit explicitly records the base fire-separation matrix of Table 1
+    as verified for SP4 with Changes 1-4; automatic reduction remains forbidden.
+
+future_watch:
+  active_change_threshold: 4
+  drafts_not_applied: [5, 6]
+  action_on_new_active_change: invalidate_Table_1_inherited_scoped_pass_until_reaudit

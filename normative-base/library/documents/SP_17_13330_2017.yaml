@@ -1,0 +1,34 @@
+document_id: SP_17_13330_2017
+title: "Кровли"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, ROOF]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  gate: roof_system_and_document_scope_must_match
+
+revision:
+  base_approval_order: "827/пр"
+  base_approval_date: 2017-05-31
+  effective_from: 2017-12-01
+  verified_changes: [1, 2, 3, 4, 5]
+  latest_change: 5
+  latest_change_effective_from: 2025-01-10
+  latest_change_card: "https://protect.gost.ru/sp/changesdetails/c660c8fe-0ace-4b25-b976-8acad8a8154e"
+  latest_change_proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+locators: []
+
+release_gates:
+  - exact_clause_table_or_appendix_evidence_required_for_numeric_or_material_rules
+  - roof_system_classification_required
+  - later_change_requires_affected_locator_reaudit

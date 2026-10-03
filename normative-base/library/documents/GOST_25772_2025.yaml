@@ -1,0 +1,53 @@
+document_id: GOST_25772_2025
+title: "Ограждения металлические лестниц, балконов, крыш, лестничных маршей и площадок. Общие технические условия"
+document_type: GOST
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+
+scope_tags: [GENERAL, PRODUCT, GUARDRAILS]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+  role: product_standard_only
+  note: >-
+    Применимость стандарта изделия не определяет проектно требуемую высоту ограждения.
+    Проектное требование выбирается по применимому СП конкретного класса объекта.
+
+revision:
+  approval_order: "1134-ст"
+  approval_date: 2025-09-30
+  effective_from: 2026-01-01
+  replaces: GOST_25772_2021
+  corrections:
+    - publication: "ИУС 6-2026"
+      registration_date: 2026-06-04
+      effective_from: 2026-06-17
+      official_card: "https://protect.gost.ru/gost/changesdetails/9067e093-a6e7-41d7-a189-0662ab7e1254"
+      visible_content: null
+      proof_state: official_card_verified
+
+official_sources:
+  base_card: "https://protect.gost.ru/gost/details/0201c996-021b-408c-b36e-778f77f18f70"
+  authority: Rosstandart
+  proof_state: official_card_verified
+
+change_map: "../change_maps/GOST_25772_2025.yaml"
+
+locators:
+  - locator: "4.2, Table 1"
+    topic: metal_guardrail_type_classification
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../../rules/07_guardrails_roofs.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+  - locator: "5.1.1, Table 3"
+    topic: standard_product_geometry
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../../rules/07_guardrails_roofs.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+
+release_gates:
+  - exact_current_table_evidence_required_for_library_PASS
+  - correction_effect_on_tables_must_be_checked
+  - product_geometry_must_not_replace_project_requirement
+  - object_class_specific_SP_requirement_must_be_applied_separately

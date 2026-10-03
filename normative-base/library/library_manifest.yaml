@@ -1,4 +1,4 @@
-library_version: 16
+library_version: 17
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -26,6 +26,7 @@ invariants:
   - document_card_or_general_shared_rules_never_count_as_complete_special_profile_rule_coverage
   - non_IZHS_locator_backlog_never_counts_as_locator_PASS
   - primary_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
+  - p1_profile_extraction_queue_never_counts_as_rule_or_locator_PASS
 
 object_classes:
   IZHS:
@@ -68,6 +69,7 @@ catalogs:
   - multi_profile_dependency_catalog.yaml
   - profile_rule_coverage_registry.yaml
   - profile_primary_locator_extraction_registry.yaml
+  - profile_p1_locator_extraction_registry.yaml
   - multi_profile_locator_backlog.yaml
   - locator_registry.yaml
   - functional_scope_registry.yaml
@@ -87,6 +89,15 @@ change_maps:
   - change_maps/SP_257_1325800_2020.yaml
   - change_maps/SP_56_13330_2021.yaml
   - change_maps/SP_113_13330_2023.yaml
+  - change_maps/SP_278_1325800_2024.yaml
+  - change_maps/SP_279_1325800_2016.yaml
+  - change_maps/SP_44_13330_2011.yaml
+  - change_maps/SP_535_1325800_2024.yaml
+  - change_maps/SP_309_1325800_2017.yaml
+  - change_maps/SP_332_1325800_2017.yaml
+  - change_maps/SP_160_1325800_2014.yaml
+  - change_maps/SP_267_1325800_2016.yaml
+  - change_maps/SP_550_1311500_2026.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -125,6 +136,16 @@ coverage:
     parking_reaudit_active: true
     direct_locator_access_current_session: unavailable
     rule: "A ready source chain never counts as dedicated rule coverage or locator PASS."
+  p1_profile_locator_extraction:
+    source: profile_p1_locator_extraction_registry.yaml
+    CI_validator: "../tools/validate_p1_locator_extraction.py"
+    P1_profiles_in_queue: 7
+    profiles: [MIXED_USE, HIGH_RISE_OVERLAY, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, THEATRE_CINEMA_CONCERT, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP]
+    partial_profile_expansions: [SPORTS]
+    production_promotions: 0
+    library_PASS_promotions: 0
+    fail_closed: true
+    rule: "P1 research remains first-class but never bypasses direct current locator evidence."
   multi_profile_locator_backlog:
     source: multi_profile_locator_backlog.yaml
     profiles_with_existing_rule_locator_backlog: 8
@@ -260,6 +281,12 @@ resolved_safety_gaps:
     resolution: >-
       profile_primary_locator_extraction_registry.yaml now tracks five P0 special profiles and the
       SP113 Change 4 reaudit without treating source-chain readiness as rule coverage or locator PASS.
+  - id: P1_LOCATOR_EXTRACTION_UNSTRUCTURED
+    status: resolved_as_fail_closed_queue
+    resolved_at: 2026-10-04
+    resolution: >-
+      profile_p1_locator_extraction_registry.yaml now tracks all seven P1 profiles plus SPORTS
+      completion, each linked to an official revision map without granting production authority.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
@@ -273,6 +300,12 @@ known_safety_gaps:
     source: profile_primary_locator_extraction_registry.yaml
     profiles: [SCHOOL_GENERAL_EDUCATION, PRESCHOOL, MEDICAL, HOTEL, INDUSTRIAL_PRODUCTION_STORAGE]
     effect: "No P0 special-profile numeric or imperative production promotion until direct current locator text is read."
+  - id: P1_SPECIAL_PROFILE_DIRECT_LOCATORS_UNAVAILABLE
+    status: open
+    severity: high
+    source: profile_p1_locator_extraction_registry.yaml
+    profiles: [MIXED_USE, HIGH_RISE_OVERLAY, HIGHER_EDUCATION, VOCATIONAL_EDUCATION, THEATRE_CINEMA_CONCERT, INDUSTRIAL_ADMIN_AMENITY, CHILDREN_HEALTH_CAMP, SPORTS]
+    effect: "P1 and partial-profile expansion may proceed as evidence research, but no new numeric or imperative production promotion without direct current locator text."
   - id: NON_IZHS_EXISTING_RULE_LOCATOR_MIGRATION
     status: open
     severity: high

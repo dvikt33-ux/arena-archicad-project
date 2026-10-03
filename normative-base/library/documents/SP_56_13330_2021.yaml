@@ -1,0 +1,33 @@
+document_id: SP_56_13330_2021
+title: "Производственные здания"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [INDUSTRIAL, PRODUCTION, STORAGE]
+object_class_router:
+  include_when_subject_applies: [INDUSTRIAL, PUBLIC, MKD, TRK]
+  gate: F5_1_or_F5_2_building_room_or_embedded_zone_within_SP56_scope
+revision:
+  verified_changes: []
+  latest_change: null
+replacement:
+  replaces: SP_56_13330_2011
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
+scope:
+  proof_state: official_card_verified
+  functional_fire_classes: [F5_1, F5_2]
+  note: >-
+    Production/laboratory buildings and rooms, workshops, and storage buildings/rooms within scope,
+    including applicable embedded F5.1/F5.2 rooms in buildings of other functional fire classes.
+  exclusions_note: >-
+    Official scope excludes multiple special storage/production categories; excluded cases must route
+    to their own special standards and must not inherit SP56 by analogy.
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - F5_scope_and_exclusion_check_required

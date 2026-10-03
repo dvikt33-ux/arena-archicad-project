@@ -6,7 +6,7 @@ This directory adds a safe read-only Archicad 29 backend to the existing Arena B
 
 `Arena/ChatGPT -> mailbox/action ID -> arena-bridge-v2.ps1 -> actions.ps1 -> run-archicad.ps1 -> archicad_runner.py -> Archicad JSON API`
 
-The remote task can select only a fixed action ID. It cannot send Python source, a shell command, an executable path, a module name, or an arbitrary Archicad JSON command.
+The remote task must ultimately select only a fixed action ID. It must never send Python source, a shell command, an executable path, a module name, or an arbitrary Archicad JSON command.
 
 ## Requirements
 
@@ -51,20 +51,25 @@ Expected success format:
 
 ## Bridge action IDs
 
+The action table now contains these read-only actions:
+
 - `ARCHICAD_PING`
 - `ARCHICAD_PRODUCT_INFO`
 - `ARCHICAD_WALL_COUNT`
 - `ARCHICAD_SELECTION`
 
-These actions are read-only and therefore `Critical = false`.
+They are `Critical = false` because they do not modify the BIM model.
 
-A local mailbox producer can queue one of them using the existing producer, for example:
+## Important: GitHub mailbox gate is still closed
 
-```powershell
-.\arena-mailbox-put.ps1 -Action ARCHICAD_PING -DryRun
-```
+The existing `arena-common.ps1` keeps a separate `$script:ActionIds` allowlist used by the mailbox policy and producer. At the moment that list still contains only the original Git actions. Therefore:
 
-The normal Bridge v2 state machine still provides sequence fencing, replay protection, durable results and fail-closed repo identity checks.
+- direct local tests of the Archicad backend are ready;
+- `arena-bridge-v2.ps1` has executable handlers for the `ARCHICAD_*` IDs;
+- the live GitHub mailbox must **not** be considered enabled for `ARCHICAD_*` yet;
+- `arena-mailbox-put.ps1 -Action ARCHICAD_PING` will remain blocked until the dedicated transport allowlist is intentionally extended and re-audited.
+
+This is deliberate fail-closed behavior. Do not bypass the mailbox policy by accepting arbitrary commands or arguments.
 
 ## Exit codes
 
@@ -79,8 +84,8 @@ The normal Bridge v2 state machine still provides sequence fencing, replay prote
 
 ## Scope of phase 1
 
-This phase proves the end-to-end transport without changing the BIM model.
+This phase proves the local transport/backend without changing the BIM model.
 
 The Archicad 29 Python/JSON API supports additional mutating operations such as setting element properties. It also supports `ExecuteAddOnCommand`, which is the planned escalation path for full Safe BIM control: Python remains the transport/backend, while a trusted Archicad Add-On exposes narrowly scoped model-edit commands that the JSON API can invoke.
 
-Do not add an action that executes arbitrary Python or arbitrary shell text. Future write actions must have a typed schema, fixed allowlist entry, validation and `Critical = true` until an explicit write policy is approved.
+Do not add an action that executes arbitrary Python or arbitrary shell text. Future write actions must have a typed schema, fixed allowlist entry, validation, immediate read-back and an explicit write policy before they are enabled.

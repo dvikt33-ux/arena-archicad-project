@@ -1,0 +1,123 @@
+audit_id: EXISTING_NON_IZH_REVISION_EVIDENCE_PASS_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+numeric_values_added_to_production: 0
+library_PASS_promoted: 0
+
+objective: >-
+  Close revision/change-map traceability gaps for substantive existing non-IZHS rule layers:
+  multifamily residential (SP54), general public buildings (SP118), and shopping-entertainment
+  complexes (SP464), without reinterpreting any existing production values from amendment metadata.
+
+profiles:
+  MKD:
+    document: SP_54_13330_2022
+    official_latest_change: 2
+    latest_change_effective_from: 2025-02-25
+    official_change_card: "https://protect.gost.ru/sp/changesdetails/ca0b09b9-6794-4f69-bf3d-7bb8ec6687b3"
+    change_kind: textual_and_reference_updates
+    change_map: "../library/change_maps/SP_54_13330_2022.yaml"
+    document_card: "../library/documents/SP_54_13330_2022.yaml"
+    representative_rule_file: "../rules/35_residential_planning_minima.yaml"
+    locator_targets: ["5.2; table 5.1", "5.11", "5.12", "A.1.4", "A.1.4 note 1"]
+    locator_state: existing_rule_traceability_pending
+    production_promotion_allowed: false
+
+  PUBLIC_GENERAL:
+    document: SP_118_13330_2022
+    official_latest_change: 5
+    latest_change_effective_from: 2025-02-25
+    official_change_card: "https://protect.gost.ru/sp/changesdetails/1557249d-585e-4f5a-b5ec-c0cb6b971bff"
+    change_kind: textual_and_reference_updates
+    change_map: "../library/change_maps/SP_118_13330_2022.yaml"
+    document_card: "../library/documents/SP_118_13330_2022.yaml"
+    representative_rule_files:
+      - "../rules/43_public_sanitary_facilities.yaml"
+      - "../rules/59_public_lift_lobby_exceptions.yaml"
+    locator_targets: ["5.16", "5.54", "5.55", "5.57"]
+    locator_state: existing_rule_traceability_pending
+    special_profile_precedence_preserved: true
+    production_promotion_allowed: false
+
+  TRK:
+    document: SP_464_1325800_2019
+    official_latest_change: 1
+    latest_change_effective_from: 2024-01-16
+    official_document_card: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+    official_change_card: "https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a"
+    change_kind: textual_and_reference_updates
+    change_map: "../library/change_maps/SP_464_1325800_2019.yaml"
+    document_card: "../library/documents/SP_464_1325800_2019.yaml"
+    representative_rule_files:
+      - "../rules/70_trk_multifunctional_planning_2027.yaml"
+      - "../rules/89_trk_loading_logistics_2027.yaml"
+    locator_targets: ["1", "5.6", "6.10", "6.18", "6.20", "6.21", "8.6", "Appendix B; B.4"]
+    locator_state: existing_rule_traceability_pending
+    scope_gate_preserved: "height <= 50 m and underground depth <= 15 m within SP464 scope"
+    production_promotion_allowed: false
+
+important_evidence_semantics:
+  - amendment_card_metadata_and_summary_never_prove_current_locator_text
+  - existing_production_values_are_preserved_not_reinterpreted
+  - current_locator_must_be_read_before_new_library_PASS
+  - SP118_general_public_rules_do_not_close_special_profile_gaps
+  - TRK_special_function_rules_require_active_functional_zone
+  - MKD_rules_never_leak_into_IZHS_by_residential_name_only
+
+library_integration:
+  manifest_version: 20
+  new_registered_change_maps:
+    - change_maps/SP_54_13330_2022.yaml
+    - change_maps/SP_118_13330_2022.yaml
+    - change_maps/SP_464_1325800_2019.yaml
+  cards_linked_bidirectionally: true
+  generic_reference_closure_validator: "../tools/validate_library_integration.py"
+  generic_validator_now_checks:
+    - every_manifest_document_card_exists
+    - every_manifest_change_map_exists
+    - every_document_card_change_map_reference_exists
+    - every_document_card_change_map_reference_is_registered_in_manifest
+    - SP113_SP551_role_pair
+    - SP267_SP550_role_pair
+
+CI_verified_before_audit_commit:
+  run_number: 594
+  head_sha: 50db5ef42e9408044d1d648804e99c69b29d226e
+  conclusion: success
+  validation_steps:
+    - normative_base
+    - functional_zone_scopes
+    - engineering_system_scopes
+    - multi_profile_functional_coverage
+    - profile_rule_coverage_inventory
+    - P0_primary_locator_extraction
+    - P1_profile_locator_extraction
+    - library_integration
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_rule_values_reinterpreted: false
+  production_rules_promoted: 0
+  library_PASS_promoted: 0
+  evidence_traceability_hardened: true
+
+next_locator_migration_priority:
+  - SP54_MKD_current_locators
+  - SP118_PUBLIC_current_locators
+  - SP464_TRK_current_locators
+  - SP113_parking_current_change4_locators
+  - SP550_highrise_fire_locators
+  - SP551_parking_fire_locators
+
+unchanged_blockers:
+  - authorized_Opera_GARANT_Consultant_locator_access_disconnected
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification

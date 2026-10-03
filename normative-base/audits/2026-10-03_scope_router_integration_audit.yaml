@@ -1,0 +1,145 @@
+audit_id: SCOPE_ROUTER_LIBRARY_INTEGRATION_2026_10_03
+audit_version: 1
+checked_at: 2026-10-03
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+production_rules_promoted: 0
+
+objectives:
+  - enforce_object_class_isolation_for_globally_loaded_rules
+  - distinguish_building_class_from_active_functional_zone
+  - require_engineering_system_presence_before_engineering_rule_evaluation
+  - integrate_non_production_library_before_production_rules_in_root_load_order
+  - make_scope_integrity_machine_checked_by_CI
+
+root_integration:
+  manifest: "../manifest.yaml"
+  manifest_version: 96
+  library_priority: 9
+  rules_priority: 10
+  library_loaded_before_rules: true
+  library_production_authority: false
+  library_role: evidence_and_scope_router
+  blocked_locator_numeric_generation: hard_fail
+  missing_scope_gate: hard_fail
+  unknown_engineering_scope_for_selected_rule: hard_fail
+
+object_class_scope_cycle:
+  router: "../rules/28_functional_code_router.yaml"
+  CI_validator: "../tools/validate.py"
+  high_risk_rule_files_registered: 10
+  MKD_only_files_forbidden_for_IZHS:
+    - 35_residential_planning_minima.yaml
+    - 36_residential_wet_zone_stacking.yaml
+    - 37_residential_balconies_loggias.yaml
+    - 40_residential_vertical_transport.yaml
+    - 53_garant_residential_planning_verification.yaml
+    - 61_residential_entrance_vestibules_climate.yaml
+    - 65_timber_apartment_fire_2026.yaml
+  mixed_section_scoped:
+    - 04_architectural_baseline.yaml
+    - 07_guardrails_roofs.yaml
+    - 100_residential_gas_architectural_interfaces_2027.yaml
+
+functional_zone_scope_cycle:
+  registry: "../library/functional_scope_registry.yaml"
+  CI_validator: "../tools/validate_functional_scope.py"
+  files_registered: 10
+  files:
+    - 43_public_sanitary_facilities.yaml
+    - 59_public_lift_lobby_exceptions.yaml
+    - 70_trk_multifunctional_planning_2027.yaml
+    - 71_public_special_functions_2027.yaml
+    - 87_trk_children_foodservice_2027.yaml
+    - 88_food_retail_sanitary_2027.yaml
+    - 89_trk_loading_logistics_2027.yaml
+    - 103_public_gas_architectural_interfaces_2027.yaml
+    - 105_foodservice_wastewater_grease_interfaces_2027.yaml
+    - 106_trk_waste_collection_interfaces_2027.yaml
+  safety_semantics:
+    - embedded_public_function_in_MKD_is_classified_as_PUBLIC_zone_only
+    - residential_MKD_zone_does_not_inherit_embedded_public_rules
+    - TRK_does_not_inherit_absent_cinema_sport_foodservice_or_child_function
+    - generic_PUBLIC_does_not_inherit_SP464_or_SP160_without_profile_match
+    - IZHS_is_not_allowed_in_this_functional_registry
+
+engineering_system_scope_cycle:
+  registry: "../library/engineering_system_scope_registry.yaml"
+  registry_version: 2
+  CI_validator: "../tools/validate_engineering_scope.py"
+  files_registered: 16
+  files:
+    - 91_engineering_architectural_interfaces_2027.yaml
+    - 92_ventilation_exhaust_facade_roof_2027.yaml
+    - 93_smoke_control_architectural_interfaces_2027.yaml
+    - 94_fire_suppression_pump_room_interfaces_2027.yaml
+    - 95_internal_fire_water_architectural_interfaces_2027.yaml
+    - 96_fire_electrical_routing_architectural_interfaces_2027.yaml
+    - 97_fire_alarm_post_architectural_interfaces_2027.yaml
+    - 98_external_fire_water_site_interfaces_2027.yaml
+    - 99_heat_point_architectural_interfaces_2027.yaml
+    - 101_transformer_substation_architectural_interfaces_2027.yaml
+    - 102_ev_charging_parking_architectural_interfaces_2027.yaml
+    - 104_integrated_heat_generator_100_360kw_2027.yaml
+    - 107_diesel_generator_architectural_interfaces_2027.yaml
+    - 108_refrigeration_machine_room_interfaces_2027.yaml
+    - 109_domestic_water_meter_pump_interfaces_2027.yaml
+    - 110_drainage_sumps_underground_rooms_2027.yaml
+  evaluation_order:
+    - system_or_equipment_presence
+    - normative_document_scope
+    - object_or_function_section_scope
+    - machine_rule
+  missing_system: not_applicable
+  unknown_requirement: engineering_design_required
+  notable_guards:
+    - smoke_control_rules_inactive_without_required_or_provided_smoke_control_system
+    - ordinary_IZHS_EV_charger_does_not_auto_activate_SP113_parking_route
+    - SP281_route_requires_total_heat_output_over_100_and_not_over_360_kW
+    - PUBLIC_refrigeration_route_does_not_auto_cover_INDUSTRIAL_refrigeration
+    - underground_parking_drainage_subsection_requires_underground_vehicle_storage_function
+
+library_integration_CI:
+  validator: "../tools/validate_library_integration.py"
+  workflow: "../../.github/workflows/normative-base-lint.yml"
+  required_checks:
+    - library_is_production_authority_false
+    - library_loaded_before_rules
+    - required_catalog_files_exist
+    - root_scope_hard_fail_states_present
+    - blocked_locator_and_traceability_release_gates_present
+
+traceability_state_preserved:
+  locator_registry:
+    inherited_scoped_PASS: 6
+    existing_rule_traceability_pending: 9
+    blocked_pending_locator: 3
+  no_new_library_PASS_from_SP402: true
+  no_new_library_PASS_from_GOST25772: true
+  SP20_10_2_blocked: true
+  SP20_Appendix_K_blocked: true
+  SP55_9_18_blocked: true
+
+production_impact:
+  numeric_rules_changed: false
+  numeric_values_changed: false
+  existing_scoped_PASS_promoted: 0
+  existing_scoped_PASS_demoted: 0
+  applicability_routing_hardened: true
+  CI_scope_checks_added: true
+  root_load_order_integrated: true
+
+open_blockers:
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_current_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification
+  - authorized_GARANT_or_Consultant_locator_access
+
+next_safe_passes:
+  - audit_remaining_special_object_class_files_not_yet_in_scope_registries
+  - extend_scope_CI_coverage_until_every_special_rule_file_has_an_applicability_gate
+  - continue_locator_registry_migration_for_existing_numeric_rules
+  - direct_read_blocked_locators_when_authorized_or_official_full_text_becomes_accessible

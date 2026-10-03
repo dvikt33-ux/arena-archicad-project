@@ -1,0 +1,29 @@
+document_id: SP_267_1325800_2016
+title: "Здания и комплексы высотные. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [HIGH_RISE, OVERLAY, PUBLIC, MKD, MIXED_USE]
+object_class_router:
+  include_when_subject_applies: [MKD, PUBLIC, TRK]
+  gate: high_rise_scope_confirmed
+revision:
+  verified_changes: [1, 2, 3]
+  latest_change: 3
+  latest_change_effective_from: 2026-07-15
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+  official_url: "https://protect.gost.ru/sp/details/e343722d-53fe-4dd1-955b-2e1946442f50"
+  latest_change_url: "https://protect.gost.ru/sp/changesdetails/f62e4140-c0e1-4685-8f54-d05ddad6314f"
+scope:
+  proof_state: official_card_verified
+  note: >-
+    High-rise code acts as an overlay after the underlying functional profile is identified;
+    it does not replace MKD/public/mixed-use/hotel or other primary functional codes.
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - underlying_functional_profile_required

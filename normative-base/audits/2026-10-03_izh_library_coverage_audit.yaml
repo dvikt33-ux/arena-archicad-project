@@ -1,0 +1,79 @@
+audit_id: IZHS_LIBRARY_COVERAGE_AUDIT_2026_10_03
+audit_version: 1
+checked_at: 2026-10-03
+branch: normative-base-v1
+policy: fail_closed
+southern_russia_started: false
+
+scope:
+  object_class: IZHS
+  primary_functional_document: SP_55_13330_2016
+  source_dependency_file: normative-base/izh/00_scope_inputs_2027.yaml
+
+coverage:
+  direct_dependencies_expected: 17
+  direct_dependency_cards_present: 17
+  direct_dependency_revision_gates_present: 17
+  cross_cutting_cards_present: 4
+  total_library_document_cards_in_first_IZHS_release: 21
+
+covered_direct_dependencies:
+  - SP_55_13330_2016
+  - SP_20_13330_2016
+  - SP_22_13330_2016
+  - SP_24_13330_2021
+  - SP_63_13330_2018
+  - SP_64_13330_2017
+  - SP_15_13330_2020
+  - SP_16_13330_2017
+  - SP_50_13330_2024
+  - SP_17_13330_2017
+  - SP_28_13330_2017
+  - SP_29_13330_2011
+  - SP_71_13330_2017
+  - SP_30_13330_2020
+  - SP_60_13330_2020
+  - SP_256_1325800_2016
+  - SP_402_1325800_2018
+
+cross_cutting_cards:
+  - SP_52_13330_2016
+  - SP_131_13330_2025
+  - SP_2_13130_2020
+  - SP_4_13130_2013
+
+routing_status:
+  explicit_global_IZHS_route_to_SP55: present
+  SP55_revision_gate: present
+  SP64_revision_gate: present
+  irrelevant_special_object_classes_excluded_by_default: true
+
+proof_policy:
+  document_card_level: official_card_verified_or_stricter
+  numeric_locator_level: direct_locator_evidence_required
+  official_card_proves_clause_text: false
+  secondary_copy_can_promote_numeric_rule: false
+
+production_impact:
+  numeric_rules_promoted: 0
+  numeric_values_added: 0
+  revision_gates_added: 2
+  functional_routes_added: 1
+  document_cards_added: 21
+
+open_blockers:
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    status: blocked_pending_locator
+    effect: no_automatic_snow_value_or_appendix_K_route
+  - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
+    status: blocked_pending_locator
+    effect: no_production_daylight_ratio
+  - id: AUTHORIZED_BROWSER_LOCATOR_ACCESS
+    status: unavailable
+    observed_error: "Browser not connected"
+    effect: no_GARANT_or_Consultant_locator_read
+
+safe_result: >-
+  First IZHS library coverage is structurally complete at the document/revision-routing level,
+  while unresolved clause-level questions remain fail-closed. Existing proven scoped production
+  rules are not reinterpreted by library metadata.

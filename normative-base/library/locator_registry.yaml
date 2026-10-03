@@ -1,4 +1,4 @@
-locator_registry_version: 3
+locator_registry_version: 4
 checked_at: 2026-10-03
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -146,10 +146,30 @@ locators:
     object_classes: [MKD]
     forbidden_for_IZHS: true
 
+  - document: GOST_25772_2025
+    locator: "4.2, Table 1"
+    topic: metal_guardrail_type_classification
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/07_guardrails_roofs.yaml"
+    change_map: "change_maps/GOST_25772_2025.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    role: product_classification_only
+  - document: GOST_25772_2025
+    locator: "5.1.1, Table 3"
+    topic: standard_product_geometry
+    proof_state: existing_rule_traceability_pending
+    rule_file: "../rules/07_guardrails_roofs.yaml"
+    change_map: "change_maps/GOST_25772_2025.yaml"
+    production_state: preserve_existing_rule_pending_durable_evidence_migration
+    object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    role: product_geometry_only
+    project_requirement_source_required: true
+
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
-  existing_rule_traceability_pending_locators: 7
+  existing_rule_traceability_pending_locators: 9
   blocked_pending_locator: 3
   blocked_locators_with_change_maps: 3
   production_promotions_from_this_registry: 0

@@ -1,4 +1,4 @@
-checked_at: 2026-10-03
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 purpose: "Контроль последней официально опубликованной редакции ключевых СП. Этот файл не заменяет правила; он блокирует применение rule-файла, если его revision_level ниже подтвержденного уровня или если документ уже заменен новой редакцией."
 
@@ -64,6 +64,8 @@ core_documents:
     source_url: "https://protect.gost.ru/sp/details/47bdedfd-551c-4343-8c9a-fed7d27e503a"
 
 functional_documents:
+  - {document: SP_44_13330_2011, topic: industrial_admin_amenity, official_latest_change: 4, latest_change_effective_from: 2022-01-08, status: active, source_url: "https://protect.gost.ru/sp/details/d4e8fda2-e2a9-45a4-b686-d21347d36ab2"}
+  - {document: SP_56_13330_2021, topic: industrial_production_storage, official_latest_change: null, official_card_has_no_changes: true, effective_from: 2022-01-28, status: active, source_url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"}
   - {document: SP_158_13330_2014, topic: medical, official_latest_change: 7, latest_change_effective_from: 2026-08-10, status: active, source_url: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"}
   - {document: SP_160_1325800_2014, topic: mixed_use, official_latest_change: 3, status: active, source_url: "https://protect.gost.ru/sp/details/c71e37b2-43b8-4c82-8de2-1c6cf2826896"}
   - {document: SP_251_1325800_2016, topic: schools, official_latest_change: 7, latest_change_effective_from: 2026-01-01, status: active, source_url: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"}
@@ -74,7 +76,9 @@ functional_documents:
   - {document: SP_279_1325800_2016, topic: vocational_education, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/5a4676cb-c293-4345-96ba-7d1c83024b91"}
   - {document: SP_309_1325800_2017, topic: theatres_cinemas_concert, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/5cf75f70-1992-4767-b65b-4fa9101e952e"}
   - {document: SP_332_1325800_2017, topic: sports, official_latest_change: 4, status: active, source_url: "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"}
+  - {document: SP_456_1311500_2020, topic: multifunctional_fire_safety, official_latest_change: null, official_card_has_no_changes: true, effective_from: 2020-07-01, status: active, source_url: "https://protect.gost.ru/sp/details/e2b220a4-180b-4e3e-a8ba-da3d6de1774e"}
   - {document: SP_464_1325800_2019, topic: shopping_entertainment_complex, official_latest_change: 1, status: active, source_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"}
+  - {document: SP_535_1325800_2024, topic: children_health_camps, official_latest_change: null, official_card_has_no_changes: true, effective_from: 2024-03-09, status: active, source_url: "https://protect.gost.ru/sp/details/0b6088cc-24f7-4dd4-8b4c-b4f994a91717"}
 
 release_gate:
   - "Перед каждым крупным релизом базы повторно открыть official source_url каждого core_document и каждого functional_document, реально используемого проектом."

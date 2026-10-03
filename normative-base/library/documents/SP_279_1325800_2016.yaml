@@ -1,0 +1,25 @@
+document_id: SP_279_1325800_2016
+title: "Здания профессиональных образовательных организаций. Правила проектирования"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-04
+production_authority: false
+scope_tags: [PUBLIC, EDUCATION, VOCATIONAL]
+object_class_router:
+  include_when_subject_applies: [PUBLIC]
+  gate: vocational_education_organization_building
+revision:
+  verified_changes: [1]
+  latest_change: 1
+  latest_change_effective_from: 2024-01-29
+proof:
+  state: official_card_verified
+  authority: Rosstandart
+scope:
+  proof_state: official_card_verified
+  note: "Professional/vocational educational organization buildings within official scope."
+locators: []
+release_gates:
+  - exact_locator_evidence_required_for_numeric_rules
+  - vocational_education_profile_required

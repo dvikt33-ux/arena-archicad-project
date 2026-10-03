@@ -40,6 +40,7 @@ revision:
     official_publication_date: 2023-06-15
     official_card: "https://protect.gost.ru/sp/changesdetails/c03b2bb8-b87d-4f52-87a0-7ca68372209b"
     proof_state: official_card_verified
+  change_impact_map: "../change_maps/SP_55_13330_2016.yaml"
 
 official_sources:
   base_card: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
@@ -61,10 +62,13 @@ locators:
     topic: daylight_window_to_floor_ratio
     proof_state: blocked_pending_locator
     production_allowed: false
+    amendment_impact_state: unresolved_across_changes_1_and_2
+    change_map: "../change_maps/SP_55_13330_2016.yaml"
     blocker: >-
       Точный действующий текст пункта 9.18 не прочитан непосредственно в официальном
       документе или авторизованном locator действующей редакции. Вторичные актуальные
-      копии не удовлетворяют evidence policy.
+      копии не удовлетворяют evidence policy. Публичные карточки Изм. №1 и №2 показывают
+      сведения о ссылочных документах, но не доказывают полный постатейный состав изменений.
     secondary_corrob_only:
       reported_values: ["1:8", "1:10 for attic rooms"]
       use_for_production: false

@@ -1,0 +1,28 @@
+document_id: SP_71_13330_2017
+title: "Изоляционные и отделочные покрытия"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL, ROOF]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4]
+  latest_change: 4
+  latest_change_effective_from: 2025-11-04
+revision_gate:
+  file: revision_watch_2027.yaml
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Правила производства и приемки изоляционных и отделочных работ в пределах официальной области применения."
+locators: []
+release_gates:
+  - construction_system_and_material_required
+  - exact_locator_evidence_required_for_layer_or_execution_rules

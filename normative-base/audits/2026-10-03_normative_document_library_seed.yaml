@@ -1,0 +1,131 @@
+audit_id: NORMATIVE_DOCUMENT_LIBRARY_SEED_2026_10_03
+audit_version: 1
+checked_at: 2026-10-03
+branch: normative-base-v1
+base_commit_before_pass: 683384438ea07bc4d2a8c1f7f0532a1a376ae4d5
+policy: fail_closed
+southern_russia_started: false
+
+objectives:
+  - continue_source_audit_without_weakening_existing_gates
+  - create_machine_readable_normative_document_library
+  - separate_document_inventory_from_production_rules
+  - enforce_object_class_routing_for_IZHS_vs_other_building_classes
+
+connector_state:
+  opera_browser_connector:
+    status: disconnected
+    observed_error: "Browser not connected"
+    consequence: authorized_GARANT_or_Consultant_locator_read_unavailable
+    substitution_with_search_snippets: forbidden
+
+remote_state_findings:
+  - id: CURRENT_REMOTE_BASE
+    result: pass
+    statement: >-
+      normative-base-v1 was inspected as the current normative working branch and was
+      89 commits ahead / 4 commits behind normative-roof-nodes-v1 at the comparison point.
+  - id: OCT03_AUDIT_FILES_NOT_LOCATED
+    result: unresolved
+    statement: >-
+      IZHS_CENTRAL_SP20_10_2_REAUDIT_2026-10-03.yaml and
+      IZHS_CENTRAL_DAYLIGHT_AUDIT_2026-10-03.yaml were not located in the inspected
+      remote normative-base-v1 state. They were not reconstructed from memory/chat text.
+    production_effect: none
+  - id: SP55_GLOBAL_REVISION_WATCH_GAP
+    result: fail_closed_gap
+    severity: high
+    statement: >-
+      IZH_NODE_ENGINEERING declares detached_single_family_houses_within_SP55_scope,
+      while SP_55_13330_2016 is absent from revision_watch_2027.yaml in the inspected state.
+    required_action: add_and_audit_SP55_revision_gate_before_releasing_SP55_dependent_locators
+
+primary_source_checks:
+  - document: SP_55_13330_2016
+    official_base_card: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+    base_status: active
+    base_effective_from: 2017-04-21
+    verified_changes: [1, 2]
+    change_1_card: "https://protect.gost.ru/sp/changesdetails/9fa33eb9-3be0-4645-b362-5c2b707e42b9"
+    change_2_card: "https://protect.gost.ru/sp/changesdetails/c03b2bb8-b87d-4f52-87a0-7ca68372209b"
+    change_2_approval_order: "350/пр"
+    change_2_approval_date: 2023-05-17
+    change_2_effective_from: 2023-06-18
+    locator_9_18: blocked_pending_locator
+  - document: SP_20_13330_2016
+    official_base_card: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"
+    base_status: active
+    verified_changes: [1, 2, 3, 4, 5, 6]
+    change_2_card: "https://protect.gost.ru/sp/changesdetails/1a5a6ff2-93a4-40b0-bc97-526e12b60445"
+    change_2_approval_order: "49/пр"
+    change_2_approval_date: 2019-01-28
+    change_2_effective_from: 2019-07-29
+    locator_10_2: blocked_pending_locator
+    appendix_K_route: blocked_pending_locator
+  - document: SP_50_13330_2024
+    official_base_card: "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+    status: active
+    effective_from: 2024-06-16
+    locator_table_3: requires_separate_direct_evidence
+  - document: SP_52_13330_2016
+    official_base_card: "https://protect.gost.ru/sp/details/9c938e6d-bd3f-4c81-904f-ba8d4c14357b"
+    status: active
+    verified_changes: [1, 2]
+    change_2_effective_from: 2022-01-29
+  - document: SP_131_13330_2025
+    official_base_card: "https://protect.gost.ru/sp/details/0634a74e-9f91-4571-82a8-b04c3a9b6c99"
+    status: active
+    effective_from: 2025-09-09
+    replaces: SP_131_13330_2020
+    geographic_value_generation_without_location: forbidden
+  - document: SP_17_13330_2017
+    official_base_card: "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+    status: active
+    verified_changes: [1, 2, 3, 4, 5]
+    latest_change_effective_from: 2025-01-10
+  - document: SP_2_13130_2020
+    official_base_card: "https://protect.gost.ru/sp/details/90783c81-7eaa-4b90-b774-55ad27e6dfa1"
+    status: active
+    verified_changes: [1, 2]
+    latest_change_effective_from: 2026-01-01
+  - document: SP_4_13130_2013
+    official_base_card: "https://protect.gost.ru/sp/details/fe915813-95ec-43a6-ab1c-91027e06bf1c"
+    status: active
+    verified_changes: [1, 2, 3, 4]
+    latest_change_effective_from: 2023-12-01
+
+library_changes:
+  production_rule_files_modified: false
+  existing_registry_files_modified: false
+  existing_revision_watch_modified: false
+  files_added:
+    - library/README.md
+    - library/library_manifest.yaml
+    - library/documents/SP_55_13330_2016.yaml
+    - library/documents/SP_20_13330_2016.yaml
+    - library/documents/SP_50_13330_2024.yaml
+    - library/documents/SP_52_13330_2016.yaml
+    - library/documents/SP_131_13330_2025.yaml
+    - library/documents/SP_17_13330_2017.yaml
+    - library/documents/SP_2_13130_2020.yaml
+    - library/documents/SP_4_13130_2013.yaml
+
+production_impact:
+  promoted_rules: 0
+  demoted_rules: 0
+  numeric_values_added_to_rules: 0
+  status: no_production_change
+
+open_blockers:
+  - SP20_10_2_exact_current_text
+  - SP20_appendix_K_applicability_route
+  - SP55_9_18_exact_current_text
+  - SP55_missing_global_revision_watch_gate
+  - authorized_browser_locator_access_unavailable
+
+next_safe_passes:
+  - direct_read_SP20_10_2_and_affected_change_document_when_authorized_or_official_text_is_accessible
+  - direct_read_SP55_9_18_in_current_revision
+  - add_SP55_to_revision_watch_only_after_metadata_and_change_level_reconciliation
+  - expand_library_with_remaining_IZHS_core_dependencies_before_other_object_classes
+  - keep_Southern_Russia_out_of_scope_until_explicitly_started

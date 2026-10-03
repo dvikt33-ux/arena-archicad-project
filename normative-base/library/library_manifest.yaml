@@ -1,4 +1,4 @@
-library_version: 8
+library_version: 9
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -17,6 +17,8 @@ invariants:
   - later_revision_requires_reaudit_of_affected_locators
   - amendment_card_summary_never_proves_full_amendment_text
   - inherited_scoped_PASS_must_link_to_durable_audit_and_change_map
+  - product_standard_geometry_never_replaces_object_class_project_requirement
+  - global_yaml_loading_never_implies_cross_class_rule_applicability
 
 object_classes:
   IZHS:
@@ -60,6 +62,7 @@ change_maps:
   - change_maps/SP_2_13130_2020.yaml
   - change_maps/SP_4_13130_2013.yaml
   - change_maps/SP_402_1325800_2018.yaml
+  - change_maps/GOST_25772_2025.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -70,12 +73,22 @@ coverage:
   IZHS_cross_cutting_cards:
     count: 4
     documents: [SP_52_13330_2016, SP_131_13330_2025, SP_2_13130_2020, SP_4_13130_2013]
+  additional_product_document_cards:
+    count: 1
+    documents: [GOST_25772_2025]
   locator_index:
     inherited_scoped_pass_locators: 6
     inherited_scoped_pass_with_change_maps: 6
-    existing_rule_traceability_pending_locators: 7
+    existing_rule_traceability_pending_locators: 9
     blocked_pending_locator: 3
     blocked_with_change_maps: 3
+  object_class_scope_enforcement:
+    source: "../rules/28_functional_code_router.yaml"
+    CI_validator: "../tools/validate.py"
+    hard_gated_rule_files: 10
+    MKD_only_files_hard_forbidden_for_IZHS: 7
+    mixed_section_scoped_files: [04_architectural_baseline.yaml, 07_guardrails_roofs.yaml]
+    IZHS_MKD_shared_files_with_section_overrides: [100_residential_gas_architectural_interfaces_2027.yaml]
 
 document_cards:
   - documents/SP_55_13330_2016.yaml
@@ -99,6 +112,7 @@ document_cards:
   - documents/SP_131_13330_2025.yaml
   - documents/SP_2_13130_2020.yaml
   - documents/SP_4_13130_2013.yaml
+  - documents/GOST_25772_2025.yaml
 
 resolved_safety_gaps:
   - id: SP55_MISSING_FROM_GLOBAL_REVISION_WATCH
@@ -113,6 +127,12 @@ resolved_safety_gaps:
     status: resolved
     resolved_at: 2026-10-03
     resolution: residential_single_family_route_added_to_rules_28_functional_code_router_with_SP55_scope_gate
+  - id: GLOBAL_RULES_NO_OBJECT_CLASS_CI_GATE
+    status: resolved_initial_high_risk_cluster
+    resolved_at: 2026-10-03
+    resolution: >-
+      rules/28_functional_code_router.yaml now contains rule_file_scope_registry and tools/validate.py
+      hard-checks the initial high-risk residential/mixed files. Coverage expansion remains iterative.
 
 known_safety_gaps:
   - id: SP20_10_2_CURRENT_TEXT_CONFLICT
@@ -138,3 +158,11 @@ known_safety_gaps:
       but clauses 5.1, 5.5, 5.9-5.12 and 5.16 are not yet linked to a durable locator-level evidence audit.
       Library state is existing_rule_traceability_pending and must not be interpreted as PASS.
     effect: no_new_library_promotion_from_SP402_until_durable_evidence_migration
+  - id: GOST25772_TABLE_TRACEABILITY_AND_CORRECTION_EFFECT
+    status: open
+    severity: high
+    statement: >-
+      rules/07_guardrails_roofs.yaml contains exact Table 1/Table 3 values from GOST 25772-2025.
+      Rosstandart confirms a correction effective 2026-06-17 but its public card does not reveal
+      the correction text. These tables remain existing_rule_traceability_pending in the library.
+    effect: no_new_library_promotion_from_GOST25772_tables_until_correction_and_locator_text_are_verified

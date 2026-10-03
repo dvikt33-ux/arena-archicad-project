@@ -59,14 +59,14 @@ function Convert-ToFullPath {
     param([string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) { return '' }
     $p = $Path.Trim().Trim('"').Trim("'")
-    if ($env:OS -eq 'Windows_NT') { $p = $p -replace '/', '\\' }
+    if ($env:OS -eq 'Windows_NT') { $p = $p -replace '/', '\' }
     try { return [System.IO.Path]::GetFullPath($p) } catch { return $p }
 }
 
 function Test-SamePath {
     param([string]$A, [string]$B)
-    $fa = (Convert-ToFullPath $A).TrimEnd('\\', '/')
-    $fb = (Convert-ToFullPath $B).TrimEnd('\\', '/')
+    $fa = (Convert-ToFullPath $A).TrimEnd('\', '/')
+    $fb = (Convert-ToFullPath $B).TrimEnd('\', '/')
     if ($env:OS -eq 'Windows_NT') { return ($fa -ieq $fb) }
     return ($fa -eq $fb)
 }

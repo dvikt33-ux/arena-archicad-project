@@ -1,0 +1,161 @@
+registry_version: 1
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+role: primary_profile_locator_extraction_queue
+
+purpose: >-
+  Машинная очередь первичного извлечения специальных требований для профилей, у которых уже
+  есть официальная карточка и revision gate, но отсутствует dedicated machine-rule слой.
+  Запись в этом реестре не является нормативным правилом и не разрешает числовое применение.
+
+invariants:
+  - extraction_target_never_counts_as_rule_coverage
+  - official_card_never_proves_clause_or_table_text
+  - amendment_card_summary_never_proves_unchanged_locator_text
+  - no_numeric_value_without_direct_current_locator
+  - general_SP118_or_host_building_rules_never_fill_missing_special_profile_requirement
+  - embedded_special_zone_requires_explicit_zone_classification
+  - unresolved_locator_returns_profile_requirement_pending_not_inferred_value
+
+states:
+  blocked_pending_direct_current_locator: >-
+    Current clause/table/appendix text has not been directly read in an accepted primary or
+    authorized source. No production promotion is allowed.
+  source_chain_ready_locator_pending: >-
+    Document identity, active revision chain and official source route are established, but
+    locator-level text still needs direct reading.
+
+profiles:
+  SCHOOL_GENERAL_EDUCATION:
+    primary_document: SP_251_1325800_2016
+    change_map: change_maps/SP_251_1325800_2016.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 7, effective_from: 2026-01-01}
+    official_card: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
+    host_class: PUBLIC
+    scope_gate: general_education_school_or_school_complex
+    direct_locator_access: unavailable_in_current_session
+    target_topics:
+      - site_and_functional_zoning
+      - room_composition_and_minimum_areas
+      - classrooms_laboratories_and_special_teaching_rooms
+      - floor_and_vertical_placement
+      - sanitary_foodservice_and_service_interfaces
+      - sports_and_assembly_interfaces
+      - accessibility_egress_and_lighting_interfaces
+    fallback_if_locator_missing: profile_requirement_pending
+    production_promotion_allowed: false
+
+  PRESCHOOL:
+    primary_document: SP_252_1325800_2016
+    change_map: change_maps/SP_252_1325800_2016.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 3, effective_from: 2025-01-21}
+    official_card: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
+    host_class: PUBLIC
+    scope_gate: preschool_organization_building
+    direct_locator_access: unavailable_in_current_session
+    target_topics:
+      - site_and_group_play_area_zoning
+      - group_cell_composition_and_areas
+      - age_group_separation_and_vertical_placement
+      - entrances_stairs_and_safe_routes
+      - foodservice_laundry_and_service_interfaces
+      - sanitary_daylight_and_microclimate_interfaces
+      - embedded_or_shared_complex_conditions
+    fallback_if_locator_missing: profile_requirement_pending
+    production_promotion_allowed: false
+
+  MEDICAL:
+    primary_document: SP_158_13330_2014
+    change_map: change_maps/SP_158_13330_2014.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 7, effective_from: 2026-08-10}
+    official_card: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
+    host_classes: [PUBLIC, MKD, INDUSTRIAL]
+    scope_gate: medical_building_or_classified_medical_purpose_zone
+    direct_locator_access: unavailable_in_current_session
+    target_topics:
+      - department_and_clean_dirty_flow_separation
+      - corridor_door_and_patient_transport_geometry
+      - room_composition_and_minimum_areas
+      - floor_placement_and_vertical_connections
+      - isolation_and_infection_control_interfaces
+      - sanitary_patient_staff_support_rooms
+      - ventilation_medical_gas_and_engineering_architectural_interfaces
+    fallback_if_locator_missing: medical_profile_requirement_pending
+    production_promotion_allowed: false
+
+  HOTEL:
+    primary_document: SP_257_1325800_2020
+    change_map: change_maps/SP_257_1325800_2020.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: 1, effective_from: 2024-01-29}
+    official_card: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
+    host_classes: [PUBLIC, MKD]
+    scope_gate: hotel_building_or_classified_hotel_zone
+    direct_locator_access: unavailable_in_current_session
+    target_topics:
+      - guestroom_types_composition_and_areas
+      - public_guest_and_service_flow_separation
+      - vertical_transport_and_floor_placement
+      - housekeeping_sanitary_and_service_interfaces
+      - accessible_room_and_route_interfaces
+      - site_access_loading_and_parking_interfaces
+    fallback_if_locator_missing: hotel_profile_requirement_pending
+    production_promotion_allowed: false
+
+  INDUSTRIAL_PRODUCTION_STORAGE:
+    primary_document: SP_56_13330_2021
+    change_map: change_maps/SP_56_13330_2021.yaml
+    state: source_chain_ready_locator_pending
+    current_revision: {latest_change: null, effective_from: 2022-01-28}
+    official_card: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
+    host_class: INDUSTRIAL
+    embedded_zone_route: F5_1_or_F5_2_room_in_other_host_class_when_within_scope
+    scope_gate: F5_1_or_F5_2_and_not_excluded_special_category
+    direct_locator_access: unavailable_in_current_session
+    target_topics:
+      - scope_and_exclusions
+      - building_and_fire_compartment_geometry
+      - floor_area_height_and_storey_constraints
+      - production_and_storage_room_placement
+      - gates_loading_and_internal_transport_interfaces
+      - mezzanines_platforms_and_technical_levels
+      - evacuation_and_fire_safety_architectural_interfaces
+    fallback_if_locator_missing: industrial_profile_requirement_pending
+    production_promotion_allowed: false
+
+parking_reaudit:
+  document: SP_113_13330_2023
+  change_map: change_maps/SP_113_13330_2023.yaml
+  current_revision: {latest_change: 4, effective_from: 2026-10-03}
+  state: blocked_pending_direct_current_locator
+  note: >-
+    Existing parking machine rules remain preserved, but Change 4 current locators must be read
+    before any new library PASS or reinterpretation.
+  priority_locators:
+    - "Appendix A; Table A.1"
+    - "Appendix A; Table A.1 note 4"
+    - "4.4"
+    - "5.4"
+    - "5.6"
+    - "6.2.12"
+    - "6.2.30"
+    - "7.10.2"
+    - "7.10.5"
+  production_promotion_allowed: false
+
+session_source_status:
+  authorized_opera_connector: disconnected
+  official_public_cards: available
+  official_minstroy_publication_index: available_but_no_consolidated_locator_read
+  secondary_sources_allowed_role: locator_discovery_only_if_needed
+
+summary:
+  P0_profiles_in_primary_extraction_queue: 5
+  profiles_with_numeric_promotion: 0
+  parking_reaudit_active: true
+  unresolved_profiles_fail_closed: true

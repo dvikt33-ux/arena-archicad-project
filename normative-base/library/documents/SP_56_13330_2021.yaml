@@ -12,12 +12,14 @@ object_class_router:
 revision:
   verified_changes: []
   latest_change: null
+  effective_from: 2022-01-28
 replacement:
   replaces: SP_56_13330_2011
 proof:
   state: official_card_verified
   authority: Rosstandart
   official_url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
+change_map: "../change_maps/SP_56_13330_2021.yaml"
 scope:
   proof_state: official_card_verified
   functional_fire_classes: [F5_1, F5_2]
@@ -27,7 +29,14 @@ scope:
   exclusions_note: >-
     Official scope excludes multiple special storage/production categories; excluded cases must route
     to their own special standards and must not inherit SP56 by analogy.
+locator_research:
+  state: source_chain_ready_locator_pending
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: unavailable_in_current_session
+  production_promotion_allowed: false
 locators: []
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - F5_scope_and_exclusion_check_required
+  - current_SP56_2021_must_be_used_not_SP56_2011
+  - generic_fire_matrices_do_not_close_SP56_specific_gap

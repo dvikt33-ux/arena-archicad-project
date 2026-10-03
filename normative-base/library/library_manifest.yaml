@@ -1,4 +1,4 @@
-library_version: 5
+library_version: 6
 checked_at: 2026-10-03
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -9,11 +9,12 @@ invariants:
   - library_metadata_never_overrides_rules
   - document_presence_never_implies_applicability
   - official_card_metadata_never_proves_clause_text
-  - numeric_rule_requires_direct_locator_evidence
+  - numeric_rule_requires_direct_locator_evidence_or_preserved_durable_scoped_PASS
   - blocked_locator_must_not_generate_BIM_value
   - special_functional_document_requires_matching_object_class
   - cross_class_loading_requires_explicit_normative_basis
   - later_revision_requires_reaudit_of_affected_locators
+  - amendment_card_summary_never_proves_full_amendment_text
 
 object_classes:
   IZHS:
@@ -38,6 +39,7 @@ object_classes:
 proof_states:
   - official_clause_verified
   - authorized_locator_verified
+  - inherited_scoped_pass
   - official_card_verified
   - secondary_corrob_only
   - blocked_pending_locator
@@ -46,6 +48,11 @@ proof_states:
 
 catalogs:
   - izh_dependency_catalog.yaml
+  - locator_registry.yaml
+
+change_maps:
+  - change_maps/SP_20_13330_2016.yaml
+  - change_maps/SP_55_13330_2016.yaml
 
 coverage:
   IZHS_direct_dependency_graph:
@@ -56,6 +63,9 @@ coverage:
   IZHS_cross_cutting_cards:
     count: 4
     documents: [SP_52_13330_2016, SP_131_13330_2025, SP_2_13130_2020, SP_4_13130_2013]
+  locator_index:
+    inherited_scoped_pass_locators: 6
+    blocked_pending_locator: 3
 
 document_cards:
   - documents/SP_55_13330_2016.yaml

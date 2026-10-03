@@ -1,0 +1,150 @@
+catalog_version: 1
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+object_class: IZHS
+source_scope_file: normative-base/izh/00_scope_inputs_2027.yaml
+production_authority: false
+
+policy:
+  - every_dependency_requires_current_document_identity
+  - every_revision_sensitive_dependency_requires_a_working_revision_gate
+  - no_structural_or_engineering_value_is_inferred_from_document_presence
+  - geographic_values_require_actual_location
+  - gas_rules_load_only_if_gas_system_is_present
+
+primary_functional_document:
+  document: SP_55_13330_2016
+  topic: single_family_housing
+  official_latest_change: 2
+  official_card: "https://protect.gost.ru/sp/details/a99146d7-4dc6-4bb8-96e0-35e0233050c2"
+  revision_gate_expected: revision_watch_2027.yaml
+  revision_gate_status: missing
+  result: fail_closed_gap
+
+structural:
+  - document: SP_20_13330_2016
+    topic: loads
+    official_latest_change: 6
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/bac9e1fe-45f1-401b-8e32-949f4ee27821"
+  - document: SP_22_13330_2016
+    topic: foundations_and_soils
+    official_latest_change: 5
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/71e96332-a446-4a15-87a0-2db895479f61"
+  - document: SP_24_13330_2021
+    topic: pile_foundations
+    official_latest_change: 2
+    latest_change_effective_from: 2026-08-29
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/1e90a34c-6379-4236-8256-38be93e29766"
+  - document: SP_63_13330_2018
+    topic: reinforced_concrete
+    official_latest_change: 2
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/8b67e228-0c9f-4a62-b562-964b3a58c667"
+  - document: SP_64_13330_2017
+    topic: timber_structures
+    official_latest_change: 4
+    latest_change_effective_from: 2024-01-29
+    gate_declared_in_izh_scope: revision_watch_2027.yaml
+    gate_status: missing
+    result: fail_closed_gap
+    official_card: "https://protect.gost.ru/sp/details/cbac2ac8-70ea-4899-9b3b-1c402a1260d0"
+    latest_change_card: "https://protect.gost.ru/sp/changesdetails/b5542d34-122f-4a6e-b8c6-1f82e70f7f92"
+  - document: SP_15_13330_2020
+    topic: masonry
+    official_latest_change: 1
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/88d859d2-0687-4825-9d5a-004160dce187"
+  - document: SP_16_13330_2017
+    topic: steel_structures
+    official_latest_change: 6
+    latest_change_effective_from: 2025-01-10
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/43076552-945c-4733-81c2-cfbe454e1d6d"
+
+envelope_and_finishes:
+  - document: SP_50_13330_2024
+    topic: thermal_protection
+    official_latest_change: null
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/5081dae9-9ee9-455f-80e8-d093d495361c"
+  - document: SP_17_13330_2017
+    topic: roofs
+    official_latest_change: 5
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/844352c5-dda6-4006-acd8-b6875d1ed6a8"
+  - document: SP_28_13330_2017
+    topic: corrosion_protection
+    official_latest_change: 4
+    latest_change_effective_from: 2024-06-09
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/bd3c594c-26c7-41a9-9c76-510d0fa1ca92"
+  - document: SP_29_13330_2011
+    topic: floors
+    official_latest_change: 4
+    latest_change_effective_from: 2025-11-28
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/a2711156-c40f-4d0f-89f1-7e3c366bc430"
+  - document: SP_71_13330_2017
+    topic: insulation_and_finishes
+    official_latest_change: 4
+    latest_change_effective_from: 2025-11-04
+    gate: revision_watch_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/ca915ed9-5bce-4de4-94af-debfd041a939"
+
+engineering:
+  - document: SP_30_13330_2020
+    topic: internal_water_and_sewerage
+    official_latest_change: 5
+    latest_change_effective_from: 2025-02-25
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/8cd57a35-8503-4bb8-802a-324b64f3e0e7"
+  - document: SP_60_13330_2020
+    topic: hvac
+    official_latest_change: 6
+    latest_change_effective_from: 2026-07-07
+    gate: revision_watch_2027.yaml_and_revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262"
+  - document: SP_256_1325800_2016
+    topic: electrical
+    official_latest_change: 9
+    latest_change_effective_from: 2026-01-26
+    gate: revision_watch_2027.yaml_and_revision_watch_adjacent_2027.yaml
+    gate_status: present
+    official_card: "https://protect.gost.ru/sp/details/27f20b47-7456-496e-9e1d-8011ddb4a956"
+  - document: SP_402_1325800_2018
+    topic: residential_gas_if_applicable
+    official_latest_change: 1
+    latest_change_effective_from: 2023-01-20
+    gate: revision_watch_adjacent_2027.yaml
+    gate_status: present
+    applicability: only_if_residential_natural_gas_system_within_SP402_scope
+    official_card: "https://protect.gost.ru/sp/details/615c425a-edaa-47d2-86f6-445f33f192c1"
+
+cross_cutting_library_cards:
+  - SP_52_13330_2016
+  - SP_131_13330_2025
+  - SP_2_13130_2020
+  - SP_4_13130_2013
+
+summary:
+  dependencies_checked: 17
+  working_revision_gates: 15
+  missing_revision_gates: 2
+  missing_gate_documents: [SP_55_13330_2016, SP_64_13330_2017]
+  production_rules_promoted: 0

@@ -1,0 +1,30 @@
+document_id: SP_60_13330_2020
+title: "Отопление, вентиляция и кондиционирование воздуха"
+document_type: SP
+status: active
+jurisdiction: RU
+checked_at: 2026-10-03
+production_authority: false
+scope_tags: [GENERAL]
+object_class_router:
+  include_when_subject_applies: [IZHS, MKD, PUBLIC, INDUSTRIAL, TRK]
+revision:
+  verified_changes: [1, 2, 3, 4, 5, 6]
+  latest_change: 6
+  latest_change_effective_from: 2026-07-07
+revision_gate:
+  files: [revision_watch_2027.yaml, revision_watch_adjacent_2027.yaml]
+  status: present
+official_sources:
+  base_card: "https://protect.gost.ru/sp/details/b00f766e-b861-4cc7-a448-c65906490262"
+  authority: Rosstandart
+  proof_state: official_card_verified
+scope:
+  proof_state: official_card_verified
+  note: "Проектирование систем внутреннего тепло- и холодоснабжения, отопления, вентиляции и кондиционирования в пределах официальной области применения."
+locators: []
+release_gates:
+  - engineering_system_inputs_required
+  - profile_calculation_required
+  - architecture_agent_must_not_infer_airflows_capacities_or_duct_sizes
+  - exact_locator_evidence_required_for_numeric_rules

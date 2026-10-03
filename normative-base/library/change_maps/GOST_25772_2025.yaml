@@ -1,0 +1,39 @@
+document_id: GOST_25772_2025
+checked_at: 2026-10-03
+target_profile: RU_2027_PLUS
+production_authority: false
+
+revision:
+  base_effective_from: 2026-01-01
+  correction:
+    publication: "ИУС 6-2026"
+    registration_date: 2026-06-04
+    effective_from: 2026-06-17
+    official_card: "https://protect.gost.ru/gost/changesdetails/9067e093-a6e7-41d7-a189-0662ab7e1254"
+    public_card_content_summary: empty
+    interpretation_limit: >-
+      Карточка Росстандарта подтверждает наличие и дату поправки, но не раскрывает ее текст.
+      Следовательно, по карточке нельзя доказать, затронуты ли таблица 1, таблица 3 или иные
+      элементы стандарта.
+
+production_rule_source:
+  file: "../../rules/07_guardrails_roofs.yaml"
+  checked_at: 2026-09-30
+  existing_rule_state: preserve_pending_traceability_migration
+
+locators_requiring_durable_migration:
+  - {locator: "4.2, Table 1", topic: metal_guardrail_type_classification}
+  - {locator: "5.1.1, Table 3", topic: standard_product_geometry}
+
+scope_safety:
+  product_standard_role: true
+  project_requirement_role: false
+  note: >-
+    Стандарт изделия может применяться к нескольким классам зданий, но проектно требуемая
+    высота/геометрия ограждения определяется применимым СП объекта. Для IZHS запрещено
+    подставлять проектные требования СП54 из секции residential_project_requirements файла 07.
+
+production_impact:
+  numeric_rules_changed: false
+  existing_rule_values_changed: false
+  locator_promotions: 0

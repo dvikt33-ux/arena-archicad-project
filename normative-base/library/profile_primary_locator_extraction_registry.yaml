@@ -1,4 +1,4 @@
-registry_version: 7
+registry_version: 8
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -104,9 +104,9 @@ profiles:
     scope_gate: hotel_building_or_classified_hotel_zone
     direct_locator_access: direct_GARANT_base_plus_change1_chain_read
     direct_change1_text_read: true
-    verified_locators: ["5.3"]
+    verified_locators: ["5.3", "6.2.3", "6.2.4", "6.2.5", "6.2.6", "6.2.7", "6.2.8", "6.2.9", "6.2.10", "6.2.11", "Appendix B; Table B.1", "Appendix G; Table G.1"]
     current_locator_priority:
-      first_pass: ["4.2", "6.1.4-6.1.15", "6.2.3-6.2.11", "6.3.2-6.3.9", "6.4.1-6.4.9", "Appendix B", "Appendix G"]
+      first_pass_remaining: ["4.2", "6.1.4-6.1.15", "6.3.2-6.3.9", "6.4.1-6.4.9"]
     change1_affected_locator: "5.3"
     change1_EV_parking_route_is_not_complete_hotel_profile_coverage: true
     target_topics: [guestroom_types_composition_and_areas, public_guest_and_service_flow_separation, vertical_transport_and_floor_placement, housekeeping_sanitary_and_service_interfaces, accessible_room_and_route_interfaces, site_access_loading_parking_and_EV_interfaces]
@@ -124,9 +124,9 @@ profiles:
     scope_gate: F5_1_or_F5_2_and_not_excluded_special_category
     direct_locator_access: direct_GARANT_exact_locators_read_no_registered_changes
     official_no_registered_changes: true
-    verified_locators: ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.4.4.5", "5.4.4.9", "5.4.4.11", "6.2.2", "6.2.18", "6.2.22", "Appendix A.1", "Appendix A.2"]
+    verified_locators: ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.4.4.5", "5.4.4.9", "5.4.4.11", "6.2.2", "6.2.18", "Table 6.3", "6.2.22", "Appendix A.1", "Appendix A.2"]
     current_locator_priority:
-      first_pass_remaining: [scope_and_exclusions, "Table 6.3", "Tables 6.5-6.6", "Appendix A.4"]
+      first_pass_remaining: [scope_and_exclusions, "Tables 6.5-6.6", "Appendix A.4"]
     target_topics: [scope_and_exclusions, building_and_fire_compartment_geometry, floor_area_height_and_storey_constraints, production_and_storage_room_placement, gates_loading_and_internal_transport_interfaces, mezzanines_platforms_and_technical_levels, evacuation_and_fire_safety_architectural_interfaces]
     fallback_if_locator_missing: industrial_profile_requirement_pending
     production_promotion_allowed: false
@@ -169,7 +169,7 @@ summary:
   school_verified_current_locator_count: 0
   preschool_verified_locator_count: 6
   medical_current_consolidated_locator_count: 0
-  hotel_verified_locator_count: 1
-  industrial_verified_locator_count: 13
-  P0_special_profile_verified_locator_total: 20
+  hotel_verified_locator_count: 12
+  industrial_verified_locator_count: 14
+  P0_special_profile_verified_locator_total: 32
   unresolved_profiles_fail_closed: true

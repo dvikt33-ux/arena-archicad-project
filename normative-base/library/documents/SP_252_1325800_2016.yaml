@@ -25,34 +25,39 @@ scope:
     applicable embedded/attached preschool organizations in residential, public and multifunctional hosts.
 source_evidence:
   direct_change3_url: "https://base.garant.ru/411475407/"
-  direct_change3_text_state: amendment_text_read_directly_public_GARANT
-  role: change_impact_mapping_only
-  production_promotion_allowed: false
+  direct_change3_text_state: authorized_GARANT_amendment_text_read_directly
+  latest_change_is_change3: true
+  exact_full_replacement_locator_policy: >-
+    When Change 3 fully replaces a locator and no later amendment exists, the directly read
+    replacement text is accepted as the current text of that locator. Partial edits and locators
+    requiring unchanged surrounding text remain pending.
+  production_authority: false
 locator_research:
-  state: blocked_pending_direct_current_locator
+  state: partial_locator_evidence_available
   queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: change3_amendment_text_read_consolidated_locator_pending
+  direct_current_locator_access: authorized_GARANT_latest_amendment_available
   production_promotion_allowed: false
   priority: P0_high_due_to_substantive_change3
 locators:
-  - {locator: "1.1", topic: preschool_scope, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "1.2", topic: embedded_attached_preschool_scope, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "4.1-4.7", topic: preschool_types_capacity_and_general_provisions, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "5.2", topic: territorial_accessibility, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "5.3", topic: shared_school_preschool_complex_route, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "6.1", topic: site_access_and_mobility_storage, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "6.2.3", topic: group_play_area_organization, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "6.2.4", topic: play_area_per_child, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "6.2.8", topic: physical_culture_site_areas, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.1.1", topic: host_building_normative_routes, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.1.2", topic: embedded_attached_capacity, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.1.7", topic: floor_and_level_placement, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.1.8", topic: group_isolation, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.2.2.1", topic: group_cell_composition, state: amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "7.2.2.7", topic: group_cell_open_or_veranda_area, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "1.1", topic: preschool_scope, state: authorized_latest_amendment_exact_text_verified}
+  - {locator: "1.2", topic: embedded_attached_preschool_scope, state: authorized_latest_amendment_exact_text_verified}
+  - {locator: "4.1-4.7", topic: preschool_types_capacity_and_general_provisions, state: amendment_text_verified_current_context_pending}
+  - {locator: "5.2", topic: territorial_accessibility, state: amendment_text_verified_current_context_pending}
+  - {locator: "5.3", topic: shared_school_preschool_complex_route, state: amendment_text_verified_current_context_pending}
+  - {locator: "6.1", topic: site_access_and_mobility_storage, state: amendment_text_verified_current_context_pending}
+  - {locator: "6.2.3", topic: group_play_area_organization, state: amendment_text_verified_current_context_pending}
+  - {locator: "6.2.4", topic: play_area_per_child, state: authorized_latest_amendment_exact_text_verified}
+  - {locator: "6.2.8", topic: physical_culture_site_areas, state: authorized_latest_amendment_exact_text_verified}
+  - {locator: "7.1.1", topic: host_building_normative_routes, state: amendment_text_verified_current_context_pending}
+  - {locator: "7.1.2", topic: embedded_attached_capacity, state: authorized_latest_amendment_exact_text_verified}
+  - {locator: "7.1.7", topic: floor_and_level_placement, state: amendment_text_verified_current_context_pending}
+  - {locator: "7.1.8", topic: group_isolation, state: amendment_text_verified_current_context_pending}
+  - {locator: "7.2.2.1", topic: group_cell_composition, state: amendment_text_verified_current_context_pending}
+  - {locator: "7.2.2.7", topic: group_cell_open_or_veranda_area, state: authorized_latest_amendment_exact_text_verified}
 release_gates:
-  - exact_current_locator_evidence_required_before_numeric_or_imperative_rule_creation
-  - direct_change3_amendment_values_do_not_count_as_current_consolidated_locator_PASS
+  - exact_current_locator_evidence_required_before_machine_rule_creation
+  - latest_amendment_exact_text_verification_is_locator_evidence_not_automatic_production_rule
+  - partial_amendment_edits_require_current_context_before_use
   - preschool_zone_classification_required_when_embedded_or_attached
   - host_building_general_rules_do_not_close_SP252_specific_gap
   - school_rules_do_not_substitute_preschool_requirements

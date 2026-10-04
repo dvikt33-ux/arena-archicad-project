@@ -1,4 +1,4 @@
-registry_version: 2
+registry_version: 3
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -19,6 +19,8 @@ invariants:
   - embedded_special_zone_requires_explicit_zone_classification
   - unresolved_locator_returns_profile_requirement_pending_not_inferred_value
   - deleted_locator_is_not_a_current_extraction_target
+  - browser_connection_state_never_changes_evidence_state_by_itself
+  - mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence
 
 states:
   blocked_pending_direct_current_locator: >-
@@ -37,7 +39,7 @@ profiles:
     official_card: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
     host_class: PUBLIC
     scope_gate: general_education_school_or_school_complex
-    direct_locator_access: unavailable_in_current_session
+    direct_locator_access: not_yet_read_in_connected_session
     target_topics:
       - site_and_functional_zoning
       - room_composition_and_minimum_areas
@@ -57,7 +59,7 @@ profiles:
     official_card: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
     host_class: PUBLIC
     scope_gate: preschool_organization_building
-    direct_locator_access: unavailable_in_current_session
+    direct_locator_access: not_yet_read_in_connected_session
     target_topics:
       - site_and_group_play_area_zoning
       - group_cell_composition_and_areas
@@ -72,17 +74,52 @@ profiles:
   MEDICAL:
     primary_document: SP_158_13330_2014
     change_map: change_maps/SP_158_13330_2014.yaml
-    state: source_chain_ready_locator_pending
+    state: blocked_pending_direct_current_locator
     current_revision: {latest_change: 7, effective_from: 2026-08-10}
     official_card: "https://protect.gost.ru/sp/details/a99f5532-9b23-41dc-a0cf-ef15077c7f4a"
     host_classes: [PUBLIC, MKD, INDUSTRIAL]
     scope_gate: medical_building_or_classified_medical_purpose_zone
-    direct_locator_access: unavailable_in_current_session
+    direct_locator_access: authorized_GARANT_available_root_mixed_revision
+    direct_change7_text_read: true
+    root_renderer_state: mixed_revision_not_current_consolidated
+    current_locator_priority:
+      first_pass:
+        - "1.1"
+        - "5.2"
+        - "5.5"
+        - "5.6"
+        - "5.7"
+        - "5.8"
+        - "5.11"
+        - "6.2.6"
+        - "6.2.8"
+        - "6.2.9"
+        - "6.2.11"
+        - "6.2.18"
+        - "6.2.19"
+        - "6.2.20 Table 6.1 notes"
+        - "6.2.22"
+        - "6.3.1"
+        - "6.3.4 Table 6.3 notes"
+        - "Appendix V high-impact room-area rows"
+      second_pass:
+        - "5.13-5.15"
+        - "5.18"
+        - "6.4.12"
+        - "6.5.2"
+        - "6.5.4"
+        - "6.6.1"
+        - "6.7 priority subclauses"
+        - "6.8.5 priority subclauses"
+        - "6.9 priority subclauses"
+        - "6.12.3 priority subclauses"
     target_topics:
+      - site_parking_and_flow_separation
       - department_and_clean_dirty_flow_separation
       - corridor_door_and_patient_transport_geometry
       - room_composition_and_minimum_areas
       - floor_placement_and_vertical_connections
+      - daylight_insolation_and_sun_protection
       - isolation_and_infection_control_interfaces
       - sanitary_patient_staff_support_rooms
       - ventilation_medical_gas_and_engineering_architectural_interfaces
@@ -97,7 +134,7 @@ profiles:
     official_card: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
     host_classes: [PUBLIC, MKD]
     scope_gate: hotel_building_or_classified_hotel_zone
-    direct_locator_access: unavailable_in_current_session
+    direct_locator_access: not_yet_read_in_connected_session
     target_topics:
       - guestroom_types_composition_and_areas
       - public_guest_and_service_flow_separation
@@ -117,7 +154,7 @@ profiles:
     host_class: INDUSTRIAL
     embedded_zone_route: F5_1_or_F5_2_room_in_other_host_class_when_within_scope
     scope_gate: F5_1_or_F5_2_and_not_excluded_special_category
-    direct_locator_access: unavailable_in_current_session
+    direct_locator_access: not_yet_read_in_connected_session
     target_topics:
       - scope_and_exclusions
       - building_and_fire_compartment_geometry
@@ -167,10 +204,11 @@ parking_reaudit:
   production_promotion_allowed: false
 
 session_source_status:
-  authorized_opera_connector: disconnected
+  authorized_opera_connector: connected
+  authorized_GARANT_session: working
   official_public_cards: available
   official_minstroy_publication_index: available_but_no_consolidated_locator_read
-  current_public_GARANT_Consultant_text: corroboration_and_stale_detection_only
+  current_public_GARANT_Consultant_text: corroboration_and_stale_detection_only_unless_specific_authorized_locator_is_directly_read
   secondary_sources_allowed_role: locator_discovery_only_if_needed
 
 summary:
@@ -178,4 +216,6 @@ summary:
   profiles_with_numeric_promotion: 0
   parking_reaudit_active: true
   parking_fire_route_current_document: SP_551_1311500_2026
+  medical_change7_direct_amendment_text_read: true
+  medical_current_consolidated_locator_PASS: 0
   unresolved_profiles_fail_closed: true

@@ -11,6 +11,7 @@ REGISTRY = ROOT / "library" / "profile_primary_locator_extraction_registry.yaml"
 COVERAGE = ROOT / "library" / "profile_rule_coverage_registry.yaml"
 SP158_CARD = ROOT / "library" / "documents" / "SP_158_13330_2014.yaml"
 SP251_CARD = ROOT / "library" / "documents" / "SP_251_1325800_2016.yaml"
+SP252_CARD = ROOT / "library" / "documents" / "SP_252_1325800_2016.yaml"
 
 EXPECTED_P0 = {
     "SCHOOL_GENERAL_EDUCATION": "SP_251_1325800_2016",
@@ -31,6 +32,7 @@ ALLOWED_ACCESS_STATES = {
     "not_yet_read_in_connected_session",
     "authorized_GARANT_available_root_mixed_revision",
     "authorized_GARANT_root_stale",
+    "direct_public_GARANT_change3_read_consolidated_locator_pending",
 }
 
 
@@ -45,6 +47,7 @@ def main() -> int:
         coverage = load(COVERAGE)
         sp158_card = load(SP158_CARD)
         sp251_card = load(SP251_CARD)
+        sp252_card = load(SP252_CARD)
     except Exception as exc:
         print(f"PRIMARY LOCATOR EXTRACTION VALIDATION FAILED\n- unreadable YAML: {exc}")
         return 1
@@ -68,6 +71,7 @@ def main() -> int:
         "browser_connection_state_never_changes_evidence_state_by_itself",
         "mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence",
         "official_provider_review_is_corroboration_not_direct_locator_proof",
+        "direct_amendment_text_does_not_automatically_equal_consolidated_current_locator_PASS",
     }
     missing_invariants = sorted(required_invariants - invariants)
     if missing_invariants:
@@ -151,6 +155,39 @@ def main() -> int:
     if school_locators.get("Table 6.1 note 4") != "provider_review_numeric_values_corroborated_direct_amendment_locator_pending":
         errors.append("SP251 Table 6.1 note 4 values must remain direct-amendment pending")
 
+    # SP252 Change 3: direct amendment text is substantial, but candidate values stay non-production.
+    preschool = profiles.get("PRESCHOOL") or {}
+    if preschool.get("state") != "blocked_pending_direct_current_locator":
+        errors.append("PRESCHOOL must remain blocked pending accepted consolidated current locator text")
+    if preschool.get("direct_change3_text_read") is not True:
+        errors.append("PRESCHOOL must record direct Change 3 text as read")
+    if preschool.get("change3_amendment_candidate_values_are_not_PASS") is not True:
+        errors.append("PRESCHOOL Change 3 candidate values must remain non-PASS")
+    preschool_priority = set((preschool.get("current_locator_priority") or {}).get("first_pass") or [])
+    required_preschool_priority = {
+        "1.1", "1.2", "4.1-4.7", "5.2", "5.3", "6.1", "6.2.3", "6.2.4", "6.2.8",
+        "7.1.1", "7.1.2", "7.1.7", "7.1.8", "7.2.2.1", "7.2.2.7",
+    }
+    if preschool_priority != required_preschool_priority:
+        errors.append("PRESCHOOL first-pass locator queue mismatch")
+
+    if not isinstance(sp252_card, dict):
+        errors.append("SP252 document card must be a mapping")
+        sp252_card = {}
+    preschool_evidence = sp252_card.get("source_evidence") or {}
+    if preschool_evidence.get("direct_change3_text_state") != "amendment_text_read_directly_public_GARANT":
+        errors.append("SP252 card must record direct Change 3 amendment text")
+    if preschool_evidence.get("production_promotion_allowed") is not False:
+        errors.append("SP252 Change 3 evidence must not allow production promotion")
+    preschool_states = {
+        row.get("locator"): row.get("state")
+        for row in (sp252_card.get("locators") or [])
+        if isinstance(row, dict)
+    }
+    for locator in required_preschool_priority:
+        if preschool_states.get(locator) != "amendment_text_verified_current_consolidated_locator_pending":
+            errors.append(f"SP252 {locator} must remain amendment-verified/current-locator pending")
+
     # SP158 Change 7: direct amendment text is usable for impact mapping, but the GARANT root
     # renderer is mixed-revision and must never count as consolidated current locator evidence.
     medical = profiles.get("MEDICAL") or {}
@@ -232,10 +269,12 @@ def main() -> int:
             errors.append("unresolved profiles must fail closed")
         if summary.get("parking_fire_route_current_document") != "SP_551_1311500_2026":
             errors.append("summary must route current parking fire extraction to SP551")
-        if summary.get("medical_current_consolidated_locator_PASS") != 0:
-            errors.append("summary must keep zero SP158 consolidated locator PASS")
         if summary.get("school_current_consolidated_locator_PASS") != 0:
             errors.append("summary must keep zero SP251 consolidated locator PASS")
+        if summary.get("preschool_current_consolidated_locator_PASS") != 0:
+            errors.append("summary must keep zero SP252 consolidated locator PASS")
+        if summary.get("medical_current_consolidated_locator_PASS") != 0:
+            errors.append("summary must keep zero SP158 consolidated locator PASS")
 
     if errors:
         print("PRIMARY LOCATOR EXTRACTION VALIDATION FAILED")
@@ -244,8 +283,9 @@ def main() -> int:
         return 1
 
     print(
-        "OK: 5 P0 special profiles remain fail-closed; SP251 and SP158 stale/mixed source renderers "
-        "cannot become current-text proof; parking reaudit remains split into SP113 planning and SP551 fire targets."
+        "OK: 5 P0 special profiles remain fail-closed; SP251/SP252/SP158 amendment evidence is tracked "
+        "without converting stale, mixed or amendment-only text into current consolidated locator PASS; "
+        "parking reaudit remains split into SP113 planning and SP551 fire targets."
     )
     return 0
 

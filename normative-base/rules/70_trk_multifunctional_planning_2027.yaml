@@ -48,7 +48,7 @@ loading_and_service:
       requires_calculation: true
 
     - id: trk.loading.no_heavy_truck_optional_geometry
-      source_clause: "Appendix B"
+      source_clause: "Appendix В, В.3"
       automation: conditional
       dimension_semantics: clear
       statement: "Если заданием на проектирование не предусматривается использование большегрузных автомобилей, допускается высота разгрузочного помещения 3,6 м и ширина/высота въездных ворот не менее 3,6 м. Эти значения не являются универсальным минимумом для любого логистического сценария."
@@ -56,7 +56,7 @@ loading_and_service:
       values: {allowed_loading_room_height_mm: 3600, min_gate_width_mm: 3600, min_gate_height_mm: 3600}
 
     - id: trk.storage_corridor_width
-      source_clause: "Appendix B, B.4"
+      source_clause: "Appendix В, В.4"
       automation: conditional
       dimension_semantics: clear
       statement: "Минимальная ширина коридоров в группе хранения/подготовки товаров зависит от площади обслуживаемого торгового зала и применяемого транспорта."
@@ -66,7 +66,7 @@ loading_and_service:
         - {condition: "electric transport used", min_clear_width_mm: 2300}
 
     - id: trk.storage_door_geometry
-      source_clause: "Appendix B, B.4"
+      source_clause: "Appendix В, В.4"
       automation: conditional
       dimension_semantics: clear
       statement: "Для помещений хранения товаров и кладовых более 10 м² двери должны быть двустворчатыми не менее 1,3 м шириной и 2,3 м высотой; при площади до 10 м² допускаются одностворчатые двери не менее 0,9 м шириной и 2,3 м высотой."

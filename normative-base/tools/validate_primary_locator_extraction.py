@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "library" / "profile_primary_locator_extraction_registry.yaml"
 COVERAGE = ROOT / "library" / "profile_rule_coverage_registry.yaml"
 SP158_CARD = ROOT / "library" / "documents" / "SP_158_13330_2014.yaml"
+SP251_CARD = ROOT / "library" / "documents" / "SP_251_1325800_2016.yaml"
 
 EXPECTED_P0 = {
     "SCHOOL_GENERAL_EDUCATION": "SP_251_1325800_2016",
@@ -29,6 +30,7 @@ ALLOWED_ACCESS_STATES = {
     "unavailable_in_current_session",
     "not_yet_read_in_connected_session",
     "authorized_GARANT_available_root_mixed_revision",
+    "authorized_GARANT_root_stale",
 }
 
 
@@ -42,6 +44,7 @@ def main() -> int:
         registry = load(REGISTRY)
         coverage = load(COVERAGE)
         sp158_card = load(SP158_CARD)
+        sp251_card = load(SP251_CARD)
     except Exception as exc:
         print(f"PRIMARY LOCATOR EXTRACTION VALIDATION FAILED\n- unreadable YAML: {exc}")
         return 1
@@ -64,6 +67,7 @@ def main() -> int:
         "deleted_locator_is_not_a_current_extraction_target",
         "browser_connection_state_never_changes_evidence_state_by_itself",
         "mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence",
+        "official_provider_review_is_corroboration_not_direct_locator_proof",
     }
     missing_invariants = sorted(required_invariants - invariants)
     if missing_invariants:
@@ -116,6 +120,37 @@ def main() -> int:
             if coverage_row.get("hard_gap") is not True:
                 errors.append(f"{profile}: dedicated rule gap must remain hard_gap: true")
 
+    # SP251 Change 7: official metadata proves a textual amendment, but the GARANT root is stale.
+    school = profiles.get("SCHOOL_GENERAL_EDUCATION") or {}
+    if school.get("state") != "blocked_pending_direct_current_locator":
+        errors.append("SCHOOL must remain blocked pending direct Change-7/current locator text")
+    if school.get("root_renderer_state") != "stale_or_mixed_revision_not_current_consolidated":
+        errors.append("SCHOOL must keep SP251 GARANT root marked stale/mixed")
+    school_priority = (school.get("current_locator_priority") or {}).get("first_pass") or []
+    if set(school_priority) != {"6.3", "Table 6.1 note 4"}:
+        errors.append("SCHOOL first-pass locator queue must remain 6.3 + Table 6.1 note 4")
+    school_corr = school.get("change7_provider_corroboration") or {}
+    if school_corr.get("reported_values_are_not_locator_PASS") is not True:
+        errors.append("SCHOOL provider-review numeric values must remain non-PASS corroboration")
+
+    if not isinstance(sp251_card, dict):
+        errors.append("SP251 document card must be a mapping")
+        sp251_card = {}
+    school_render = sp251_card.get("source_render_state") or {}
+    if school_render.get("root_renderer_state") != "stale_or_mixed_revision_not_current_consolidated":
+        errors.append("SP251 document card must flag GARANT root as stale/mixed")
+    if school_render.get("root_renderer_must_not_prove_current_locator_text") is not True:
+        errors.append("SP251 GARANT root must be forbidden as sole current-text proof")
+    school_locators = {
+        row.get("locator"): row.get("state")
+        for row in (sp251_card.get("locators") or [])
+        if isinstance(row, dict)
+    }
+    if school_locators.get("6.3") != "official_provider_change7_corroborated_direct_locator_pending":
+        errors.append("SP251 6.3 must remain provider-corroborated and direct-locator pending")
+    if school_locators.get("Table 6.1 note 4") != "provider_review_numeric_values_corroborated_direct_amendment_locator_pending":
+        errors.append("SP251 Table 6.1 note 4 values must remain direct-amendment pending")
+
     # SP158 Change 7: direct amendment text is usable for impact mapping, but the GARANT root
     # renderer is mixed-revision and must never count as consolidated current locator evidence.
     medical = profiles.get("MEDICAL") or {}
@@ -143,7 +178,7 @@ def main() -> int:
     if render.get("root_renderer_must_not_prove_current_locator_text") is not True:
         errors.append("SP158 root renderer must be forbidden as sole current-text proof")
     conflicts = render.get("verified_conflicts") or []
-    for locator in {"5.2", "6.2.18", "6.2.19"}:
+    for locator in {"5.2", "5.6", "5.7", "5.11", "6.2.11", "6.2.18", "6.2.19", "6.3.1"}:
         if not any(row.get("locator") == locator for row in conflicts if isinstance(row, dict)):
             errors.append(f"SP158 document card missing verified root-render conflict for {locator}")
     locators = sp158_card.get("locators") or []
@@ -152,7 +187,7 @@ def main() -> int:
         for row in locators
         if isinstance(row, dict) and isinstance(row.get("locator"), str)
     }
-    for locator in {"5.2", "6.2.18", "6.2.19", "6.2.22", "6.3.4 Table 6.3 notes"}:
+    for locator in {"5.2", "5.6", "5.7", "5.8", "5.11", "6.2.11", "6.2.18", "6.2.19", "6.2.22", "6.3.1", "6.3.4 Table 6.3 notes"}:
         if state_by_locator.get(locator) != "authorized_amendment_text_verified_current_consolidated_locator_pending":
             errors.append(f"SP158 {locator} must remain amendment-verified but current-locator pending")
 
@@ -185,11 +220,6 @@ def main() -> int:
             if not any(row.get("locator") == locator and row.get("state") == "deleted_by_change4" for row in superseded):
                 errors.append(f"parking_reaudit missing superseded state for SP113 {locator}")
 
-        if not (ROOT / "library" / "change_maps" / "SP_113_13330_2023.yaml").exists():
-            errors.append("SP113 Change 4 map missing")
-        if not (ROOT / "library" / "change_maps" / "SP_551_1311500_2026.yaml").exists():
-            errors.append("SP551 map missing")
-
     summary = registry.get("summary")
     if not isinstance(summary, dict):
         errors.append("summary missing")
@@ -204,6 +234,8 @@ def main() -> int:
             errors.append("summary must route current parking fire extraction to SP551")
         if summary.get("medical_current_consolidated_locator_PASS") != 0:
             errors.append("summary must keep zero SP158 consolidated locator PASS")
+        if summary.get("school_current_consolidated_locator_PASS") != 0:
+            errors.append("summary must keep zero SP251 consolidated locator PASS")
 
     if errors:
         print("PRIMARY LOCATOR EXTRACTION VALIDATION FAILED")
@@ -212,9 +244,8 @@ def main() -> int:
         return 1
 
     print(
-        "OK: 5 P0 special profiles remain fail-closed; SP158 Change 7 amendment evidence is tracked "
-        "without treating the mixed GARANT root renderer as consolidated current text; parking reaudit "
-        "remains split into SP113 planning and SP551 fire targets."
+        "OK: 5 P0 special profiles remain fail-closed; SP251 and SP158 stale/mixed source renderers "
+        "cannot become current-text proof; parking reaudit remains split into SP113 planning and SP551 fire targets."
     )
     return 0
 

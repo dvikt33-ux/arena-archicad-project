@@ -23,23 +23,53 @@ scope:
   note: "New and reconstructed general-education organization buildings and complexes, including applicable school-internat educational/common-school rooms."
 source_render_state:
   GARANT_root_url: "https://base.garant.ru/71502792/"
+  authorized_change6_url: "https://base.garant.ru/411459341/"
   root_renderer_state: stale_or_mixed_revision_not_current_consolidated
   observed_staleness:
     - change7_not_exposed_in_root_history
     - old_fire_and_parking_SP_editions_still_visible_in_normative_references
   root_renderer_must_not_prove_current_locator_text: true
+  change6_text_state: authorized_amendment_text_read_directly
 locator_research:
-  state: blocked_pending_direct_current_locator
+  state: blocked_pending_change7_effect_resolution
   queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: authorized_GARANT_root_stale
+  direct_current_locator_access: authorized_GARANT_change6_available_root_stale_change7_full_text_pending
   production_promotion_allowed: false
-  priority_locators: ["6.3", "Table 6.1 note 4"]
+  priority_locators:
+    - "6.4.2"
+    - "6.7"
+    - "7.1.2"
+    - "7.1.6"
+    - "7.1.16"
+    - "7.2.1.3"
+    - "7.2.2.7-7.2.2.9"
+    - "7.2.3.5"
+    - "7.2.6.3"
+    - "7.2.6.8"
 locators:
+  - {locator: "4.6", topic: class_group_split_conditions, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "5.4", topic: school_service_radius_route, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "6.4.2", topic: parking_dropoff_EV_bicycle_MICROMOBILITY, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "6.4.4", topic: internal_vehicle_speed_control, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "6.5", topic: site_zoning_route, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "6.7", topic: outdoor_play_area_sizes, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.1.2", topic: primary_school_isolation_and_blocking, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.1.4", topic: universal_school_room_groups, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.1.6", topic: building_storeys_route, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.1.16", topic: student_room_floor_placement, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.1.3", topic: educational_section_composition_and_area_reduction, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.2.7", topic: remote_teaching_room_area, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.2.8", topic: individual_pedagogical_room_area, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.2.9", topic: small_group_room_area, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.3.5", topic: laboratory_support_room_area, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.6.3", topic: assembly_hall_area, state: authorized_change6_text_verified_change7_effect_unresolved}
+  - {locator: "7.2.6.8", topic: stage_height_range, state: authorized_change6_text_verified_change7_effect_unresolved}
   - {locator: "6.3", topic: engineering_networks_on_school_sites, state: official_provider_change7_corroborated_direct_locator_pending}
   - {locator: "Table 6.1 note 4", topic: sports_zone_running_track_exception, state: provider_review_numeric_values_corroborated_direct_amendment_locator_pending}
 release_gates:
+  - direct_change7_full_text_or_direct_current_consolidated_locator_required
   - exact_locator_evidence_required_for_numeric_rules
-  - official_provider_review_does_not_equal_direct_amendment_locator
+  - authorized_change6_text_does_not_become_current_PASS_until_change7_effect_resolved
   - stale_GARANT_root_must_not_be_used_as_current_consolidated_text
   - school_profile_required
   - SP118_general_rules_do_not_close_SP251_specific_gap

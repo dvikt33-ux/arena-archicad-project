@@ -1,4 +1,4 @@
-change_map_version: 2
+change_map_version: 3
 document_id: SP_257_1325800_2020
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -18,38 +18,42 @@ source_layers:
     url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
     proves: [document_identity, active_status, scope_summary, replacement, change_inventory]
     does_not_prove: current_locator_text
-  latest_change_card:
-    authority: Rosstandart
-    change: 1
-    order: "1004/пр"
-    approved_at: 2023-12-28
-    registered_at: 2024-02-02
-    effective_from: 2024-01-29
-    url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"
-  direct_public_garant_change_text:
+  direct_garant_base_clause:
     authority: GARANT
-    url: "https://base.garant.ru/408657541/"
-    state: amendment_text_read_directly
-    role: amendment_effect_mapping_and_locator_priority_only
-    production_promotion_allowed: false
-    does_not_prove: all_unaffected_current_locators
+    url: "https://base.garant.ru/400535863/#block_503"
+    state: base_5_3_paragraphs_1_to_3_read_directly
+  latest_change:
+    authority: GARANT
+    change: 1
+    official_metadata_url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"
+    full_text_url: "https://base.garant.ru/408657541/"
+    state: added_fourth_paragraph_read_directly
+    only_locator_affected: "5.3"
+  renderer_note: >-
+    The root page labelled with changes does not expose the added EV paragraph. It is therefore
+    not accepted as consolidated current text by itself. Current 5.3 is reconstructed from the
+    directly read base paragraphs plus the directly read sole amendment.
 
 change_1_locator_effects:
   - locator: "5.3"
     effect: fourth_paragraph_added
-    topic: hotel_EV_parking_and_charging_spaces
-    amendment_semantics:
+    topic: hotel_parking_and_EV_charging
+    proof_state: authorized_locator_verified
+    verification_method: direct_base_plus_latest_amendment_chain_reconstruction
+    current_semantics:
+      parking_capacity: by_design_brief
+      parking_design_routes: [SP_42_13330, SP_113_13330]
+      bus_place_parallel_m: [14.0, 3.5]
+      bus_place_perpendicular_m: [12.5, 3.5]
       EV_spaces_with_charging_required_when_parking_spaces_are_provided: true
-      parking_geometry_route: SP_113_13330
-      demand_route: design_brief_but_not_less_than_SP118
-    state: amendment_text_verified_current_consolidated_locator_pending
+      EV_parking_route: SP_113_13330
+      EV_demand_route: design_brief_but_not_less_than_SP118
 
 locator_migration:
-  state: blocked_pending_direct_current_locator
+  state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
-  change1_exact_affected_locator_known: true
-  P0_direct_read_first:
-    - "5.3"
+  authorized_locator_verified_count: 1
+  P0_direct_read_remaining:
     - "4.2"
     - "6.1.4-6.1.15"
     - "6.2.3-6.2.11"
@@ -68,9 +72,8 @@ locator_migration:
     - site_access_loading_parking_and_EV_interfaces
 
 release_gate:
-  - direct_current_locator_text_required_before_new_machine_rules
-  - exact_clause_table_or_appendix_required
-  - direct_change1_text_proves_5_3_change_but_not_unaffected_locator_currency
+  - exact_current_locator_text_required_before_new_machine_rules
+  - verified_5_3_does_not_close_unrelated_hotel_requirements
   - embedded_hotel_zone_must_be_classified_before_applying_SP257
   - SP118_general_rules_must_not_substitute_missing_SP257_specific_requirement
   - EV_parking_route_must_use_current_SP113_SP551_SP256_scope_logic_where_applicable
@@ -79,4 +82,4 @@ production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 0
+  direct_locator_PASS_added: 1

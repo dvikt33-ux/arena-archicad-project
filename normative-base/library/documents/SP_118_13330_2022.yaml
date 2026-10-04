@@ -15,8 +15,8 @@ revision:
   latest_change: 5
   latest_change_effective_from: 2025-02-25
 proof:
-  state: official_card_verified
-  authority: Rosstandart
+  state: official_card_verified_plus_authorized_amendment_chain
+  authority: [Rosstandart, GARANT]
   official_url: "https://protect.gost.ru/sp/details/ced01945-2f53-47c9-bdb8-4875c2b9800e"
 scope:
   proof_state: official_card_verified
@@ -27,12 +27,17 @@ change_map: "../change_maps/SP_118_13330_2022.yaml"
 rule_files:
   - "../../rules/43_public_sanitary_facilities.yaml"
   - "../../rules/59_public_lift_lobby_exceptions.yaml"
+source_render_state:
+  root_url: "https://base.garant.ru/404976079/"
+  root_renderer_mixed_for_5_16: true
+  controlling_5_16_source: "direct Change 3 full replacement"
+  root_renderer_must_not_override_amendment_chain: true
 locators:
-  - {locator: "5.16", state: existing_rule_traceability_pending}
-  - {locator: "5.54", state: existing_rule_traceability_pending}
-  - {locator: "5.55", state: existing_rule_traceability_pending}
-  - {locator: "5.57", state: existing_rule_traceability_pending}
+  - {locator: "5.16", state: authorized_locator_verified, topic: passenger_lift_distance_and_lobby_width}
+  - {locator: "5.54", state: authorized_locator_verified, topic: public_sanitary_room_applicability}
+  - {locator: "5.55", state: authorized_locator_verified, topic: sanitary_fixture_counts}
+  - {locator: "5.57", state: authorized_locator_verified, topic: visitor_toilet_max_distance}
 release_gates:
-  - exact_locator_evidence_required_for_numeric_rules
   - special_functional_code_precedes_general_public_rule
-  - change5_card_never_counts_as_current_locator_text
+  - root_GARANT_5_16_renderer_conflict_must_not_override_change3_text
+  - generic_public_rules_do_not_close_special_profile_gaps

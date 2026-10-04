@@ -1,22 +1,93 @@
+change_map_version: 2
 document: SP_332_1325800_2017
 checked_at: 2026-10-04
 production_authority: false
 policy: fail_closed
 status: active
 revision:
+  verified_changes: [1, 2, 3, 4]
   official_latest_change: 4
   latest_change_effective_from: 2024-01-29
 proof:
   state: official_card_verified
   source_url: "https://protect.gost.ru/sp/details/634cbc39-e3e0-48c4-8b48-a147417b4e49"
   latest_change_url: "https://protect.gost.ru/sp/changesdetails/37a85293-e2cf-4732-a6e1-8e0d7965c164"
-change_effect:
-  latest_change_kind: textual
-  exact_changed_locators_from_public_card: unknown
-  current_locator_verification_required: true
+source_layers:
+  change1:
+    effective_from: 2020-06-25
+    direct_public_garant_url: "https://base.garant.ru/73866574/"
+    observed_effects:
+      - scope_and_closed_shooting_range_additions
+      - Table_6_additional_shooting_range_rooms
+    production_promotion_allowed: false
+  change2:
+    effective_from: 2022-06-29
+    direct_public_garant_url: "https://base.garant.ru/405001739/"
+    observed_effects:
+      - terminology_closed_to_covered
+      - Table_6_textual_correction_or_update
+    production_promotion_allowed: false
+  change3:
+    effective_from: 2023-01-21
+    official_card_url: "https://protect.gost.ru/sp/changesdetails/9a5dd185-fcf8-46ca-97aa-9cfec7c5c816"
+    effect_kind: textual_and_reference_updates
+    production_promotion_allowed: false
+  change4:
+    effective_from: 2024-01-29
+    direct_public_garant_url: "https://base.garant.ru/408657525/"
+    exact_changed_locator: "5.7"
+    effect: EV_parking_charging_requirement_added
+    production_promotion_allowed: false
+  public_garant_current_root:
+    url: "https://base.garant.ru/71899364/"
+    state: current_root_corroboration_with_changes_1_4_listed
+    production_promotion_allowed: false
+registered_rules71_locator_audit:
+  - locator: "6.2"
+    topic: sports_zone_height_route_and_outside_zone_absolute_minimum
+    public_current_root_observation:
+      outside_sport_zone_absolute_min_height_m: 3.0
+    state: public_current_text_corroborated_accepted_locator_pending
+  - locator: "Table 6 note"
+    topic: changing_room_door_clearance
+    public_current_root_observation:
+      min_clear_width_m: 0.9
+      min_clear_height_m: 2.3
+    change_chain_observation: >-
+      Change 1 adds shooting-range rows to Table 6; Change 2 makes limited terminology/table text
+      updates; no located amendment text replaces the general door-clearance note used by rules/71.
+    state: public_current_text_corroborated_accepted_locator_pending
+  - locator: "Table 7"
+    topic: changing_room_passage_widths
+    public_current_root_observation:
+      values_m:
+        opposing_benches: [1.5, 1.8]
+        bench_to_wall_or_lockers: [1.1, 1.5]
+        locker_rows: [0.6, 0.9]
+        standalone_locker_front: [0.5, 0.9]
+        side_passage: [0.5, 0.9]
+        main_passage: [1.0, 1.8]
+    state: public_current_text_corroborated_accepted_locator_pending
+  - locator: "changing-room planning section"
+    topic: athlete_route_separation
+    exact_current_text_corroborated: true
+    precision_gap: exact_clause_number_not_registered
+    state: locator_precision_pending
+locator_migration:
+  state: existing_partial_rules_current_locator_migration_pending
+  exact_priority_locators:
+    - "6.2"
+    - "Table 6 note"
+    - "Table 7"
+    - "exact clause for athlete route separation"
+  production_promotion_allowed: false
 production_impact:
   numeric_rules_changed: false
+  stale_numeric_rule_found: false
+  current_public_root_matches_registered_rules71_values: true
   promotion_allowed_from_this_map: false
 release_gate:
-  - direct_current_locator_required_before_new_or_reinterpreted_machine_rule
-  - sports_profile_scope_required
+  - accepted_direct_current_locator_required_before_new_library_PASS
+  - sport_type_and_zone_classification_required
+  - exact_clause_number_required_for_athlete_route_separation_before_locator_PASS
+  - Change4_5_7_EV_parking_effect_must_not_be_confused_with_changing_room_or_hall_geometry

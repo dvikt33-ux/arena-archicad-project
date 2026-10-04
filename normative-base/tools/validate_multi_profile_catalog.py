@@ -44,6 +44,16 @@ P0_REQUIRED = {
     "INDUSTRIAL_PRODUCTION_STORAGE",
 }
 
+# Explicit allow-list only. Stronger combined evidence states are accepted only when they are
+# intentionally added here; arbitrary strings ending in "verified" must never pass by convention.
+ACCEPTABLE_PRIMARY_EVIDENCE_STATES = {
+    "official_card_verified",
+    "official_clause_verified",
+    "authorized_locator_verified",
+    "official_card_verified_plus_authorized_change_text",
+    "official_card_verified_plus_authorized_amendment_chain",
+}
+
 
 def load(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -106,11 +116,7 @@ def main() -> int:
         if card_doc.get("production_authority") is not False:
             errors.append(f"{card.name} must remain production_authority: false")
         proof = card_doc.get("proof")
-        if not isinstance(proof, dict) or proof.get("state") not in {
-            "official_card_verified",
-            "official_clause_verified",
-            "authorized_locator_verified",
-        }:
+        if not isinstance(proof, dict) or proof.get("state") not in ACCEPTABLE_PRIMARY_EVIDENCE_STATES:
             errors.append(f"{card.name} lacks acceptable primary evidence state")
 
     priority = doc.get("research_priority")

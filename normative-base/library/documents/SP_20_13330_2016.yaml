@@ -3,7 +3,7 @@ title: "Нагрузки и воздействия"
 document_type: SP
 status: active
 jurisdiction: RU
-checked_at: 2026-10-03
+checked_at: 2026-10-04
 production_authority: false
 
 scope_tags: [GENERAL, STRUCTURAL, CLIMATE]
@@ -31,14 +31,16 @@ revision:
     effective_from: 2019-07-29
     official_publication_date: 2019-04-03
     official_card: "https://protect.gost.ru/sp/changesdetails/1a5a6ff2-93a4-40b0-bc97-526e12b60445"
-    proof_state: official_card_verified
+    authorized_full_text: "https://base.garant.ru/72234458/"
+    proof_state: authorized_locator_verified
   change_6:
     approval_order: "597/пр"
     approval_date: 2024-09-05
     registered_date: 2024-09-16
     effective_from: 2024-09-25
     official_card: "https://protect.gost.ru/sp/changesdetails/e26e8b63-c763-4846-a800-a2a79586c725"
-    proof_state: official_card_verified
+    authorized_full_text: "https://base.garant.ru/410503722/"
+    proof_state: authorized_locator_verified
   change_impact_map: "../change_maps/SP_20_13330_2016.yaml"
 
 official_sources:
@@ -46,34 +48,56 @@ official_sources:
   authority: Rosstandart
   base_card_proof_state: official_card_verified
 
+authorized_text_sources:
+  system: GARANT
+  amendment_2: "https://base.garant.ru/72234458/"
+  amendment_3: "https://base.garant.ru/400437201/"
+  amendment_4: "https://base.garant.ru/405001743/"
+  amendment_5: "https://base.garant.ru/408556509/"
+  amendment_6: "https://base.garant.ru/410503722/"
+  stale_root_render_rejected: "https://base.garant.ru/71636070/"
+
 locators:
-  - locator: "10.2"
+  - locator: "10.2 routing paragraphs 1-2"
     topic: snow_load_territorial_selection
-    proof_state: blocked_pending_locator
-    production_allowed: false
-    amendment_impact_state: unresolved_across_changes_1_through_6
+    proof_state: authorized_locator_verified
+    verification_method: direct_authorized_amendment_chain_reconstruction
+    production_allowed: routing_only
+    current_semantics:
+      listed_settlement: route_to_Appendix_K
+      other_territory: route_to_snow_region_and_Table_10_1
+    numeric_value_allowed_from_this_locator: false
+    site_or_settlement_required: true
     change_map: "../change_maps/SP_20_13330_2016.yaml"
-    blocker: >-
-      В публичных слоях обнаружено противоречие между представлением действующего
-      корневого текста и схемой, связанной с Изменением №2. Официальная карточка
-      Росстандарта подтверждает само Изменение №2 и даты, но карточка не доказывает
-      точный действующий текст пункта 10.2. Требуется прямое чтение current locator.
+    note: >-
+      Изм. №2 полностью заменило 10.2. Полные тексты Изм. №3, №4 и №6 не меняют 10.2;
+      Изм. №5 меняет только третий абзац. Поэтому территориальный маршрут первых двух абзацев
+      подтвержден по полной цепочке последующих изменений.
+
   - locator: "Appendix K"
     topic: normative_snow_weight_for_listed_cities
     proof_state: blocked_pending_locator
     production_allowed: false
-    amendment_impact_state: unresolved_across_changes_1_through_6
+    amendment_impact_state: introduced_by_change_2_full_table_not_yet_directly_read
     change_map: "../change_maps/SP_20_13330_2016.yaml"
     blocker: >-
-      До разрешения пункта 10.2 нельзя автоматически выбирать приложение К как
-      применимый источник для конкретного населенного пункта.
+      Наличие и заголовок приложения К подтверждены прямым текстом Изм. №2, но сама таблица
+      населенных пунктов и значений еще не прочитана полностью в допустимом источнике.
 
 release_gates:
-  - exact_current_clause_10_2_text_required
   - settlement_or_site_required_before_snow_value_generation
+  - Appendix_K_table_direct_text_required_before_listed_city_value_generation
+  - Table_10_1_route_requires_valid_snow_region_or_accepted_site_data
   - later_SP20_change_requires_affected_locator_reaudit
+  - stale_root_render_must_not_override_verified_amendment_chain
+
+resolved_gaps:
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    status: resolved_for_routing_only
+    resolved_at: 2026-10-04
+    resolution: direct_GARANT_amendment_chain_2_through_6
 
 known_gaps:
-  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+  - id: SP20_APPENDIX_K_TABLE_DIRECT_TEXT_NOT_VERIFIED
     status: open
-    effect: no_automatic_snow_value_or_territorial_route
+    effect: no_automatic_Appendix_K_snow_value

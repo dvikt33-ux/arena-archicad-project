@@ -1,4 +1,4 @@
-change_map_version: 2
+change_map_version: 3
 document: SP_118_13330_2022
 checked_at: 2026-10-04
 production_authority: false
@@ -12,88 +12,111 @@ revision:
   latest_change_url: "https://protect.gost.ru/sp/changesdetails/1557249d-585e-4f5a-b5ec-c0cb6b971bff"
   latest_change_order: "888/пр"
   latest_change_approved_at: 2024-12-20
-  GARANT_consolidated_page_displayed_change5_effective_from: 2025-02-28
+  GARANT_change5_displayed_effective_from: 2025-02-28
   metadata_conflict: true
   conflict_resolution: official_Rosstandart_effective_date_controls
 
 proof:
-  state: official_card_verified
-  locator_promotion_state: existing_rule_traceability_pending
+  state: official_card_verified_plus_authorized_amendment_chain
+  locator_promotion_state: partial_authorized_locator_evidence_available
 
-public_GARANT_current_text_corroboration:
-  url: "https://base.garant.ru/404976079/"
-  source_role: locator_discovery_and_stale_rule_detection_only_until_authorized_session_returns
-  page_states_with_changes_and_additions: true
-  directly_visible_current_locators:
-    - locator: "5.54"
-      existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
-      existing_rule_match: true
-      observations:
-        - sanitary_rooms_for_staff_and_served_population
-        - common_staff_visitor_toilet_route_when_simultaneous_people_less_than_50_or_stay_less_than_60_minutes
-        - one_common_toilet_allowed_for_staff_up_to_10_and_simultaneous_visitors_up_to_10
-        - medical_social_and_public_reception_visitor_toilets_required_independently_of_capacity
-        - male_female_separation_and_default_1_to_1_ratio
-    - locator: "5.55"
-      existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
-      existing_rule_match: true
-      observations:
-        - male_staff_wc_20_30
-        - male_visitor_wc_50_60
-        - male_staff_urinal_15_18
-        - male_visitor_urinal_50_80
-        - female_staff_wc_15
-        - female_visitor_wc_25_30
-        - male_washbasin_per_4_wc_min_1
-        - female_washbasin_per_2_wc_min_1
-        - food_retail_wc_per_400_m2
-        - nonfood_retail_wc_per_600_m2_min_2
-        - retail_sales_hall_up_to_300_m2_toilet_need_by_project_brief
-        - shared_staff_visitor_fixture_multiplier_min_1_5
-    - locator: "5.57"
-      existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
-      existing_rule_match: true
-      observation: visitor_toilet_route_distance_max_75_m_except_open_sports
-    - locator: "5.16"
-      existing_rule_file: "../../rules/59_public_lift_lobby_exceptions.yaml"
-      existing_rule_baseline_distance_match: true
-      public_root_render_conflict: true
-      root_render_text_for_cabin_depth_over_2m: "1,3 м"
-      direct_change_1_text_url: "https://base.garant.ru/405277335/"
-      direct_change_1_text_for_cabin_depth_over_2m: "1,3 глубины лифта"
-      safe_state: needs_authorized_amendment_chain_before_baseline_width_promotion
+authorized_GARANT_sources:
+  root_url: "https://base.garant.ru/404976079/"
+  change_1_url: "https://base.garant.ru/405277335/"
+  change_2_url: "https://base.garant.ru/406647061/"
+  change_3_url: "https://base.garant.ru/408070017/"
+  change_4_url: "https://base.garant.ru/410613254/"
+  change_5_url: "https://base.garant.ru/411475379/"
+  all_five_amendments_read_for_target_locator_impact: true
+  root_renderer_state: mixed_revision_for_5_16
+  root_renderer_must_not_override_amendment_chain: true
 
-change_effect:
-  latest_change_kind: textual_and_reference_updates
-  public_card_summary_available: true
-  known_reference_updates_include:
-    - SP_1_13130_2020_change_2
-    - SP_20_13330_2016_change_6
-    - SP_30_13330_2020_change_4
-    - SP_54_13330_2022_change_1
-    - SP_59_13330_2020_change_3
-    - SP_60_13330_2020_change_4
-    - SP_113_13330_2023_change_1
-  exact_current_locator_verification_required: true
+amendment_chain_target_impact:
+  change_1:
+    touches_5_16: true
+    effect_5_16: full_replacement
+    touches_5_54_5_55_5_57: false
+  change_2:
+    touched_target_locators: []
+    substantive_locator: "6.14"
+  change_3:
+    touches_5_16: true
+    effect_5_16: full_replacement
+    touches_5_54_5_55_5_57: false
+    change_3_controls_current_5_16: true
+  change_4:
+    touched_target_locators: []
+    note: normative_reference_section_rewritten_but_no_5_16_or_sanitary_target_change
+  change_5:
+    touched_target_locators: []
+    note: reference_updates_plus_4_4_and_5_5_do_not_touch_target_locators
+
+verified_locators:
+  - locator: "5.16"
+    proof_state: authorized_locator_verified
+    current_text_basis: direct_change_3_full_replacement_plus_changes_4_5_reviewed
+    values:
+      max_distance_to_nearest_passenger_lift_m: 60
+      lobby_width_by_cabin_depth:
+        cabin_depth_up_to_1_5_m: 2.0
+        cabin_depth_1_5_to_2_0_m: 2.5
+        cabin_depth_over_2_0_m: "1.3 * lift_depth"
+    renderer_conflict:
+      root_render_incorrect_or_mixed_text: "1,3 м"
+      controlling_change_3_text: "1,3 глубины лифта"
+    existing_rule_file: "../../rules/59_public_lift_lobby_exceptions.yaml"
+  - locator: "5.54"
+    proof_state: authorized_locator_verified
+    current_text_basis: direct_root_text_plus_all_amendments_reviewed_no_target_change
+    semantics:
+      sanitary_rooms_for_staff_and_served_population: true
+      common_staff_visitor_toilet_route_if_simultaneous_people_below_50_or_visitor_stay_below_60_minutes: true
+      one_common_toilet_allowed_staff_up_to_10_and_simultaneous_visitors_up_to_10: true
+      specified_medical_social_public_reception_visitor_toilets_independent_of_capacity: true
+    existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
+  - locator: "5.55"
+    proof_state: authorized_locator_verified
+    current_text_basis: direct_root_text_plus_all_amendments_reviewed_no_target_change
+    values:
+      male_staff_wc_people: "20-30"
+      male_visitor_wc_people: "50-60"
+      male_staff_urinal_people: "15-18"
+      male_visitor_urinal_people: "50-80"
+      female_staff_wc_people: 15
+      female_visitor_wc_people: "25-30"
+      male_washbasin_per_wc: "1 per 4 WC, min 1 per toilet room"
+      female_washbasin_per_wc: "1 per 2 WC, min 1 per toilet room"
+      food_retail_wc_per_sales_area_m2: 400
+      nonfood_retail_wc_per_sales_area_m2: 600
+      shared_staff_visitor_fixture_multiplier_min: 1.5
+      retail_sales_hall_below_m2_project_brief_route: 300
+    existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
+  - locator: "5.57"
+    proof_state: authorized_locator_verified
+    current_text_basis: direct_root_text_plus_all_amendments_reviewed_no_target_change
+    values:
+      visitor_toilet_max_distance_m: 75
+      exception: open_sports_facilities
+    existing_rule_file: "../../rules/43_public_sanitary_facilities.yaml"
 
 existing_rule_migration:
   rule_files:
     - "../../rules/43_public_sanitary_facilities.yaml"
     - "../../rules/59_public_lift_lobby_exceptions.yaml"
   target_locators: ["5.16", "5.54", "5.55", "5.57"]
-  state: existing_rule_traceability_pending
-  public_GARANT_current_text_corrob_complete_for_sanitary_locators: true
-  authorized_locator_promotion_allowed: false
+  state: authorized_locator_verified_for_target_set
+  verified_count: 4
+  existing_rule_values_match_verified_text: true
+  numeric_production_values_changed: false
 
 production_impact:
   numeric_rules_changed: false
   existing_values_reinterpreted: false
   production_rules_promoted: 0
-  promotion_allowed_from_this_map: false
+  library_locator_PASS_added: 4
 
 release_gate:
-  - authorized_current_locator_or_equivalent_primary_text_required_before_new_library_PASS
-  - public_GARANT_root_render_conflicts_must_be_resolved_against_direct_amendment_text
+  - special_functional_code_precedes_general_public_rule
+  - root_GARANT_5_16_renderer_conflict_must_never_override_change3_text
   - official_Rosstandart_revision_dates_override_conflicting_GARANT_display_dates
-  - existing_PUBLIC_rule_values_not_reinterpreted_from_change_card
-  - special_profile_requirements_still_override_generic_SP118_fallbacks_when_applicable
+  - generic_SP118_rules_apply_only_within_public_scope_and_do_not_fill_special_profile_gaps

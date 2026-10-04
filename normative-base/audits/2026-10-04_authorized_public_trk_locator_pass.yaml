@@ -1,0 +1,92 @@
+audit_id: AUTHORIZED_PUBLIC_TRK_LOCATOR_PASS_2026_10_04
+checked_at: 2026-10-04
+branch: normative-base-v1
+production_authority: false
+policy: fail_closed
+
+scope:
+  documents: [SP_118_13330_2022, SP_464_1325800_2019]
+  profiles: [PUBLIC_GENERAL, TRK]
+  source_session: Opera_Browser_Connector_GARANT
+
+SP118:
+  revision_inventory: {changes: [1, 2, 3, 4, 5], latest_change: 5}
+  official_effective_date_change5: 2025-02-25
+  GARANT_displayed_effective_date_change5: 2025-02-28
+  metadata_authority_resolution: Rosstandart_controls
+  direct_sources_read:
+    base: "https://base.garant.ru/404976079/"
+    change1: "https://base.garant.ru/405277335/"
+    change2: "https://base.garant.ru/406647061/"
+    change3: "https://base.garant.ru/408070017/"
+    change4: "https://base.garant.ru/410613254/"
+    change5: "https://base.garant.ru/411475379/"
+  verified_locators:
+    - "5.16"
+    - "5.54"
+    - "5.55"
+    - "5.57"
+  key_findings:
+    - locator: "5.16"
+      controlling_revision: Change_3_full_replacement
+      current_values: {max_distance_m: 60, lobby_width_up_to_1_5_m_cabin: 2.0, lobby_width_1_5_to_2_0_m_cabin: 2.5, lobby_width_over_2_0_m_cabin: "1.3 * lift_depth"}
+      root_renderer_conflict: "root shows 1.3 m; amendment chain proves 1.3 of lift depth"
+    - locator: "5.54"
+      current_semantics_verified: true
+      examples: [common_staff_visitor_toilet_route_under_50_people_or_under_60_min, one_common_toilet_staff_and_visitors_up_to_10_each]
+    - locator: "5.55"
+      current_values_verified: true
+      examples: [male_staff_wc_20_30, male_visitor_wc_50_60, male_staff_urinal_15_18, male_visitor_urinal_50_80, female_staff_wc_15, female_visitor_wc_25_30, retail_400_600_m2, shared_fixture_multiplier_1_5]
+    - locator: "5.57"
+      max_visitor_toilet_distance_m: 75
+  production_impact:
+    existing_values_match_verified_text: true
+    numeric_values_changed: false
+    rules_changed: false
+    library_locator_PASS_added: 4
+
+SP464:
+  revision_inventory: {changes: [1], latest_change: 1, effective_from: 2024-01-16}
+  direct_change_text: "https://base.garant.ru/408556999/"
+  root_renderer_state: mixed_revision_not_current_consolidated
+  verified_latest_amendment_locators:
+    - "1.1 second paragraph"
+    - "5.3"
+    - "6.2 second and third paragraphs"
+    - "6.5"
+    - "6.20 third paragraph"
+    - "6.21"
+    - "6.24-6.32"
+    - "8.6 first sentence"
+    - "9.2"
+  partial_edit_locators:
+    - "6.18"
+  key_findings:
+    - locator: "6.21"
+      current_semantics: canopy_required_over_open_loading_places
+      obsolete_semantics_rejected: universal_closed_debarkader
+    - locator: "6.20 third paragraph"
+      current_semantics: open_or_enclosed_heated_or_unheated_loading_zones_with_platform_or_debarkader_selected_by_design_brief
+    - locator: "8.6 first sentence"
+      current_semantics: threshold_free_sales_hall_evacuation_routes_in_goods_and_customer_zones
+    - locator_group: "6.24-6.32"
+      topic: foodservice_and_foodcourt
+      selected_values: {dining_area_min_m2_per_seat: 1.4, floor_to_floor_height_min_m: 3.3, production_height_up_to_150_seats_m: 3.0, production_height_151_300_seats_m: 3.3, production_height_over_300_seats_m: 3.9}
+  production_impact:
+    numeric_values_changed: false
+    new_foodservice_rules_created: false
+    stale_6_21_rule_had_already_been_removed: true
+    evidence_state_improved: true
+
+invariants_preserved:
+  - exact_current_evidence_before_machine_rule_creation
+  - mixed_root_renderer_never_overrides_direct_latest_amendment_text
+  - specific_functional_code_precedes_general_SP118
+  - production_numeric_values_not_changed_when_existing_values_match
+  - new_verified_values_remain_evidence_only_until_rule_scope_design_and_validation
+
+next_actions:
+  - synchronize central locator/backlog aggregates for SP118 and SP464
+  - continue SP251 Change7 direct text acquisition
+  - continue Appendix_B SP464 and remaining unchanged base locators
+  - rerun full normative CI on audit head

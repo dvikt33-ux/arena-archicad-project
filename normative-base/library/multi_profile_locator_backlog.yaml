@@ -1,14 +1,14 @@
-backlog_version: 2
+backlog_version: 3
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
 policy: fail_closed
 purpose: >-
-  Инвентаризация locator-level evidence, которое требуется мигрировать для уже существующих
-  non-IZHS production rules. Наличие записи означает только, что rule-файл ссылается на этот
-  locator. До прямой проверки действующего текста locator не получает новый library PASS.
+  Инвентаризация locator-level evidence для уже существующих non-IZHS production rules.
+  Прямо проверенные current locators могут быть помечены authorized_locator_verified без
+  изменения production-значений; остальные остаются pending до прямого чтения.
 
-proof_state: existing_rule_traceability_pending
+proof_state: mixed
 invariants:
   - backlog_entry_never_promotes_numeric_rule
   - rule_file_text_is_not_independent_normative_evidence
@@ -21,12 +21,16 @@ profiles:
   MKD:
     primary_document: SP_54_13330_2022
     rule_files: [35_residential_planning_minima.yaml]
+    evidence_state: authorized_locator_verified
+    current_text_source: "https://base.garant.ru/404976077/"
+    appendix_A_source: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
     locators:
-      - {locator: "5.2; table 5.1", topic: apartment_area_reference, state: existing_rule_traceability_pending}
-      - {locator: "5.11", topic: room_areas_and_geometry, state: existing_rule_traceability_pending}
-      - {locator: "A.1.4", topic: room_area_measurement, state: existing_rule_traceability_pending}
-      - {locator: "A.1.4 note 1", topic: kitchen_niche_area, state: existing_rule_traceability_pending}
-      - {locator: "5.12", topic: clear_height_cross_reference, state: existing_rule_traceability_pending}
+      - {locator: "5.2; table 5.1", topic: apartment_area_reference, state: authorized_locator_verified}
+      - {locator: "5.11", topic: room_areas_and_geometry, state: authorized_locator_verified}
+      - {locator: "A.1.4", topic: room_area_measurement, state: authorized_locator_verified}
+      - {locator: "A.1.4 note 1", topic: kitchen_niche_area, state: authorized_locator_verified}
+      - {locator: "5.12", topic: clear_height_cross_reference, state: authorized_locator_verified}
+    existing_rule_values_match_current_text: true
     promotion_allowed: false
 
   PUBLIC_GENERAL:
@@ -146,6 +150,8 @@ reason: "No dedicated primary-document rule layer exists yet; first build verifi
 summary:
   profiles_with_existing_rule_locator_backlog: 8
   profiles_waiting_for_primary_rule_layer: 9
+  profiles_with_verified_existing_rule_locators: [MKD]
+  authorized_locator_verified_in_existing_rule_backlog: 5
   fire_overlay_documents_in_backlog: [SP_456_1311500_2020, SP_550_1311500_2026, SP_551_1311500_2026]
   new_library_PASS: 0
   production_rules_promoted: 0

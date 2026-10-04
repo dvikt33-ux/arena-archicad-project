@@ -38,64 +38,69 @@ source_evidence:
   evidence_rule: >-
     Because the official revision card contains no registered amendments to SP56.13330.2021,
     exact base locators directly read from GARANT are treated as current locator evidence.
-    The comparison page is used only where the root accessibility render omitted section 6.
+    The GARANT comparison view is used only where the root accessibility render omitted section 6.
   production_authority: false
 locator_research:
   state: partial_locator_evidence_available
   queue: "../profile_primary_locator_extraction_registry.yaml"
   production_promotion_allowed: false
 locators:
-  - locator: "5.1.1"
-    topic: production_room_clear_heights
-    state: authorized_locator_verified
-    values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}
-  - locator: "5.1.2"
-    topic: vehicle_and_fire_vehicle_clear_height
-    state: authorized_locator_verified
-    values_m: {general_vehicle_min: 4.2, fire_vehicle_min: 4.5}
+  - {locator: "5.1.1", topic: production_room_clear_heights, state: authorized_locator_verified, values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}}
+  - {locator: "5.1.2", topic: vehicle_and_fire_vehicle_clear_height, state: authorized_locator_verified, values_m: {general_vehicle_min: 4.2, fire_vehicle_min: 4.5}}
   - {locator: "5.1.3", topic: suspended_ceiling_false_floor_and_technical_floor_route, state: authorized_locator_verified}
   - {locator: "5.1.4", topic: railway_track_entry, state: authorized_locator_verified}
   - locator: "5.1.5"
     topic: passenger_lift_trigger
     state: authorized_locator_verified
     values: {building_height_over_m: 15, permanent_work_or_frequently_serviced_equipment_level_over_m: 12, service_frequency_over_per_shift: 3}
-  - locator: "5.4.4.5"
-    topic: loading_ramps_platforms_and_canopies
-    state: authorized_locator_verified
-    values_m: {rail_canopy_axis_overlap_min: 0.5, road_canopy_beyond_ramp_edge_min: 1.5}
-  - locator: "5.4.4.9"
-    topic: road_loading_ramp_edge_level
-    state: authorized_locator_verified
-    value_m: 1.2
-  - locator: "5.4.4.11"
-    topic: industrial_vehicle_ramp_width_and_slope
-    state: authorized_locator_verified
-    values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}
-  - locator: "6.2.2"
-    topic: category_placement_egress_smoke_airlocks_stairs_route
-    state: authorized_locator_verified
-    routes: [SP_1_13130, SP_4_13130, SP_7_13130]
+  - {locator: "5.4.4.5", topic: loading_ramps_platforms_and_canopies, state: authorized_locator_verified, values_m: {rail_canopy_axis_overlap_min: 0.5, road_canopy_beyond_ramp_edge_min: 1.5}}
+  - {locator: "5.4.4.9", topic: road_loading_ramp_edge_level, state: authorized_locator_verified, value_m: 1.2}
+  - {locator: "5.4.4.11", topic: industrial_vehicle_ramp_width_and_slope, state: authorized_locator_verified, values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}}
+  - {locator: "6.2.2", topic: category_placement_egress_smoke_airlocks_stairs_route, state: authorized_locator_verified, routes: [SP_1_13130, SP_4_13130, SP_7_13130]}
   - locator: "6.2.18"
     topic: egress_exit_width_route
     state: authorized_locator_verified
     table_route: "Table 6.3"
     MGN_min_width_m: 0.9
-  - {locator: "Table 6.3", topic: egress_people_per_m_width_matrix, state: blocked_pending_full_table_extraction}
-  - locator: "6.2.22"
-    topic: fire_compartment_height_area_route
+  - locator: "Table 6.3"
+    topic: egress_people_per_m_width_matrix
     state: authorized_locator_verified
-    production_building_table: "Table 6.5"
-    storage_building_table: "Table 6.6"
+    source_view: direct_GARANT_2021_comparison_side
+    accessibility_header_note: "Volume header unit was not exposed by the accessibility renderer; raw row labels are retained without unit inference."
+    raw_rows_as_rendered:
+      - ["До 15", "А, Б", "I, II, III, IV", "С0", 45]
+      - ["В1-В3", "I, II, III, IV", "С0", 110]
+      - ["III, IV", "С1", 75]
+      - ["Не нормируется", "С2, С3", 55]
+      - [30, "А, Б", "I, II, III, IV", "С0", 65]
+      - ["В1-В3", "I, II, III, IV", "С0", 155]
+      - ["III, IV", "С1", 110]
+      - [40, "А, Б", "I, II, III, IV", "С0", 85]
+      - ["В1-В3", "I, II, III, IV", "С0", 175]
+      - ["III, IV", "С1", 120]
+      - [50, "А, Б", "I, II, III, IV", "С0", 130]
+      - ["В1-В3", "I, II, III, IV", "С0", 195]
+      - ["III, IV", "С1", 135]
+      - ["60 и более", "А, Б", "I, II, III, IV", "С0", 150]
+      - ["В1-В3", "I, II, III, IV", "С0", 220]
+      - ["III, IV", "С1", 155]
+      - ["80 и более", "В1-В3", "I, II, III, IV", "С0", 260]
+      - ["III, IV", "С1", 220]
+      - ["Независимо от объема", "В4, Г", "I, II, III, IV", "С0", 260]
+      - ["III, IV", "С1", 180]
+      - ["Не нормируется", "С2, С3", 130]
+      - ["", "Д", "Не нормируется"]
+    interpolation_rule: "Численность людей на 1 м ширины эвакуационного выхода при промежуточных значениях объема помещений определяется интерполяцией."
+    production_matrix_normalization_pending: true
+  - {locator: "6.2.22", topic: fire_compartment_height_area_route, state: authorized_locator_verified, production_building_table: "Table 6.5", storage_building_table: "Table 6.6"}
   - {locator: "Appendix A.1", topic: total_building_area_and_mezzanine_platform_inclusion, state: authorized_locator_verified}
-  - locator: "Appendix A.2"
-    topic: fire_compartment_floor_area_platform_mezzanine_semantics
-    state: authorized_locator_verified
-    threshold_percent: 40
+  - {locator: "Appendix A.2", topic: fire_compartment_floor_area_platform_mezzanine_semantics, state: authorized_locator_verified, threshold_percent: 40}
   - {locator: "Appendix A.4", topic: storey_count_platform_mezzanine_semantics, state: blocked_pending_complete_locator_read}
 release_gates:
   - exact_locator_evidence_required_before_new_machine_rule_creation
   - F5_scope_and_exclusion_check_required
   - current_SP56_2021_must_be_used_not_SP56_2011
-  - Table_6_3_numeric_matrix_requires_full_table_extraction
+  - Table_6_3_evidence_is_verified_but_rowspan_semantics_must_be_normalized_and_validated_before_machine_rule_creation
+  - Tables_6_5_6_6_require_full_table_extraction_before_numeric_rules
   - Appendix_A_4_requires_complete_locator_read
   - generic_fire_matrices_do_not_close_SP56_specific_gap

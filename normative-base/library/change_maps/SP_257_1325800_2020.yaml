@@ -1,3 +1,4 @@
+change_map_version: 2
 document_id: SP_257_1325800_2020
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -25,12 +26,37 @@ source_layers:
     registered_at: 2024-02-02
     effective_from: 2024-01-29
     url: "https://protect.gost.ru/sp/changesdetails/9f999048-1a72-4490-a633-0f3c311b1c86"
-    card_summary_role: revision_metadata_only
-    content_summary_available_on_card: false
+  direct_public_garant_change_text:
+    authority: GARANT
+    url: "https://base.garant.ru/408657541/"
+    state: amendment_text_read_directly
+    role: amendment_effect_mapping_and_locator_priority_only
+    production_promotion_allowed: false
+    does_not_prove: all_unaffected_current_locators
+
+change_1_locator_effects:
+  - locator: "5.3"
+    effect: fourth_paragraph_added
+    topic: hotel_EV_parking_and_charging_spaces
+    amendment_semantics:
+      EV_spaces_with_charging_required_when_parking_spaces_are_provided: true
+      parking_geometry_route: SP_113_13330
+      demand_route: design_brief_but_not_less_than_SP118
+    state: amendment_text_verified_current_consolidated_locator_pending
 
 locator_migration:
   state: blocked_pending_direct_current_locator
   production_promotion_allowed: false
+  change1_exact_affected_locator_known: true
+  P0_direct_read_first:
+    - "5.3"
+    - "4.2"
+    - "6.1.4-6.1.15"
+    - "6.2.3-6.2.11"
+    - "6.3.2-6.3.9"
+    - "6.4.1-6.4.9"
+    - "Appendix B"
+    - "Appendix G"
   target_topics:
     - hotel_scope_and_embedded_zone_conditions
     - guestroom_types_and_room_composition
@@ -39,16 +65,18 @@ locator_migration:
     - vertical_transport_and_floor_placement
     - sanitary_support_and_housekeeping_interfaces
     - accessible_room_and_route_interfaces
-    - site_access_loading_and_parking_interfaces
+    - site_access_loading_parking_and_EV_interfaces
 
 release_gate:
-  - direct_current_locator_text_required
+  - direct_current_locator_text_required_before_new_machine_rules
   - exact_clause_table_or_appendix_required
-  - change_1_effect_on_locator_must_be_resolved
+  - direct_change1_text_proves_5_3_change_but_not_unaffected_locator_currency
   - embedded_hotel_zone_must_be_classified_before_applying_SP257
   - SP118_general_rules_must_not_substitute_missing_SP257_specific_requirement
+  - EV_parking_route_must_use_current_SP113_SP551_SP256_scope_logic_where_applicable
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
+  direct_locator_PASS_added: 0

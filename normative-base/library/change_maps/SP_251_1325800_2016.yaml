@@ -23,6 +23,8 @@ source_layers:
     approved_at: 2025-11-28
     registered_at: 2026-01-14
     effective_from: 2026-01-01
+    officially_published_at: 2026-01-20
+    change_kind: textual_and_reference_updates
     url: "https://protect.gost.ru/sp/changesdetails/22851f99-de6b-44bc-aecf-063bd7681867"
     card_summary_role: revision_metadata_and_reference_update_summary_only
   prior_change_6_card:
@@ -33,17 +35,32 @@ source_layers:
     registered_at: 2025-01-16
     effective_from: 2025-01-21
     url: "https://protect.gost.ru/sp/changesdetails/6ea95881-2cc4-4ec7-b995-bbac5f11aac8"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
-  official_ministry_publication_index:
-    authority: Minstroy_Russia
-    status: base_and_amendment_publication_index_found
-    note: >-
-      Official Minstroy document index exposes the base SP251 publication and later amendment entries,
-      but the current session could not open a consolidated current locator text through the public index.
+  direct_public_consultant_review:
+    authority: ConsultantPlus
+    url: "https://www.consultant.ru/legalnews/30702/"
+    state: official_provider_review_read
+    role: substantive_change_locator_discovery_and_corroboration_only
+    production_promotion_allowed: false
+    observations:
+      - locator: "6.3"
+        topic: engineering_networks_on_school_sites
+        state: change7_substantive_effect_corroborated_direct_locator_pending
+      - locator: "Table 6.1 note 4"
+        topic: sports_zone_running_track_exception
+        reported_values: {minimum_turn_radius_m: 13, minimum_straight_length_m: 118}
+        state: provider_review_numeric_values_corroborated_direct_amendment_locator_pending
+  authorized_GARANT_root:
+    url: "https://base.garant.ru/71502792/"
+    state: stale_or_mixed_revision_not_current_consolidated
+    observed_problems:
+      - root_history_does_not_expose_change7
+      - normative_reference_list_contains_superseded_editions_of_fire_parking_public_and_engineering_standards
+    allowed_role: navigation_and_stale_detection_only
+    must_not_prove_current_locator_text: true
 
-latest_change_card_observation:
-  summary_type: reference_document_updates
-  examples:
+latest_change_observation:
+  summary_type: textual_and_reference_updates
+  reference_updates_examples:
     - SP_1_13130_2020_updated_to_change_3
     - SP_17_13330_2017_updated_to_change_5
     - SP_30_13330_2020_updated_to_change_5
@@ -51,13 +68,30 @@ latest_change_card_observation:
     - SP_118_13330_2022_updated_to_change_5
     - SP_252_1325800_2016_updated_to_change_3
     - SP_256_1325800_2016_updated_to_change_8
+  known_substantive_locator_effects:
+    - locator: "6.3"
+      effect: engineering_network_site_rules_changed
+      state: direct_current_locator_required
+    - locator: "Table 6.1 note 4"
+      effect: sports_zone_running_track_exception_changed_or_added
+      state: direct_amendment_locator_required_before_numeric_rule
   evidence_limit: >-
-    The amendment-card summary is not treated as proof that any architectural locator outside the
-    listed reference updates is unchanged. Direct current locator reading is still required.
+    Rosstandart proves Change 7 is textual and updates referenced standards. The ConsultantPlus
+    official review identifies high-impact changed locators and reports values, but neither layer
+    is treated as direct amendment locator evidence for machine-rule promotion.
 
 locator_migration:
   state: blocked_pending_direct_current_locator
   production_promotion_allowed: false
+  P0_direct_read_first:
+    - "6.3"
+    - "Table 6.1 note 4"
+    - "1.1-1.3 scope"
+    - "site_and_functional_zoning_core_locators"
+    - "classroom_and_laboratory_area_tables"
+    - "floor_and_vertical_placement_core_locators"
+    - "sanitary_foodservice_interfaces"
+    - "sports_and_assembly_space_interfaces"
   target_topics:
     - site_and_functional_zoning
     - room_composition_and_minimum_areas
@@ -72,9 +106,12 @@ release_gate:
   - direct_current_locator_text_required
   - exact_clause_table_or_appendix_required
   - amendment_effect_on_locator_must_be_resolved
+  - provider_review_numeric_values_do_not_count_as_locator_PASS
+  - stale_GARANT_root_must_not_prove_current_text
   - SP118_general_rules_must_not_substitute_missing_SP251_specific_requirement
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
+  direct_locator_PASS_added: 0

@@ -1,4 +1,4 @@
-registry_version: 4
+registry_version: 5
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -22,6 +22,7 @@ invariants:
   - browser_connection_state_never_changes_evidence_state_by_itself
   - mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence
   - official_provider_review_is_corroboration_not_direct_locator_proof
+  - direct_amendment_text_does_not_automatically_equal_consolidated_current_locator_PASS
 
 states:
   blocked_pending_direct_current_locator: >-
@@ -69,12 +70,36 @@ profiles:
   PRESCHOOL:
     primary_document: SP_252_1325800_2016
     change_map: change_maps/SP_252_1325800_2016.yaml
-    state: source_chain_ready_locator_pending
+    state: blocked_pending_direct_current_locator
     current_revision: {latest_change: 3, effective_from: 2025-01-21}
     official_card: "https://protect.gost.ru/sp/details/657ec18f-b1ab-4d44-8d19-6abff3db38c0"
-    host_class: PUBLIC
-    scope_gate: preschool_organization_building
-    direct_locator_access: not_yet_read_in_connected_session
+    host_classes: [PUBLIC, MKD, MIXED_USE]
+    scope_gate: preschool_organization_or_classified_preschool_zone
+    direct_locator_access: direct_public_GARANT_change3_read_consolidated_locator_pending
+    direct_change3_text_read: true
+    current_locator_priority:
+      first_pass:
+        - "1.1"
+        - "1.2"
+        - "4.1-4.7"
+        - "5.2"
+        - "5.3"
+        - "6.1"
+        - "6.2.3"
+        - "6.2.4"
+        - "6.2.8"
+        - "7.1.1"
+        - "7.1.2"
+        - "7.1.7"
+        - "7.1.8"
+        - "7.2.2.1"
+        - "7.2.2.7"
+      second_pass:
+        - "foodservice_and_laundry_locators"
+        - "sanitary_and_hygiene_locators"
+        - "daylight_and_microclimate_locators"
+        - "embedded_or_shared_complex_conditions"
+    change3_amendment_candidate_values_are_not_PASS: true
     target_topics:
       - site_and_group_play_area_zoning
       - group_cell_composition_and_areas
@@ -219,8 +244,8 @@ parking_reaudit:
   production_promotion_allowed: false
 
 session_source_status:
-  authorized_opera_connector: connected
-  authorized_GARANT_session: working
+  authorized_opera_connector: intermittent
+  authorized_GARANT_session: intermittent
   official_public_cards: available
   official_minstroy_publication_index: available_but_no_consolidated_locator_read
   current_public_GARANT_Consultant_text: corroboration_and_stale_detection_only_unless_specific_authorized_locator_is_directly_read
@@ -233,6 +258,8 @@ summary:
   parking_fire_route_current_document: SP_551_1311500_2026
   school_change7_substantive_effect_detected: true
   school_current_consolidated_locator_PASS: 0
+  preschool_change3_direct_amendment_text_read: true
+  preschool_current_consolidated_locator_PASS: 0
   medical_change7_direct_amendment_text_read: true
   medical_current_consolidated_locator_PASS: 0
   unresolved_profiles_fail_closed: true

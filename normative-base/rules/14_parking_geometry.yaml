@@ -1,4 +1,4 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 primary_document: SP_113_13330_2023
 verified_changes: [1,2,3,4]
@@ -6,12 +6,18 @@ purpose: "Геометрия машино-мест и базовая архит�
 
 revision_note:
   change_4_effective_from: 2026-10-03
-  target_2027_action: apply
-  note: "Изменение №4 актуализирует нормативные ссылки; правила геометрии ниже проверять совместно с актуальной редакцией приложения А."
+  target_2027_action: apply_with_locator_reaudit
+  change_kind: textual_and_reference_updates
+  note: >-
+    Изменение №4 содержит существенные текстовые изменения и одновременно переносит пожарную
+    часть стоянок из прежнего детального слоя СП 113 в специальные пожарные требования.
+    Геометрию приложения А сохранять только в пределах действующих locator-ов; таблицу А.1 и
+    примечания проверять по текущему тексту. Пожарные требования не брать из удаленных пунктов 6.2.
 
 ordinary_parking_space:
   source: "Appendix A, Table A.1 note 4"
   automation: true
+  evidence_state: existing_rule_preserved_pending_change4_current_locator_confirmation
   min_length_mm: 5300
   min_width_mm: 2500
   note: "Минимальный габарит машино-места; фактическая схема должна также удовлетворять зазорам безопасности, колоннам, стенам и маневрированию."
@@ -20,6 +26,7 @@ accessible_parking_space:
   source_clause: "5.6"
   cross_reference: SP_59_13330_2020
   automation: true
+  evidence_state: existing_rule_preserved_pending_current_locator_confirmation
   min_length_mm: 6000
   min_width_mm: 3600
   applies_to: "automobiles of wheelchair users"
@@ -28,6 +35,7 @@ accessible_parking_space:
 vehicle_classes:
   source: "Appendix A, Table A.1"
   automation: conditional
+  evidence_state: existing_rule_preserved_pending_change4_current_locator_confirmation
   classes:
     - {class: small, max_length_mm: 3700, max_width_mm: 1600, max_height_mm: 1700, min_outer_turn_radius_mm: 5500}
     - {class: medium, max_length_mm: 4300, max_width_mm: 1700, max_height_mm: 1800, min_outer_turn_radius_mm: 6000}
@@ -38,6 +46,7 @@ vehicle_classes:
 indoor_safety_clearances:
   source: "Appendix A, Table A.1 notes"
   automation: conditional
+  evidence_state: existing_rule_preserved_pending_change4_current_locator_confirmation
   min_mm:
     car_long_side_to_wall: 800
     parallel_cars_long_sides: 800
@@ -57,7 +66,8 @@ aisles_and_ramps:
 
 site_coordination:
   source_clause: "4.4"
-  dependencies: [SP_42_13330_2026, SP_396_1325800_2018, SP_4_13130_2013, regional_and_local_urban_design_standards]
+  evidence_state: needs_change4_current_text_confirmation
+  dependencies: [SP_42_13330_2026, SP_396_1325800_2018, regional_and_local_urban_design_standards]
   rule: "Число и размещение стоянок на участке нельзя определять только СП 113; проверять РНГП/МНГП и специальную норму объекта."
 
 agent_logic:
@@ -66,6 +76,7 @@ agent_logic:
   - "Отдельно хранить геометрию автомобиля, геометрию машино-места, безопасные зазоры и траекторию маневра."
   - "Для подземных/встроенных стоянок до фиксации сетки колонн выполнить итерацию parking-layout <-> structural-grid; колонна не должна уменьшать требуемый полезный габарит."
   - "Парковочные места МГН связывать с доступным маршрутом до входа/лифта по СП 59, а не только маркировать символом."
+  - "Пожарные требования стоянок 2027 маршрутизировать в СП 551; удаленные Изм. №4 пункты раздела 6.2 СП 113 не использовать."
 
 sources:
   - https://protect.gost.ru/sp/details/c8580ef4-7e8e-4694-808f-11f5696cb131

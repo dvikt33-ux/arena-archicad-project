@@ -21,13 +21,25 @@ change_map: "../change_maps/SP_251_1325800_2016.yaml"
 scope:
   proof_state: official_card_verified
   note: "New and reconstructed general-education organization buildings and complexes, including applicable school-internat educational/common-school rooms."
+source_render_state:
+  GARANT_root_url: "https://base.garant.ru/71502792/"
+  root_renderer_state: stale_or_mixed_revision_not_current_consolidated
+  observed_staleness:
+    - change7_not_exposed_in_root_history
+    - old_fire_and_parking_SP_editions_still_visible_in_normative_references
+  root_renderer_must_not_prove_current_locator_text: true
 locator_research:
-  state: source_chain_ready_locator_pending
+  state: blocked_pending_direct_current_locator
   queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: unavailable_in_current_session
+  direct_current_locator_access: authorized_GARANT_root_stale
   production_promotion_allowed: false
-locators: []
+  priority_locators: ["6.3", "Table 6.1 note 4"]
+locators:
+  - {locator: "6.3", topic: engineering_networks_on_school_sites, state: official_provider_change7_corroborated_direct_locator_pending}
+  - {locator: "Table 6.1 note 4", topic: sports_zone_running_track_exception, state: provider_review_numeric_values_corroborated_direct_amendment_locator_pending}
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
+  - official_provider_review_does_not_equal_direct_amendment_locator
+  - stale_GARANT_root_must_not_be_used_as_current_consolidated_text
   - school_profile_required
   - SP118_general_rules_do_not_close_SP251_specific_gap

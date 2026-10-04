@@ -1,4 +1,4 @@
-change_map_version: 2
+change_map_version: 3
 document: SP_464_1325800_2019
 checked_at: 2026-10-04
 production_authority: false
@@ -20,45 +20,85 @@ proof:
 public_GARANT_corroboration:
   current_document_url: "https://base.garant.ru/73866956/"
   change_1_url: "https://base.garant.ru/408556999/"
-  source_role: locator_discovery_and_stale_rule_detection_only_until_authorized_session_returns
+  source_role: locator_discovery_stale_rule_detection_and_amendment_chain_corroboration_only_until_authorized_session_returns
   current_document_title_state: with_changes_and_additions
-  directly_visible_current_items:
+  root_renderer_state: mixed_revision_not_current_consolidated
+  root_renderer_must_not_prove_current_locator_text: true
+  directly_visible_unchanged_or_matching_items:
     - locator: "1.1"
       observation: "SP464 scope: TRK height up to 50 m and underground depth up to 15 m from ground level."
       existing_document_card_match: true
+    - locator: "5.6"
+      observation: "Site planning separates visitor/goods and pedestrian/vehicle flows and minimizes vehicle-route intersections where possible."
+      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
+      existing_rule_match: true
     - locator: "5.7"
       observation: "Open unloading areas are placed in isolated service yards; note permits orientation toward public buildings or blind ends of residential buildings."
       existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
       existing_rule_match: true
-    - locator: "8.6"
-      observation: "Current text prohibits thresholds on evacuation routes from retail halls in goods/customer movement zones, including trolley routes."
-      promotion_state: public_corrob_only
+    - locator: "6.10"
+      observation: "TRK with sales halls on two or more levels uses calculated passenger-lift provision for MGN under SP59."
+      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
+      existing_rule_match: true
+
   change_1_direct_findings:
     - locator: "6.18"
       effect: wording_updated_in_change_1
-      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
-      stale_rule_detected: false
+      replacement: "Минимально необходимое -> Минимальное"
+      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
+      existing_rule_semantics_match: true
     - locator: "6.20"
-      effect: loading_zone_requirements_revised_by_change_1
-      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
-      production_interpretation: "Do not impose universal closed loading/debarkader typology; select loading-zone form by technology and project conditions."
-      existing_rule_match: true
+      effect: third_paragraph_added_by_change_1
+      current_requirement_corroborated: loading_zones_may_be_open_or_enclosed_heated_or_unheated_with_tunnel_or_service_yard_access_and_platform_or_debarkader_selection_by_project
+      existing_rule_files:
+        - "../../rules/70_trk_multifunctional_planning_2027.yaml"
+        - "../../rules/89_trk_loading_logistics_2027.yaml"
+      current_rule_route_match: true
     - locator: "6.21"
       effect: replaced_by_change_1
       current_requirement_corroborated: canopy_required_over_open_loading_places
-      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
-      existing_rule_match: true
-      obsolete_interpretation_rejected: universal_closed_debarkader_for_all_trade_and_foodservice
+      current_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+      obsolete_interpretation_rejected: universal_closed_debarkader_for_trade_and_foodservice
     - locator: "8.6"
       effect: first_sentence_replaced_by_change_1
-      existing_rule_conflict_detected: false
+      current_requirement_corroborated: evacuation_routes_from_sales_halls_in_goods_and_customer_movement_zones_are_without_thresholds
+      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
+      existing_rule_match: true
+
+  root_renderer_conflicts:
+    - locator: "6.18"
+      root_render: "Минимально необходимое число грузовых лифтов"
+      change_1_text: "Минимальное число грузовых лифтов"
+      material_numeric_effect: false
+    - locator: "6.20"
+      root_render_problem: missing_change_1_third_paragraph
+      change_1_text_controls: true
+    - locator: "6.21"
+      root_render: universal_closed_debarkader_requirement
+      change_1_text: canopy_over_open_loading_places
+      material_semantic_conflict: true
+    - locator: "8.6"
+      root_render_problem: pre_change_1_first_sentence
+      change_1_text_controls: true
+
+stale_rule_audit:
+  stale_rule_found: true
+  file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
+  rule_id: trk.loading.closed_dock_trade_food
+  stale_locator: "6.21"
+  stale_text_basis: pre_change_1_root_render
+  resolution: removed_superseded_rule_and_route_current_loading_typology_to_rule_89
+  resolved_commit: "7393aaa2b20c2b06bab1dac9b17d86a3610106b1"
+  detailed_current_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+  numeric_values_changed: false
+  fail_closed_reason: conflicting_loaded_rules_must_not_coexist
 
 unresolved_locator_targets:
-  - "6.10"
-  - "6.18 exact current consolidated wording"
-  - "6.20 exact current consolidated wording"
-  - "6.21 exact current consolidated wording"
-  - "8.6 exact current consolidated wording for production migration"
+  - "6.10 authorized current locator migration"
+  - "6.18 authorized current locator migration"
+  - "6.20 authorized current locator migration"
+  - "6.21 authorized current locator migration"
+  - "8.6 authorized current locator migration"
   - "Appendix B; B.4"
   - "Appendix B; table B.1 and notes used by loading rules"
   - "Appendix B; B.2"
@@ -75,19 +115,23 @@ existing_rule_migration:
     - "../../rules/89_trk_loading_logistics_2027.yaml"
   target_locators: ["1", "5.6", "5.7", "6.10", "6.18", "6.20", "6.21", "8.6", "Appendix B; B.4"]
   state: existing_rule_traceability_pending
-  stale_loading_rule_found: false
-  change1_loading_semantics_already_reflected_in_rule_89: true
+  stale_loading_rule_found: true
+  stale_loading_rule_resolved: true
+  change1_loading_semantics_reflected_in_rule_89: true
   authorized_locator_promotion_allowed: false
 
 production_impact:
   numeric_rules_changed: false
-  existing_values_reinterpreted: false
-  stale_rule_demoted: false
+  existing_numeric_values_reinterpreted: false
+  stale_imperative_rule_removed: true
+  stale_rule_demoted: true
   production_rules_promoted: 0
   promotion_allowed_from_this_map: false
 
 release_gate:
   - authorized_current_locator_or_equivalent_primary_text_required_before_new_library_PASS
-  - existing_TRK_rule_values_not_reinterpreted_from_public_current_render
+  - root_GARANT_render_is_not_current_text_authority_for_SP464
+  - direct_change_1_text_controls_where_root_render_conflicts
+  - existing_TRK_numeric_values_not_reinterpreted_from_public_current_render
   - SP464_scope_height_and_underground_depth_must_be_matched_before_use
   - special_function_zones_require_their_own_primary_codes

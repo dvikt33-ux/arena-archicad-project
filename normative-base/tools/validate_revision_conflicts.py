@@ -47,6 +47,7 @@ def main() -> None:
     sp551_map_path = LIB / "change_maps" / "SP_551_1311500_2026.yaml"
     engineering_path = LIB / "engineering_system_scope_registry.yaml"
     backlog_path = LIB / "multi_profile_locator_backlog.yaml"
+    primary_queue_path = LIB / "profile_primary_locator_extraction_registry.yaml"
 
     rule70 = load_yaml(rule70_path)
     rule89 = load_yaml(rule89_path)
@@ -59,6 +60,7 @@ def main() -> None:
     sp551 = load_yaml(sp551_map_path)
     engineering = load_yaml(engineering_path)
     backlog = load_yaml(backlog_path)
+    primary_queue = load_yaml(primary_queue_path)
 
     # SP464 mixed-revision renderer protection.
     rule70_text = rule70_path.read_text(encoding="utf-8")
@@ -67,11 +69,7 @@ def main() -> None:
     if "закрытые дебаркадеры" in rule70_text.lower():
         fail("pre-Change-1 SP464 6.21 closed-debarkader text returned to rules/70")
 
-    canopy_rules = [
-        node
-        for node in walk(rule89)
-        if node.get("id") == "trk.loading.open_places_canopy"
-    ]
+    canopy_rules = [node for node in walk(rule89) if node.get("id") == "trk.loading.open_places_canopy"]
     if len(canopy_rules) != 1:
         fail("rules/89 must contain exactly one current SP464 open-loading canopy rule")
     canopy = canopy_rules[0]
@@ -96,10 +94,7 @@ def main() -> None:
         fail("SP118 GARANT/Rosstandart effective-date conflict must remain explicit")
 
     current118 = sp118.get("public_GARANT_current_text_corroboration") or {}
-    locator_516 = next(
-        (row for row in current118.get("directly_visible_current_locators", []) if row.get("locator") == "5.16"),
-        None,
-    )
+    locator_516 = next((row for row in current118.get("directly_visible_current_locators", []) if row.get("locator") == "5.16"), None)
     if not isinstance(locator_516, dict) or locator_516.get("public_root_render_conflict") is not True:
         fail("SP118 5.16 root-render conflict must remain explicit")
     if locator_516.get("direct_change_1_text_for_cabin_depth_over_2m") != "1,3 глубины лифта":
@@ -128,10 +123,7 @@ def main() -> None:
     if returned:
         fail(f"legacy SP113 EV-fire rules returned to rules/102: {returned}")
 
-    route = next(
-        (row for row in machine_rules(rule102) if row.get("id") == "ev.parking.fire_requirements.route_to_SP551"),
-        None,
-    )
+    route = next((row for row in machine_rules(rule102) if row.get("id") == "ev.parking.fire_requirements.route_to_SP551"), None)
     if not isinstance(route, dict):
         fail("rules/102 missing mandatory EV fire route to SP551")
     route_source = route.get("source") or {}
@@ -143,10 +135,7 @@ def main() -> None:
     if route.get("result_on_unverified_locator_state") != "blocked_pending_current_SP551_locator_verification":
         fail("rules/102 must fail closed while SP551 EV locators are pending")
 
-    gate = next(
-        (row for row in machine_rules(rule64) if row.get("id") == "parking.fire.ev_phev.current_SP551_locator_gate"),
-        None,
-    )
+    gate = next((row for row in machine_rules(rule64) if row.get("id") == "parking.fire.ev_phev.current_SP551_locator_gate"), None)
     if not isinstance(gate, dict) or gate.get("required_document") != "SP_551_1311500_2026":
         fail("rules/64 missing SP551 EV/PHEV fire evidence gate")
     if set(gate.get("required_locators") or []) != required_ev_locators:
@@ -168,7 +157,7 @@ def main() -> None:
 
     ev_scope = (engineering.get("file_scopes") or {}).get("102_ev_charging_parking_architectural_interfaces_2027.yaml") or {}
     basis = set(ev_scope.get("normative_basis") or [])
-    if "SP_551_1311500_2026" not in basis or "SP_113_13330_2023" not in basis or "SP_256_1325800_2016" not in basis:
+    if not {"SP_113_13330_2023", "SP_551_1311500_2026", "SP_256_1325800_2016"}.issubset(basis):
         fail("engineering scope for rules/102 must include SP113 + SP551 + SP256")
     if ev_scope.get("required_fire_scope") != "parking_object_or_parking_zone_within_SP551_scope":
         fail("engineering scope for rules/102 missing independent SP551 fire scope")
@@ -181,6 +170,20 @@ def main() -> None:
     for locator in forbidden_sp113_fire_clauses:
         if not any(row.get("locator") == locator and row.get("state") == "deleted_by_change4" for row in superseded):
             fail(f"parking backlog missing deleted state for SP113 {locator}")
+
+    queue = primary_queue.get("parking_reaudit") or {}
+    if queue.get("planning_document") != "SP_113_13330_2023" or queue.get("fire_document") != "SP_551_1311500_2026":
+        fail("P0 parking extraction queue must split SP113 planning and SP551 fire roles")
+    queue_planning = set(queue.get("planning_priority_locators") or [])
+    if queue_planning & forbidden_sp113_fire_clauses:
+        fail("deleted SP113 fire locator remains a current P0 extraction target")
+    queue_superseded = queue.get("superseded_not_current_targets") or []
+    for locator in forbidden_sp113_fire_clauses:
+        if not any(row.get("locator") == locator and row.get("state") == "deleted_by_change4" for row in queue_superseded):
+            fail(f"P0 extraction queue missing superseded state for SP113 {locator}")
+    expected_fire_targets = {f"SP551 {locator}" for locator in required_ev_locators}
+    if set(queue.get("fire_priority_locators") or []) != expected_fire_targets:
+        fail("P0 parking extraction queue SP551 EV locator set mismatch")
 
     rev14 = rule14.get("revision_note") or {}
     if rev14.get("change_kind") != "textual_and_reference_updates":

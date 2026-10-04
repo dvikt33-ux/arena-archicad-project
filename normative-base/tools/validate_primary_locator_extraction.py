@@ -9,6 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "library" / "profile_primary_locator_extraction_registry.yaml"
 COVERAGE = ROOT / "library" / "profile_rule_coverage_registry.yaml"
+SP158_CARD = ROOT / "library" / "documents" / "SP_158_13330_2014.yaml"
 
 EXPECTED_P0 = {
     "SCHOOL_GENERAL_EDUCATION": "SP_251_1325800_2016",
@@ -24,6 +25,11 @@ EXPECTED_MAPS = {
     "HOTEL": "change_maps/SP_257_1325800_2020.yaml",
     "INDUSTRIAL_PRODUCTION_STORAGE": "change_maps/SP_56_13330_2021.yaml",
 }
+ALLOWED_ACCESS_STATES = {
+    "unavailable_in_current_session",
+    "not_yet_read_in_connected_session",
+    "authorized_GARANT_available_root_mixed_revision",
+}
 
 
 def load(path: Path) -> Any:
@@ -35,6 +41,7 @@ def main() -> int:
     try:
         registry = load(REGISTRY)
         coverage = load(COVERAGE)
+        sp158_card = load(SP158_CARD)
     except Exception as exc:
         print(f"PRIMARY LOCATOR EXTRACTION VALIDATION FAILED\n- unreadable YAML: {exc}")
         return 1
@@ -55,6 +62,8 @@ def main() -> int:
         "no_numeric_value_without_direct_current_locator",
         "general_SP118_or_host_building_rules_never_fill_missing_special_profile_requirement",
         "deleted_locator_is_not_a_current_extraction_target",
+        "browser_connection_state_never_changes_evidence_state_by_itself",
+        "mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence",
     }
     missing_invariants = sorted(required_invariants - invariants)
     if missing_invariants:
@@ -89,8 +98,8 @@ def main() -> int:
             errors.append(f"{profile}: unsafe extraction state {row.get('state')!r}")
         if row.get("production_promotion_allowed") is not False:
             errors.append(f"{profile}: production promotion must remain false")
-        if row.get("direct_locator_access") != "unavailable_in_current_session":
-            errors.append(f"{profile}: direct locator access must reflect current disconnected session")
+        if row.get("direct_locator_access") not in ALLOWED_ACCESS_STATES:
+            errors.append(f"{profile}: unsupported direct locator access state {row.get('direct_locator_access')!r}")
         topics = row.get("target_topics")
         if not isinstance(topics, list) or not topics:
             errors.append(f"{profile}: target_topics must be non-empty")
@@ -106,6 +115,46 @@ def main() -> int:
                 errors.append(f"{profile}: extraction research must not silently close dedicated rule gap")
             if coverage_row.get("hard_gap") is not True:
                 errors.append(f"{profile}: dedicated rule gap must remain hard_gap: true")
+
+    # SP158 Change 7: direct amendment text is usable for impact mapping, but the GARANT root
+    # renderer is mixed-revision and must never count as consolidated current locator evidence.
+    medical = profiles.get("MEDICAL") or {}
+    if medical.get("state") != "blocked_pending_direct_current_locator":
+        errors.append("MEDICAL must remain blocked pending consolidated current locator text")
+    if medical.get("direct_change7_text_read") is not True:
+        errors.append("MEDICAL must record direct Change 7 text as read")
+    if medical.get("root_renderer_state") != "mixed_revision_not_current_consolidated":
+        errors.append("MEDICAL must keep SP158 GARANT root marked mixed-revision")
+    priority = (medical.get("current_locator_priority") or {}).get("first_pass") or []
+    required_medical_priority = {
+        "1.1", "5.2", "5.5", "5.6", "5.7", "5.8", "5.11",
+        "6.2.11", "6.2.18", "6.2.19", "6.2.22", "6.3.1",
+        "6.3.4 Table 6.3 notes", "Appendix V high-impact room-area rows",
+    }
+    if not required_medical_priority.issubset(set(priority)):
+        errors.append("MEDICAL first-pass locator queue lost one or more Change-7 high-impact locators")
+
+    if not isinstance(sp158_card, dict):
+        errors.append("SP158 document card must be a mapping")
+        sp158_card = {}
+    render = sp158_card.get("source_render_state") or {}
+    if render.get("root_renderer_state") != "mixed_revision_not_current_consolidated":
+        errors.append("SP158 document card must flag GARANT root as mixed revision")
+    if render.get("root_renderer_must_not_prove_current_locator_text") is not True:
+        errors.append("SP158 root renderer must be forbidden as sole current-text proof")
+    conflicts = render.get("verified_conflicts") or []
+    for locator in {"5.2", "6.2.18", "6.2.19"}:
+        if not any(row.get("locator") == locator for row in conflicts if isinstance(row, dict)):
+            errors.append(f"SP158 document card missing verified root-render conflict for {locator}")
+    locators = sp158_card.get("locators") or []
+    state_by_locator = {
+        row.get("locator"): row.get("state")
+        for row in locators
+        if isinstance(row, dict) and isinstance(row.get("locator"), str)
+    }
+    for locator in {"5.2", "6.2.18", "6.2.19", "6.2.22", "6.3.4 Table 6.3 notes"}:
+        if state_by_locator.get(locator) != "authorized_amendment_text_verified_current_consolidated_locator_pending":
+            errors.append(f"SP158 {locator} must remain amendment-verified but current-locator pending")
 
     parking = registry.get("parking_reaudit")
     if not isinstance(parking, dict):
@@ -153,6 +202,8 @@ def main() -> int:
             errors.append("unresolved profiles must fail closed")
         if summary.get("parking_fire_route_current_document") != "SP_551_1311500_2026":
             errors.append("summary must route current parking fire extraction to SP551")
+        if summary.get("medical_current_consolidated_locator_PASS") != 0:
+            errors.append("summary must keep zero SP158 consolidated locator PASS")
 
     if errors:
         print("PRIMARY LOCATOR EXTRACTION VALIDATION FAILED")
@@ -161,8 +212,9 @@ def main() -> int:
         return 1
 
     print(
-        "OK: 5 P0 special profiles have fail-closed primary locator extraction queues; "
-        "parking reaudit is split into SP113 planning and SP551 fire targets; deleted SP113 fire locators are excluded."
+        "OK: 5 P0 special profiles remain fail-closed; SP158 Change 7 amendment evidence is tracked "
+        "without treating the mixed GARANT root renderer as consolidated current text; parking reaudit "
+        "remains split into SP113 planning and SP551 fire targets."
     )
     return 0
 

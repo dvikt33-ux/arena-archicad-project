@@ -1,4 +1,4 @@
-locator_registry_version: 7
+locator_registry_version: 8
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -6,7 +6,7 @@ purpose: "Единый индекс пунктов, таблиц и прилож
 
 proof_policy:
   official_clause_verified: "текст locator напрямую прочитан в допустимом первичном источнике"
-  authorized_locator_verified: "текст locator напрямую прочитан в авторизованной действующей системе либо однозначно восстановлен из полного текста замещающего изменения после проверки всех последующих изменений"
+  authorized_locator_verified: "текст locator напрямую прочитан в допустимой системе либо однозначно восстановлен из полного base+amendment chain после проверки revision inventory"
   inherited_scoped_pass: "locator уже закрыт отдельным durable audit/rule cycle; библиотека наследует PASS без переинтерпретации"
   existing_rule_traceability_pending: "production rule уже существует, но его locator еще не мигрирован в durable evidence chain; библиотека не повышает и не понижает правило автоматически"
   blocked_pending_locator: "точный действующий locator не прочитан; production promotion запрещен"
@@ -20,7 +20,6 @@ locators:
     rule_file: "../rules/15_roofs.yaml"
     change_map: "change_maps/SP_17_13330_2017.yaml"
     production_state: existing_scoped_pass_preserved
-    note: "Аудит 2026-10-01 фиксирует проверенную полную базовую таблицу уклонов по СП17 с Изм. №1-5."
 
   - document: SP_4_13130_2013
     locator: "Table 1"
@@ -31,38 +30,10 @@ locators:
     change_map: "change_maps/SP_4_13130_2013.yaml"
     production_state: existing_scoped_pass_preserved
 
-  - document: SP_2_13130_2020
-    locator: "Table 6.8"
-    topic: fire_compartment_F1_3
-    proof_state: inherited_scoped_pass
-    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
-    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
-    change_map: "change_maps/SP_2_13130_2020.yaml"
-    production_state: existing_scoped_pass_preserved
-  - document: SP_2_13130_2020
-    locator: "Table 6.9"
-    topic: fire_compartment_public_base_group
-    proof_state: inherited_scoped_pass
-    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
-    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
-    change_map: "change_maps/SP_2_13130_2020.yaml"
-    production_state: existing_scoped_pass_preserved
-  - document: SP_2_13130_2020
-    locator: "Table 6.10"
-    topic: fire_compartment_F3_5
-    proof_state: inherited_scoped_pass
-    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
-    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
-    change_map: "change_maps/SP_2_13130_2020.yaml"
-    production_state: existing_scoped_pass_preserved
-  - document: SP_2_13130_2020
-    locator: "Table 6.11"
-    topic: fire_compartment_F3_1
-    proof_state: inherited_scoped_pass
-    durable_audit: "../audits/2026-10-01_core_2027_cycle.md"
-    rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml"
-    change_map: "change_maps/SP_2_13130_2020.yaml"
-    production_state: existing_scoped_pass_preserved
+  - {document: SP_2_13130_2020, locator: "Table 6.8", topic: fire_compartment_F1_3, proof_state: inherited_scoped_pass, durable_audit: "../audits/2026-10-01_core_2027_cycle.md", rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "change_maps/SP_2_13130_2020.yaml", production_state: existing_scoped_pass_preserved}
+  - {document: SP_2_13130_2020, locator: "Table 6.9", topic: fire_compartment_public_base_group, proof_state: inherited_scoped_pass, durable_audit: "../audits/2026-10-01_core_2027_cycle.md", rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "change_maps/SP_2_13130_2020.yaml", production_state: existing_scoped_pass_preserved}
+  - {document: SP_2_13130_2020, locator: "Table 6.10", topic: fire_compartment_F3_5, proof_state: inherited_scoped_pass, durable_audit: "../audits/2026-10-01_core_2027_cycle.md", rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "change_maps/SP_2_13130_2020.yaml", production_state: existing_scoped_pass_preserved}
+  - {document: SP_2_13130_2020, locator: "Table 6.11", topic: fire_compartment_F3_1, proof_state: inherited_scoped_pass, durable_audit: "../audits/2026-10-01_core_2027_cycle.md", rule_file: "../rules/86_fire_compartment_base_matrices_2027.yaml", change_map: "change_maps/SP_2_13130_2020.yaml", production_state: existing_scoped_pass_preserved}
 
   - document: SP_20_13330_2016
     locator: "10.2 routing paragraphs 1-2"
@@ -72,15 +43,9 @@ locators:
     verified_amendments: [2, 3, 4, 5, 6]
     change_map: "change_maps/SP_20_13330_2016.yaml"
     production_state: routing_verified_numeric_value_not_generated
-    routing:
-      listed_settlement: Appendix_K
-      other_territory: snow_region_and_Table_10_1
+    routing: {listed_settlement: Appendix_K, other_territory: snow_region_and_Table_10_1}
     geographic_input_required: true
     appendix_K_table_required_for_listed_settlement_value: true
-    note: >-
-      Изм. №2 полностью заменяет 10.2 и вводит маршрут через приложение К; полные тексты
-      Изм. №3, №4 и №6 не затрагивают 10.2, а Изм. №5 меняет только третий абзац.
-      Старый корневой рендер ГАРАНТа признан непригодным для определения current text.
 
   - document: SP_20_13330_2016
     locator: "Appendix K"
@@ -100,70 +65,13 @@ locators:
     production_state: existing_rule_values_verified_current_text
     values_m2: {rooms_1: 28, rooms_2: 44, rooms_3: 56, rooms_4: 70, rooms_5: 84, rooms_6: 103}
     object_classes: [MKD]
+  - {document: SP_54_13330_2022, locator: "5.11", topic: room_areas_and_geometry, proof_state: authorized_locator_verified, rule_file: "../rules/35_residential_planning_minima.yaml", change_map: "change_maps/SP_54_13330_2022.yaml", source_url: "https://base.garant.ru/404976077/", production_state: existing_rule_values_verified_current_text, object_classes: [MKD]}
+  - {document: SP_54_13330_2022, locator: "5.12", topic: clear_height_by_climate_subregion, proof_state: authorized_locator_verified, rule_file: "../rules/35_residential_planning_minima.yaml", change_map: "change_maps/SP_54_13330_2022.yaml", source_url: "https://base.garant.ru/404976077/", production_state: existing_rule_values_verified_current_text, object_classes: [MKD], climate_input_required: true}
+  - {document: SP_54_13330_2022, locator: "A.1.4", topic: room_area_measurement, proof_state: authorized_locator_verified, rule_file: "../rules/35_residential_planning_minima.yaml", change_map: "change_maps/SP_54_13330_2022.yaml", source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/", production_state: existing_rule_values_verified_current_text, object_classes: [MKD]}
+  - {document: SP_54_13330_2022, locator: "A.1.4 note 1", topic: kitchen_niche_area, proof_state: authorized_locator_verified, rule_file: "../rules/35_residential_planning_minima.yaml", change_map: "change_maps/SP_54_13330_2022.yaml", source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/", production_state: existing_rule_values_verified_current_text, object_classes: [MKD]}
 
-  - document: SP_54_13330_2022
-    locator: "5.11"
-    topic: room_areas_and_geometry
-    proof_state: authorized_locator_verified
-    rule_file: "../rules/35_residential_planning_minima.yaml"
-    change_map: "change_maps/SP_54_13330_2022.yaml"
-    source_url: "https://base.garant.ru/404976077/"
-    production_state: existing_rule_values_verified_current_text
-    object_classes: [MKD]
-
-  - document: SP_54_13330_2022
-    locator: "5.12"
-    topic: clear_height_by_climate_subregion
-    proof_state: authorized_locator_verified
-    rule_file: "../rules/35_residential_planning_minima.yaml"
-    change_map: "change_maps/SP_54_13330_2022.yaml"
-    source_url: "https://base.garant.ru/404976077/"
-    production_state: existing_rule_values_verified_current_text
-    object_classes: [MKD]
-    climate_input_required: true
-
-  - document: SP_54_13330_2022
-    locator: "A.1.4"
-    topic: room_area_measurement
-    proof_state: authorized_locator_verified
-    rule_file: "../rules/35_residential_planning_minima.yaml"
-    change_map: "change_maps/SP_54_13330_2022.yaml"
-    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
-    production_state: existing_rule_values_verified_current_text
-    object_classes: [MKD]
-
-  - document: SP_54_13330_2022
-    locator: "A.1.4 note 1"
-    topic: kitchen_niche_area
-    proof_state: authorized_locator_verified
-    rule_file: "../rules/35_residential_planning_minima.yaml"
-    change_map: "change_maps/SP_54_13330_2022.yaml"
-    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
-    production_state: existing_rule_values_verified_current_text
-    object_classes: [MKD]
-
-  - document: SP_252_1325800_2016
-    locator: "1.1"
-    topic: preschool_scope
-    proof_state: authorized_locator_verified
-    verification_method: direct_latest_GARANT_amendment_full_replacement
-    latest_change: 3
-    source_url: "https://base.garant.ru/411475407/"
-    change_map: "change_maps/SP_252_1325800_2016.yaml"
-    production_state: evidence_verified_no_machine_rule_created
-    object_classes: [PUBLIC, MKD, MIXED_USE]
-
-  - document: SP_252_1325800_2016
-    locator: "1.2"
-    topic: embedded_attached_preschool_scope
-    proof_state: authorized_locator_verified
-    verification_method: direct_latest_GARANT_amendment_full_replacement
-    latest_change: 3
-    source_url: "https://base.garant.ru/411475407/"
-    change_map: "change_maps/SP_252_1325800_2016.yaml"
-    production_state: evidence_verified_no_machine_rule_created
-    object_classes: [PUBLIC, MKD, MIXED_USE]
-
+  - {document: SP_252_1325800_2016, locator: "1.1", topic: preschool_scope, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_full_replacement, latest_change: 3, source_url: "https://base.garant.ru/411475407/", change_map: "change_maps/SP_252_1325800_2016.yaml", production_state: evidence_verified_no_machine_rule_created, object_classes: [PUBLIC, MKD, MIXED_USE]}
+  - {document: SP_252_1325800_2016, locator: "1.2", topic: embedded_attached_preschool_scope, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_full_replacement, latest_change: 3, source_url: "https://base.garant.ru/411475407/", change_map: "change_maps/SP_252_1325800_2016.yaml", production_state: evidence_verified_no_machine_rule_created, object_classes: [PUBLIC, MKD, MIXED_USE]}
   - document: SP_252_1325800_2016
     locator: "6.2.4"
     topic: play_area_per_child
@@ -173,13 +81,7 @@ locators:
     source_url: "https://base.garant.ru/411475407/"
     change_map: "change_maps/SP_252_1325800_2016.yaml"
     production_state: evidence_verified_no_machine_rule_created
-    values:
-      child_2_months_to_3_years_min_m2_per_child: 7.0
-      child_3_to_7_years_min_m2_per_child: 9.0
-      heated_veranda_min_m2_per_child: 2.0
-      specialized_under_4_years_range_m2_per_child: [5, 7]
-      specialized_to_7_years_range_m2_per_child: [7, 10]
-
+    values: {child_2_months_to_3_years_min_m2_per_child: 7.0, child_3_to_7_years_min_m2_per_child: 9.0, heated_veranda_min_m2_per_child: 2.0, specialized_under_4_years_range_m2_per_child: [5, 7], specialized_to_7_years_range_m2_per_child: [7, 10]}
   - document: SP_252_1325800_2016
     locator: "6.2.8"
     topic: physical_culture_site_areas
@@ -189,33 +91,35 @@ locators:
     source_url: "https://base.garant.ru/411475407/"
     change_map: "change_maps/SP_252_1325800_2016.yaml"
     production_state: evidence_verified_no_machine_rule_created
-    values_m2:
-      capacity_up_to_150_one_area_min: 200
-      capacity_over_150_first_area_min: 120
-      capacity_over_150_second_area_min: 200
+    values_m2: {capacity_up_to_150_one_area_min: 200, capacity_over_150_first_area_min: 120, capacity_over_150_second_area_min: 200}
+  - {document: SP_252_1325800_2016, locator: "7.1.2", topic: embedded_attached_preschool_capacity, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_full_replacement, latest_change: 3, source_url: "https://base.garant.ru/411475407/", change_map: "change_maps/SP_252_1325800_2016.yaml", production_state: evidence_verified_no_machine_rule_created, max_capacity_places: 150, object_classes: [MKD, PUBLIC, MIXED_USE]}
+  - {document: SP_252_1325800_2016, locator: "7.2.2.7", topic: group_cell_open_or_veranda_area, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_full_replacement, latest_change: 3, source_url: "https://base.garant.ru/411475407/", change_map: "change_maps/SP_252_1325800_2016.yaml", production_state: evidence_verified_no_machine_rule_created, min_m2_per_child: 2.0}
 
-  - document: SP_252_1325800_2016
-    locator: "7.1.2"
-    topic: embedded_attached_preschool_capacity
+  - document: SP_257_1325800_2020
+    locator: "5.3"
+    topic: hotel_parking_and_EV_charging
     proof_state: authorized_locator_verified
-    verification_method: direct_latest_GARANT_amendment_full_replacement
-    latest_change: 3
-    source_url: "https://base.garant.ru/411475407/"
-    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    verification_method: direct_GARANT_base_plus_latest_amendment_chain_reconstruction
+    source_urls: ["https://base.garant.ru/400535863/#block_503", "https://base.garant.ru/408657541/"]
+    verified_changes: [1]
+    change_map: "change_maps/SP_257_1325800_2020.yaml"
     production_state: evidence_verified_no_machine_rule_created
-    max_capacity_places: 150
-    object_classes: [MKD, PUBLIC, MIXED_USE]
+    values: {bus_place_parallel_m: [14.0, 3.5], bus_place_perpendicular_m: [12.5, 3.5]}
+    routes: {parking: [SP_42_13330, SP_113_13330], EV_demand: design_brief_but_not_less_than_SP118}
 
-  - document: SP_252_1325800_2016
-    locator: "7.2.2.7"
-    topic: group_cell_open_or_veranda_area
-    proof_state: authorized_locator_verified
-    verification_method: direct_latest_GARANT_amendment_full_replacement
-    latest_change: 3
-    source_url: "https://base.garant.ru/411475407/"
-    change_map: "change_maps/SP_252_1325800_2016.yaml"
-    production_state: evidence_verified_no_machine_rule_created
-    min_m2_per_child: 2.0
+  - {document: SP_56_13330_2021, locator: "5.1.1", topic: production_room_clear_heights, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}}
+  - {document: SP_56_13330_2021, locator: "5.1.2", topic: vehicle_and_fire_vehicle_clear_height, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values_m: {general_vehicle_min: 4.2, fire_vehicle_min: 4.5}}
+  - {document: SP_56_13330_2021, locator: "5.1.3", topic: suspended_ceiling_false_floor_and_technical_floor_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_56_13330_2021, locator: "5.1.4", topic: railway_track_entry, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_56_13330_2021, locator: "5.1.5", topic: passenger_lift_trigger, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values: {building_height_over_m: 15, work_or_service_level_over_m: 12, service_frequency_over_per_shift: 3}}
+  - {document: SP_56_13330_2021, locator: "5.4.4.5", topic: loading_ramps_platforms_and_canopies, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values_m: {rail_canopy_axis_overlap_min: 0.5, road_canopy_beyond_ramp_edge_min: 1.5}}
+  - {document: SP_56_13330_2021, locator: "5.4.4.9", topic: road_loading_ramp_edge_level, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, value_m: 1.2}
+  - {document: SP_56_13330_2021, locator: "5.4.4.11", topic: industrial_vehicle_ramp_width_and_slope, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}}
+  - {document: SP_56_13330_2021, locator: "6.2.2", topic: category_placement_egress_smoke_airlocks_stairs_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, routes: [SP_1_13130, SP_4_13130, SP_7_13130]}
+  - {document: SP_56_13330_2021, locator: "6.2.18", topic: egress_exit_width_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, table_route: "Table 6.3", MGN_min_width_m: 0.9}
+  - {document: SP_56_13330_2021, locator: "6.2.22", topic: fire_compartment_height_area_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, production_table: "Table 6.5", storage_table: "Table 6.6"}
+  - {document: SP_56_13330_2021, locator: "Appendix A.1", topic: total_building_area_and_mezzanine_platform_inclusion, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_no_registered_changes, source_url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_56_13330_2021, locator: "Appendix A.2", topic: fire_compartment_floor_area_platform_mezzanine_semantics, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_no_registered_changes, source_url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, threshold_percent: 40}
 
   - document: SP_55_13330_2016
     locator: "9.18"
@@ -225,93 +129,27 @@ locators:
     production_state: blocked
     effect: no_production_daylight_ratio
 
-  - document: SP_402_1325800_2018
-    locator: "5.1"
-    topics: [stove_room_height, ventilation_interfaces, door_air_inlet, minimum_volume_by_burners]
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.5"
-    topics: [combined_equipment_volume, separate_heat_generator_room]
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: partial_rules_present_with_ambiguity_gate
-    known_ambiguity: true
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.9"
-    topic: natural_ventilation
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.10"
-    topic: lightweight_explosion_relief
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.11"
-    topic: gas_equipment_room_door_swing
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.12"
-    topic: equipment_clearance_by_manufacturer
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD]
-  - document: SP_402_1325800_2018
-    locator: "5.16"
-    topics: [mkd_gas_stove_kitchen_niche, mkd_route]
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml"
-    change_map: "change_maps/SP_402_1325800_2018.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [MKD]
-    forbidden_for_IZHS: true
+  - {document: SP_402_1325800_2018, locator: "5.1", topics: [stove_room_height, ventilation_interfaces, door_air_inlet, minimum_volume_by_burners], proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.5", topics: [combined_equipment_volume, separate_heat_generator_room], proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: partial_rules_present_with_ambiguity_gate, known_ambiguity: true, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.9", topic: natural_ventilation, proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.10", topic: lightweight_explosion_relief, proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.11", topic: gas_equipment_room_door_swing, proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.12", topic: equipment_clearance_by_manufacturer, proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD]}
+  - {document: SP_402_1325800_2018, locator: "5.16", topics: [mkd_gas_stove_kitchen_niche, mkd_route], proof_state: existing_rule_traceability_pending, rule_file: "../rules/100_residential_gas_architectural_interfaces_2027.yaml", change_map: "change_maps/SP_402_1325800_2018.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [MKD], forbidden_for_IZHS: true}
 
-  - document: GOST_25772_2025
-    locator: "4.2, Table 1"
-    topic: metal_guardrail_type_classification
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/07_guardrails_roofs.yaml"
-    change_map: "change_maps/GOST_25772_2025.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
-    role: product_classification_only
-  - document: GOST_25772_2025
-    locator: "5.1.1, Table 3"
-    topic: standard_product_geometry
-    proof_state: existing_rule_traceability_pending
-    rule_file: "../rules/07_guardrails_roofs.yaml"
-    change_map: "change_maps/GOST_25772_2025.yaml"
-    production_state: preserve_existing_rule_pending_durable_evidence_migration
-    object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
-    role: product_geometry_only
-    project_requirement_source_required: true
+  - {document: GOST_25772_2025, locator: "4.2, Table 1", topic: metal_guardrail_type_classification, proof_state: existing_rule_traceability_pending, rule_file: "../rules/07_guardrails_roofs.yaml", change_map: "change_maps/GOST_25772_2025.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL], role: product_classification_only}
+  - {document: GOST_25772_2025, locator: "5.1.1, Table 3", topic: standard_product_geometry, proof_state: existing_rule_traceability_pending, rule_file: "../rules/07_guardrails_roofs.yaml", change_map: "change_maps/GOST_25772_2025.yaml", production_state: preserve_existing_rule_pending_durable_evidence_migration, object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL], role: product_geometry_only, project_requirement_source_required: true}
 
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
-  authorized_locator_verified: 12
+  authorized_locator_verified: 26
   authorized_locator_verified_by_document:
     SP_20_13330_2016: 1
     SP_54_13330_2022: 5
     SP_252_1325800_2016: 6
+    SP_257_1325800_2020: 1
+    SP_56_13330_2021: 13
   existing_rule_traceability_pending_locators: 9
   blocked_pending_locator: 2
   blocked_locators_with_change_maps: 2

@@ -1,4 +1,4 @@
-locator_registry_version: 5
+locator_registry_version: 6
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -90,6 +90,58 @@ locators:
     production_state: blocked
     effect: no_automatic_Appendix_K_snow_value
 
+  - document: SP_54_13330_2022
+    locator: "5.2; Table 5.1"
+    topic: apartment_area_reference
+    proof_state: authorized_locator_verified
+    rule_file: "../rules/35_residential_planning_minima.yaml"
+    change_map: "change_maps/SP_54_13330_2022.yaml"
+    source_url: "https://base.garant.ru/404976077/"
+    production_state: existing_rule_values_verified_current_text
+    values_m2: {rooms_1: 28, rooms_2: 44, rooms_3: 56, rooms_4: 70, rooms_5: 84, rooms_6: 103}
+    object_classes: [MKD]
+
+  - document: SP_54_13330_2022
+    locator: "5.11"
+    topic: room_areas_and_geometry
+    proof_state: authorized_locator_verified
+    rule_file: "../rules/35_residential_planning_minima.yaml"
+    change_map: "change_maps/SP_54_13330_2022.yaml"
+    source_url: "https://base.garant.ru/404976077/"
+    production_state: existing_rule_values_verified_current_text
+    object_classes: [MKD]
+
+  - document: SP_54_13330_2022
+    locator: "5.12"
+    topic: clear_height_by_climate_subregion
+    proof_state: authorized_locator_verified
+    rule_file: "../rules/35_residential_planning_minima.yaml"
+    change_map: "change_maps/SP_54_13330_2022.yaml"
+    source_url: "https://base.garant.ru/404976077/"
+    production_state: existing_rule_values_verified_current_text
+    object_classes: [MKD]
+    climate_input_required: true
+
+  - document: SP_54_13330_2022
+    locator: "A.1.4"
+    topic: room_area_measurement
+    proof_state: authorized_locator_verified
+    rule_file: "../rules/35_residential_planning_minima.yaml"
+    change_map: "change_maps/SP_54_13330_2022.yaml"
+    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+    production_state: existing_rule_values_verified_current_text
+    object_classes: [MKD]
+
+  - document: SP_54_13330_2022
+    locator: "A.1.4 note 1"
+    topic: kitchen_niche_area
+    proof_state: authorized_locator_verified
+    rule_file: "../rules/35_residential_planning_minima.yaml"
+    change_map: "change_maps/SP_54_13330_2022.yaml"
+    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+    production_state: existing_rule_values_verified_current_text
+    object_classes: [MKD]
+
   - document: SP_55_13330_2016
     locator: "9.18"
     topic: daylight_window_to_floor_ratio
@@ -180,7 +232,10 @@ locators:
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
-  authorized_locator_verified: 1
+  authorized_locator_verified: 6
+  authorized_locator_verified_by_document:
+    SP_20_13330_2016: 1
+    SP_54_13330_2022: 5
   existing_rule_traceability_pending_locators: 9
   blocked_pending_locator: 2
   blocked_locators_with_change_maps: 2

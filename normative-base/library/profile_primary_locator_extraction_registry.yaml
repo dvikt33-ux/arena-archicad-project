@@ -1,4 +1,4 @@
-registry_version: 3
+registry_version: 4
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -21,6 +21,7 @@ invariants:
   - deleted_locator_is_not_a_current_extraction_target
   - browser_connection_state_never_changes_evidence_state_by_itself
   - mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence
+  - official_provider_review_is_corroboration_not_direct_locator_proof
 
 states:
   blocked_pending_direct_current_locator: >-
@@ -34,12 +35,26 @@ profiles:
   SCHOOL_GENERAL_EDUCATION:
     primary_document: SP_251_1325800_2016
     change_map: change_maps/SP_251_1325800_2016.yaml
-    state: source_chain_ready_locator_pending
+    state: blocked_pending_direct_current_locator
     current_revision: {latest_change: 7, effective_from: 2026-01-01}
     official_card: "https://protect.gost.ru/sp/details/865856cf-0de3-4d58-a491-c2e301eb69a1"
     host_class: PUBLIC
     scope_gate: general_education_school_or_school_complex
-    direct_locator_access: not_yet_read_in_connected_session
+    direct_locator_access: authorized_GARANT_root_stale
+    root_renderer_state: stale_or_mixed_revision_not_current_consolidated
+    current_locator_priority:
+      first_pass: ["6.3", "Table 6.1 note 4"]
+      second_pass:
+        - "1.1-1.3 scope"
+        - "site_and_functional_zoning_core_locators"
+        - "classroom_and_laboratory_area_tables"
+        - "floor_and_vertical_placement_core_locators"
+        - "sanitary_foodservice_interfaces"
+        - "sports_and_assembly_space_interfaces"
+    change7_provider_corroboration:
+      engineering_network_site_rules_changed: true
+      sports_zone_running_track_exception_changed: true
+      reported_values_are_not_locator_PASS: true
     target_topics:
       - site_and_functional_zoning
       - room_composition_and_minimum_areas
@@ -216,6 +231,8 @@ summary:
   profiles_with_numeric_promotion: 0
   parking_reaudit_active: true
   parking_fire_route_current_document: SP_551_1311500_2026
+  school_change7_substantive_effect_detected: true
+  school_current_consolidated_locator_PASS: 0
   medical_change7_direct_amendment_text_read: true
   medical_current_consolidated_locator_PASS: 0
   unresolved_profiles_fail_closed: true

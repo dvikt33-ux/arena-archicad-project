@@ -7,8 +7,8 @@ checked_at: 2026-10-04
 production_authority: false
 scope_tags: [PUBLIC, EDUCATION, PRESCHOOL]
 object_class_router:
-  include_when_subject_applies: [PUBLIC]
-  gate: preschool_organization_building
+  include_when_subject_applies: [PUBLIC, MKD, MIXED_USE]
+  gate: preschool_organization_or_classified_preschool_zone
 revision:
   verified_changes: [1, 2, 3]
   latest_change: 3
@@ -20,14 +20,39 @@ proof:
 change_map: "../change_maps/SP_252_1325800_2016.yaml"
 scope:
   proof_state: official_card_verified
-  note: "New and reconstructed preschool educational organization buildings."
-locator_research:
-  state: source_chain_ready_locator_pending
-  queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: unavailable_in_current_session
+  note: >-
+    Preschool educational organization buildings and, under Change 3 scope conditions,
+    applicable embedded/attached preschool organizations in residential, public and multifunctional hosts.
+source_evidence:
+  direct_change3_url: "https://base.garant.ru/411475407/"
+  direct_change3_text_state: amendment_text_read_directly_public_GARANT
+  role: change_impact_mapping_only
   production_promotion_allowed: false
-locators: []
+locator_research:
+  state: blocked_pending_direct_current_locator
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: change3_amendment_text_read_consolidated_locator_pending
+  production_promotion_allowed: false
+  priority: P0_high_due_to_substantive_change3
+locators:
+  - {locator: "1.1", topic: preschool_scope, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "1.2", topic: embedded_attached_preschool_scope, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "4.1-4.7", topic: preschool_types_capacity_and_general_provisions, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "5.2", topic: territorial_accessibility, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "5.3", topic: shared_school_preschool_complex_route, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "6.1", topic: site_access_and_mobility_storage, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "6.2.3", topic: group_play_area_organization, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "6.2.4", topic: play_area_per_child, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "6.2.8", topic: physical_culture_site_areas, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.1.1", topic: host_building_normative_routes, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.1.2", topic: embedded_attached_capacity, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.1.7", topic: floor_and_level_placement, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.1.8", topic: group_isolation, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.2.2.1", topic: group_cell_composition, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "7.2.2.7", topic: group_cell_open_or_veranda_area, state: amendment_text_verified_current_consolidated_locator_pending}
 release_gates:
-  - exact_locator_evidence_required_for_numeric_rules
-  - preschool_profile_required
-  - school_or_SP118_rules_do_not_close_SP252_specific_gap
+  - exact_current_locator_evidence_required_before_numeric_or_imperative_rule_creation
+  - direct_change3_amendment_values_do_not_count_as_current_consolidated_locator_PASS
+  - preschool_zone_classification_required_when_embedded_or_attached
+  - host_building_general_rules_do_not_close_SP252_specific_gap
+  - school_rules_do_not_substitute_preschool_requirements

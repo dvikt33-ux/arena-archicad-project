@@ -13,10 +13,19 @@ revision:
   verified_changes: [1, 2]
   latest_change: 2
   latest_change_effective_from: 2025-02-25
+  effective_date_authority: Rosstandart
+  metadata_conflicts:
+    - source: GARANT_change_1_page
+      displayed_effective_from: 2024-10-10
+      official_Rosstandart_effective_from: 2024-10-17
+    - source: GARANT_change_2_page
+      displayed_effective_from: 2025-08-22
+      official_Rosstandart_effective_from: 2025-02-25
 proof:
-  state: official_card_verified
-  authority: Rosstandart
+  state: authorized_locator_verified
+  authority: [Rosstandart, GARANT]
   official_url: "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
+  current_text_url: "https://base.garant.ru/404976077/"
 scope:
   proof_state: official_card_verified
   note: "Primary functional code for multifamily residential buildings within its official scope."
@@ -24,12 +33,49 @@ change_map: "../change_maps/SP_54_13330_2022.yaml"
 rule_files:
   - "../../rules/35_residential_planning_minima.yaml"
 locators:
-  - {locator: "5.2; table 5.1", state: existing_rule_traceability_pending}
-  - {locator: "5.11", state: existing_rule_traceability_pending}
-  - {locator: "5.12", state: existing_rule_traceability_pending}
-  - {locator: "A.1.4", state: existing_rule_traceability_pending}
-  - {locator: "A.1.4 note 1", state: existing_rule_traceability_pending}
+  - locator: "5.2; table 5.1"
+    state: authorized_locator_verified
+    source_url: "https://base.garant.ru/404976077/"
+    values_m2: {rooms_1: 28, rooms_2: 44, rooms_3: 56, rooms_4: 70, rooms_5: 84, rooms_6: 103}
+    note: "Проверять условия допустимого отклонения и жилищный режим; не трактовать таблицу как безусловный hard minimum вне ее условий."
+  - locator: "5.11"
+    state: authorized_locator_verified
+    source_url: "https://base.garant.ru/404976077/"
+    values_m2:
+      living_1room_min: 14
+      living_multiroom_min: 16
+      bedroom_min: 8
+      bedroom_two_person_min: 10
+      kitchen_min: 8
+      kitchen_dining_zone_min: 6
+      one_room_kitchen_or_niche_min: 5
+      attic_bedroom_or_kitchen_min: 7
+      attic_living_room_required_min: 16
+    note: "Численные площади не отменяют эргономическую проверку габаритов и расстановки мебели/оборудования."
+  - locator: "5.12"
+    state: authorized_locator_verified
+    source_url: "https://base.garant.ru/404976077/"
+    values_m:
+      IA_IB_IG_ID_IVA_living_kitchen_min: 2.7
+      other_climate_subregions_living_kitchen_min: 2.5
+      corridor_hall_anteroom_mezzanine_min: 2.1
+    sloped_or_attic_reduced_height_max_area_fraction: 0.5
+  - locator: "A.1.4"
+    state: authorized_locator_verified
+    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+    measurement_height_m: [0.0, 1.10]
+    excluded_from_dimension: [baseboards, decorative_elements, cable_ducts, heating_systems, air_conditioning_systems]
+  - locator: "A.1.4 note 1"
+    state: authorized_locator_verified
+    source_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+    rule: kitchen_niche_area_is_calculated_separately_from_adjacent_room
 release_gates:
-  - exact_locator_evidence_required_for_numeric_rules
   - do_not_apply_to_IZHS_by_residential_name_only
-  - change2_card_never_counts_as_current_locator_text
+  - table_5_1_conditions_and_housing_regime_must_be_checked
+  - climate_subregion_required_for_5_12
+  - later_change_requires_affected_locator_reaudit
+  - official_Rosstandart_revision_dates_override_conflicting_GARANT_display_dates
+production_impact:
+  existing_rule_values_match_verified_text: true
+  numeric_values_changed: false
+  numeric_rules_changed: false

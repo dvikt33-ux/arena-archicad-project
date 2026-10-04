@@ -1,4 +1,4 @@
-registry_version: 1
+registry_version: 2
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -18,6 +18,7 @@ invariants:
   - general_SP118_or_host_building_rules_never_fill_missing_special_profile_requirement
   - embedded_special_zone_requires_explicit_zone_classification
   - unresolved_locator_returns_profile_requirement_pending_not_inferred_value
+  - deleted_locator_is_not_a_current_extraction_target
 
 states:
   blocked_pending_direct_current_locator: >-
@@ -129,33 +130,52 @@ profiles:
     production_promotion_allowed: false
 
 parking_reaudit:
-  document: SP_113_13330_2023
-  change_map: change_maps/SP_113_13330_2023.yaml
-  current_revision: {latest_change: 4, effective_from: 2026-10-03}
+  planning_document: SP_113_13330_2023
+  planning_change_map: change_maps/SP_113_13330_2023.yaml
+  fire_document: SP_551_1311500_2026
+  fire_change_map: change_maps/SP_551_1311500_2026.yaml
+  current_revisions:
+    SP113: {latest_change: 4, effective_from: 2026-10-03}
+    SP551: {latest_change: null, effective_from: 2026-06-01}
   state: blocked_pending_direct_current_locator
   note: >-
-    Existing parking machine rules remain preserved, but Change 4 current locators must be read
-    before any new library PASS or reinterpretation.
-  priority_locators:
+    Change 4 deleted legacy SP113 fire locators. Current extraction is therefore split: SP113 for
+    planning/geometry and SP551 for fire protection. No new PASS until each target locator is
+    directly read under the accepted evidence policy.
+  planning_priority_locators:
     - "Appendix A; Table A.1"
     - "Appendix A; Table A.1 note 4"
     - "4.4"
     - "5.4"
     - "5.6"
-    - "6.2.12"
-    - "6.2.30"
-    - "7.10.2"
+    - "5.26"
+    - "5.42"
+    - "5.43"
+    - "7.1.4"
     - "7.10.5"
+  fire_priority_locators:
+    - "SP551 7.3"
+    - "SP551 7.4"
+    - "SP551 7.5"
+    - "SP551 7.6"
+    - "SP551 12.6"
+    - "SP551 12.7"
+  superseded_not_current_targets:
+    - {document: SP_113_13330_2023, locator: "6.2.12", state: deleted_by_change4}
+    - {document: SP_113_13330_2023, locator: "6.2.30", state: deleted_by_change4}
+    - {document: SP_113_13330_2023, locator: "7.10.2", state: deleted_by_change4}
   production_promotion_allowed: false
 
 session_source_status:
   authorized_opera_connector: disconnected
   official_public_cards: available
   official_minstroy_publication_index: available_but_no_consolidated_locator_read
+  current_public_GARANT_Consultant_text: corroboration_and_stale_detection_only
   secondary_sources_allowed_role: locator_discovery_only_if_needed
 
 summary:
   P0_profiles_in_primary_extraction_queue: 5
   profiles_with_numeric_promotion: 0
   parking_reaudit_active: true
+  parking_fire_route_current_document: SP_551_1311500_2026
   unresolved_profiles_fail_closed: true

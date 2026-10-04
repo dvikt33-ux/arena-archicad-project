@@ -1,4 +1,4 @@
-locator_registry_version: 8
+locator_registry_version: 9
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -106,6 +106,17 @@ locators:
     production_state: evidence_verified_no_machine_rule_created
     values: {bus_place_parallel_m: [14.0, 3.5], bus_place_perpendicular_m: [12.5, 3.5]}
     routes: {parking: [SP_42_13330, SP_113_13330], EV_demand: design_brief_but_not_less_than_SP118}
+  - {document: SP_257_1325800_2020, locator: "6.2.3", topic: room_types_and_percentage_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.4", topic: highest_category_room_composition_area_and_equipment, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.5", topic: in_room_bathroom_share, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.6", topic: common_sanitary_rooms, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.7", topic: accessible_guestrooms, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.8", topic: room_and_apartment_options, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.9", topic: room_and_entrance_widths, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.10", topic: balcony_loggia_guardrail, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "6.2.11", topic: acoustic_separation, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "Appendix B; Table B.1", topic: hotel_room_area_measurement, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_257_1325800_2020, locator: "Appendix G; Table G.1", topic: guestroom_minimum_areas_by_category, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_plus_latest_amendment_inventory, change_map: "change_maps/SP_257_1325800_2020.yaml", production_state: evidence_verified_no_machine_rule_created}
 
   - {document: SP_56_13330_2021, locator: "5.1.1", topic: production_room_clear_heights, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}}
   - {document: SP_56_13330_2021, locator: "5.1.2", topic: vehicle_and_fire_vehicle_clear_height, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values_m: {general_vehicle_min: 4.2, fire_vehicle_min: 4.5}}
@@ -117,9 +128,23 @@ locators:
   - {document: SP_56_13330_2021, locator: "5.4.4.11", topic: industrial_vehicle_ramp_width_and_slope, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_no_registered_changes, source_url: "https://base.garant.ru/403556718/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}}
   - {document: SP_56_13330_2021, locator: "6.2.2", topic: category_placement_egress_smoke_airlocks_stairs_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, routes: [SP_1_13130, SP_4_13130, SP_7_13130]}
   - {document: SP_56_13330_2021, locator: "6.2.18", topic: egress_exit_width_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, table_route: "Table 6.3", MGN_min_width_m: 0.9}
+  - {document: SP_56_13330_2021, locator: "Table 6.3", topic: egress_people_per_m_width_matrix, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_machine_normalization_pending}
   - {document: SP_56_13330_2021, locator: "6.2.22", topic: fire_compartment_height_area_route, proof_state: authorized_locator_verified, verification_method: direct_GARANT_2021_comparison_side_no_registered_changes, source_url: "https://base.garant.ru/77100489/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, production_table: "Table 6.5", storage_table: "Table 6.6"}
   - {document: SP_56_13330_2021, locator: "Appendix A.1", topic: total_building_area_and_mezzanine_platform_inclusion, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_no_registered_changes, source_url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created}
   - {document: SP_56_13330_2021, locator: "Appendix A.2", topic: fire_compartment_floor_area_platform_mezzanine_semantics, proof_state: authorized_locator_verified, verification_method: direct_GARANT_appendix_no_registered_changes, source_url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/", change_map: "change_maps/SP_56_13330_2021.yaml", production_state: evidence_verified_no_machine_rule_created, threshold_percent: 40}
+
+  - {document: SP_118_13330_2022, locator: "5.16", topic: passenger_lift_distance_and_lobby_width, proof_state: authorized_locator_verified, verification_method: direct_GARANT_full_amendment_chain, source_urls: ["https://base.garant.ru/404976079/", "https://base.garant.ru/408070017/"], change_map: "change_maps/SP_118_13330_2022.yaml", rule_file: "../rules/59_public_lift_lobby_exceptions.yaml", production_state: existing_rule_values_verified_current_text}
+  - {document: SP_118_13330_2022, locator: "5.54", topic: public_sanitary_room_applicability, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_changes_1_5_impact_review, source_url: "https://base.garant.ru/404976079/", change_map: "change_maps/SP_118_13330_2022.yaml", rule_file: "../rules/43_public_sanitary_facilities.yaml", production_state: existing_rule_values_verified_current_text}
+  - {document: SP_118_13330_2022, locator: "5.55", topic: sanitary_fixture_counts, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_changes_1_5_impact_review, source_url: "https://base.garant.ru/404976079/", change_map: "change_maps/SP_118_13330_2022.yaml", rule_file: "../rules/43_public_sanitary_facilities.yaml", production_state: existing_rule_values_verified_current_text}
+  - {document: SP_118_13330_2022, locator: "5.57", topic: visitor_toilet_max_distance, proof_state: authorized_locator_verified, verification_method: direct_GARANT_base_plus_changes_1_5_impact_review, source_url: "https://base.garant.ru/404976079/", change_map: "change_maps/SP_118_13330_2022.yaml", rule_file: "../rules/43_public_sanitary_facilities.yaml", production_state: existing_rule_values_verified_current_text}
+
+  - {document: SP_464_1325800_2019, locator: "1.1 second paragraph", topic: embedded_trade_and_foodservice_scope, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_464_1325800_2019, locator: "5.3", topic: parking_and_EV_route, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_464_1325800_2019, locator: "6.20 third paragraph", topic: loading_zone_typology, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_464_1325800_2019, locator: "6.21", topic: canopy_over_open_loading_places, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", rule_file: "../rules/89_trk_loading_logistics_2027.yaml", production_state: existing_rule_semantics_verified_current_text}
+  - {document: SP_464_1325800_2019, locator: "6.24-6.32", topic: foodservice_and_foodcourt_planning, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: evidence_verified_no_machine_rule_created}
+  - {document: SP_464_1325800_2019, locator: "8.6 first sentence", topic: sales_hall_evacuation_routes, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: existing_rule_semantics_verified_current_text}
+  - {document: SP_464_1325800_2019, locator: "9.2", topic: fire_safety_route_including_SP456, proof_state: authorized_locator_verified, verification_method: direct_latest_GARANT_amendment_exact_text, latest_change: 1, source_url: "https://base.garant.ru/408556999/", change_map: "change_maps/SP_464_1325800_2019.yaml", production_state: evidence_verified_no_machine_rule_created}
 
   - document: SP_55_13330_2016
     locator: "9.18"
@@ -143,13 +168,15 @@ locators:
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
-  authorized_locator_verified: 26
+  authorized_locator_verified: 49
   authorized_locator_verified_by_document:
     SP_20_13330_2016: 1
     SP_54_13330_2022: 5
     SP_252_1325800_2016: 6
-    SP_257_1325800_2020: 1
-    SP_56_13330_2021: 13
+    SP_257_1325800_2020: 12
+    SP_56_13330_2021: 14
+    SP_118_13330_2022: 4
+    SP_464_1325800_2019: 7
   existing_rule_traceability_pending_locators: 9
   blocked_pending_locator: 2
   blocked_locators_with_change_maps: 2

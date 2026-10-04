@@ -1,0 +1,132 @@
+audit_id: SP113_CHANGE4_SP551_TRANSITION_2026_10_04
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+status: corrected_fail_closed_pending_SP551_locator_attestation
+production_authority: false
+
+trigger:
+  document: SP_113_13330_2023
+  change: 4
+  effective_from: 2026-10-03
+  reason: >-
+    Change 4 is substantive, not reference-only. It deletes legacy parking-fire clauses used by
+    existing EV charging rules and therefore requires immediate stale-rule removal.
+
+revision_evidence:
+  SP113_change4:
+    official_metadata_authority: Rosstandart
+    official_card: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+    order: "584/пр"
+    approved_at: 2026-09-02
+    registered_at: 2026-09-23
+    effective_from: 2026-10-03
+    official_change_kind: textual_and_reference_updates
+  SP551:
+    document: SP_551_1311500_2026
+    effective_from: 2026-06-01
+    official_card: "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+    current_public_text:
+      - "https://base.garant.ru/414155787/"
+      - "https://www.consultant.ru/document/cons_doc_LAW_534132/"
+    evidence_limit: >-
+      Current public text is used for corroboration and stale-rule detection. New numeric fire
+      values are not granted library PASS until locator-level verification satisfies project policy.
+
+SP113_change4_effects_relevant_to_existing_rules:
+  deleted:
+    - locator: "6.2.12"
+      former_topic: EV_fire_sectioning
+    - locator: "6.2.30"
+      former_topic: EV_automatic_fire_suppression
+    - locator: "7.10.2"
+      former_topic: EV_allowed_scope_and_deep_underground_charge
+  fire_transition:
+    - locator: "6.2.1"
+      state: replaced_with_generic_current_fire_requirements_route
+    - locator_range: "6.2.2-6.2.36"
+      state: deleted
+    - document_role_2027: "SP113 planning/geometry; SP551 parking fire protection"
+  planning_changes_requiring_separate_direct_migration:
+    - "5.42 added"
+    - "5.43 added"
+    - "7.1.4 exception added"
+    - "4.4 changed"
+    - "5.26 wording changed"
+    - "Appendix A Table A.1 note 4 terminology changed"
+
+stale_production_rules_found:
+  file: "../rules/102_ev_charging_parking_architectural_interfaces_2027.yaml"
+  obsolete_sources:
+    - "SP113 6.2.12"
+    - "SP113 6.2.30"
+    - "SP113 7.10.2"
+  obsolete_generated_values_removed:
+    - "legacy EV fire-section area 1200 m2"
+    - "legacy combustible-load-free separation width 8 m"
+    - "legacy active-barrier separation width 6 m"
+    - "legacy AUPT requirement sourced from deleted SP113 6.2.30"
+  resolution_commit: "c8b266b11908cd8fc25649e69f3333a598c77f1b"
+  result: removed_and_fail_closed_routed_to_SP551
+
+current_SP551_EV_targets:
+  evidence_state: current_public_text_corroborated_locator_migration_pending
+  locators:
+    - "7.3 EV/PHEV charging-space placement scope"
+    - "7.4 deeper-underground charging condition"
+    - "7.5 EV/PHEV grouping and separation"
+    - "7.6 fire-section route for more than 10 EV/PHEV spaces"
+    - "12.6 AUPT and charger de-energization"
+    - "12.7 smoke-control calculation route"
+  current_public_text_material_difference_from_legacy_SP113: true
+  machine_numeric_generation_before_locator_attestation: blocked
+
+repository_changes:
+  - file: "../rules/102_ev_charging_parking_architectural_interfaces_2027.yaml"
+    action: retire_deleted_SP113_fire_sources_and_route_to_SP551
+  - file: "../rules/64_parking_fire_safety_2026.yaml"
+    action: add_SP551_EV_PHEV_fail_closed_locator_gate
+  - file: "../library/engineering_system_scope_registry.yaml"
+    action: require_independent_SP113_planning_scope_and_SP551_fire_scope
+  - file: "../library/change_maps/SP_113_13330_2023.yaml"
+    action: model_substantive_change4_deletions_and_planning_changes
+  - file: "../library/change_maps/SP_551_1311500_2026.yaml"
+    action: register_EV_PHEV_locator_migration_targets
+  - file: "../library/documents/SP_551_1311500_2026.yaml"
+    action: register_EV_PHEV_locator_targets_as_pending
+  - file: "../library/multi_profile_locator_backlog.yaml"
+    action: remove_deleted_SP113_locators_from_current_reaudit_and_route_to_SP551
+  - file: "../rules/14_parking_geometry.yaml"
+    action: correct_change4_description_from_reference_only_to_substantive
+  - file: "../tools/validate_revision_conflicts.py"
+    action: CI_guard_against_reintroducing_deleted_SP113_EV_fire_sources
+
+production_impact:
+  stale_imperative_rules_removed: true
+  obsolete_numeric_values_removed: true
+  new_SP551_numeric_values_promoted: false
+  current_SP551_numeric_generation: blocked_pending_locator_attestation
+  SP113_planning_geometry_preserved_where_not_superseded: true
+  fire_source_role_corrected: true
+
+fail_closed_invariants:
+  - deleted_SP113_6_2_12_must_not_generate_2027_values
+  - deleted_SP113_6_2_30_must_not_generate_2027_values
+  - deleted_SP113_7_10_2_must_not_generate_2027_values
+  - SP551_EV_numeric_fire_generation_requires_locator_level_attestation
+  - SP113_and_SP551_scopes_are_independent_and_both_must_match_where_applicable
+  - ordinary_IZHS_charger_does_not_activate_parking_rules_by_equipment_presence_alone
+
+next_direct_locator_priority:
+  - SP_551_1311500_2026_7_3
+  - SP_551_1311500_2026_7_4
+  - SP_551_1311500_2026_7_5
+  - SP_551_1311500_2026_7_6
+  - SP_551_1311500_2026_12_6
+  - SP_551_1311500_2026_12_7
+  - SP_113_13330_2023_Appendix_A_Table_A_1
+  - SP_113_13330_2023_5_26
+  - SP_113_13330_2023_5_42
+  - SP_113_13330_2023_5_43
+  - SP_113_13330_2023_7_1_4
+
+south_russia_started: false

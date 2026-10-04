@@ -1,4 +1,4 @@
-change_map_version: 2
+change_map_version: 3
 document_id: SP_252_1325800_2016
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -26,13 +26,16 @@ source_layers:
     effective_from: 2025-01-21
     url: "https://protect.gost.ru/sp/changesdetails/e7ca9118-ffd2-4ebf-b8bd-05a0b12932ac"
     change_kind: substantive_text_and_reference_updates
-  direct_public_garant_change_text:
+  authorized_garant_change_text:
     authority: GARANT
     url: "https://base.garant.ru/411475407/"
-    state: amendment_text_read_directly
-    role: amendment_effect_mapping_stale_detection_and_locator_priority_only
-    production_promotion_allowed: false
-    does_not_prove: consolidated_current_locator_text
+    state: latest_amendment_text_read_directly
+    latest_change_is_change3: true
+    exact_full_replacement_policy: >-
+      A locator fully replaced by Change 3 can be accepted as current locator text when its
+      replacement text is directly read, because no later amendment exists. Partial edits or
+      locators requiring unchanged surrounding text remain pending.
+    production_rule_creation_allowed: false
   consultant_change_text:
     authority: ConsultantPlus
     url: "https://www.consultant.ru/document/cons_doc_LAW_498802/"
@@ -56,28 +59,28 @@ change_3_high_impact_locator_map:
     - locator: "1.1"
       effect: rewritten
       topic: standalone_preschool_building_scope
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
     - locator: "1.2"
       effect: rewritten
       topic: embedded_attached_preschool_in_residential_public_multifunctional_hosts
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
   definitions:
     - locator: "3.6"
       effect: rewritten
       topic: preschool_site_definition
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
   general_provisions:
     - locator_group: "4"
       effect: section_rewritten
       topic: preschool_types_capacity_and_embedded_conditions
       priority_locators: ["4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "4.7"]
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
   network:
     - locator_group: "5"
       effect: section_rewritten
       topic: preschool_network_and_accessibility
       priority_locators: ["5.1", "5.2", "5.3"]
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
   site:
     - locator: "6.1"
       effect: section_rewritten
@@ -86,40 +89,40 @@ change_3_high_impact_locator_map:
       amendment_text_candidates:
         bicycle_and_personal_mobility_places_per_100_children: 10
         access_drive_design_speed_max_kmh: 20
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "6.2.3"
       effect: rewritten
       topic: individual_or_shared_group_play_areas
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "6.2.4"
       effect: rewritten
       topic: play_area_per_child
-      amendment_text_candidates:
+      amendment_text_values:
         child_2_months_to_3_years_min_m2_per_child: 7.0
         child_3_to_7_years_min_m2_per_child: 9.0
         heated_veranda_min_m2_per_child: 2.0
         specialized_under_4_years_range_m2_per_child: [5, 7]
         specialized_to_7_years_range_m2_per_child: [7, 10]
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
     - locator: "6.2.8"
       effect: rewritten
       topic: physical_culture_site_areas
-      amendment_text_candidates:
+      amendment_text_values:
         capacity_up_to_150_one_area_min_m2: 200
         capacity_over_150_first_area_min_m2: 120
         capacity_over_150_second_area_min_m2: 200
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
   building_planning:
     - locator: "7.1.1"
       effect: rewritten
       topic: host_building_and_general_normative_routes
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "7.1.2"
       effect: rewritten
       topic: embedded_attached_preschool_capacity
-      amendment_text_candidates:
+      amendment_text_values:
         embedded_attached_max_capacity_places: 150
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
     - locator: "7.1.7"
       effect: rewritten
       topic: floor_and_level_placement
@@ -127,21 +130,21 @@ change_3_high_impact_locator_map:
         entrance_group_max_level_difference_m: 1.5
         medical_and_disability_groups_max_floor: 2
         SP1_rooms_max_floor: 3
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "7.1.8"
       effect: rewritten
       topic: group_isolation
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "7.2.2.1"
       effect: rewritten_or_structurally_affected
       topic: group_cell_composition
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: amendment_text_verified_current_context_pending
     - locator: "7.2.2.7"
       effect: rewritten
       topic: group_cell_open_or_veranda_area
-      amendment_text_candidates:
+      amendment_text_values:
         open_or_veranda_min_m2_per_child: 2.0
-      state: amendment_text_verified_current_consolidated_locator_pending
+      state: authorized_latest_amendment_exact_text_verified
 
 reference_updates:
   examples:
@@ -158,22 +161,24 @@ reference_updates:
     cross-document applicability remains independently routed.
 
 current_locator_priority:
-  P0_direct_read_first:
+  verified_latest_amendment_exact_text:
     - "1.1"
     - "1.2"
+    - "6.2.4"
+    - "6.2.8"
+    - "7.1.2"
+    - "7.2.2.7"
+  P0_direct_read_remaining:
+    - "3.6"
     - "4.1-4.7"
     - "5.2"
     - "5.3"
     - "6.1"
     - "6.2.3"
-    - "6.2.4"
-    - "6.2.8"
     - "7.1.1"
-    - "7.1.2"
     - "7.1.7"
     - "7.1.8"
     - "7.2.2.1"
-    - "7.2.2.7"
   P0_second_pass:
     - "foodservice_and_laundry_locators"
     - "sanitary_and_hygiene_locators"
@@ -181,9 +186,9 @@ current_locator_priority:
     - "embedded_or_shared_complex_conditions"
 
 locator_migration:
-  state: blocked_pending_direct_current_locator
+  state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
-  amendment_text_numeric_values_are_not_current_locator_PASS: true
+  verified_latest_amendment_exact_text_count: 6
   target_topics:
     - site_and_group_play_area_zoning
     - group_cell_composition_and_areas
@@ -195,10 +200,9 @@ locator_migration:
     - embedded_preschool_or_shared_complex_conditions
 
 release_gate:
-  - direct_current_locator_text_required_before_machine_rule_promotion
-  - exact_clause_table_or_appendix_required
-  - amendment_effect_on_locator_must_be_resolved
-  - amendment_text_numeric_values_do_not_become_production_rules_without_current_locator_attestation
+  - exact_locator_evidence_required_before_machine_rule_creation
+  - latest_amendment_exact_text_verification_is_evidence_not_automatic_production_rule
+  - partial_amendment_edits_require_current_context_before_use
   - school_or_SP118_rules_must_not_substitute_missing_SP252_specific_requirement
   - embedded_or_attached_preschool_requires_host_and_zone_classification
 
@@ -206,4 +210,4 @@ production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 0
+  direct_locator_PASS_added: 6

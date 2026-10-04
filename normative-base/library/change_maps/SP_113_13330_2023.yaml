@@ -1,3 +1,4 @@
+change_map_version: 2
 document_id: SP_113_13330_2023
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -24,18 +25,87 @@ source_layers:
     registered_at: 2026-09-23
     effective_from: 2026-10-03
     url: "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
+    card_summary_role: revision_metadata_and_partial_change_summary_only
+    official_change_kind: textual_and_reference_updates
+  direct_change_4_text_corroboration:
+    source_role: stale_rule_detection_and_amendment_effect_mapping_only
+    current_locator_promotion_allowed: false
+    note: >-
+      Полный текст Изм. №4 прочитан в публичном слое и используется для выявления удаленных
+      locator-ов и fail-closed миграции. Новые числовые правила по одному этому слою не повышаются.
 
-change_4_card_observation:
-  summary_type: reference_document_updates_only_on_public_card
-  replaced_references_include:
-    - SP_29_13330_2011_updated_to_change_4
-    - SP_32_13330_2018_updated_to_change_5
-    - SP_42_13330_2026_replaces_SP_42_13330_2016_reference
-    - SP_60_13330_2020_updated_to_change_6
-    - SP_70_13330_2012_updated_to_change_8
-    - SP_256_1325800_2016_updated_to_change_9
-  removed_reference_examples:
+change_4_substantive_effects:
+  fire_role_transition:
+    - locator: "6.2.1"
+      effect: replaced
+      new_semantics: fire_safety_provided_according_to_current_fire_requirements
+    - locator_range: "6.2.2-6.2.36"
+      effect: deleted
+      use_for_2027: false
+      replacement_route: SP_551_1311500_2026_for_parking_fire_requirements
+    - locator: "6.2.12"
+      effect: deleted
+      prior_topic: EV_fire_sectioning
+      production_action: retired_as_current_source
+    - locator: "6.2.30"
+      effect: deleted
+      prior_topic: EV_automatic_fire_suppression
+      production_action: retired_as_current_source
+
+  EV_section_7_10:
+    - locator: "7.10.1"
+      effect: deleted
+    - locator: "7.10.2"
+      effect: deleted
+      prior_topics: [EV_allowed_parking_scope, deep_underground_charge_current]
+      production_action: retired_as_current_source
+      replacement_route: SP_551_1311500_2026
+    - locator: "7.10.3"
+      effect: cross_reference_replaced_with_generic_fire_requirements
+    - locator: "7.10.4"
+      effect: wording_updated
+    - locator: "7.10.5"
+      effect: not_targeted_by_change_4
+      state: existing_rule_preserved_pending_direct_current_locator_migration
+    - locator: "7.10.14"
+      effect: deleted
+    - locator: "7.10.15"
+      effect: wording_updated
+
+  new_planning_requirements:
+    - locator: "5.42"
+      effect: added
+      topic: MKD_guest_parking_separation_and_controlled_entry_exit
+      state: current_text_requires_direct_locator_migration_before_machine_rule
+    - locator: "5.43"
+      effect: added
+      topic: embedded_closed_parking_user_scope_in_MKD
+      state: current_text_requires_direct_locator_migration_before_machine_rule
+    - locator: "7.1.4"
+      effect: exception_added
+      topic: separate_underground_parking_independent_entries_by_level
+      state: current_text_requires_direct_locator_migration_before_machine_rule
+
+  other_planning_changes:
+    - {locator: "4.4", effect: textual_update_and_current_reference_transition, state: needs_reaudit}
+    - {locator: "4.6", effect: fire_cross_reference_generalized}
+    - {locator: "4.7", effect: sanitary_and_fire_reference_update}
+    - {locator: "5.9", effect: textual_update}
+    - {locator: "5.11", effect: rewritten}
+    - {locator: "5.13", effect: deleted}
+    - {locator: "5.15", effect: fire_reference_generalized}
+    - {locator: "5.16", effect: deleted}
+    - {locator: "5.21", effect: fire_reference_generalized}
+    - {locator: "5.24", effect: deleted}
+    - {locator: "5.25", effect: fire_reference_generalized}
+    - {locator: "5.26", effect: anti_icing_wording_updated, numeric_ramp_limits_not_proven_changed_by_change4}
+    - {locator: "5.33", effect: deleted}
+    - {locator: "Appendix A Table A.1 note 4", effect: terminology_update_parking_to_automobile_parking, numeric_geometry_not_proven_changed_by_change4}
+
+reference_transition:
+  current_urban_reference: SP_42_13330_2026
+  fire_documents_removed_from_SP113_normative_reference_list: true
+  removed_fire_reference_examples:
     - SP_1_13130_2020
     - SP_2_13130_2020
     - SP_3_13130_2009
@@ -48,33 +118,39 @@ change_4_card_observation:
     - SP_484_1311500_2020
     - SP_485_1311500_2020
     - SP_486_1311500_2020
-  evidence_limit: >-
-    The public amendment card indicates reference-document edits, but project policy does not treat
-    that summary as proof that Appendix A, clauses 4.4, 5.4, 5.6, 6.2.12, 6.2.30, 7.10.2 or 7.10.5
-    are unchanged. Those current locators still require direct reading before a new library PASS.
+  interpretation: >-
+    Исключение пожарных ссылок из СП 113 не отменяет пожарные требования; в профиле 2027
+    пожарная часть стоянок маршрутизируется в специальный СП 551 и связанные пожарные СП.
 
 priority_locator_reaudit:
-  state: needs_current_locator_confirmation
   production_promotion_allowed: false
-  locators:
-    - "Appendix A; Table A.1"
-    - "Appendix A; Table A.1 note 4"
-    - "4.4"
-    - "5.4"
-    - "5.6"
-    - "6.2.12"
-    - "6.2.30"
-    - "7.10.2"
-    - "7.10.5"
+  planning_current_locators:
+    - {locator: "Appendix A; Table A.1", state: needs_current_locator_confirmation}
+    - {locator: "Appendix A; Table A.1 note 4", state: needs_current_locator_confirmation}
+    - {locator: "4.4", state: needs_change4_current_text_confirmation}
+    - {locator: "5.4", state: needs_current_locator_confirmation}
+    - {locator: "5.6", state: needs_current_locator_confirmation}
+    - {locator: "5.26", state: needs_change4_current_text_confirmation}
+    - {locator: "7.10.5", state: needs_current_locator_confirmation}
+    - {locator: "5.42", state: new_change4_locator_pending_direct_migration}
+    - {locator: "5.43", state: new_change4_locator_pending_direct_migration}
+    - {locator: "7.1.4", state: change4_locator_pending_direct_migration}
+  superseded_fire_locators:
+    - {locator: "6.2.12", state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
+    - {locator: "6.2.30", state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
+    - {locator: "7.10.2", state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
 
 release_gate:
-  - direct_current_locator_text_required_for_new_PASS
-  - existing_rules_preserved_without_reinterpretation_until_reaudit
-  - removed_reference_list_must_not_be_misread_as_deletion_of_all_corresponding_safety_requirements
+  - direct_current_locator_text_required_for_new_SP113_PASS
+  - existing_planning_rules_preserved_only_where_change4_does_not_supersede_source_locator
+  - deleted_SP113_fire_locators_must_not_generate_2027_values
+  - SP551_required_for_current_parking_fire_route
   - SP42_13330_2026_reference_transition_must_be_resolved_for_site_coordination
 
 production_impact:
-  numeric_rules_changed: false
-  numeric_values_changed: false
-  existing_rules_demoted: 0
+  numeric_rules_changed: true
+  numeric_values_removed_as_obsolete_fire_source: true
+  legacy_SP113_EV_fire_rules_retired: true
+  new_SP551_numeric_rules_promoted: 0
+  existing_planning_rules_demoted: 0
   production_rules_promoted: 0

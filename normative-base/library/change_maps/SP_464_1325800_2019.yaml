@@ -1,3 +1,4 @@
+change_map_version: 2
 document: SP_464_1325800_2019
 checked_at: 2026-10-04
 production_authority: false
@@ -7,24 +8,86 @@ revision:
   base_effective_from: 2020-06-03
   official_latest_change: 1
   latest_change_effective_from: 2024-01-16
+  official_document_card: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+  latest_change_url: "https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a"
+  latest_change_order: "930/пр"
+  latest_change_approved_at: 2023-12-15
+
 proof:
   state: official_card_verified
-  source_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
-  latest_change_url: "https://protect.gost.ru/sp/changesdetails/e3041d6a-6eb0-4f9e-b162-fc0e6336531a"
+  locator_promotion_state: existing_rule_traceability_pending
+
+public_GARANT_corroboration:
+  current_document_url: "https://base.garant.ru/73866956/"
+  change_1_url: "https://base.garant.ru/408556999/"
+  source_role: locator_discovery_and_stale_rule_detection_only_until_authorized_session_returns
+  current_document_title_state: with_changes_and_additions
+  directly_visible_current_items:
+    - locator: "1.1"
+      observation: "SP464 scope: TRK height up to 50 m and underground depth up to 15 m from ground level."
+      existing_document_card_match: true
+    - locator: "5.7"
+      observation: "Open unloading areas are placed in isolated service yards; note permits orientation toward public buildings or blind ends of residential buildings."
+      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+      existing_rule_match: true
+    - locator: "8.6"
+      observation: "Current text prohibits thresholds on evacuation routes from retail halls in goods/customer movement zones, including trolley routes."
+      promotion_state: public_corrob_only
+  change_1_direct_findings:
+    - locator: "6.18"
+      effect: wording_updated_in_change_1
+      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+      stale_rule_detected: false
+    - locator: "6.20"
+      effect: loading_zone_requirements_revised_by_change_1
+      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+      production_interpretation: "Do not impose universal closed loading/debarkader typology; select loading-zone form by technology and project conditions."
+      existing_rule_match: true
+    - locator: "6.21"
+      effect: replaced_by_change_1
+      current_requirement_corroborated: canopy_required_over_open_loading_places
+      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
+      existing_rule_match: true
+      obsolete_interpretation_rejected: universal_closed_debarkader_for_all_trade_and_foodservice
+    - locator: "8.6"
+      effect: first_sentence_replaced_by_change_1
+      existing_rule_conflict_detected: false
+
+unresolved_locator_targets:
+  - "6.10"
+  - "6.18 exact current consolidated wording"
+  - "6.20 exact current consolidated wording"
+  - "6.21 exact current consolidated wording"
+  - "8.6 exact current consolidated wording for production migration"
+  - "Appendix B; B.4"
+  - "Appendix B; table B.1 and notes used by loading rules"
+  - "Appendix B; B.2"
+  - "Appendix B; B.3"
+
 change_effect:
   latest_change_kind: textual_and_reference_updates
   public_card_summary_available: true
   exact_current_locator_verification_required: true
+
 existing_rule_migration:
   rule_files:
     - "../../rules/70_trk_multifunctional_planning_2027.yaml"
     - "../../rules/89_trk_loading_logistics_2027.yaml"
-  target_locators: ["1", "5.6", "6.10", "6.18", "6.20", "6.21", "8.6", "Appendix B; B.4"]
+  target_locators: ["1", "5.6", "5.7", "6.10", "6.18", "6.20", "6.21", "8.6", "Appendix B; B.4"]
   state: existing_rule_traceability_pending
+  stale_loading_rule_found: false
+  change1_loading_semantics_already_reflected_in_rule_89: true
+  authorized_locator_promotion_allowed: false
+
 production_impact:
   numeric_rules_changed: false
+  existing_values_reinterpreted: false
+  stale_rule_demoted: false
+  production_rules_promoted: 0
   promotion_allowed_from_this_map: false
+
 release_gate:
-  - direct_current_locator_required_before_new_library_PASS
-  - existing_TRK_rule_values_not_reinterpreted_from_change_card
+  - authorized_current_locator_or_equivalent_primary_text_required_before_new_library_PASS
+  - existing_TRK_rule_values_not_reinterpreted_from_public_current_render
   - SP464_scope_height_and_underground_depth_must_be_matched_before_use
+  - special_function_zones_require_their_own_primary_codes

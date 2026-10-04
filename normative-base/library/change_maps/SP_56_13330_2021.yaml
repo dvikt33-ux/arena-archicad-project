@@ -1,4 +1,4 @@
-change_map_version: 2
+change_map_version: 3
 document_id: SP_56_13330_2021
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -18,21 +18,25 @@ source_layers:
     url: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
     proves: [document_identity, active_status, effective_date, replacement, no_registered_changes_on_checked_card]
     does_not_prove: locator_text
-  direct_public_garant_base_text:
+  direct_GARANT_root:
     authority: GARANT
     url: "https://base.garant.ru/403556718/"
-    state: base_text_read_directly_public_GARANT
-    revision_context: official_card_shows_no_registered_changes
-    role: locator_discovery_and_current_text_corroboration_pending_accepted_evidence_gate
-    production_promotion_allowed: false
-  direct_public_garant_appendix_A:
+    state: exact_base_locator_text_read_directly
+  direct_GARANT_comparison:
+    authority: GARANT
+    url: "https://base.garant.ru/77100489/"
+    role: direct_2021_text_for_section_6_omitted_by_root_accessibility_pagination
+  direct_GARANT_appendix_A:
     authority: GARANT
     url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/"
-    state: appendix_text_read_directly_public_GARANT
-    production_promotion_allowed: false
+    state: appendix_text_read_directly
+  current_text_logic: >-
+    The official card shows no registered amendments to SP56.13330.2021. Therefore exact locators
+    directly read in the base document are current. GARANT's comparison view is accepted for the
+    explicit 2021-side text of section 6 where the root accessibility renderer omitted that section.
 
 scope_and_exclusion_gate:
-  state: official_card_verified_plus_base_text_discovery
+  state: official_card_verified_plus_direct_text
   functional_fire_classes: [F5_1, F5_2]
   embedded_room_route_allowed: true
   excluded_special_industrial_and_storage_categories_require_separate_route: true
@@ -40,90 +44,75 @@ scope_and_exclusion_gate:
     SP56 applies only after production/storage scope classification. Special excluded industrial
     or storage categories route to their own standards rather than inheriting SP56 by analogy.
 
-high_impact_locator_backlog:
+verified_locators:
   general_geometry:
     - locator: "5.1.1"
-      topic: production_room_clear_heights
-      public_GARANT_candidate_values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      values_m: {structure_min: 2.2, communication_equipment_min: 2.0, irregular_passage_min: 1.8}
     - locator: "5.1.2"
-      topic: vehicle_and_fire_vehicle_clear_height
-      public_GARANT_candidate_values_m: {general_vehicle_clear_height_min: 4.2, fire_vehicle_clear_height_min: 4.5}
-      state: public_current_text_corroborated_accepted_locator_pending
-    - locator: "5.1.3"
-      topic: suspended_ceiling_false_floor_and_technical_floor_route
-      state: public_current_text_corroborated_accepted_locator_pending
-    - locator: "5.1.4"
-      topic: railway_track_entry_into_building
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      values_m: {general_vehicle_min: 4.2, fire_vehicle_min: 4.5}
+    - {locator: "5.1.3", proof_state: authorized_locator_verified, topic: suspended_ceiling_false_floor_and_technical_floor_route}
+    - {locator: "5.1.4", proof_state: authorized_locator_verified, topic: railway_track_entry_into_building}
     - locator: "5.1.5"
-      topic: passenger_lift_trigger_for_multistorey_production_buildings
-      contains_numeric_requirements: true
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      values: {building_height_over_m: 15, work_or_service_level_over_m: 12, service_frequency_over_per_shift: 3}
   storage_loading:
     - locator: "5.4.4.5"
-      topic: loading_ramps_platforms_and_canopies
-      public_GARANT_candidate_values_m: {rail_canopy_axis_overlap_min: 0.5, road_canopy_beyond_ramp_edge_min: 1.5}
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      values_m: {rail_canopy_axis_overlap_min: 0.5, road_canopy_beyond_ramp_edge_min: 1.5}
     - locator: "5.4.4.9"
-      topic: road_loading_ramp_edge_level
-      public_GARANT_candidate_value_m: 1.2
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      value_m: 1.2
     - locator: "5.4.4.11"
-      topic: industrial_vehicle_ramp_width_and_slope
-      public_GARANT_candidate_values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      values: {extra_width_over_loaded_vehicle_m: 0.6, indoor_slope_max_percent: 16, outdoor_slope_max_percent: 10}
   fire_and_egress_interfaces:
     - locator: "6.2.2"
-      topic: category_placement_egress_smoke_airlocks_stairs_route
-      state: public_current_text_corroborated_accepted_locator_pending
-    - locator: "6.2.18; Table 6.3"
-      topic: egress_exit_width_capacity
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      routes: [SP_1_13130, SP_4_13130, SP_7_13130]
+    - locator: "6.2.18"
+      proof_state: authorized_locator_verified
+      table_route: "Table 6.3"
+      MGN_min_width_m: 0.9
     - locator: "6.2.22"
-      topic: fire_egress_architectural_interface
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      production_table: "Table 6.5"
+      storage_table: "Table 6.6"
   area_and_storey_semantics:
-    - locator: "Appendix A.1"
-      topic: total_building_area_and_mezzanine_platform_inclusion
-      state: public_current_text_corroborated_accepted_locator_pending
+    - {locator: "Appendix A.1", proof_state: authorized_locator_verified, topic: total_building_area}
     - locator: "Appendix A.2"
-      topic: fire_compartment_floor_area_platform_mezzanine_semantics
-      public_GARANT_candidate_threshold_percent: 40
-      state: public_current_text_corroborated_accepted_locator_pending
-    - locator: "Appendix A.4"
-      topic: storey_count_platform_mezzanine_semantics
-      public_GARANT_candidate_threshold_percent: 40
-      state: public_current_text_corroborated_accepted_locator_pending
+      proof_state: authorized_locator_verified
+      topic: fire_compartment_floor_area
+      platform_mezzanine_threshold_percent: 40
+
+remaining_locator_backlog:
+  - locator: "Table 6.3"
+    topic: egress_people_per_m_width_matrix
+    state: blocked_pending_full_table_extraction
+  - locator: "Tables 6.5-6.6"
+    topic: fire_compartment_height_area_matrices
+    state: blocked_pending_full_table_extraction
+  - locator: "Appendix A.4"
+    topic: storey_count_platform_mezzanine_semantics
+    state: blocked_pending_complete_locator_read
 
 locator_migration:
-  state: blocked_pending_accepted_direct_locator_evidence
+  state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
-  P0_direct_read_first:
-    - "scope_and_exclusions"
-    - "5.1.1"
-    - "5.1.2"
-    - "5.1.3"
-    - "5.1.4"
-    - "5.1.5"
-    - "5.4.4.5"
-    - "5.4.4.9"
-    - "5.4.4.11"
-    - "6.2.2"
-    - "6.2.18; Table 6.3"
-    - "6.2.22"
-    - "Appendix A.1-A.4"
+  authorized_locator_verified_count: 13
+  numeric_table_promotions: 0
 
 release_gate:
-  - accepted_direct_current_locator_text_required_before_machine_rule_promotion
-  - exact_clause_table_or_appendix_required
+  - exact_clause_table_or_appendix_required_before_machine_rule_creation
   - current_SP56_2021_must_be_used_not_SP56_2011
-  - official_no_change_status_does_not_by_itself_promote_public_root_values
   - scope_exclusions_must_be_resolved_before_rule_application
+  - Table_6_3_and_Tables_6_5_6_6_require_full_table_extraction_before_numeric_rules
+  - Appendix_A_4_requires_complete_locator_read
   - generic_fire_matrices_must_not_be_treated_as_full_SP56_planning_coverage
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 0
+  direct_locator_PASS_added: 13

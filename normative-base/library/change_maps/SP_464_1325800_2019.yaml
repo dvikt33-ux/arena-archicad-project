@@ -1,4 +1,4 @@
-change_map_version: 4
+change_map_version: 5
 document: SP_464_1325800_2019
 checked_at: 2026-10-04
 production_authority: false
@@ -22,12 +22,14 @@ authorized_GARANT_change1:
   state: latest_amendment_text_read_directly
   latest_change_is_change1: true
   root_document_url: "https://base.garant.ru/73866956/"
+  appendix_V_url: "https://base.garant.ru/73866956/a496d02287c1e8a2f8df9041972293a4/"
   root_renderer_state: mixed_revision_not_current_consolidated
   root_renderer_must_not_prove_current_locator_text: true
   evidence_rule: >-
-    Because Change 1 is the latest and only registered amendment, a locator fully replaced or a
-    newly added paragraph read directly in Change 1 is current for that replacement/addition.
-    Partial edits still require the unchanged base context when the full locator is needed.
+    Change 1 is the latest and only amendment. Exact full replacements/additions in Change 1 are
+    current. Unchanged base locators may be verified when read directly and the complete Change 1
+    text has been checked not to alter them. Partial edits may be reconstructed only where the
+    amendment identifies the exact replacement within a directly read base locator.
 
 verified_change1_locators:
   - locator: "1.1 second paragraph"
@@ -64,10 +66,7 @@ verified_change1_locators:
     selected_numeric_values:
       dining_area_min_m2_per_seat: 1.4
       foodservice_floor_to_floor_height_min_m: 3.3
-      production_room_height_min_m_by_seats:
-        up_to_150: 3.0
-        from_151_to_300: 3.3
-        over_300: 3.9
+      production_room_height_min_m_by_seats: {up_to_150: 3.0, from_151_to_300: 3.3, over_300: 3.9}
       dining_passage_table_6_1_read_directly: true
   - locator: "8.6 first sentence"
     proof_state: authorized_latest_amendment_exact_text_verified
@@ -78,12 +77,62 @@ verified_change1_locators:
     effect: full_replacement
     semantics: fire_safety_routed_to_technical_regulations_and_current_fire_documents_including_SP456
 
-partial_change1_locators:
+verified_base_plus_change1_locators:
+  - locator: "5.6"
+    proof_state: authorized_locator_verified
+    verification_method: direct_base_text_plus_complete_change1_impact_review
+    topic: site_functional_zoning_and_flow_separation
+    semantics:
+      separate_customer_goods_flows: true
+      separate_pedestrian_vehicle_flows: true
+      loading_zone_included: true
+      taxi_car_goods_vehicle_access_intersections_minimized_where_possible: true
+  - locator: "5.7"
+    proof_state: authorized_locator_verified
+    verification_method: direct_base_text_plus_complete_change1_impact_review
+    topic: open_loading_area_location
+    semantics: open_loading_areas_in_isolated_TRK_service_yards
+  - locator: "6.10"
+    proof_state: authorized_locator_verified
+    verification_method: direct_base_text_plus_complete_change1_impact_review
+    topic: accessible_passenger_lifts_for_multilevel_sales_halls
+    semantics: calculated_number_of_passenger_lifts_for_MGN_in_TRK_with_sales_halls_on_two_or_more_levels
   - locator: "6.18"
-    effect: second_sentence_wording_change
-    amendment_exact_text_verified: true
-    replacement: "Минимально необходимое -> Минимальное"
-    full_current_locator_state: base_context_required_if_full_rule_needed
+    proof_state: authorized_locator_verified
+    verification_method: direct_base_text_plus_exact_partial_change1_reconstruction
+    topic: freight_lift_capacity_dimensions_and_count
+    current_semantics:
+      capacity_and_car_dimensions_by_design_brief_and_mechanization: true
+      minimum_freight_lift_count_by_freight_flow_calculation: true
+    exact_change1_edit: "Минимально необходимое -> Минимальное"
+    numeric_effect: false
+  - locator: "Appendix V; V.3"
+    proof_state: authorized_locator_verified
+    verification_method: direct_GARANT_appendix_text_plus_complete_change1_impact_review
+    topic: loading_room_geometry
+    values:
+      dead_end_depth_light_vehicle_min_m: 8
+      dead_end_depth_heavy_vehicle_min_m: 12
+      default_clear_height_min_m: 4.2
+      default_gate_width_min_m: 3.6
+      default_gate_height_min_m: 4.2
+      no_heavy_vehicle_optional_clear_height_m: 3.6
+      no_heavy_vehicle_optional_gate_width_min_m: 3.6
+      no_heavy_vehicle_optional_gate_height_min_m: 3.6
+  - locator: "Appendix V; V.4"
+    proof_state: authorized_locator_verified
+    verification_method: direct_GARANT_appendix_text_plus_complete_change1_impact_review
+    topic: storage_corridors_and_doors
+    values:
+      corridor_sales_area_up_to_250_no_electric_transport_min_m: 1.6
+      corridor_sales_area_over_250_no_electric_transport_min_m: 1.8
+      corridor_any_area_with_electric_transport_min_m: 2.3
+      storage_over_10_m2_door_min_width_m: 1.3
+      storage_over_10_m2_door_min_height_m: 2.3
+      storage_up_to_10_m2_door_min_width_m: 0.9
+      storage_up_to_10_m2_door_min_height_m: 2.3
+      platform_to_shop_door_min_width_m: 1.6
+      platform_to_shop_door_min_height_m: 2.3
 
 root_renderer_conflicts:
   - locator: "6.18"
@@ -101,13 +150,20 @@ root_renderer_conflicts:
     root_render_problem: pre_change_1_first_sentence
     change_1_text_controls_first_sentence: true
 
+traceability_corrections:
+  - affected_rule: trk.loading.no_heavy_truck_optional_geometry
+    previous_locator: "Appendix B"
+    corrected_locator: "Appendix V; V.3"
+    values_changed: false
+  - affected_rules: [trk.storage_corridor_width, trk.storage_door_geometry]
+    previous_locator: "Appendix B; B.4"
+    corrected_locator: "Appendix V; V.4"
+    values_changed: false
+    reason: "Appendix B is vertical transport; storage/loading parameters are in Appendix V."
+
 unchanged_base_locator_backlog:
   - "1.1 first paragraph / height-depth scope"
-  - "5.6"
-  - "5.7"
-  - "6.10"
-  - "6.18 full locator"
-  - "Appendix B; B.2-B.4 and Table B.1"
+  - "6.20 first and second paragraphs"
 
 stale_rule_audit:
   stale_rule_found: true
@@ -122,29 +178,29 @@ stale_rule_audit:
   fail_closed_reason: conflicting_loaded_rules_must_not_coexist
 
 existing_rule_migration:
-  rule_files:
-    - "../../rules/70_trk_multifunctional_planning_2027.yaml"
-    - "../../rules/89_trk_loading_logistics_2027.yaml"
+  rule_files: ["../../rules/70_trk_multifunctional_planning_2027.yaml", "../../rules/89_trk_loading_logistics_2027.yaml"]
   current_verified_existing_rule_locators:
+    - "5.6"
+    - "6.10"
+    - "6.18"
+    - "Appendix V; V.3"
+    - "Appendix V; V.4"
     - "6.21"
     - "8.6 first sentence"
   still_pending_existing_rule_locators:
     - "1"
-    - "5.6"
-    - "5.7"
-    - "6.10"
-    - "6.18 full locator"
-    - "6.20 unchanged paragraphs plus verified added paragraph"
-    - "Appendix B; B.4"
+    - "6.20 first and second paragraphs plus verified third paragraph"
   state: partial_authorized_locator_evidence_available
   stale_loading_rule_found: true
   stale_loading_rule_resolved: true
-  authorized_locator_promotion_allowed_for_exact_latest_amendment_replacements: true
+  source_locator_error_corrected: true
+  production_numeric_values_changed: false
   production_rule_creation_allowed_from_new_foodservice_values: false
 
 production_impact:
   numeric_rules_changed: false
   existing_numeric_values_reinterpreted: false
+  source_locator_corrections: 3
   stale_imperative_rule_removed: true
   production_rules_promoted: 0
   direct_locator_evidence_added: true
@@ -153,7 +209,7 @@ release_gate:
   - exact_current_locator_or_exact_latest_amendment_replacement_required_before_machine_rule_creation
   - root_GARANT_render_is_not_current_text_authority_for_SP464
   - direct_change_1_text_controls_where_root_render_conflicts
-  - partial_amendment_edits_require_base_context_for_full_locator_use
+  - partial_amendment_edits_require_exact_base_context_before_reconstruction
   - new_foodservice_numeric_values_are_evidence_only_until_dedicated_rule_design_and_scope_audit
   - SP464_scope_height_and_underground_depth_must_be_matched_before_use
   - special_function_zones_require_their_own_primary_codes

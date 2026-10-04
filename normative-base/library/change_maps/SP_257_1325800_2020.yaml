@@ -1,4 +1,4 @@
-change_map_version: 3
+change_map_version: 4
 document_id: SP_257_1325800_2020
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -18,10 +18,10 @@ source_layers:
     url: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
     proves: [document_identity, active_status, scope_summary, replacement, change_inventory]
     does_not_prove: current_locator_text
-  direct_garant_base_clause:
+  direct_garant_base:
     authority: GARANT
-    url: "https://base.garant.ru/400535863/#block_503"
-    state: base_5_3_paragraphs_1_to_3_read_directly
+    url: "https://base.garant.ru/400535863/"
+    state: guestroom_locators_and_appendices_read_directly
   latest_change:
     authority: GARANT
     change: 1
@@ -29,15 +29,18 @@ source_layers:
     full_text_url: "https://base.garant.ru/408657541/"
     state: added_fourth_paragraph_read_directly
     only_locator_affected: "5.3"
-  renderer_note: >-
-    The root page labelled with changes does not expose the added EV paragraph. It is therefore
-    not accepted as consolidated current text by itself. Current 5.3 is reconstructed from the
-    directly read base paragraphs plus the directly read sole amendment.
+  appendix_B:
+    url: "https://base.garant.ru/400535863/f7ee959fd36b5699076b35abf4f52c5c/"
+    state: Table_B_1_read_directly
+  appendix_G:
+    url: "https://base.garant.ru/400535863/172a6d689833ce3e42dc0a8a7b3cddf9/"
+    state: Table_G_1_read_directly
+  current_text_logic: >-
+    Change 1 is the only registered amendment and affects only 5.3. Directly read base locators
+    outside 5.3 are therefore current. Clause 5.3 is reconstructed from base text plus Change 1.
 
-change_1_locator_effects:
+verified_locators:
   - locator: "5.3"
-    effect: fourth_paragraph_added
-    topic: hotel_parking_and_EV_charging
     proof_state: authorized_locator_verified
     verification_method: direct_base_plus_latest_amendment_chain_reconstruction
     current_semantics:
@@ -48,38 +51,51 @@ change_1_locator_effects:
       EV_spaces_with_charging_required_when_parking_spaces_are_provided: true
       EV_parking_route: SP_113_13330
       EV_demand_route: design_brief_but_not_less_than_SP118
+  - {locator: "6.2.3", proof_state: authorized_locator_verified, topic: room_types_and_percentage_route}
+  - {locator: "6.2.4", proof_state: authorized_locator_verified, topic: highest_category_room_requirements_route}
+  - {locator: "6.2.5", proof_state: authorized_locator_verified, topic: private_bathroom_share, values_percent: {two_star: 50, three_star_and_above: 100}}
+  - {locator: "6.2.6", proof_state: authorized_locator_verified, topic: common_sanitary_rooms, values: {toilet_fixture_per_people: 10, one_shared_toilet_people_max: 6, shower_cabin_per_people: 20}}
+  - {locator: "6.2.7", proof_state: authorized_locator_verified, topic: universal_accessible_rooms, values_percent: {rooms_min: 3, area_increase: 20}}
+  - {locator: "6.2.8", proof_state: authorized_locator_verified, topic: apartment_room_two_level_option}
+  - {locator: "6.2.9", proof_state: authorized_locator_verified, topic: room_widths, values_m: {room_min: 2.4, entrance_hall_min: 1.05}}
+  - {locator: "6.2.10", proof_state: authorized_locator_verified, topic: balcony_loggia_guardrail, guardrail_height_min_m: 1.2}
+  - {locator: "6.2.11", proof_state: authorized_locator_verified, topic: acoustic_separation_route}
+  - locator: "Appendix B; Table B.1"
+    proof_state: authorized_locator_verified
+    topic: hotel_room_and_room_stock_area_measurement
+  - locator: "Appendix G; Table G.1"
+    proof_state: authorized_locator_verified
+    topic: minimum_guestroom_areas_by_category
+    raw_area_rows:
+      - {single: 9, double: 12, reduction_percent: 5, categories: ["без звезд", "одна звезда", "две звезды"]}
+      - {single: 12, double: 15, reduction_percent: 10, categories: ["три звезды", "четыре звезды"]}
+      - {single: 14, double: 16, reduction_percent: 0, categories: ["пять звезд"]}
 
 locator_migration:
   state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
-  authorized_locator_verified_count: 1
+  authorized_locator_verified_count: 12
   P0_direct_read_remaining:
     - "4.2"
     - "6.1.4-6.1.15"
-    - "6.2.3-6.2.11"
     - "6.3.2-6.3.9"
     - "6.4.1-6.4.9"
-    - "Appendix B"
-    - "Appendix G"
   target_topics:
     - hotel_scope_and_embedded_zone_conditions
-    - guestroom_types_and_room_composition
-    - guestroom_and_service_area_requirements
     - public_guest_and_service_flow_separation
     - vertical_transport_and_floor_placement
-    - sanitary_support_and_housekeeping_interfaces
-    - accessible_room_and_route_interfaces
-    - site_access_loading_parking_and_EV_interfaces
+    - staff_housekeeping_and_service_interfaces
+    - accessible_route_interfaces
 
 release_gate:
   - exact_current_locator_text_required_before_new_machine_rules
-  - verified_5_3_does_not_close_unrelated_hotel_requirements
+  - verified_guestroom_locators_do_not_close_unrelated_hotel_requirements
   - embedded_hotel_zone_must_be_classified_before_applying_SP257
   - SP118_general_rules_must_not_substitute_missing_SP257_specific_requirement
-  - EV_parking_route_must_use_current_SP113_SP551_SP256_scope_logic_where_applicable
+  - Appendix_G_category_mapping_must_be_preserved
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 1
+  direct_locator_PASS_added: 12

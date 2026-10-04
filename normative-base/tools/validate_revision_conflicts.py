@@ -68,7 +68,7 @@ def main() -> None:
         fail("SP464 stale 6.21 rule resolution is missing from change map")
 
     rev118 = sp118.get("revision") or {}
-    if rev118.get("latest_change_effective_from") != "2025-02-25":
+    if str(rev118.get("latest_change_effective_from")) != "2025-02-25":
         fail("SP118 Change 5 effective date must follow Rosstandart 2025-02-25")
     if rev118.get("effective_date_authority") != "Rosstandart" or rev118.get("metadata_conflict") is not True:
         fail("SP118 GARANT/Rosstandart effective-date conflict must remain explicit")

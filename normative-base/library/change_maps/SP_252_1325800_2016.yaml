@@ -1,3 +1,4 @@
+change_map_version: 2
 document_id: SP_252_1325800_2016
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -24,22 +25,125 @@ source_layers:
     registered_at: 2025-01-16
     effective_from: 2025-01-21
     url: "https://protect.gost.ru/sp/changesdetails/e7ca9118-ffd2-4ebf-b8bd-05a0b12932ac"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
-  change_1_card:
-    authority: Rosstandart
-    change: 1
-    order: "873/пр"
-    url: "https://protect.gost.ru/sp/changesdetails/fd4b2603-cd23-408c-aa76-63e38de2cec6"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
+    change_kind: substantive_text_and_reference_updates
+  direct_public_garant_change_text:
+    authority: GARANT
+    url: "https://base.garant.ru/411475407/"
+    state: amendment_text_read_directly
+    role: amendment_effect_mapping_stale_detection_and_locator_priority_only
+    production_promotion_allowed: false
+    does_not_prove: consolidated_current_locator_text
+  consultant_change_text:
+    authority: ConsultantPlus
+    url: "https://www.consultant.ru/document/cons_doc_LAW_498802/"
+    state: change3_order_and_amendment_route_corroborated
+    production_promotion_allowed: false
   official_ministry_publication_index:
     authority: Minstroy_Russia
     status: base_and_change_3_publication_entries_found
-    note: >-
-      Official Minstroy index exposes the base SP252 and Change 3 publication entries, but the current
-      session could not obtain consolidated current locator text through the public index.
 
-latest_change_card_observation:
-  summary_type: reference_document_updates
+change_3_revision_semantics:
+  scope_rewritten: true
+  general_provisions_rewritten: true
+  network_and_territorial_accessibility_rewritten: true
+  site_and_play_area_planning_rewritten: true
+  floor_placement_and_group_cell_rules_rewritten: true
+  reference_layer_materially_updated: true
+  no_pre_change_value_reuse_without_locator_reaudit: true
+
+change_3_high_impact_locator_map:
+  scope:
+    - locator: "1.1"
+      effect: rewritten
+      topic: standalone_preschool_building_scope
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "1.2"
+      effect: rewritten
+      topic: embedded_attached_preschool_in_residential_public_multifunctional_hosts
+      state: amendment_text_verified_current_consolidated_locator_pending
+  definitions:
+    - locator: "3.6"
+      effect: rewritten
+      topic: preschool_site_definition
+      state: amendment_text_verified_current_consolidated_locator_pending
+  general_provisions:
+    - locator_group: "4"
+      effect: section_rewritten
+      topic: preschool_types_capacity_and_embedded_conditions
+      priority_locators: ["4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "4.7"]
+      state: amendment_text_verified_current_consolidated_locator_pending
+  network:
+    - locator_group: "5"
+      effect: section_rewritten
+      topic: preschool_network_and_accessibility
+      priority_locators: ["5.1", "5.2", "5.3"]
+      state: amendment_text_verified_current_consolidated_locator_pending
+  site:
+    - locator: "6.1"
+      effect: section_rewritten
+      topic: site_territory_and_access
+      contains_numeric_requirements: true
+      amendment_text_candidates:
+        bicycle_and_personal_mobility_places_per_100_children: 10
+        access_drive_design_speed_max_kmh: 20
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "6.2.3"
+      effect: rewritten
+      topic: individual_or_shared_group_play_areas
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "6.2.4"
+      effect: rewritten
+      topic: play_area_per_child
+      amendment_text_candidates:
+        child_2_months_to_3_years_min_m2_per_child: 7.0
+        child_3_to_7_years_min_m2_per_child: 9.0
+        heated_veranda_min_m2_per_child: 2.0
+        specialized_under_4_years_range_m2_per_child: [5, 7]
+        specialized_to_7_years_range_m2_per_child: [7, 10]
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "6.2.8"
+      effect: rewritten
+      topic: physical_culture_site_areas
+      amendment_text_candidates:
+        capacity_up_to_150_one_area_min_m2: 200
+        capacity_over_150_first_area_min_m2: 120
+        capacity_over_150_second_area_min_m2: 200
+      state: amendment_text_verified_current_consolidated_locator_pending
+  building_planning:
+    - locator: "7.1.1"
+      effect: rewritten
+      topic: host_building_and_general_normative_routes
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "7.1.2"
+      effect: rewritten
+      topic: embedded_attached_preschool_capacity
+      amendment_text_candidates:
+        embedded_attached_max_capacity_places: 150
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "7.1.7"
+      effect: rewritten
+      topic: floor_and_level_placement
+      amendment_text_candidates:
+        entrance_group_max_level_difference_m: 1.5
+        medical_and_disability_groups_max_floor: 2
+        SP1_rooms_max_floor: 3
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "7.1.8"
+      effect: rewritten
+      topic: group_isolation
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "7.2.2.1"
+      effect: rewritten_or_structurally_affected
+      topic: group_cell_composition
+      state: amendment_text_verified_current_consolidated_locator_pending
+    - locator: "7.2.2.7"
+      effect: rewritten
+      topic: group_cell_open_or_veranda_area
+      amendment_text_candidates:
+        open_or_veranda_min_m2_per_child: 2.0
+      state: amendment_text_verified_current_consolidated_locator_pending
+
+reference_updates:
   examples:
     - SP_50_13330_2024_reference_introduced
     - SP_54_13330_2022_updated_to_change_1
@@ -49,13 +153,37 @@ latest_change_card_observation:
     - SP_118_13330_2022_updated_to_change_4
     - SP_160_1325800_2014_added
     - SP_251_1325800_2016_reference_updated
-  evidence_limit: >-
-    Amendment-card summaries do not prove unchanged architectural clause/table text. Direct current
-    locator reading is required before any production numeric or imperative rule is created.
+  interpretation: >-
+    Reference-list changes are not used to infer repeal or applicability of other standards;
+    cross-document applicability remains independently routed.
+
+current_locator_priority:
+  P0_direct_read_first:
+    - "1.1"
+    - "1.2"
+    - "4.1-4.7"
+    - "5.2"
+    - "5.3"
+    - "6.1"
+    - "6.2.3"
+    - "6.2.4"
+    - "6.2.8"
+    - "7.1.1"
+    - "7.1.2"
+    - "7.1.7"
+    - "7.1.8"
+    - "7.2.2.1"
+    - "7.2.2.7"
+  P0_second_pass:
+    - "foodservice_and_laundry_locators"
+    - "sanitary_and_hygiene_locators"
+    - "daylight_and_microclimate_locators"
+    - "embedded_or_shared_complex_conditions"
 
 locator_migration:
   state: blocked_pending_direct_current_locator
   production_promotion_allowed: false
+  amendment_text_numeric_values_are_not_current_locator_PASS: true
   target_topics:
     - site_and_group_play_area_zoning
     - group_cell_composition_and_areas
@@ -67,12 +195,15 @@ locator_migration:
     - embedded_preschool_or_shared_complex_conditions
 
 release_gate:
-  - direct_current_locator_text_required
+  - direct_current_locator_text_required_before_machine_rule_promotion
   - exact_clause_table_or_appendix_required
   - amendment_effect_on_locator_must_be_resolved
+  - amendment_text_numeric_values_do_not_become_production_rules_without_current_locator_attestation
   - school_or_SP118_rules_must_not_substitute_missing_SP252_specific_requirement
+  - embedded_or_attached_preschool_requires_host_and_zone_classification
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
+  direct_locator_PASS_added: 0

@@ -1,9 +1,11 @@
-checked_at: 2026-09-30
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 purpose: "Планировочные минимумы квартир по действующему СП 54.13330.2022 с Изм. №1-2. Отделяет действующие площади от устаревших типовых минимальных ширин."
 
+evidence_state: authorized_locator_verified
+evidence_cycle: 2026-10-04_GARANT_current_consolidated_text
 revision_dependencies:
-  - {document: SP_54_13330_2022, verified_changes: [1,2]}
+  - {document: SP_54_13330_2022, verified_changes: [1,2], official_latest_change_effective_from: 2025-02-25}
 
 apartment_area_reference:
   source: SP_54_13330_2022
@@ -113,5 +115,12 @@ agent_logic:
 
 sources:
   - "https://protect.gost.ru/sp/details/c8b00dd7-7c13-4f17-ac0c-d9cf70311263"
-  - "https://e-ecolog.ru/docs/zSuL0AfxZ5PnqVJTkLUG3/full"
+  - "https://protect.gost.ru/sp/changesdetails/cf977250-531e-4093-b6e0-0aa1bb031b39"
+  - "https://protect.gost.ru/sp/changesdetails/ca0b09b9-6794-4f69-bf3d-7bb8ec6687b3"
+  - "https://base.garant.ru/404976077/"
   - "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+
+evidence_notes:
+  - "Текущий консолидированный текст 5.2/таблицы 5.1, 5.11 и 5.12 прочитан напрямую в ГАРАНТ 2026-10-04."
+  - "А.1.4 и примечание 1 прочитаны напрямую на странице приложения А ГАРАНТа."
+  - "ГАРАНТ отображает конфликтующие даты введения Изм. №1 и №2; для revision metadata используются официальные даты Росстандарта."

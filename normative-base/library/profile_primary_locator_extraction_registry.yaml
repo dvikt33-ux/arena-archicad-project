@@ -1,4 +1,4 @@
-registry_version: 6
+registry_version: 7
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -24,11 +24,13 @@ invariants:
   - official_provider_review_is_corroboration_not_direct_locator_proof
   - direct_amendment_text_does_not_automatically_equal_consolidated_current_locator_PASS
   - official_no_change_status_does_not_automatically_convert_public_text_to_library_PASS
+  - exact_base_text_plus_complete_latest_amendment_chain_may_verify_one_locator_without_closing_profile_gap
+  - exact_base_locator_with_officially_verified_no_registered_changes_may_be_attested_when_directly_read
 
 states:
   blocked_pending_direct_current_locator: >-
-    Current clause/table/appendix text has not been directly read in an accepted primary or
-    authorized source. No production promotion is allowed.
+    One or more required current clause/table/appendix texts have not been directly read in an
+    accepted source. The profile remains fail-closed for missing requirements.
   source_chain_ready_locator_pending: >-
     Document identity, active revision chain and official source route are established, but
     locator-level text still needs direct reading.
@@ -65,6 +67,7 @@ profiles:
     scope_gate: preschool_organization_or_classified_preschool_zone
     direct_locator_access: direct_public_GARANT_change3_read_consolidated_locator_pending
     direct_change3_text_read: true
+    verified_latest_amendment_exact_locators: ["1.1", "1.2", "6.2.4", "6.2.8", "7.1.2", "7.2.2.7"]
     current_locator_priority:
       first_pass: ["1.1", "1.2", "4.1-4.7", "5.2", "5.3", "6.1", "6.2.3", "6.2.4", "6.2.8", "7.1.1", "7.1.2", "7.1.7", "7.1.8", "7.2.2.1", "7.2.2.7"]
       second_pass: [foodservice_and_laundry_locators, sanitary_and_hygiene_locators, daylight_and_microclimate_locators, embedded_or_shared_complex_conditions]
@@ -99,10 +102,11 @@ profiles:
     official_card: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
     host_classes: [PUBLIC, MKD, MIXED_USE]
     scope_gate: hotel_building_or_classified_hotel_zone
-    direct_locator_access: direct_public_GARANT_change1_read_other_current_locators_pending
+    direct_locator_access: direct_GARANT_base_plus_change1_chain_read
     direct_change1_text_read: true
+    verified_locators: ["5.3"]
     current_locator_priority:
-      first_pass: ["5.3", "4.2", "6.1.4-6.1.15", "6.2.3-6.2.11", "6.3.2-6.3.9", "6.4.1-6.4.9", "Appendix B", "Appendix G"]
+      first_pass: ["4.2", "6.1.4-6.1.15", "6.2.3-6.2.11", "6.3.2-6.3.9", "6.4.1-6.4.9", "Appendix B", "Appendix G"]
     change1_affected_locator: "5.3"
     change1_EV_parking_route_is_not_complete_hotel_profile_coverage: true
     target_topics: [guestroom_types_composition_and_areas, public_guest_and_service_flow_separation, vertical_transport_and_floor_placement, housekeeping_sanitary_and_service_interfaces, accessible_room_and_route_interfaces, site_access_loading_parking_and_EV_interfaces]
@@ -118,11 +122,11 @@ profiles:
     host_class: INDUSTRIAL
     embedded_zone_route: F5_1_or_F5_2_room_in_other_host_class_when_within_scope
     scope_gate: F5_1_or_F5_2_and_not_excluded_special_category
-    direct_locator_access: public_GARANT_base_read_authorized_or_primary_attestation_pending
+    direct_locator_access: direct_GARANT_exact_locators_read_no_registered_changes
     official_no_registered_changes: true
+    verified_locators: ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.4.4.5", "5.4.4.9", "5.4.4.11", "6.2.2", "6.2.18", "6.2.22", "Appendix A.1", "Appendix A.2"]
     current_locator_priority:
-      first_pass: [scope_and_exclusions, "5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.4.4.5", "5.4.4.9", "5.4.4.11", "6.2.2", "6.2.18; Table 6.3", "6.2.22", "Appendix A.1-A.4"]
-    public_GARANT_candidate_values_are_not_PASS: true
+      first_pass_remaining: [scope_and_exclusions, "Table 6.3", "Tables 6.5-6.6", "Appendix A.4"]
     target_topics: [scope_and_exclusions, building_and_fire_compartment_geometry, floor_area_height_and_storey_constraints, production_and_storage_room_placement, gates_loading_and_internal_transport_interfaces, mezzanines_platforms_and_technical_levels, evacuation_and_fire_safety_architectural_interfaces]
     fallback_if_locator_missing: industrial_profile_requirement_pending
     production_promotion_allowed: false
@@ -148,27 +152,24 @@ parking_reaudit:
   production_promotion_allowed: false
 
 session_source_status:
-  authorized_opera_connector: intermittent
-  authorized_GARANT_session: intermittent
+  authorized_opera_connector: connected_during_latest_pass
+  authorized_GARANT_session: available_during_latest_pass
   official_public_cards: available
   official_minstroy_publication_index: available_but_no_consolidated_locator_read
-  current_public_GARANT_Consultant_text: corroboration_and_stale_detection_only_unless_specific_authorized_locator_is_directly_read
+  current_GARANT_text: accepted_only_when_specific_locator_or_complete_amendment_chain_is_directly_read
   secondary_sources_allowed_role: locator_discovery_only_if_needed
 
 summary:
   P0_profiles_in_primary_extraction_queue: 5
   P0_profiles_with_exact_locator_priority_lists: 5
-  profiles_with_numeric_promotion: 0
+  profiles_with_numeric_production_promotion: 0
   parking_reaudit_active: true
   parking_fire_route_current_document: SP_551_1311500_2026
   school_change7_substantive_effect_detected: true
-  school_current_consolidated_locator_PASS: 0
-  preschool_change3_direct_amendment_text_read: true
-  preschool_current_consolidated_locator_PASS: 0
-  medical_change7_direct_amendment_text_read: true
-  medical_current_consolidated_locator_PASS: 0
-  hotel_change1_direct_amendment_text_read: true
-  hotel_current_consolidated_locator_PASS: 0
-  industrial_public_base_text_read: true
-  industrial_accepted_locator_PASS: 0
+  school_verified_current_locator_count: 0
+  preschool_verified_locator_count: 6
+  medical_current_consolidated_locator_count: 0
+  hotel_verified_locator_count: 1
+  industrial_verified_locator_count: 13
+  P0_special_profile_verified_locator_total: 20
   unresolved_profiles_fail_closed: true

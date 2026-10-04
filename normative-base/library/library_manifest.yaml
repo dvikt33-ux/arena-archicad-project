@@ -1,4 +1,4 @@
-library_version: 20
+library_version: 21
 checked_at: 2026-10-04
 jurisdiction: RU
 target_profile: RU_2027_PLUS
@@ -30,6 +30,8 @@ invariants:
   - parking_geometry_and_parking_fire_documents_must_remain_separate_but_jointly_routed
   - highrise_architectural_and_fire_documents_must_remain_separate_but_jointly_routed
   - every_document_card_change_map_reference_must_be_registered_and_exist
+  - official_revision_metadata_controls_when_authorized_text_display_date_conflicts
+  - stale_consolidated_render_must_not_override_verified_amendment_chain
 
 object_classes:
   IZHS:
@@ -141,7 +143,7 @@ coverage:
     production_promotions: 0
     fail_closed: true
     parking_reaudit_active: true
-    direct_locator_access_current_session: unavailable
+    direct_locator_access_current_session: intermittent_GARANT
     rule: "A ready source chain never counts as dedicated rule coverage or locator PASS."
   p1_profile_locator_extraction:
     source: profile_p1_locator_extraction_registry.yaml
@@ -158,13 +160,18 @@ coverage:
     documents: [SP_54_13330_2022, SP_118_13330_2022, SP_464_1325800_2019]
     change_maps_registered: true
     document_cards_linked: true
-    locator_state: existing_rule_traceability_pending
+    MKD_locator_state: authorized_locator_verified
+    MKD_verified_locators: ["5.2; table 5.1", "5.11", "5.12", "A.1.4", "A.1.4 note 1"]
+    PUBLIC_locator_state: existing_rule_traceability_pending
+    TRK_locator_state: existing_rule_traceability_pending
     production_promotions: 0
-    rule: "Revision metadata and change cards never reinterpret existing production locator values."
+    rule: "Revision metadata never reinterprets values; MKD state was upgraded only after direct reading of current consolidated GARANT locators."
   multi_profile_locator_backlog:
     source: multi_profile_locator_backlog.yaml
     profiles_with_existing_rule_locator_backlog: 8
     profiles_waiting_for_primary_rule_layer: 9
+    profiles_with_verified_existing_rule_locators: [MKD]
+    authorized_locator_verified_in_existing_rule_backlog: 5
     new_library_PASS: 0
     urgent_profile: PARKING
     urgent_reason: "SP113 Change 4 effective 2026-10-03; current locator text must be rechecked before promotion."
@@ -195,9 +202,13 @@ coverage:
   locator_index:
     inherited_scoped_pass_locators: 6
     inherited_scoped_pass_with_change_maps: 6
+    authorized_locator_verified: 6
+    authorized_locator_verified_by_document:
+      SP_20_13330_2016: 1
+      SP_54_13330_2022: 5
     existing_rule_traceability_pending_locators: 9
-    blocked_pending_locator: 3
-    blocked_with_change_maps: 3
+    blocked_pending_locator: 2
+    blocked_with_change_maps: 2
   object_class_scope_enforcement:
     source: "../rules/28_functional_code_router.yaml"
     CI_validator: "../tools/validate.py"
@@ -343,6 +354,19 @@ resolved_safety_gaps:
     resolution: >-
       MKD SP54, general PUBLIC SP118 and TRK SP464 now each have a registered revision/change map,
       linked document card and explicit existing-rule locator migration state.
+  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+    status: resolved_for_routing_only
+    resolved_at: 2026-10-04
+    resolution: >-
+      Direct GARANT texts of Changes 2 through 6 prove that Change 2 replaced 10.2 with the
+      Appendix-K / Table-10.1 territorial route; Changes 3, 4 and 6 do not alter 10.2 and Change 5
+      changes only paragraph 3. No numeric snow value was promoted.
+  - id: MKD_SP54_CORE_LOCATOR_MIGRATION
+    status: resolved_for_registered_core_locators
+    resolved_at: 2026-10-04
+    resolution: >-
+      Current consolidated GARANT text directly verified 5.2/Table 5.1, 5.11, 5.12 and Appendix A.1.4
+      including note 1. Existing production values matched and were not changed.
 
 known_safety_gaps:
   - id: SPECIAL_PROFILE_DEDICATED_RULE_GAPS
@@ -366,8 +390,8 @@ known_safety_gaps:
     status: open
     severity: high
     source: multi_profile_locator_backlog.yaml
-    profiles: [MKD, PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
-    effect: "Existing rule values remain governed by their current production audit history; no new library PASS until direct locator migration."
+    profiles: [PUBLIC_GENERAL, TRK, MIXED_USE, SPORTS, THEATRE_CINEMA_CONCERT, PARKING, HIGH_RISE_OVERLAY]
+    effect: "MKD registered core locators are now verified; remaining profiles still require direct locator migration before new library PASS."
   - id: SP550_LOCATOR_DURABLE_TRACEABILITY
     status: open
     severity: high
@@ -385,10 +409,11 @@ known_safety_gaps:
     severity: high
     source: change_maps/SP_113_13330_2023.yaml
     effect: "Existing parking rules are preserved without reinterpretation; no new PASS until current Change 4 locators are directly read."
-  - id: SP20_10_2_CURRENT_TEXT_CONFLICT
+  - id: SP20_APPENDIX_K_TABLE_DIRECT_TEXT_NOT_VERIFIED
     status: open
     severity: high
-    effect: no_automatic_snow_value_from_clause_10_2
+    source: change_maps/SP_20_13330_2016.yaml
+    effect: "Territorial routing is proven, but no automatic Appendix K snow value until the table itself is directly read."
   - id: SP55_9_18_DIRECT_TEXT_NOT_VERIFIED
     status: open
     severity: high

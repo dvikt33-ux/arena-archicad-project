@@ -1,0 +1,168 @@
+audit_id: GARANT_LOCATOR_VERIFICATION_PASS_2026_10_04
+audit_version: 1
+checked_at: 2026-10-04
+branch: normative-base-v1
+policy: fail_closed
+production_numeric_values_changed: false
+production_rules_added: 0
+library_PASS_promoted: 0
+
+authorized_session:
+  connector: Opera_Browser_Connector
+  GARANT_account_page_read: true
+  authenticated_session_observed: true
+  connection_was_intermittent: true
+  final_state_at_audit_write: disconnected
+
+SP20_clause_10_2:
+  document: SP_20_13330_2016
+  finding: territorial_routing_verified
+  proof_state: authorized_locator_verified
+  stale_root_render:
+    url: "https://base.garant.ru/71636070/"
+    observation: >-
+      Корневой рендер показывал старую редакцию 10.2 через снеговой район/таблицу 10.1 и
+      не показывал приложение К в оглавлении. Из-за конфликта с полными текстами изменений
+      этот рендер исключен из доказательной цепочки current text.
+  amendment_chain:
+    - number: 2
+      url: "https://base.garant.ru/72234458/"
+      direct_text_read: true
+      effect: full_replacement_of_10_2_and_addition_of_Appendix_K
+      routing:
+        listed_settlements: Appendix_K
+        other_Russian_territory: snow_region_and_Table_10_1
+    - number: 3
+      url: "https://base.garant.ru/400437201/"
+      direct_text_read: true
+      effect_on_10_2: none
+    - number: 4
+      url: "https://base.garant.ru/405001743/"
+      direct_text_read: true
+      effect_on_10_2: none
+    - number: 5
+      url: "https://base.garant.ru/408556509/"
+      direct_text_read: true
+      effect_on_10_2: third_paragraph_only
+      direct_instruction: "Исключить слова ', указанные в таблице 10.1,'."
+    - number: 6
+      url: "https://base.garant.ru/410503722/"
+      direct_text_read: true
+      effect_on_10_2: none
+  safe_result:
+    routing_can_be_used: true
+    numeric_snow_value_from_10_2: false
+    geographic_input_required: true
+    Appendix_K_table_state: blocked_pending_locator
+    Appendix_K_numeric_generation_allowed: false
+  repo_updates:
+    - "../library/change_maps/SP_20_13330_2016.yaml"
+    - "../library/documents/SP_20_13330_2016.yaml"
+    - "../library/locator_registry.yaml"
+
+SP55_clause_9_18:
+  document: SP_55_13330_2016
+  finding: direct_current_locator_not_obtained
+  proof_state: blocked_pending_locator
+  base_url: "https://base.garant.ru/71584244/"
+  change_1_url: "https://base.garant.ru/72193340/"
+  change_2_url: "https://base.garant.ru/407370798/"
+  evidence_read:
+    change_1_direct_text: true
+    change_1_reaches_only_early_sections_and_does_not_show_9_18_change: true
+    change_2_direct_text: true
+    change_2_accessible_render_did_not_expose_9_18: true
+    base_anchor_attempted: "https://base.garant.ru/71584244/#block_918"
+    base_anchor_did_not_move_accessibility_tree_to_locator: true
+    d_garant_direct_document_attempt: document_not_allowed
+    internet_garant_attempt: redirected_to_separate_login
+  strict_conclusion: >-
+    Нельзя повышать 1:8/1:10 только из того, что Изм. №1-2 не показывают изменение 9.18.
+    Сам действующий текст 9.18 в допустимом locator не прочитан, поэтому блокировка сохранена.
+
+SP54_MKD_current_locators:
+  document: SP_54_13330_2022
+  proof_state: authorized_locator_verified
+  current_consolidated_url: "https://base.garant.ru/404976077/"
+  appendix_A_url: "https://base.garant.ru/404976077/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+  current_text_title_confirmed_with_changes_and_additions: true
+  locators_verified:
+    - locator: "5.2; table 5.1"
+      values_m2: [28, 44, 56, 70, 84, 103]
+      room_counts: [1, 2, 3, 4, 5, 6]
+    - locator: "5.11"
+      values_m2:
+        one_room_living: 14
+        multiroom_living: 16
+        bedroom: 8
+        bedroom_two_person: 10
+        kitchen: 8
+        kitchen_dining_zone: 6
+        one_room_kitchen_or_niche: 5
+        attic_bedroom_or_kitchen: 7
+        attic_required_living_room: 16
+      semantic_note: geometry_still_requires_ergonomics_and_furniture_equipment_fit
+    - locator: "5.12"
+      values_m:
+        IA_IB_IG_ID_IVA_living_kitchen: 2.7
+        other_subregions_living_kitchen: 2.5
+        intrapartment_corridor_hall_anteroom_mezzanine: 2.1
+      sloped_or_attic_reduced_height_max_area_fraction: 0.5
+    - locator: "A.1.4"
+      measurement_height_m: [0.0, 1.10]
+      excluded_from_dimension: [baseboards, decorative_elements, cable_ducts, heating_systems, air_conditioning_systems]
+    - locator: "A.1.4 note 1"
+      semantics: kitchen_niche_area_calculated_separately_from_adjacent_room
+  existing_rule_file: "../rules/35_residential_planning_minima.yaml"
+  existing_values_match_direct_current_text: true
+  production_numeric_values_changed: false
+  evidence_state_upgraded_only: true
+
+SP54_revision_metadata_conflict:
+  finding: GARANT_display_dates_conflict_with_Rosstandart
+  authoritative_metadata_source: Rosstandart
+  change_1:
+    official_card: "https://protect.gost.ru/sp/changesdetails/cf977250-531e-4093-b6e0-0aa1bb031b39"
+    official_effective_from: 2024-10-17
+    GARANT_full_text_url: "https://base.garant.ru/410613224/"
+    GARANT_displayed_effective_from: 2024-10-10
+  change_2:
+    official_card: "https://protect.gost.ru/sp/changesdetails/ca0b09b9-6794-4f69-bf3d-7bb8ec6687b3"
+    official_effective_from: 2025-02-25
+    GARANT_full_text_url: "https://base.garant.ru/411480975/"
+    GARANT_displayed_effective_from: 2025-08-22
+  resolution: official_Rosstandart_dates_control_revision_metadata
+  locator_text_effect: none_because_current_consolidated_locator_text_was_directly_read
+
+repo_updates_this_pass:
+  - "../library/change_maps/SP_20_13330_2016.yaml"
+  - "../library/documents/SP_20_13330_2016.yaml"
+  - "../library/change_maps/SP_54_13330_2022.yaml"
+  - "../library/documents/SP_54_13330_2022.yaml"
+  - "../library/multi_profile_locator_backlog.yaml"
+  - "../library/locator_registry.yaml"
+  - "../rules/35_residential_planning_minima.yaml"
+
+next_direct_GARANT_priority:
+  - SP_118_13330_2022_locators_5_16_5_54_5_55_5_57
+  - SP_464_1325800_2019_existing_rule_locators
+  - SP_113_13330_2023_change4_current_locators
+  - SP_551_1311500_2026_fire_locators
+  - SP_251_1325800_2016_school_primary_extraction
+  - SP_252_1325800_2016_preschool_primary_extraction
+  - SP_158_13330_2014_current_consolidated_medical_locators
+  - SP_257_1325800_2020_hotel_primary_extraction
+  - SP_56_13330_2021_industrial_primary_extraction
+
+unchanged_blockers:
+  - SP20_Appendix_K_full_table
+  - SP55_9_18_direct_current_text
+  - SP402_durable_locator_evidence_migration
+  - GOST25772_correction_text_and_table_locator_verification
+
+safety_assertions:
+  - no_numeric_snow_value_generated_without_location
+  - no_SP55_daylight_ratio_promoted
+  - no_secondary_source_promoted_to_locator_proof
+  - no_cross_profile_rule_leakage_introduced
+  - no_South_Russia_dataset_started

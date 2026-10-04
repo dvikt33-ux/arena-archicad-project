@@ -26,7 +26,23 @@ source_render_state:
   direct_change7_url: "https://base.garant.ru/414693011/"
   root_renderer_state: mixed_revision_not_current_consolidated
   root_renderer_must_not_prove_current_locator_text: true
+  root_renderer_allowed_role: navigation_and_corroboration_only
   verified_conflicts:
+    - locator: "5.2"
+      root_render_does_not_expose_change7_0_16_values_in_accessibility_text: true
+      direct_change7_values_ha: [0.16, 0.16]
+    - locator: "5.6"
+      root_render_semantics: recommendation_to_move_outpatient_entry_closer_to_site_entry
+      change7_semantics: mandatory_when_required_by_design_brief
+    - locator: "5.7"
+      root_render_semantics: old_warm_parking_rule_for_staff_visitors_and_special_vehicles
+      change7_semantics: special_purpose_vehicle_parking_by_design_brief_with_current_parking_and_fire_routes
+    - locator: "5.11"
+      root_render_semantics: recommends_non_intersecting_pedestrian_and_vehicle_routes
+      change7_semantics: requires_non_intersection_with_safety_measures_if_intersection_is_allowed
+    - locator: "6.2.11"
+      root_render_semantics: older_insolation_wording_without_change7_SP370_sun_protection_route
+      change7_semantics: revised_60_percent_ward_rule_plus_SP370_sun_protection_route
     - locator: "6.2.18"
       root_render_contains_pre_change_condition: "По заданию на проектирование ... может быть предусмотрено"
       change7_effect: full_replacement
@@ -34,9 +50,9 @@ source_render_state:
     - locator: "6.2.19"
       root_render_omits_new_design_brief_condition: true
       change7_effect: first_sentence_replaced
-    - locator: "5.2"
-      root_render_does_not_expose_change7_0_16_values_in_accessibility_text: true
-      direct_change7_values_ha: [0.16, 0.16]
+    - locator: "6.3.1"
+      root_render_still_contains_removed_words: "как правило"
+      change7_effect: removes_those_words_twice_in_item_b
   evidence_policy: >-
     Direct Change 7 text may prove what the amendment changed and invalidate stale pre-change
     values, but the mixed root renderer is not accepted as sole proof of consolidated current
@@ -53,19 +69,19 @@ locators:
   - {locator: "1.1", topic: medical_scope_and_embedded_medical_rooms, state: blocked_pending_direct_current_locator}
   - {locator: "5.2", topic: auxiliary_site_area_thresholds, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "5.5", topic: staff_visitor_hemodialysis_and_ambulance_parking, state: blocked_pending_direct_current_locator}
-  - {locator: "5.6", topic: outpatient_entry_to_site_entry_relationship, state: blocked_pending_direct_current_locator}
-  - {locator: "5.7", topic: special_purpose_vehicle_parking, state: blocked_pending_direct_current_locator}
-  - {locator: "5.8", topic: unified_medical_complex_atria_and_warm_passages, state: blocked_pending_direct_current_locator}
-  - {locator: "5.11", topic: parking_by_entries_and_pedestrian_vehicle_flow_separation, state: blocked_pending_direct_current_locator}
+  - {locator: "5.6", topic: outpatient_entry_to_site_entry_relationship, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "5.7", topic: special_purpose_vehicle_parking, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "5.8", topic: unified_medical_complex_atria_and_warm_passages, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "5.11", topic: parking_by_entries_and_pedestrian_vehicle_flow_separation, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.2.6", topic: vibration_adjacent_room_placement, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.8", topic: xray_complex_below_wet_process_rooms, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.9", topic: courtyards_and_atria_for_light, state: blocked_pending_direct_current_locator}
-  - {locator: "6.2.11", topic: orientation_insolation_and_sun_protection, state: blocked_pending_direct_current_locator}
+  - {locator: "6.2.11", topic: orientation_insolation_and_sun_protection, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.2.18", topic: religious_room_area, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.2.19", topic: post_procedure_rest_room_area, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.2.20 Table 6.1 notes", topic: door_geometry_and_reconstruction_reduction, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.22", topic: minimum_room_areas_route_to_appendix_V, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
-  - {locator: "6.3.1", topic: upper_floor_placement_of_departments, state: blocked_pending_direct_current_locator}
+  - {locator: "6.3.1", topic: upper_floor_placement_of_departments, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.3.4 Table 6.3 notes", topic: room_height_and_reconstruction_exception, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "Appendix V high-impact room-area rows", topic: minimum_medical_room_areas, state: blocked_pending_direct_current_locator}
 release_gates:

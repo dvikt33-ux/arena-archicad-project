@@ -7,7 +7,7 @@ checked_at: 2026-10-04
 production_authority: false
 scope_tags: [PUBLIC, HOTEL]
 object_class_router:
-  include_when_subject_applies: [PUBLIC, MKD]
+  include_when_subject_applies: [PUBLIC, MKD, MIXED_USE]
   gate: hotel_building_or_hotel_zone_in_public_mixed_use_or_nonresidential_MKD_part
 revision:
   verified_changes: [1]
@@ -24,13 +24,29 @@ scope:
   proof_state: official_card_verified
   max_underground_depth_m: 15
   note: "New/reconstructed hotel buildings and hotel premises in public/mixed-use buildings and nonresidential premises of MKD within scope."
-locator_research:
-  state: source_chain_ready_locator_pending
-  queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: unavailable_in_current_session
+source_evidence:
+  direct_change1_url: "https://base.garant.ru/408657541/"
+  direct_change1_text_state: amendment_text_read_directly_public_GARANT
+  affected_locator: "5.3"
+  role: change_impact_mapping_only
   production_promotion_allowed: false
-locators: []
+locator_research:
+  state: blocked_pending_direct_current_locator
+  queue: "../profile_primary_locator_extraction_registry.yaml"
+  direct_current_locator_access: change1_amendment_text_read_other_current_locators_pending
+  production_promotion_allowed: false
+locators:
+  - {locator: "5.3", topic: EV_parking_and_charging_route, state: amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "4.2", topic: standalone_embedded_and_MKD_hotel_placement, state: blocked_pending_direct_current_locator}
+  - {locator: "6.1.4-6.1.15", topic: hotel_zoning_vertical_transport_and_accessibility, state: blocked_pending_direct_current_locator}
+  - {locator: "6.2.3-6.2.11", topic: guestroom_types_areas_sanitary_and_geometry, state: blocked_pending_direct_current_locator}
+  - {locator: "6.3.2-6.3.9", topic: guest_public_rooms_and_lobbies, state: blocked_pending_direct_current_locator}
+  - {locator: "6.4.1-6.4.9", topic: staff_and_service_rooms, state: blocked_pending_direct_current_locator}
+  - {locator: "Appendix B", topic: hotel_room_area_measurement, state: blocked_pending_direct_current_locator}
+  - {locator: "Appendix G", topic: room_minimum_area_table, state: blocked_pending_direct_current_locator}
 release_gates:
-  - exact_locator_evidence_required_for_numeric_rules
+  - exact_current_locator_evidence_required_for_numeric_rules
+  - direct_change1_text_only_proves_5_3_amendment_effect
   - hotel_zone_classification_required_when_embedded
   - SP118_general_rules_do_not_close_SP257_specific_gap
+  - current_parking_and_EV_special_routes_required_for_5_3_application

@@ -62,7 +62,7 @@ def main() -> None:
     backlog = load_yaml(backlog_path)
     primary_queue = load_yaml(primary_queue_path)
 
-    # SP464 mixed-revision renderer protection.
+    # SP464 mixed-revision renderer protection and current Change-1 evidence.
     rule70_text = rule70_path.read_text(encoding="utf-8")
     if "trk.loading.closed_dock_trade_food" in rule70_text:
         fail("superseded SP464 6.21 rule id returned to rules/70")
@@ -76,29 +76,61 @@ def main() -> None:
     if canopy.get("source_clause") != "6.21, Change 1" or canopy.get("requirement") != "canopy":
         fail("rules/89 SP464 6.21 canopy rule lost Change-1 traceability")
 
-    public = sp464.get("public_GARANT_corroboration") or {}
-    if public.get("root_renderer_state") != "mixed_revision_not_current_consolidated":
+    authorized464 = sp464.get("authorized_GARANT_change1") or {}
+    if authorized464.get("root_renderer_state") != "mixed_revision_not_current_consolidated":
         fail("SP464 root GARANT renderer must stay marked mixed-revision")
-    if public.get("root_renderer_must_not_prove_current_locator_text") is not True:
+    if authorized464.get("root_renderer_must_not_prove_current_locator_text") is not True:
         fail("SP464 root GARANT renderer must be forbidden as sole current-text proof")
+    if authorized464.get("state") != "latest_amendment_text_read_directly":
+        fail("SP464 Change 1 must remain directly read latest-amendment evidence")
+    if authorized464.get("latest_change_is_change1") is not True:
+        fail("SP464 authorized amendment evidence requires Change 1 to remain latest")
+
+    verified464 = {
+        row.get("locator"): row
+        for row in (sp464.get("verified_change1_locators") or [])
+        if isinstance(row, dict) and row.get("locator")
+    }
+    if (verified464.get("6.21") or {}).get("proof_state") != "authorized_latest_amendment_exact_text_verified":
+        fail("SP464 6.21 must remain directly verified from latest Change 1")
+    if (verified464.get("6.21") or {}).get("semantics") != "canopy_required_over_open_loading_places":
+        fail("SP464 6.21 current canopy semantics changed unexpectedly")
+    if (verified464.get("8.6 first sentence") or {}).get("proof_state") != "authorized_latest_amendment_exact_text_verified":
+        fail("SP464 8.6 first sentence must remain latest-amendment verified")
 
     stale = sp464.get("stale_rule_audit") or {}
     if stale.get("stale_rule_found") is not True or stale.get("resolution") != "removed_superseded_rule_and_route_current_loading_typology_to_rule_89":
         fail("SP464 stale 6.21 rule resolution is missing from change map")
 
-    # SP118 renderer/date conflict protection.
+    # SP118 renderer/date conflict protection and amendment-chain authority.
     rev118 = sp118.get("revision") or {}
     if str(rev118.get("latest_change_effective_from")) != "2025-02-25":
         fail("SP118 Change 5 effective date must follow Rosstandart 2025-02-25")
     if rev118.get("effective_date_authority") != "Rosstandart" or rev118.get("metadata_conflict") is not True:
         fail("SP118 GARANT/Rosstandart effective-date conflict must remain explicit")
 
-    current118 = sp118.get("public_GARANT_current_text_corroboration") or {}
-    locator_516 = next((row for row in current118.get("directly_visible_current_locators", []) if row.get("locator") == "5.16"), None)
-    if not isinstance(locator_516, dict) or locator_516.get("public_root_render_conflict") is not True:
+    sources118 = sp118.get("authorized_GARANT_sources") or {}
+    if sources118.get("all_five_amendments_read_for_target_locator_impact") is not True:
+        fail("SP118 target locator evidence must retain full Change 1-5 review")
+    if sources118.get("root_renderer_state") != "mixed_revision_for_5_16":
         fail("SP118 5.16 root-render conflict must remain explicit")
-    if locator_516.get("direct_change_1_text_for_cabin_depth_over_2m") != "1,3 глубины лифта":
-        fail("SP118 5.16 Change-1 multiplier semantics changed unexpectedly")
+    if sources118.get("root_renderer_must_not_override_amendment_chain") is not True:
+        fail("SP118 root renderer must not override amendment-chain evidence")
+
+    verified118 = {
+        row.get("locator"): row
+        for row in (sp118.get("verified_locators") or [])
+        if isinstance(row, dict) and row.get("locator")
+    }
+    locator_516 = verified118.get("5.16") or {}
+    if locator_516.get("proof_state") != "authorized_locator_verified":
+        fail("SP118 5.16 must remain authorized_locator_verified")
+    if (locator_516.get("renderer_conflict") or {}).get("root_render_incorrect_or_mixed_text") != "1,3 м":
+        fail("SP118 5.16 root-render 1.3 m conflict marker disappeared")
+    if (locator_516.get("renderer_conflict") or {}).get("controlling_change_3_text") != "1,3 глубины лифта":
+        fail("SP118 5.16 controlling Change-3 multiplier semantics changed unexpectedly")
+    if ((locator_516.get("values") or {}).get("lobby_width_by_cabin_depth") or {}).get("cabin_depth_over_2_0_m") != "1.3 * lift_depth":
+        fail("SP118 5.16 machine-readable lift-depth multiplier changed unexpectedly")
 
     # SP113 Change 4 -> SP551 parking-fire transition.
     forbidden_sp113_fire_clauses = {"6.2.12", "6.2.30", "7.10.2"}

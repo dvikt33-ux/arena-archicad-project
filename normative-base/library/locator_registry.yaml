@@ -1,12 +1,12 @@
-locator_registry_version: 4
-checked_at: 2026-10-03
+locator_registry_version: 5
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
 purpose: "Единый индекс пунктов, таблиц и приложений, связывающий evidence-state с rule-файлами. Реестр не меняет production-правила и не повышает доказательность сам по себе."
 
 proof_policy:
   official_clause_verified: "текст locator напрямую прочитан в допустимом первичном источнике"
-  authorized_locator_verified: "текст locator напрямую прочитан в авторизованной действующей системе"
+  authorized_locator_verified: "текст locator напрямую прочитан в авторизованной действующей системе либо однозначно восстановлен из полного текста замещающего изменения после проверки всех последующих изменений"
   inherited_scoped_pass: "locator уже закрыт отдельным durable audit/rule cycle; библиотека наследует PASS без переинтерпретации"
   existing_rule_traceability_pending: "production rule уже существует, но его locator еще не мигрирован в durable evidence chain; библиотека не повышает и не понижает правило автоматически"
   blocked_pending_locator: "точный действующий locator не прочитан; production promotion запрещен"
@@ -65,19 +65,30 @@ locators:
     production_state: existing_scoped_pass_preserved
 
   - document: SP_20_13330_2016
-    locator: "10.2"
+    locator: "10.2 routing paragraphs 1-2"
     topic: snow_load_territorial_selection
-    proof_state: blocked_pending_locator
+    proof_state: authorized_locator_verified
+    verification_method: direct_GARANT_amendment_chain_reconstruction
+    verified_amendments: [2, 3, 4, 5, 6]
     change_map: "change_maps/SP_20_13330_2016.yaml"
-    production_state: blocked
-    effect: no_automatic_snow_territorial_route
+    production_state: routing_verified_numeric_value_not_generated
+    routing:
+      listed_settlement: Appendix_K
+      other_territory: snow_region_and_Table_10_1
+    geographic_input_required: true
+    appendix_K_table_required_for_listed_settlement_value: true
+    note: >-
+      Изм. №2 полностью заменяет 10.2 и вводит маршрут через приложение К; полные тексты
+      Изм. №3, №4 и №6 не затрагивают 10.2, а Изм. №5 меняет только третий абзац.
+      Старый корневой рендер ГАРАНТа признан непригодным для определения current text.
+
   - document: SP_20_13330_2016
     locator: "Appendix K"
     topic: normative_snow_weight_for_listed_cities
     proof_state: blocked_pending_locator
     change_map: "change_maps/SP_20_13330_2016.yaml"
     production_state: blocked
-    effect: no_automatic_snow_value
+    effect: no_automatic_Appendix_K_snow_value
 
   - document: SP_55_13330_2016
     locator: "9.18"
@@ -169,7 +180,8 @@ locators:
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
+  authorized_locator_verified: 1
   existing_rule_traceability_pending_locators: 9
-  blocked_pending_locator: 3
-  blocked_locators_with_change_maps: 3
-  production_promotions_from_this_registry: 0
+  blocked_pending_locator: 2
+  blocked_locators_with_change_maps: 2
+  production_numeric_promotions_from_this_registry: 0

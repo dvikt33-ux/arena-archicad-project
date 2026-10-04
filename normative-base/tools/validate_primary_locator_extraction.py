@@ -88,7 +88,6 @@ def main() -> int:
     if not isinstance(profiles, dict):
         errors.append("registry profiles must be a mapping")
         profiles = {}
-
     if set(profiles) != set(EXPECTED_P0):
         errors.append(f"P0 extraction profile set mismatch: {sorted(profiles)}")
 
@@ -150,29 +149,40 @@ def main() -> int:
     if school_locators.get("Table 6.1 note 4") != "provider_review_numeric_values_corroborated_direct_amendment_locator_pending":
         errors.append("SP251 Table 6.1 note 4 values must remain direct-amendment pending")
 
-    # Preschool / SP252.
+    # Preschool / SP252. Change 3 is the latest revision. A locator fully replaced by Change 3
+    # may be attested from the directly read replacement text; partial edits remain pending.
     preschool = profiles.get("PRESCHOOL") or {}
     if preschool.get("state") != "blocked_pending_direct_current_locator":
-        errors.append("PRESCHOOL must remain blocked pending accepted consolidated current locator text")
+        errors.append("PRESCHOOL profile must remain blocked until the full dedicated rule layer is built")
     if preschool.get("direct_change3_text_read") is not True:
         errors.append("PRESCHOOL must record direct Change 3 text as read")
     if preschool.get("change3_amendment_candidate_values_are_not_PASS") is not True:
-        errors.append("PRESCHOOL Change 3 candidate values must remain non-PASS")
+        errors.append("PRESCHOOL registry must not treat all Change 3 candidate values as automatic PASS")
+
     required_preschool_priority = {
         "1.1", "1.2", "4.1-4.7", "5.2", "5.3", "6.1", "6.2.3", "6.2.4", "6.2.8",
         "7.1.1", "7.1.2", "7.1.7", "7.1.8", "7.2.2.1", "7.2.2.7",
     }
     if set((preschool.get("current_locator_priority") or {}).get("first_pass") or []) != required_preschool_priority:
         errors.append("PRESCHOOL first-pass locator queue mismatch")
+
     preschool_evidence = (sp252_card if isinstance(sp252_card, dict) else {}).get("source_evidence") or {}
-    if preschool_evidence.get("direct_change3_text_state") != "amendment_text_read_directly_public_GARANT":
-        errors.append("SP252 card must record direct Change 3 amendment text")
-    if preschool_evidence.get("production_promotion_allowed") is not False:
-        errors.append("SP252 Change 3 evidence must not allow production promotion")
+    if preschool_evidence.get("direct_change3_text_state") != "authorized_GARANT_amendment_text_read_directly":
+        errors.append("SP252 card must record directly read GARANT Change 3 text")
+    if preschool_evidence.get("latest_change_is_change3") is not True:
+        errors.append("SP252 exact-replacement evidence requires Change 3 to be the latest revision")
+    if preschool_evidence.get("production_authority") is not False:
+        errors.append("SP252 evidence must remain non-production authority")
+
     preschool_states = {row.get("locator"): row.get("state") for row in (sp252_card.get("locators") or []) if isinstance(row, dict)}
-    for locator in required_preschool_priority:
-        if preschool_states.get(locator) != "amendment_text_verified_current_consolidated_locator_pending":
-            errors.append(f"SP252 {locator} must remain amendment-verified/current-locator pending")
+    verified_exact = {"1.1", "1.2", "6.2.4", "6.2.8", "7.1.2", "7.2.2.7"}
+    pending_context = required_preschool_priority - verified_exact
+    for locator in verified_exact:
+        if preschool_states.get(locator) != "authorized_latest_amendment_exact_text_verified":
+            errors.append(f"SP252 {locator} must remain latest-amendment exact-text verified")
+    for locator in pending_context:
+        if preschool_states.get(locator) != "amendment_text_verified_current_context_pending":
+            errors.append(f"SP252 {locator} must remain amendment-verified/current-context pending")
 
     # Medical / SP158.
     medical = profiles.get("MEDICAL") or {}
@@ -291,8 +301,8 @@ def main() -> int:
         return 1
 
     print(
-        "OK: all 5 P0 special profiles have exact fail-closed locator queues; school/preschool/medical/hotel/industrial "
-        "source evidence cannot become production PASS without accepted current locator attestation; parking remains split SP113/SP551."
+        "OK: all 5 P0 special profiles keep fail-closed rule coverage; SP252 permits only six directly read latest-amendment "
+        "full-replacement locator attestations, while partial edits and all machine-rule creation remain gated; parking remains split SP113/SP551."
     )
     return 0
 

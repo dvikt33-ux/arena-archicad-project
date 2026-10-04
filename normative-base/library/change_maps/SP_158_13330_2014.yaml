@@ -1,3 +1,4 @@
+change_map_version: 2
 document_id: SP_158_13330_2014
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -23,20 +24,23 @@ source_layers:
     approved_at: 2026-07-09
     registered_at: 2026-07-27
     effective_from: 2026-08-10
+    officially_published_at: 2026-08-06
+    pages: 16
+    change_kind: textual_and_reference_updates
     url: "https://protect.gost.ru/sp/changesdetails/61857d2f-e38b-4971-9112-77b21d98fcf8"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
   direct_public_garant_change_text:
     authority: GARANT
     url: "https://base.garant.ru/414693011/"
     state: amendment_text_read_directly
-    role: invalidate_and_reaudit_map_only
+    role: amendment_effect_mapping_stale_rule_detection_and_locator_priority_only
+    production_promotion_allowed: false
     does_not_prove: consolidated_current_locator_text
   FCS_clarification_letter:
     authority: FAU_FCS
     date: 2026-07-24
     number: "Исх-4699"
     url: "https://base.garant.ru/414756127/"
-    role: corroborates_change7_effect_on_clause_5_2
+    role: independently_corroborates_change7_effect_on_clause_5_2
   change_6_card:
     authority: Rosstandart
     change: 6
@@ -45,7 +49,6 @@ source_layers:
     registered_at: 2026-01-14
     effective_from: 2026-01-13
     url: "https://protect.gost.ru/sp/changesdetails/8a3b89b1-1f1b-4c67-be69-75d15759194f"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
   change_5_card:
     authority: Rosstandart
     change: 5
@@ -54,70 +57,281 @@ source_layers:
     registered_at: 2025-01-22
     effective_from: 2025-01-25
     url: "https://protect.gost.ru/sp/changesdetails/55ed91bc-d0b8-4df8-964d-b8e63351cd00"
-    card_summary_role: revision_metadata_and_reference_update_summary_only
-  official_ministry_publication_index:
-    authority: Minstroy_Russia
-    status: base_and_change_publication_entries_found
-    note: >-
-      Official Minstroy index exposes the base SP158 publication and later changes, but the current
-      session could not obtain consolidated current locator text through the public index.
 
-latest_revision_observation:
-  change_7_summary_type: substantive_text_and_reference_updates
-  important_reference_updates:
-    - SP_60_13330_2020_updated_to_change_6
-    - SP_113_13330_2023_updated_to_change_3
-    - SP_256_1325800_2016_updated_to_change_9
-    - SP_370_1325800_2017_added
-    - legacy_fire_references_removed_from_reference_list
-  known_substantive_locator_effects_non_exhaustive:
-    - locator: "1"
-      effect: scope_text_revised
-      state: needs_current_consolidated_locator
+change_7_revision_semantics:
+  scope_rewritten: true
+  site_and_access_planning_rewritten: true
+  room_and_department_planning_rewritten: true
+  floor_placement_and_height_rewritten: true
+  reference_layer_materially_updated: true
+  fire_reference_list_restructured: true
+  no_pre_change_value_reuse_without_locator_reaudit: true
+
+reference_updates:
+  updated:
+    - SP_60_13330_2020_to_change_6
+    - SP_113_13330_2023_to_change_3
+    - SP_256_1325800_2016_to_change_9
+  added:
+    - SP_370_1325800_2017
+  removed_from_reference_list:
+    - SP_1_13130_2020
+    - SP_3_13130_2009
+    - SP_7_13130_2013
+    - SP_8_13130_2020
+    - SP_10_13130_2020
+    - SP_484_1311500_2020
+    - SP_485_1311500_2020
+    - SP_486_1311500_2020
+  interpretation: >-
+    Removal from the SP158 reference list must not be interpreted as removal of applicable fire
+    requirements. Fire applicability is routed independently through current fire standards.
+
+change_7_high_impact_locator_map:
+  scope_and_definitions:
+    - locator: "1.1"
+      effect: rewritten
+      topic: medical_object_and_embedded_medical_room_scope
+      current_semantics_corroborated: >-
+        Applies to new, reconstructed and capital-repaired medical-purpose capital construction
+        and medical-purpose rooms embedded in residential, public and production buildings.
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "3.12a"
+      effect: added
+      topic: sanatorium_residential_group_definition
+      state: new_change7_locator_pending_current_consolidated_locator
+    - locator: "3.28v"
+      effect: rewritten
+      topic: permanent_occupancy_room_definition
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "3.29"
+      effect: deleted
+      state: deleted_by_change7
+    - locator: "3.44"
+      effect: rewritten
+      topic: basement_ground_floor_definition
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  site_and_transport:
     - locator: "5.2"
-      effect: "first and second listed site-area values changed from 0.25 ha to 0.16 ha"
-      corroboration: FAU_FCS_letter_2026_07_24_Исх_4699
-      state: affected_by_change7
-    - locator: "6.12.3.2"
-      effect: fourth_sentence_wording_changed
-      state: affected_by_change7
-    - locator: "6.12.3.3"
-      effect: third_sentence_wording_changed
-      state: affected_by_change7
-    - locator: "6.12.3.5"
-      effect: wording_changed
-      state: affected_by_change7
-    - locator: "7.5.6"
-      effect: heading_removed
-      state: affected_by_change7
-    - locator: "7.6.8"
-      effect: heading_revised
-      state: affected_by_change7
-    - locator: "7.6.9"
-      effect: heading_removed
-      state: affected_by_change7
-    - locator: "7.6.10"
-      effect: heading_removed
-      state: affected_by_change7
-    - locator: "9"
-      effect: section_heading_added_or_revised_to_fire_safety_requirements
-      state: affected_by_change7
-  evidence_limit: >-
-    The directly read amendment proves that Change 7 is not merely a reference update. The list
-    above is deliberately non-exhaustive and does not substitute for reading the consolidated
-    current locator before creating or changing a production rule.
+      effect: numeric_values_changed
+      topic: auxiliary_site_area_thresholds
+      amendment_text_values:
+        first_listed_value_ha: 0.16
+        second_listed_value_ha: 0.16
+      previous_values_ha: [0.25, 0.25]
+      independently_corroborated_by: FAU_FCS_letter_2026_07_24_Исх_4699
+      state: amendment_text_confirmed_but_production_promotion_blocked_until_current_locator_evidence
+    - locator: "Table 5.2"
+      effect: terminology_updated
+      topic: parking_space_count_terminology
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.3"
+      effect: rewritten
+      topic: existing_medical_site_new_building_area_reduction_by_brief
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.5"
+      effect: rewritten
+      topic: staff_visitor_hemodialysis_and_ambulance_parking
+      contains_numeric_requirements: true
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.6"
+      effect: rewritten
+      topic: outpatient_entry_to_site_entry_relationship
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.7"
+      effect: rewritten
+      topic: special_purpose_vehicle_parking
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.8"
+      effect: rewritten
+      topic: hospital_complex_unified_building_atria_covered_streets_and_warm_passages
+      cross_reference: Appendix_A_Table_A_1
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.11"
+      effect: rewritten
+      topic: parking_by_staff_visitor_entrances_and_pedestrian_vehicle_flow_separation
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.13"
+      effect: rewritten
+      topic: guest_accommodation_at_hospitals
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.14"
+      effect: rewritten
+      topic: landscaping_for_intensive_and_long_term_treatment
+      contains_numeric_requirements: true
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.15"
+      effect: rewritten
+      topic: roof_and_winter_gardens_when_site_landscaping_limited
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "5.18"
+      effect: sentence_rewritten
+      topic: psychiatric_hospital_site_visual_privacy_fence
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  general_building_planning:
+    - locator: "6.2.6"
+      effect: wording_strengthened_with_project_brief_exception
+      topic: vibration_adjacent_room_placement
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.2.8"
+      effect: sentence_rewritten
+      topic: xray_complex_equipment_below_wet_process_rooms
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.2.9"
+      effect: rewritten
+      topic: courtyards_and_atria_for_natural_or_borrowed_light
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.2.11"
+      effect: rewritten
+      topic: orientation_insolation_and_sun_protection
+      contains_numeric_requirements: true
+      related_document: SP_370_1325800_2017
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.2.18"
+      effect: rewritten
+      topic: religious_room_by_project_brief
+      amendment_text_numeric_value_m2: 12
+      state: amendment_text_confirmed_but_production_promotion_blocked_until_current_locator_evidence
+    - locator: "6.2.19"
+      effect: first_sentence_rewritten
+      topic: post_procedure_rest_room_area
+      amendment_text_numeric_values_m2:
+        per_chair: 2
+        per_couch: 4
+      state: amendment_text_confirmed_but_production_promotion_blocked_until_current_locator_evidence
+    - locator: "6.2.20 Table 6.1 notes"
+      effect: notes_rewritten
+      topic: door_opening_geometry_and_reconstruction_reduction
+      contains_numeric_requirements: true
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.2.22"
+      effect: rewritten
+      topic: minimum_room_areas_route
+      current_route_corroborated: Appendix_V_with_reference_49
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  floor_placement_and_height:
+    - locator: "6.3.1"
+      effect: paragraph_rewritten
+      topic: upper_floor_placement_of_specified_departments
+      contains_numeric_requirements: true
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.3.4 Table 6.3 note 1"
+      effect: sentence_added
+      topic: reconstruction_capital_repair_ceiling_height_exception
+      amendment_text_numeric_value_m: 2.6
+      state: amendment_text_confirmed_but_production_promotion_blocked_until_current_locator_evidence
+    - locator: "6.3.4 Table 6.3 notes 3-4"
+      effect: wording_updated
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  finishes_sanitary_and_wayfinding:
+    - locator: "6.4.11"
+      effect: deleted
+      state: deleted_by_change7
+    - locator: "6.4.12"
+      effect: rewritten_in_part
+      topic: wayfinding_color_and_information_design_by_brief
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.5.2"
+      effect: wording_updated
+      topic: sanitary_room_placement_and_equipment_by_brief
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.5.4"
+      effect: sentence_added
+      topic: hand_disinfectant_dispenser_option_in_wards_or_ward_airlocks
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator: "6.6.1"
+      effect: wording_updated
+      topic: entrance_group_composition
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  department_specific_reaudit:
+    - locator_group: "6.7"
+      effect: multiple_subclauses_changed
+      priority_locators: ["6.7.2.11", "6.7.2.12", "6.7.2.21", "6.7.3.1"]
+      topics: [pediatric_play_and_parent_stay, sanatorium_residential_groups]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.8.5"
+      effect: multiple_radiotherapy_subclauses_changed
+      priority_locators: ["6.8.5.1", "6.8.5.5", "6.8.5.9", "6.8.5.11"]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.9.1"
+      effect: multiple_outpatient_subclauses_changed
+      priority_locators: ["6.9.1.2", "6.9.1.12", "6.9.1.20", "6.9.1.21", "6.9.1.22"]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.9.2"
+      effect: day_hospital_subclauses_changed
+      priority_locators: ["6.9.2.1", "6.9.2.3"]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.9.3"
+      effect: diagnostic_subclauses_changed
+      priority_locators: ["6.9.3.1", "6.9.3.2", "6.9.3.3", "6.9.3.10", "6.9.3.11"]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.9.4"
+      effect: radionuclide_diagnostics_and_therapy_subclauses_changed
+      priority_locators: ["6.9.4.4a", "6.9.4.4v", "6.9.4.8"]
+      state: affected_by_change7_pending_current_consolidated_locator
+    - locator_group: "6.12.3"
+      effect: service_subclauses_changed
+      priority_locators: ["6.12.3.2", "6.12.3.3", "6.12.3.5"]
+      state: affected_by_change7_pending_current_consolidated_locator
+
+  document_structure:
+    - {locator: "7.5.6 heading", effect: deleted, state: deleted_by_change7}
+    - {locator: "7.6.8 heading", effect: rewritten, state: affected_by_change7}
+    - {locator: "7.6.9 heading", effect: deleted, state: deleted_by_change7}
+    - {locator: "7.6.10 heading", effect: deleted, state: deleted_by_change7}
+    - {locator: "9 heading", effect: added_or_revised_to_fire_safety_requirements, state: affected_by_change7}
+
+current_locator_priority:
+  P0_direct_read_first:
+    - "1.1"
+    - "5.2"
+    - "5.5"
+    - "5.6"
+    - "5.7"
+    - "5.8"
+    - "5.11"
+    - "6.2.6"
+    - "6.2.8"
+    - "6.2.9"
+    - "6.2.11"
+    - "6.2.18"
+    - "6.2.19"
+    - "6.2.20 Table 6.1 notes"
+    - "6.2.22"
+    - "6.3.1"
+    - "6.3.4 Table 6.3 notes"
+    - "Appendix V high-impact room-area rows"
+  P0_second_pass:
+    - "5.13-5.15"
+    - "5.18"
+    - "6.4.12"
+    - "6.5.2"
+    - "6.5.4"
+    - "6.6.1"
+    - "6.7 priority subclauses"
+    - "6.8.5 priority subclauses"
+    - "6.9 priority subclauses"
+    - "6.12.3 priority subclauses"
 
 locator_migration:
   state: blocked_pending_direct_current_locator
   production_promotion_allowed: false
+  amendment_text_numeric_values_are_not_current_locator_PASS: true
   target_topics:
     - medical_zone_scope_and_embedded_zone_conditions
-    - department_and_clean_dirty_flow_separation
-    - corridor_door_and_transport_geometry
+    - site_parking_and_flow_separation
+    - corridor_door_and_patient_transport_geometry
     - room_composition_and_minimum_areas
     - floor_placement_and_vertical_connections
+    - daylight_insolation_and_sun_protection
     - isolation_and_infection_control_planning_interfaces
     - sanitary_and_patient_staff_support_rooms
+    - department_specific_flow_and_room_placement
     - ventilation_medical_gas_and_engineering_architectural_interfaces
 
 release_gate:
@@ -125,10 +339,14 @@ release_gate:
   - exact_clause_table_or_appendix_required
   - amendment_effect_on_locator_must_be_resolved
   - change7_known_affected_locators_must_not_reuse_pre_change_values_without_reaudit
+  - amendment_text_numeric_values_do_not_become_machine_rules_without_current_locator_attestation
   - embedded_medical_zone_must_be_classified_before_applying_SP158
   - host_building_general_rules_must_not_replace_SP158_specific_requirement
+  - current_fire_requirements_must_be_routed_independently_not_inferred_from_removed_reference_names
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
+  stale_rules_removed: 0
+  direct_locator_PASS_added: 0

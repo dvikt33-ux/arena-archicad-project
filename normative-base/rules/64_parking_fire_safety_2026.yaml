@@ -1,4 +1,4 @@
-checked_at: 2026-10-01
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 purpose: "Пожарная архитектурная координация стоянок автомобилей по СП 551.1311500.2026, действующему с 01.06.2026. Используется совместно, а не вместо геометрического СП 113.13330.2023."
 
@@ -19,6 +19,27 @@ scope:
     - motorcycle_parking
     - personal_mobility_device_storage
   exclusions_note: "Точные исключения области применения проверять по разделу 1 СП 551; не переносить правила на транспорт и опасные грузы вне области документа."
+
+EV_PHEV_transition:
+  current_fire_document: SP_551_1311500_2026
+  current_target_locators: ["7.3", "7.4", "7.5", "7.6", "12.6", "12.7"]
+  evidence_state: current_public_text_corroborated_locator_migration_pending
+  superseded_SP113_locators: ["6.2.12", "6.2.30", "7.10.2"]
+  note: >-
+    Изм. №4 СП 113 удалило прежние пожарные пункты; поэтому в профиле 2027 пожарные требования
+    к EV/PHEV и зарядным местам должны маршрутизироваться в СП 551, а не восстанавливаться из
+    старой редакции СП 113.
+  rules:
+    - id: parking.fire.ev_phev.current_SP551_locator_gate
+      automation: hard_gate
+      condition: "parking_contains_EV_or_PHEV_spaces_or_charging_spaces"
+      required_document: SP_551_1311500_2026
+      required_locators: ["7.3", "7.4", "7.5", "7.6", "12.6", "12.7"]
+      result_on_unverified_locator_state: blocked_pending_current_SP551_locator_verification
+      statement: >-
+        До завершения locator-level аттестации текущего текста СП 551 не генерировать новые
+        пожарные числовые требования EV/PHEV из публичного рендера. Старые значения СП 113
+        6.2.12/6.2.30/7.10.2 не применять.
 
 fire_compartment_router:
   - id: parking.fire.compartment_parameters_route_to_SP2
@@ -144,9 +165,14 @@ BIM_required_parameters:
   - vehicle_fuel_class
   - firefighter_lift_status
   - egress_stair_type
+  - EV_PHEV_space_count
+  - EV_charging_space_count
+  - SP551_EV_locator_evidence_state
 
 agent_logic:
   - "Всегда загружать СП 551 вместе с СП 113 для новой стоянки 2027+: СП 113 задает планировочную геометрию, СП 551 — пожарные ограничения."
+  - "Не использовать удаленные Изм. №4 пожарные пункты СП 113 как замену СП 551."
+  - "Для EV/PHEV и зарядных мест до завершения locator-level аттестации 7.3-7.6/12.6-12.7 возвращать fail-closed блокировку вместо старых чисел СП 113."
   - "Не оптимизировать или удалять тамбур-шлюз общей подземной рампы только потому, что автомобильная траектория проходит без него."
   - "Глубина 1500 мм тамбур-шлюза — абсолютный минимум; геометрия открывания ворот может потребовать больше."
   - "Площадь пожарного отсека и допустимую этажность не брать из памяти: маршрутизировать на действующий СП 2.13130."

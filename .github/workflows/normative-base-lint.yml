@@ -35,5 +35,7 @@ jobs:
         run: python normative-base/tools/validate_primary_locator_extraction.py
       - name: Validate P1 profile locator extraction queue
         run: python normative-base/tools/validate_p1_locator_extraction.py
+      - name: Validate revision conflicts
+        run: python normative-base/tools/validate_revision_conflicts.py
       - name: Validate library integration
         run: python normative-base/tools/validate_library_integration.py

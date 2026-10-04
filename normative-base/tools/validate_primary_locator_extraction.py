@@ -54,6 +54,7 @@ def main() -> int:
         "amendment_card_summary_never_proves_unchanged_locator_text",
         "no_numeric_value_without_direct_current_locator",
         "general_SP118_or_host_building_rules_never_fill_missing_special_profile_requirement",
+        "deleted_locator_is_not_a_current_extraction_target",
     }
     missing_invariants = sorted(required_invariants - invariants)
     if missing_invariants:
@@ -102,9 +103,7 @@ def main() -> int:
             errors.append(f"{profile}: missing coverage row")
         else:
             if coverage_row.get("coverage_state") != "coverage_gap_no_dedicated_rules":
-                errors.append(
-                    f"{profile}: extraction research must not silently close dedicated rule gap"
-                )
+                errors.append(f"{profile}: extraction research must not silently close dedicated rule gap")
             if coverage_row.get("hard_gap") is not True:
                 errors.append(f"{profile}: dedicated rule gap must remain hard_gap: true")
 
@@ -112,16 +111,35 @@ def main() -> int:
     if not isinstance(parking, dict):
         errors.append("parking_reaudit row missing")
     else:
-        if parking.get("document") != "SP_113_13330_2023":
-            errors.append("parking_reaudit document mismatch")
-        if parking.get("change_map") != "change_maps/SP_113_13330_2023.yaml":
-            errors.append("parking_reaudit change_map mismatch")
+        if parking.get("planning_document") != "SP_113_13330_2023":
+            errors.append("parking_reaudit planning document mismatch")
+        if parking.get("planning_change_map") != "change_maps/SP_113_13330_2023.yaml":
+            errors.append("parking_reaudit planning change_map mismatch")
+        if parking.get("fire_document") != "SP_551_1311500_2026":
+            errors.append("parking_reaudit fire document mismatch")
+        if parking.get("fire_change_map") != "change_maps/SP_551_1311500_2026.yaml":
+            errors.append("parking_reaudit fire change_map mismatch")
         if parking.get("state") != "blocked_pending_direct_current_locator":
             errors.append("parking_reaudit must remain blocked pending direct current locator")
         if parking.get("production_promotion_allowed") is not False:
             errors.append("parking_reaudit production promotion must remain false")
+
+        forbidden = {"6.2.12", "6.2.30", "7.10.2"}
+        planning_targets = set(parking.get("planning_priority_locators") or [])
+        if planning_targets & forbidden:
+            errors.append("deleted SP113 fire locators must not remain planning extraction targets")
+        expected_fire_targets = {"SP551 7.3", "SP551 7.4", "SP551 7.5", "SP551 7.6", "SP551 12.6", "SP551 12.7"}
+        if set(parking.get("fire_priority_locators") or []) != expected_fire_targets:
+            errors.append("parking_reaudit SP551 fire target set mismatch")
+        superseded = parking.get("superseded_not_current_targets") or []
+        for locator in forbidden:
+            if not any(row.get("locator") == locator and row.get("state") == "deleted_by_change4" for row in superseded):
+                errors.append(f"parking_reaudit missing superseded state for SP113 {locator}")
+
         if not (ROOT / "library" / "change_maps" / "SP_113_13330_2023.yaml").exists():
             errors.append("SP113 Change 4 map missing")
+        if not (ROOT / "library" / "change_maps" / "SP_551_1311500_2026.yaml").exists():
+            errors.append("SP551 map missing")
 
     summary = registry.get("summary")
     if not isinstance(summary, dict):
@@ -133,6 +151,8 @@ def main() -> int:
             errors.append("summary must declare zero numeric promotions")
         if summary.get("unresolved_profiles_fail_closed") is not True:
             errors.append("unresolved profiles must fail closed")
+        if summary.get("parking_fire_route_current_document") != "SP_551_1311500_2026":
+            errors.append("summary must route current parking fire extraction to SP551")
 
     if errors:
         print("PRIMARY LOCATOR EXTRACTION VALIDATION FAILED")
@@ -142,7 +162,7 @@ def main() -> int:
 
     print(
         "OK: 5 P0 special profiles have fail-closed primary locator extraction queues; "
-        "dedicated rule gaps remain open; SP113 Change 4 reaudit remains blocked pending direct locator text."
+        "parking reaudit is split into SP113 planning and SP551 fire targets; deleted SP113 fire locators are excluded."
     )
     return 0
 

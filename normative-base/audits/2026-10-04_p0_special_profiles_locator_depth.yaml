@@ -1,0 +1,136 @@
+audit_id: P0_SPECIAL_PROFILE_LOCATOR_DEPTH_2026_10_04
+checked_at: 2026-10-04
+target_profile: RU_2027_PLUS
+branch: normative-base-v1
+policy: fail_closed
+production_authority: false
+
+scope:
+  profiles:
+    - SCHOOL_GENERAL_EDUCATION
+    - PRESCHOOL
+    - MEDICAL
+    - HOTEL
+    - INDUSTRIAL_PRODUCTION_STORAGE
+  parking_reaudit_preserved: true
+  purpose: >-
+    Convert the P0 special-profile research queue from broad topic placeholders into exact or
+    bounded locator targets while preserving the rule that amendment text, public current text,
+    provider reviews and official revision metadata do not by themselves create production PASS.
+
+profile_results:
+  SCHOOL_GENERAL_EDUCATION:
+    document: SP_251_1325800_2016
+    latest_change: 7
+    effective_from: 2026-01-01
+    finding: >-
+      Change 7 is substantive textual plus reference-document update. GARANT root was observed
+      stale/mixed and cannot prove current text.
+    first_pass_locators: ["6.3", "Table 6.1 note 4"]
+    provider_review_candidate_values_present: true
+    production_promotion: false
+    current_consolidated_locator_PASS: 0
+
+  PRESCHOOL:
+    document: SP_252_1325800_2016
+    latest_change: 3
+    effective_from: 2025-01-21
+    finding: >-
+      Change 3 substantially rewrites scope and sections 4-7. Direct GARANT amendment text was
+      used for impact mapping and priority extraction only.
+    first_pass_locators:
+      - "1.1"
+      - "1.2"
+      - "4.1-4.7"
+      - "5.2"
+      - "5.3"
+      - "6.1"
+      - "6.2.3"
+      - "6.2.4"
+      - "6.2.8"
+      - "7.1.1"
+      - "7.1.2"
+      - "7.1.7"
+      - "7.1.8"
+      - "7.2.2.1"
+      - "7.2.2.7"
+    amendment_numeric_candidates_present: true
+    production_promotion: false
+    current_consolidated_locator_PASS: 0
+
+  MEDICAL:
+    document: SP_158_13330_2014
+    latest_change: 7
+    effective_from: 2026-08-10
+    finding: >-
+      Direct Change 7 text proves broad substantive changes, while the GARANT root mixes old and
+      new revisions across multiple locators and is restricted to navigation/corroboration.
+    verified_mixed_root_conflicts: ["5.2", "5.6", "5.7", "5.11", "6.2.11", "6.2.18", "6.2.19", "6.3.1"]
+    amendment_numeric_candidates_present: true
+    production_promotion: false
+    current_consolidated_locator_PASS: 0
+
+  HOTEL:
+    document: SP_257_1325800_2020
+    latest_change: 1
+    effective_from: 2024-01-29
+    finding: >-
+      Direct Change 1 text identifies 5.3 as the amendment locator and adds an EV parking/charging
+      route; it does not prove the rest of the hotel planning profile current.
+    first_pass_locators: ["5.3", "4.2", "6.1.4-6.1.15", "6.2.3-6.2.11", "6.3.2-6.3.9", "6.4.1-6.4.9", "Appendix B", "Appendix G"]
+    production_promotion: false
+    current_consolidated_locator_PASS: 0
+
+  INDUSTRIAL_PRODUCTION_STORAGE:
+    document: SP_56_13330_2021
+    latest_change: null
+    effective_from: 2022-01-28
+    official_card_has_no_registered_changes: true
+    finding: >-
+      Current base and Appendix A text are publicly readable through GARANT and were used to build
+      an exact locator backlog. Public text plus no-change metadata is deliberately not converted
+      to library PASS without the accepted direct-evidence gate.
+    first_pass_locators:
+      - scope_and_exclusions
+      - "5.1.1"
+      - "5.1.2"
+      - "5.1.3"
+      - "5.1.4"
+      - "5.1.5"
+      - "5.4.4.5"
+      - "5.4.4.9"
+      - "5.4.4.11"
+      - "6.2.2"
+      - "6.2.18; Table 6.3"
+      - "6.2.22"
+      - "Appendix A.1-A.4"
+    public_numeric_candidates_present: true
+    production_promotion: false
+    accepted_locator_PASS: 0
+
+parking_reaudit:
+  planning_document: SP_113_13330_2023
+  fire_document: SP_551_1311500_2026
+  deleted_SP113_fire_locators_excluded: ["6.2.12", "6.2.30", "7.10.2"]
+  production_promotion: false
+
+CI_contract:
+  validator: normative-base/tools/validate_primary_locator_extraction.py
+  required_profile_count: 5
+  exact_priority_queues_required: 5
+  all_unresolved_fail_closed: true
+  numeric_promotions_allowed: 0
+
+production_impact:
+  new_numeric_machine_rules: 0
+  changed_existing_numeric_values: 0
+  new_library_PASS: 0
+  removed_superseded_rules_this_audit: 0
+  scope_and_evidence_depth_only: true
+
+next_actions:
+  - read accepted current locators for SP251 and SP252
+  - resolve SP158 consolidated current text against Change 7
+  - read SP257 core hotel planning locators beyond Change 1 clause 5.3
+  - attest SP56 exact base locators through accepted evidence channel before promotion
+  - continue parallel P1 locator migration without reducing P0 fail-closed gates

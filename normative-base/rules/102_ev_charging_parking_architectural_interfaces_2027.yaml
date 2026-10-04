@@ -1,62 +1,51 @@
-checked_at: 2026-10-02
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
-purpose: "Архитектурные и пожарные интерфейсы машино-мест с зарядкой электромобилей; расчет мощности и кабелей остается ЭОМ."
+purpose: >-
+  Архитектурные и электротехнические интерфейсы машино-мест с зарядкой электромобилей.
+  Пожарные требования стоянки после 01.06.2026 маршрутизируются в СП 551.1311500.2026;
+  расчет мощности и кабелей остается ЭОМ.
 
 revision_dependencies:
-  - {document: SP_113_13330_2023, verified_changes: [1,2,3,4], change_4_effective_from: 2026-10-03}
-  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9]}
+  - {document: SP_113_13330_2023, verified_changes: [1,2,3,4], change_4_effective_from: 2026-10-03, role: parking_planning_and_non_fire_interfaces}
+  - {document: SP_551_1311500_2026, effective_from: 2026-06-01, role: parking_fire_protection}
+  - {document: SP_256_1325800_2016, verified_changes: [1,2,3,4,5,6,7,8,9], role: electrical_installations}
 
-parking_rules:
-  - id: ev.parking.allowed_scope
-    source: {document: SP_113_13330_2023, clause: "7.10.2"}
-    automation: conditional
-    permitted_parking_types: [open_site, open_parking, enclosed_parking]
-    permitted_constructive_fire_hazard_classes: [C0, C1]
-    prohibited_parking_types: [mechanized_parking, semi_mechanized_parking]
+fire_source_transition:
+  status: fail_closed_current_fire_locator_migration_pending
+  current_fire_document: SP_551_1311500_2026
+  superseded_SP113_sources:
+    - {locator: "6.2.12", change_4_effect: deleted, use_for_2027: false}
+    - {locator: "6.2.30", change_4_effect: deleted, use_for_2027: false}
+    - {locator: "7.10.2", change_4_effect: deleted, use_for_2027: false}
+  retired_values_from_pre_change4_SP113:
+    - legacy_ev_fire_section_area_m2_1200
+    - legacy_combustible_load_free_zone_width_m_8
+    - legacy_combustible_load_free_zone_width_m_6
+  policy: >-
+    Не переносить удаленные Изм. №4 пожарные требования СП 113 в профиль 2027 и не считать
+    прежние значения действующими по инерции. Текущие требования для EV/PHEV и зарядных мест
+    должны поступать из СП 551 после locator-level аттестации.
 
-  - id: ev.parking.deep_underground_slow_charge_only
-    source: {document: SP_113_13330_2023, clause: "7.10.2"}
-    automation: hard_gate
-    condition: "enclosed_parking_level_below_first_underground_or_basement_level"
-    max_nominal_charge_current_a: 32
-    battery_requirement: no_combustible_gas_release_during_charging_and_operation
-
-  - id: ev.parking.fire_section_trigger
-    source: {document: SP_113_13330_2023, clause: "6.2.12"}
-    automation: conditional
-    condition: "enclosed_parking_room_area_m2 > 1200 AND charging_space_count > 10"
-    max_ev_fire_section_area_m2: 1200
-
-  - id: ev.parking.fire_section_separation
-    source: {document: SP_113_13330_2023, clause: "6.2.12"}
-    automation: design_option
-    condition: "ev.parking.fire_section_trigger == true"
-    permitted_options:
-      - type_1_fire_partition
-      - combustible_load_free_zone_width_m_8
-      - combustible_load_free_zone_width_m_6_with_drencher_or_automatic_smoke_screen
-    min_free_zone_width_m_without_active_barrier: 8
-    min_free_zone_width_m_with_active_barrier: 6
-    statement: "Полосы 6/8 м должны реально оставаться свободными от горючей нагрузки."
-
-  - id: ev.parking.fire_section_exception_room_up_to_1200
-    source: {document: SP_113_13330_2023, clause: "6.2.12"}
-    automation: conditional_exception
-    condition: "enclosed_parking_room_area_m2 <= 1200"
-    separate_ev_fire_section_required: false
-
-  - id: ev.parking.fire_section_exception_up_to_10_spaces
-    source: {document: SP_113_13330_2023, clause: "6.2.12"}
-    automation: conditional_exception
-    condition: "enclosed_parking_room_area_m2 > 1200 AND charging_space_count <= 10"
-    separate_ev_fire_section_required: false
-    clarification: "MChS letter 43-4241-19 dated 2024-07-10"
-
-  - id: ev.parking.aup_required
-    source: {document: SP_113_13330_2023, clause: "6.2.30"}
+parking_fire_router:
+  - id: ev.parking.fire_requirements.route_to_SP551
     automation: mandatory_router
-    condition: "enclosed_parking_has_charging_spaces"
-    requirement: automatic_fire_suppression
+    condition: "parking_or_parking_zone_contains_EV_or_PHEV_spaces_or_charging_spaces"
+    source: {document: SP_551_1311500_2026, locators: ["7.3", "7.4", "7.5", "7.6", "12.6", "12.7"]}
+    downstream_rule_file: rules/64_parking_fire_safety_2026.yaml
+    evidence_state: current_public_text_corroborated_locator_migration_pending
+    result_on_unverified_locator_state: blocked_pending_current_SP551_locator_verification
+    statement: >-
+      Для размещения EV/PHEV, зарядки, пожарного группирования/секционирования, АУПТ и
+      противодымной вентиляции применять специальный пожарный слой СП 551; удаленные пункты
+      6.2.12, 6.2.30 и 7.10.2 СП 113 не использовать как действующие требования.
+
+  - id: ev.parking.fire_values.no_legacy_SP113_generation
+    automation: hard_gate
+    condition: "target_profile == RU_2027_PLUS"
+    result: forbid_legacy_SP113_EV_fire_values
+    statement: >-
+      Запрещено генерировать пожарное секционирование EV по старой схеме СП 113
+      1200 м² / полосы 8 м и 6 м или требование АУПТ со ссылкой на удаленный п.6.2.30.
 
 charger_type_rules:
   - id: ev.charger.type4_no_embedded_public_residential_room
@@ -83,32 +72,35 @@ service_geometry:
   - id: ev.charger.vehicle_and_cable_geometry
     source: {document: SP_113_13330_2023, clause: "7.10.5"}
     automation: mandatory_validation
+    evidence_state: existing_rule_preserved_change4_did_not_target_locator_pending_direct_current_migration
     required_inputs: [design_vehicle_envelope, parking_orientation, charger_equipment_envelope, charging_cable_geometry]
 
 BIM_required_parameters:
-  - parking_room_area_m2
+  - parking_scope_status
   - parking_structural_fire_hazard_class
   - parking_floor_level_index
   - charging_space_count
+  - EV_PHEV_space_count
   - charger_type
   - charger_nominal_current_a
-  - battery_combustible_gas_release_status
-  - fire_section_area_m2
-  - separation_option
-  - combustible_load_free_zone_width_m
+  - fire_section_id
+  - fire_group_id
   - AUPT_status
+  - smoke_control_status
   - charger_supply_origin
   - vehicle_envelope
   - charging_cable_geometry
 
 agent_logic:
-  - "Не считать зарядные места обычными машино-местами без проверки п.6.2.12 СП 113."
-  - "Ниже первого подземного этажа проверять ток и тип аккумулятора."
+  - "Сначала подтвердить область стоянки СП 113 и отдельно область пожарного СП 551; наличие частного зарядного устройства само по себе не активирует оба документа."
+  - "Не использовать удаленные Изм. №4 пункты СП 113 6.2.12, 6.2.30 и 7.10.2 как действующее основание."
+  - "До locator-level аттестации СП 551 не генерировать новые пожарные размеры/пределы из публичного рендера; возвращать blocked_pending_current_SP551_locator_verification."
+  - "Геометрию размещения зарядного оборудования и кабеля проверять отдельно от пожарного секционирования."
   - "Мощность, коэффициенты спроса и силовые кабели рассчитывает ЭОМ."
 
 sources:
   - "https://protect.gost.ru/sp/changesdetails/46e37b78-e142-4141-b753-095734febeb9"
+  - "https://protect.gost.ru/sp/details/63480a25-98f4-40a3-9de1-22134cb06528"
+  - "https://base.garant.ru/414155787/"
+  - "https://www.consultant.ru/document/cons_doc_LAW_534132/"
   - "https://protect.gost.ru/sp/changesdetails/d438f64b-92ac-4527-8548-9b68adacfc66"
-  - "https://base.garant.ru/407887809/"
-  - "https://base.garant.ru/408556493/"
-  - "https://base.garant.ru/409528513/"

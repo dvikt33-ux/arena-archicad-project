@@ -1,4 +1,4 @@
-change_map_version: 3
+change_map_version: 4
 document: SP_464_1325800_2019
 checked_at: 2026-10-04
 production_authority: false
@@ -14,72 +14,100 @@ revision:
   latest_change_approved_at: 2023-12-15
 
 proof:
-  state: official_card_verified
-  locator_promotion_state: existing_rule_traceability_pending
+  state: official_card_verified_plus_authorized_change_text
+  locator_promotion_state: partial_authorized_locator_evidence_available
 
-public_GARANT_corroboration:
-  current_document_url: "https://base.garant.ru/73866956/"
+authorized_GARANT_change1:
   change_1_url: "https://base.garant.ru/408556999/"
-  source_role: locator_discovery_stale_rule_detection_and_amendment_chain_corroboration_only_until_authorized_session_returns
-  current_document_title_state: with_changes_and_additions
+  state: latest_amendment_text_read_directly
+  latest_change_is_change1: true
+  root_document_url: "https://base.garant.ru/73866956/"
   root_renderer_state: mixed_revision_not_current_consolidated
   root_renderer_must_not_prove_current_locator_text: true
-  directly_visible_unchanged_or_matching_items:
-    - locator: "1.1"
-      observation: "SP464 scope: TRK height up to 50 m and underground depth up to 15 m from ground level."
-      existing_document_card_match: true
-    - locator: "5.6"
-      observation: "Site planning separates visitor/goods and pedestrian/vehicle flows and minimizes vehicle-route intersections where possible."
-      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
-      existing_rule_match: true
-    - locator: "5.7"
-      observation: "Open unloading areas are placed in isolated service yards; note permits orientation toward public buildings or blind ends of residential buildings."
-      existing_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
-      existing_rule_match: true
-    - locator: "6.10"
-      observation: "TRK with sales halls on two or more levels uses calculated passenger-lift provision for MGN under SP59."
-      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
-      existing_rule_match: true
+  evidence_rule: >-
+    Because Change 1 is the latest and only registered amendment, a locator fully replaced or a
+    newly added paragraph read directly in Change 1 is current for that replacement/addition.
+    Partial edits still require the unchanged base context when the full locator is needed.
 
-  change_1_direct_findings:
-    - locator: "6.18"
-      effect: wording_updated_in_change_1
-      replacement: "Минимально необходимое -> Минимальное"
-      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
-      existing_rule_semantics_match: true
-    - locator: "6.20"
-      effect: third_paragraph_added_by_change_1
-      current_requirement_corroborated: loading_zones_may_be_open_or_enclosed_heated_or_unheated_with_tunnel_or_service_yard_access_and_platform_or_debarkader_selection_by_project
-      existing_rule_files:
-        - "../../rules/70_trk_multifunctional_planning_2027.yaml"
-        - "../../rules/89_trk_loading_logistics_2027.yaml"
-      current_rule_route_match: true
-    - locator: "6.21"
-      effect: replaced_by_change_1
-      current_requirement_corroborated: canopy_required_over_open_loading_places
-      current_rule_file: "../../rules/89_trk_loading_logistics_2027.yaml"
-      obsolete_interpretation_rejected: universal_closed_debarkader_for_trade_and_foodservice
-    - locator: "8.6"
-      effect: first_sentence_replaced_by_change_1
-      current_requirement_corroborated: evacuation_routes_from_sales_halls_in_goods_and_customer_movement_zones_are_without_thresholds
-      existing_rule_file: "../../rules/70_trk_multifunctional_planning_2027.yaml"
-      existing_rule_match: true
+verified_change1_locators:
+  - locator: "1.1 second paragraph"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: added
+    semantics: SP464_may_apply_to_trade_and_foodservice_embedded_in_buildings_of_other_use
+  - locator: "5.3"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: full_replacement
+    semantics:
+      parking_demand: by_functional_group_and_design_brief_not_less_than_SP42_or_RNGP_MNGP
+      parking_placement_route: SP113
+      EV_charging_spaces_included_in_required_parking_demand: true
+  - locator: "6.2 second_and_third_paragraphs"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: added
+    semantics: foodservice_flow_separation_and_flexible_location_capacity_productivity_by_design_brief
+  - locator: "6.5"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: full_replacement
+    semantics: all_external_TRK_entrances_use_doors_and_vestibules_or_air_thermal_curtains_by_SP1_and_SP118
+  - locator: "6.20 third paragraph"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: added
+    semantics: loading_zones_open_or_enclosed_heated_or_unheated_with_tunnel_or_service_yard_access_and_platform_or_debarkader_selected_by_design_brief
+  - locator: "6.21"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: full_replacement
+    semantics: canopy_required_over_open_loading_places
+  - locator: "6.24-6.32"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: added
+    topic: TRK_foodservice_and_foodcourt_planning
+    selected_numeric_values:
+      dining_area_min_m2_per_seat: 1.4
+      foodservice_floor_to_floor_height_min_m: 3.3
+      production_room_height_min_m_by_seats:
+        up_to_150: 3.0
+        from_151_to_300: 3.3
+        over_300: 3.9
+      dining_passage_table_6_1_read_directly: true
+  - locator: "8.6 first sentence"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: full_replacement_of_first_sentence
+    semantics: sales_hall_evacuation_routes_in_goods_and_customer_zones_including_carts_without_thresholds
+  - locator: "9.2"
+    proof_state: authorized_latest_amendment_exact_text_verified
+    effect: full_replacement
+    semantics: fire_safety_routed_to_technical_regulations_and_current_fire_documents_including_SP456
 
-  root_renderer_conflicts:
-    - locator: "6.18"
-      root_render: "Минимально необходимое число грузовых лифтов"
-      change_1_text: "Минимальное число грузовых лифтов"
-      material_numeric_effect: false
-    - locator: "6.20"
-      root_render_problem: missing_change_1_third_paragraph
-      change_1_text_controls: true
-    - locator: "6.21"
-      root_render: universal_closed_debarkader_requirement
-      change_1_text: canopy_over_open_loading_places
-      material_semantic_conflict: true
-    - locator: "8.6"
-      root_render_problem: pre_change_1_first_sentence
-      change_1_text_controls: true
+partial_change1_locators:
+  - locator: "6.18"
+    effect: second_sentence_wording_change
+    amendment_exact_text_verified: true
+    replacement: "Минимально необходимое -> Минимальное"
+    full_current_locator_state: base_context_required_if_full_rule_needed
+
+root_renderer_conflicts:
+  - locator: "6.18"
+    root_render: "Минимально необходимое число грузовых лифтов"
+    change_1_text: "Минимальное число грузовых лифтов"
+    material_numeric_effect: false
+  - locator: "6.20"
+    root_render_problem: missing_change_1_third_paragraph
+    change_1_text_controls_added_paragraph: true
+  - locator: "6.21"
+    root_render: universal_closed_debarkader_requirement
+    change_1_text: canopy_over_open_loading_places
+    material_semantic_conflict: true
+  - locator: "8.6"
+    root_render_problem: pre_change_1_first_sentence
+    change_1_text_controls_first_sentence: true
+
+unchanged_base_locator_backlog:
+  - "1.1 first paragraph / height-depth scope"
+  - "5.6"
+  - "5.7"
+  - "6.10"
+  - "6.18 full locator"
+  - "Appendix B; B.2-B.4 and Table B.1"
 
 stale_rule_audit:
   stale_rule_found: true
@@ -93,45 +121,39 @@ stale_rule_audit:
   numeric_values_changed: false
   fail_closed_reason: conflicting_loaded_rules_must_not_coexist
 
-unresolved_locator_targets:
-  - "6.10 authorized current locator migration"
-  - "6.18 authorized current locator migration"
-  - "6.20 authorized current locator migration"
-  - "6.21 authorized current locator migration"
-  - "8.6 authorized current locator migration"
-  - "Appendix B; B.4"
-  - "Appendix B; table B.1 and notes used by loading rules"
-  - "Appendix B; B.2"
-  - "Appendix B; B.3"
-
-change_effect:
-  latest_change_kind: textual_and_reference_updates
-  public_card_summary_available: true
-  exact_current_locator_verification_required: true
-
 existing_rule_migration:
   rule_files:
     - "../../rules/70_trk_multifunctional_planning_2027.yaml"
     - "../../rules/89_trk_loading_logistics_2027.yaml"
-  target_locators: ["1", "5.6", "5.7", "6.10", "6.18", "6.20", "6.21", "8.6", "Appendix B; B.4"]
-  state: existing_rule_traceability_pending
+  current_verified_existing_rule_locators:
+    - "6.21"
+    - "8.6 first sentence"
+  still_pending_existing_rule_locators:
+    - "1"
+    - "5.6"
+    - "5.7"
+    - "6.10"
+    - "6.18 full locator"
+    - "6.20 unchanged paragraphs plus verified added paragraph"
+    - "Appendix B; B.4"
+  state: partial_authorized_locator_evidence_available
   stale_loading_rule_found: true
   stale_loading_rule_resolved: true
-  change1_loading_semantics_reflected_in_rule_89: true
-  authorized_locator_promotion_allowed: false
+  authorized_locator_promotion_allowed_for_exact_latest_amendment_replacements: true
+  production_rule_creation_allowed_from_new_foodservice_values: false
 
 production_impact:
   numeric_rules_changed: false
   existing_numeric_values_reinterpreted: false
   stale_imperative_rule_removed: true
-  stale_rule_demoted: true
   production_rules_promoted: 0
-  promotion_allowed_from_this_map: false
+  direct_locator_evidence_added: true
 
 release_gate:
-  - authorized_current_locator_or_equivalent_primary_text_required_before_new_library_PASS
+  - exact_current_locator_or_exact_latest_amendment_replacement_required_before_machine_rule_creation
   - root_GARANT_render_is_not_current_text_authority_for_SP464
   - direct_change_1_text_controls_where_root_render_conflicts
-  - existing_TRK_numeric_values_not_reinterpreted_from_public_current_render
+  - partial_amendment_edits_require_base_context_for_full_locator_use
+  - new_foodservice_numeric_values_are_evidence_only_until_dedicated_rule_design_and_scope_audit
   - SP464_scope_height_and_underground_depth_must_be_matched_before_use
   - special_function_zones_require_their_own_primary_codes

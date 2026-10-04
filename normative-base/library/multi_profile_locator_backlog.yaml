@@ -1,4 +1,4 @@
-backlog_version: 3
+backlog_version: 4
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -16,6 +16,7 @@ invariants:
   - amendment_card_metadata_does_not_prove_locator_text
   - special_profile_locator_must_be_verified_in_its_own_scope
   - fire_overlay_locator_never_replaces_primary_planning_or_functional_locator
+  - deleted_locator_must_not_remain_a_current_reaudit_target
 
 profiles:
   MKD:
@@ -102,23 +103,36 @@ profiles:
       - {document: SP_113_13330_2023, locator: "Appendix A; table A.1", topic: vehicle_classes_and_safety_clearances, state: needs_change4_current_text_confirmation}
       - {document: SP_113_13330_2023, locator: "5.4", topic: aisles_and_ramps_route, state: needs_change4_current_text_confirmation}
       - {document: SP_113_13330_2023, locator: "4.4", topic: site_coordination, state: needs_change4_current_text_confirmation}
-      - {document: SP_113_13330_2023, locator: "6.2.12", topic: EV_fire_section, state: needs_change4_current_text_confirmation}
-      - {document: SP_113_13330_2023, locator: "6.2.30", topic: EV_automatic_fire_suppression, state: needs_change4_current_text_confirmation}
-      - {document: SP_113_13330_2023, locator: "7.10.2", topic: EV_parking_scope_and_deep_underground_charge, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "5.26", topic: parking_ramp_geometry_and_anti_icing, state: needs_change4_current_text_confirmation}
       - {document: SP_113_13330_2023, locator: "7.10.5", topic: EV_service_geometry, state: needs_change4_current_text_confirmation}
+      - {document: SP_113_13330_2023, locator: "5.42", topic: MKD_guest_parking_separation_and_controlled_entry_exit, state: new_change4_locator_pending_direct_migration}
+      - {document: SP_113_13330_2023, locator: "5.43", topic: embedded_closed_parking_user_scope_in_MKD, state: new_change4_locator_pending_direct_migration}
+      - {document: SP_113_13330_2023, locator: "7.1.4", topic: independent_entries_for_separate_underground_parking, state: change4_locator_pending_direct_migration}
+    superseded_SP113_fire_locators:
+      - {document: SP_113_13330_2023, locator: "6.2.12", topic: legacy_EV_fire_section, state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
+      - {document: SP_113_13330_2023, locator: "6.2.30", topic: legacy_EV_AUPT, state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
+      - {document: SP_113_13330_2023, locator: "7.10.2", topic: legacy_EV_scope_and_deep_underground_charge, state: deleted_by_change4, replacement_document: SP_551_1311500_2026}
     fire_overlay_locators:
       - {document: SP_551_1311500_2026, locator: "4.1", topic: fire_distance_router, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "5.1", topic: fire_compartment_and_split_level_semantics, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "5.7", topic: firefighter_lift_trigger, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "5.8", topic: gas_vehicle_closed_parking_route, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "7.3", topic: EV_PHEV_charging_space_scope, state: pending_direct_locator_verification}
+      - {document: SP_551_1311500_2026, locator: "7.4", topic: EV_PHEV_deeper_underground_charge, state: pending_direct_locator_verification}
+      - {document: SP_551_1311500_2026, locator: "7.5", topic: EV_PHEV_grouping_and_separation, state: pending_direct_locator_verification}
+      - {document: SP_551_1311500_2026, locator: "7.6", topic: EV_PHEV_fire_sections, state: pending_direct_locator_verification}
       - {document: SP_551_1311500_2026, locator: "7.15", topic: fuel_spread_control, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "7.16", topic: ramp_fire_separation_and_airlock, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "10.4", topic: LPG_underground_prohibition, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "11.1", topic: egress_route_to_SP1, state: existing_rule_traceability_pending}
       - {document: SP_551_1311500_2026, locator: "11.2", topic: one_storey_underground_stair_exception, state: existing_rule_traceability_pending}
+      - {document: SP_551_1311500_2026, locator: "12.6", topic: EV_PHEV_AUPT_and_charger_shutdown, state: pending_direct_locator_verification}
+      - {document: SP_551_1311500_2026, locator: "12.7", topic: smoke_control_design_fire, state: pending_direct_locator_verification}
     role_separation: "SP113 planning/geometry; SP551 fire-protection overlay"
+    fail_closed_EV_fire_transition: true
+    legacy_SP113_EV_fire_generation_allowed: false
     promotion_allowed: false
-    priority: P0_urgent_due_to_SP113_change4_and_SP551_evidence_migration
+    priority: P0_urgent_SP113_change4_migrated_SP551_locator_attestation_pending
 
   HIGH_RISE_OVERLAY:
     primary_document: SP_267_1325800_2016
@@ -152,6 +166,7 @@ summary:
   profiles_waiting_for_primary_rule_layer: 9
   profiles_with_verified_existing_rule_locators: [MKD]
   authorized_locator_verified_in_existing_rule_backlog: 5
+  superseded_current_reaudit_targets_removed: ["SP113 6.2.12", "SP113 6.2.30", "SP113 7.10.2"]
   fire_overlay_documents_in_backlog: [SP_456_1311500_2020, SP_550_1311500_2026, SP_551_1311500_2026]
   new_library_PASS: 0
   production_rules_promoted: 0

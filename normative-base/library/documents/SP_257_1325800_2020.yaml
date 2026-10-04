@@ -25,18 +25,18 @@ scope:
   max_underground_depth_m: 15
   note: "New/reconstructed hotel buildings and hotel premises in public/mixed-use buildings and nonresidential premises of MKD within scope."
 source_evidence:
-  base_url: "https://base.garant.ru/400535863/#block_503"
+  base_url: "https://base.garant.ru/400535863/"
   direct_change1_url: "https://base.garant.ru/408657541/"
-  base_5_3_text_read_directly: true
-  direct_change1_text_read_directly: true
+  appendix_B_url: "https://base.garant.ru/400535863/f7ee959fd36b5699076b35abf4f52c5c/"
+  appendix_G_url: "https://base.garant.ru/400535863/172a6d689833ce3e42dc0a8a7b3cddf9/"
   latest_change_is_change1: true
-  root_renderer_state: stale_for_added_change1_paragraph
-  reconstruction_method: base_clause_plus_latest_amendment_added_paragraph
-  reconstruction_safe_because:
-    - only_registered_change_is_change1
-    - change1_affects_only_5_3_by_adding_fourth_paragraph
-    - base_paragraphs_1_to_3_were_read_directly
-    - added_paragraph_4_was_read_directly
+  change1_only_locator_affected: "5.3"
+  direct_change1_text_read_directly: true
+  root_renderer_state: stale_only_for_added_change1_paragraph_at_5_3
+  current_text_logic: >-
+    SP257 has only Change 1, and Change 1 affects only clause 5.3. Therefore directly read base
+    locators outside 5.3 are current. Clause 5.3 is reconstructed from directly read base paragraphs
+    plus the directly read sole amendment.
   production_authority: false
 locator_research:
   state: partial_locator_evidence_available
@@ -56,14 +56,62 @@ locators:
       EV_demand_route: design_brief_but_not_less_than_SP118
   - {locator: "4.2", topic: standalone_embedded_and_MKD_hotel_placement, state: blocked_pending_direct_current_locator}
   - {locator: "6.1.4-6.1.15", topic: hotel_zoning_vertical_transport_and_accessibility, state: blocked_pending_direct_current_locator}
-  - {locator: "6.2.3-6.2.11", topic: guestroom_types_areas_sanitary_and_geometry, state: blocked_pending_direct_current_locator}
+  - {locator: "6.2.3", topic: room_types_and_percentage_route, state: authorized_locator_verified, route: "Appendix V"}
+  - {locator: "6.2.4", topic: highest_category_room_composition_area_and_equipment, state: authorized_locator_verified, route: "reference_7"}
+  - locator: "6.2.5"
+    topic: in_room_bathroom_share
+    state: authorized_locator_verified
+    values:
+      two_star_rooms_with_bathroom_percent: 50
+      three_star_and_above_rooms_with_bathroom_percent: 100
+    bathroom_area_route: "Appendix D"
+  - locator: "6.2.6"
+    topic: common_sanitary_rooms_for_two_star_and_lower
+    state: authorized_locator_verified
+    values:
+      shared_toilet_fixture_per_people_without_private_bathroom: 10
+      separate_male_female_toilets_per_floor_min: 2
+      one_shared_toilet_allowed_when_people_on_floor_max: 6
+      shared_shower_cabin_per_people_without_bath_or_shower: 20
+    MGN_common_sanitary_route: SP_59_13330
+  - locator: "6.2.7"
+    topic: universal_accessible_guestrooms
+    state: authorized_locator_verified
+    values: {universal_rooms_min_percent: 3, area_increase_percent: 20}
+    reference_area_routes: ["6.2.4", "Appendix G Table G.1"]
+    accessibility_route: SP_59_13330
+  - {locator: "6.2.8", topic: apartment_room_two_level_option_and_personal_staff_room, state: authorized_locator_verified}
+  - locator: "6.2.9"
+    topic: room_and_entrance_widths
+    state: authorized_locator_verified
+    values_m: {room_width_min: 2.4, entrance_hall_width_min: 1.05}
+  - locator: "6.2.10"
+    topic: balcony_loggia_guardrail
+    state: authorized_locator_verified
+    values_m: {guardrail_height_min: 1.2}
+    product_standard_route: GOST_25772
+  - {locator: "6.2.11", topic: acoustic_separation_from_lift_public_staff_and_service_spaces, state: authorized_locator_verified, route: SP_51_13330}
+  - locator: "Appendix B; Table B.1"
+    topic: hotel_room_and_room_stock_area_measurement
+    state: authorized_locator_verified
+    semantics:
+      room_area: "sum of all parts including auxiliary rooms, excluding balconies, loggias, verandas and terraces"
+      hotel_room_stock_area: "sum of hotel room areas"
+  - locator: "Appendix G; Table G.1"
+    topic: minimum_guestroom_areas_by_hotel_category
+    state: authorized_locator_verified
+    table_rows:
+      - {single_room_area_value_as_rendered: 9, double_room_area_value_as_rendered: 12, permitted_reduction_percent: 5, applicable_categories: ["без звезд", "одна звезда", "две звезды"]}
+      - {single_room_area_value_as_rendered: 12, double_room_area_value_as_rendered: 15, permitted_reduction_percent: 10, applicable_categories: ["три звезды", "четыре звезды"]}
+      - {single_room_area_value_as_rendered: 14, double_room_area_value_as_rendered: 16, permitted_reduction_percent: 0, applicable_categories: ["пять звезд"]}
+    table_title_scope: "excluding highest-category rooms and excluding bathroom/loggia/balcony areas"
+    accessibility_unit_note: "The m² superscript is not exposed in the cell name; raw numeric values are retained from the area table."
   - {locator: "6.3.2-6.3.9", topic: guest_public_rooms_and_lobbies, state: blocked_pending_direct_current_locator}
   - {locator: "6.4.1-6.4.9", topic: staff_and_service_rooms, state: blocked_pending_direct_current_locator}
-  - {locator: "Appendix B", topic: hotel_room_area_measurement, state: blocked_pending_direct_current_locator}
-  - {locator: "Appendix G", topic: room_minimum_area_table, state: blocked_pending_direct_current_locator}
 release_gates:
   - exact_current_locator_evidence_required_before_new_machine_rules
-  - verified_5_3_evidence_does_not_close_hotel_profile_gap
+  - verified_guestroom_evidence_does_not_close_hotel_profile_gap
   - hotel_zone_classification_required_when_embedded
   - SP118_general_rules_do_not_close_SP257_specific_gap
+  - Appendix_G_values_require_category_mapping_preservation
   - current_parking_and_EV_special_routes_required_for_5_3_application

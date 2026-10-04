@@ -1,4 +1,4 @@
-locator_registry_version: 6
+locator_registry_version: 7
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -142,6 +142,81 @@ locators:
     production_state: existing_rule_values_verified_current_text
     object_classes: [MKD]
 
+  - document: SP_252_1325800_2016
+    locator: "1.1"
+    topic: preschool_scope
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    object_classes: [PUBLIC, MKD, MIXED_USE]
+
+  - document: SP_252_1325800_2016
+    locator: "1.2"
+    topic: embedded_attached_preschool_scope
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    object_classes: [PUBLIC, MKD, MIXED_USE]
+
+  - document: SP_252_1325800_2016
+    locator: "6.2.4"
+    topic: play_area_per_child
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    values:
+      child_2_months_to_3_years_min_m2_per_child: 7.0
+      child_3_to_7_years_min_m2_per_child: 9.0
+      heated_veranda_min_m2_per_child: 2.0
+      specialized_under_4_years_range_m2_per_child: [5, 7]
+      specialized_to_7_years_range_m2_per_child: [7, 10]
+
+  - document: SP_252_1325800_2016
+    locator: "6.2.8"
+    topic: physical_culture_site_areas
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    values_m2:
+      capacity_up_to_150_one_area_min: 200
+      capacity_over_150_first_area_min: 120
+      capacity_over_150_second_area_min: 200
+
+  - document: SP_252_1325800_2016
+    locator: "7.1.2"
+    topic: embedded_attached_preschool_capacity
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    max_capacity_places: 150
+    object_classes: [MKD, PUBLIC, MIXED_USE]
+
+  - document: SP_252_1325800_2016
+    locator: "7.2.2.7"
+    topic: group_cell_open_or_veranda_area
+    proof_state: authorized_locator_verified
+    verification_method: direct_latest_GARANT_amendment_full_replacement
+    latest_change: 3
+    source_url: "https://base.garant.ru/411475407/"
+    change_map: "change_maps/SP_252_1325800_2016.yaml"
+    production_state: evidence_verified_no_machine_rule_created
+    min_m2_per_child: 2.0
+
   - document: SP_55_13330_2016
     locator: "9.18"
     topic: daylight_window_to_floor_ratio
@@ -232,10 +307,11 @@ locators:
 summary:
   inherited_scoped_pass_locators: 6
   inherited_scoped_pass_locators_with_change_maps: 6
-  authorized_locator_verified: 6
+  authorized_locator_verified: 12
   authorized_locator_verified_by_document:
     SP_20_13330_2016: 1
     SP_54_13330_2022: 5
+    SP_252_1325800_2016: 6
   existing_rule_traceability_pending_locators: 9
   blocked_pending_locator: 2
   blocked_locators_with_change_maps: 2

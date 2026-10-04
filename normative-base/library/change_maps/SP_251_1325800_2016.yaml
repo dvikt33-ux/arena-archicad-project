@@ -1,3 +1,4 @@
+change_map_version: 2
 document_id: SP_251_1325800_2016
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
@@ -27,28 +28,21 @@ source_layers:
     change_kind: textual_and_reference_updates
     url: "https://protect.gost.ru/sp/changesdetails/22851f99-de6b-44bc-aecf-063bd7681867"
     card_summary_role: revision_metadata_and_reference_update_summary_only
-  prior_change_6_card:
-    authority: Rosstandart
+  direct_authorized_GARANT_change6:
+    authority: GARANT
+    url: "https://base.garant.ru/411459341/"
+    state: amendment_text_read_directly_in_connected_Opera_session
     change: 6
-    order: "886/пр"
-    approved_at: 2024-12-20
-    registered_at: 2025-01-16
     effective_from: 2025-01-21
-    url: "https://protect.gost.ru/sp/changesdetails/6ea95881-2cc4-4ec7-b995-bbac5f11aac8"
-  direct_public_consultant_review:
-    authority: ConsultantPlus
-    url: "https://www.consultant.ru/legalnews/30702/"
-    state: official_provider_review_read
-    role: substantive_change_locator_discovery_and_corroboration_only
-    production_promotion_allowed: false
-    observations:
-      - locator: "6.3"
-        topic: engineering_networks_on_school_sites
-        state: change7_substantive_effect_corroborated_direct_locator_pending
-      - locator: "Table 6.1 note 4"
-        topic: sports_zone_running_track_exception
-        reported_values: {minimum_turn_radius_m: 13, minimum_straight_length_m: 118}
-        state: provider_review_numeric_values_corroborated_direct_amendment_locator_pending
+    role: exact_change6_locator_text_and_change7_reaudit_baseline
+    production_promotion_allowed_without_change7_effect_resolution: false
+  direct_public_GARANT_change5:
+    authority: GARANT
+    url: "https://base.garant.ru/408657543/"
+    state: amendment_text_available
+    change: 5
+    effective_from: 2024-01-29
+    known_effect: adds_EV_charging_requirement_to_6_4_2
   authorized_GARANT_root:
     url: "https://base.garant.ru/71502792/"
     state: stale_or_mixed_revision_not_current_consolidated
@@ -58,40 +52,159 @@ source_layers:
     allowed_role: navigation_and_stale_detection_only
     must_not_prove_current_locator_text: true
 
-latest_change_observation:
-  summary_type: textual_and_reference_updates
-  reference_updates_examples:
-    - SP_1_13130_2020_updated_to_change_3
-    - SP_17_13330_2017_updated_to_change_5
-    - SP_30_13330_2020_updated_to_change_5
-    - SP_59_13330_2020_updated_to_change_4
-    - SP_118_13330_2022_updated_to_change_5
-    - SP_252_1325800_2016_updated_to_change_3
-    - SP_256_1325800_2016_updated_to_change_8
-  known_substantive_locator_effects:
-    - locator: "6.3"
-      effect: engineering_network_site_rules_changed
-      state: direct_current_locator_required
-    - locator: "Table 6.1 note 4"
-      effect: sports_zone_running_track_exception_changed_or_added
-      state: direct_amendment_locator_required_before_numeric_rule
-  evidence_limit: >-
-    Rosstandart proves Change 7 is textual and updates referenced standards. The ConsultantPlus
-    official review identifies high-impact changed locators and reports values, but neither layer
-    is treated as direct amendment locator evidence for machine-rule promotion.
+change_6_exact_locator_map:
+  general_and_site:
+    - locator: "4.6"
+      effect: first_paragraph_replaced
+      topic: class_group_split_conditions
+      exact_change6_semantics:
+        group_split_required_for: [foreign_language_1_11, labor_training_5_11, physical_education_10_11, informatics, physics_practical, chemistry_practical, biology_practical]
+        no_split_allowed_if_group_size_less_than: 15
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "5.4"
+      effect: full_replacement
+      topic: school_service_radius_route
+      exact_change6_route: [SP42_table_10_1, SP_2_4_3648_20_2_1_2, RNGP_MNGP_if_present]
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "6.4.2"
+      effect: full_replacement
+      topic: parking_dropoff_EV_bicycle_MICROMOBILITY
+      exact_change6_requirements:
+        parking_outside_school_fence: true
+        staff_visitor_parking_route: [SP113, SP59, SP42_or_RNGP_MNGP]
+        short_stop_recommended_ratio: "1 place per 100 students"
+        short_stop_accessible_minimum: 1
+        bicycle_and_personal_mobility_default_ratio: "10 places per 100 students unless brief says otherwise"
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "6.4.4"
+      effect: full_replacement
+      topic: internal_vehicle_speed_control
+      exact_change6_max_design_speed_kmh: 20
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "6.5"
+      effect: full_replacement
+      topic: site_zoning_route
+      exact_change6_route: SP_2_4_3648
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "6.7"
+      effect: first_enumeration_replaced
+      topic: outdoor_play_area_sizes
+      exact_change6_values:
+        grades_2_4_min_m2_per_class: 100
+        grade_1_min_m2: 180
+        grade_1_reference_m2_per_student: 7.2
+        grades_5_9_min_m2_per_class: 25
+        small_school_combined_area_trigger_students_less_than: 12
+        small_school_combined_min_m2_per_student: 9
+      state: authorized_change6_text_verified_change7_effect_unresolved
+
+  building_and_vertical_placement:
+    - locator: "7.1.2"
+      effect: full_replacement
+      topic: school_building_blocking_and_primary_school_isolation
+      exact_change6_semantics:
+        primary_school_group_must_be_maximally_isolated: true
+        preschool_or_supplementary_education_blocks_allowed_with_conditions: true
+        separately_standing_blocks_functionally_autonomous_unless_heated_passage_required: true
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.1.4"
+      effect: full_replacement
+      topic: universal_school_program_and_room_groups
+      exact_change6_semantics: all_room_groups_from_appendix_V_required_for_universal_building
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.1.6"
+      effect: first_sentence_replaced
+      topic: building_storeys_route
+      exact_change6_route: [SP118, SP14_for_seismic_7_8_9]
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.1.16"
+      effect: full_replacement
+      topic: student_room_floor_placement
+      exact_change6_route: [SP_2_4_3648_20_2_3_1, SP_2_4_3648_20_3_4_4, SP118_appendix_V, SP1, SP2]
+      state: authorized_change6_text_verified_change7_effect_unresolved
+
+  educational_room_structure_and_areas:
+    - locator: "7.2.1.3"
+      effect: full_replacement
+      topic: educational_section_composition_and_primary_school_separation
+      exact_change6_semantics:
+        grade_1_max_learning_rooms_per_section: 4
+        grades_2_4_max_learning_rooms_per_section: 8
+        primary_sections_functionally_separated: true
+        cross_age_transit_through_primary_recreation_forbidden: true
+        reconstruction_area_reduction_max_percent: 10
+        sanitary_minimums_not_reducible: true
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.2.7"
+      effect: added
+      topic: remote_teaching_room_area
+      exact_change6_values:
+        min_m2_per_teacher_workstation: 4.5
+        absolute_min_m2: 12
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.2.8"
+      effect: added
+      topic: individual_pedagogical_work_room_area
+      exact_change6_min_m2: 12
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.2.9"
+      effect: added
+      topic: small_group_teaching_room_area
+      exact_change6_values:
+        two_students_min_m2: 15
+        extra_student_m2_for_groups_up_to_8: 2.5
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.3.5"
+      effect: full_replacement
+      topic: laboratory_support_room_and_resource_center
+      exact_change6_recommended_laboratory_support_min_m2: 18
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.6.3"
+      effect: first_paragraph_replaced
+      topic: assembly_hall_area
+      exact_change6_fallback_total_area_m2_per_seat: 1.0
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.6.8"
+      effect: numeric_range_corrected
+      topic: stage_or_platform_height_range
+      exact_change6_range_m: [0.8, 1.1]
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.6.11"
+      effect: full_replacement
+      topic: assembly_hall_foyer_and_toilets
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.6.12"
+      effect: added
+      topic: multifunctional_room_used_as_assembly_hall
+      state: authorized_change6_text_verified_change7_effect_unresolved
+    - locator: "7.2.9.1"
+      effect: full_replacement
+      topic: sports_hall_and_support_room_route
+      exact_change6_route: [SP_2_4_3648_20, SanPiN_1_2_3685_21, SP_2_1_3678, SP332_for_professional_sport]
+      state: authorized_change6_text_verified_change7_effect_unresolved
+
+change_7_effect_gate:
+  direct_full_amendment_text_read: false
+  official_card_summary_indicates_reference_updates: true
+  official_card_summary_is_not_full_locator_proof: true
+  direct_change7_reaudit_required_for_change6_locators: true
+  no_change6_numeric_value_promoted_until_resolved: true
 
 locator_migration:
-  state: blocked_pending_direct_current_locator
+  state: blocked_pending_change7_direct_text_for_change6_locator_reaudit
   production_promotion_allowed: false
   P0_direct_read_first:
-    - "6.3"
-    - "Table 6.1 note 4"
-    - "1.1-1.3 scope"
-    - "site_and_functional_zoning_core_locators"
-    - "classroom_and_laboratory_area_tables"
-    - "floor_and_vertical_placement_core_locators"
-    - "sanitary_foodservice_interfaces"
-    - "sports_and_assembly_space_interfaces"
+    - "Change 7 full text / exact affected locator inventory"
+    - "6.4.2"
+    - "6.7"
+    - "7.1.2"
+    - "7.1.6"
+    - "7.1.16"
+    - "7.2.1.3"
+    - "7.2.2.7-7.2.2.9"
+    - "7.2.3.5"
+    - "7.2.6.3"
+    - "7.2.6.8"
   target_topics:
     - site_and_functional_zoning
     - room_composition_and_minimum_areas
@@ -103,10 +216,9 @@ locator_migration:
     - natural_lighting_and_engineering_interfaces
 
 release_gate:
-  - direct_current_locator_text_required
+  - direct_change7_text_or_direct_current_consolidated_locator_required
   - exact_clause_table_or_appendix_required
-  - amendment_effect_on_locator_must_be_resolved
-  - provider_review_numeric_values_do_not_count_as_locator_PASS
+  - change7_effect_on_change6_locator_must_be_resolved
   - stale_GARANT_root_must_not_prove_current_text
   - SP118_general_rules_must_not_substitute_missing_SP251_specific_requirement
 

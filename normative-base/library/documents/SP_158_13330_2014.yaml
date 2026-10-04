@@ -21,17 +21,37 @@ change_map: "../change_maps/SP_158_13330_2014.yaml"
 scope:
   proof_state: official_card_verified
   note: "New, reconstructed and capital-repaired medical organization buildings and medical-purpose rooms embedded in residential, public or production buildings."
+source_render_state:
+  root_url: "https://base.garant.ru/70725636/"
+  direct_change7_url: "https://base.garant.ru/414693011/"
+  root_renderer_state: mixed_revision_not_current_consolidated
+  root_renderer_must_not_prove_current_locator_text: true
+  verified_conflicts:
+    - locator: "6.2.18"
+      root_render_contains_pre_change_condition: "По заданию на проектирование ... может быть предусмотрено"
+      change7_effect: full_replacement
+      change7_current_wording_semantics: "religious room minimum area 12 m2 without the old optional wording"
+    - locator: "6.2.19"
+      root_render_omits_new_design_brief_condition: true
+      change7_effect: first_sentence_replaced
+    - locator: "5.2"
+      root_render_does_not_expose_change7_0_16_values_in_accessibility_text: true
+      direct_change7_values_ha: [0.16, 0.16]
+  evidence_policy: >-
+    Direct Change 7 text may prove what the amendment changed and invalidate stale pre-change
+    values, but the mixed root renderer is not accepted as sole proof of consolidated current
+    locator text.
 locator_research:
   state: blocked_pending_direct_current_locator
   queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: unavailable_in_current_session
+  direct_current_locator_access: authorized_GARANT_available_but_root_mixed_revision
   change7_amendment_text_read: true
   amendment_text_role: impact_mapping_only
   production_promotion_allowed: false
   priority: P0_high_due_to_change7_effective_2026_08_10
 locators:
   - {locator: "1.1", topic: medical_scope_and_embedded_medical_rooms, state: blocked_pending_direct_current_locator}
-  - {locator: "5.2", topic: auxiliary_site_area_thresholds, state: amendment_text_confirmed_current_locator_pending}
+  - {locator: "5.2", topic: auxiliary_site_area_thresholds, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "5.5", topic: staff_visitor_hemodialysis_and_ambulance_parking, state: blocked_pending_direct_current_locator}
   - {locator: "5.6", topic: outpatient_entry_to_site_entry_relationship, state: blocked_pending_direct_current_locator}
   - {locator: "5.7", topic: special_purpose_vehicle_parking, state: blocked_pending_direct_current_locator}
@@ -41,16 +61,17 @@ locators:
   - {locator: "6.2.8", topic: xray_complex_below_wet_process_rooms, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.9", topic: courtyards_and_atria_for_light, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.11", topic: orientation_insolation_and_sun_protection, state: blocked_pending_direct_current_locator}
-  - {locator: "6.2.18", topic: religious_room_area, state: amendment_text_confirmed_current_locator_pending}
-  - {locator: "6.2.19", topic: post_procedure_rest_room_area, state: amendment_text_confirmed_current_locator_pending}
+  - {locator: "6.2.18", topic: religious_room_area, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
+  - {locator: "6.2.19", topic: post_procedure_rest_room_area, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.2.20 Table 6.1 notes", topic: door_geometry_and_reconstruction_reduction, state: blocked_pending_direct_current_locator}
-  - {locator: "6.2.22", topic: minimum_room_areas_route_to_appendix_V, state: blocked_pending_direct_current_locator}
+  - {locator: "6.2.22", topic: minimum_room_areas_route_to_appendix_V, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "6.3.1", topic: upper_floor_placement_of_departments, state: blocked_pending_direct_current_locator}
-  - {locator: "6.3.4 Table 6.3 notes", topic: room_height_and_reconstruction_exception, state: amendment_text_confirmed_current_locator_pending}
+  - {locator: "6.3.4 Table 6.3 notes", topic: room_height_and_reconstruction_exception, state: authorized_amendment_text_verified_current_consolidated_locator_pending}
   - {locator: "Appendix V high-impact room-area rows", topic: minimum_medical_room_areas, state: blocked_pending_direct_current_locator}
 release_gates:
   - exact_current_locator_evidence_required_before_numeric_or_imperative_rule_creation
   - change7_amendment_text_numeric_values_do_not_count_as_current_locator_PASS
+  - mixed_root_renderer_must_not_be_used_as_current_consolidated_text
   - affected_pre_change_values_must_not_be_reused_without_locator_reaudit
   - medical_zone_classification_required_when_embedded
   - host_building_general_rules_do_not_close_SP158_specific_gap

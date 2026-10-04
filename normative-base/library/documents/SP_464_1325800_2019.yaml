@@ -14,28 +14,39 @@ revision:
   latest_change: 1
   latest_change_effective_from: 2024-01-16
 proof:
-  state: official_card_verified
-  authority: Rosstandart
+  state: official_card_verified_plus_authorized_change_text
+  authority: [Rosstandart, GARANT]
   official_url: "https://protect.gost.ru/sp/details/c7f5d95a-b4f1-4265-a83e-5f946f429863"
+  latest_change_text_url: "https://base.garant.ru/408556999/"
 scope:
   proof_state: official_card_verified
   max_height_m: 50
   max_underground_depth_m: 15
-  note: "New, reconstructed and capital-repaired shopping and entertainment complexes within official scope."
+  note: "New, reconstructed and capital-repaired shopping and entertainment complexes within official scope. Change 1 also permits applying SP464 provisions to trade and foodservice enterprises embedded in buildings of other use."
 change_map: "../change_maps/SP_464_1325800_2019.yaml"
 rule_files:
   - "../../rules/70_trk_multifunctional_planning_2027.yaml"
   - "../../rules/89_trk_loading_logistics_2027.yaml"
+source_render_state:
+  root_url: "https://base.garant.ru/73866956/"
+  root_renderer_state: mixed_revision_not_current_consolidated
+  latest_change_exact_text_controls_when_conflicting: true
 locators:
-  - {locator: "1", state: existing_rule_traceability_pending}
+  - {locator: "1.1 second paragraph", state: authorized_latest_amendment_exact_text_verified, topic: embedded_trade_and_foodservice_scope}
+  - {locator: "5.3", state: authorized_latest_amendment_exact_text_verified, topic: parking_and_EV_route}
   - {locator: "5.6", state: existing_rule_traceability_pending}
+  - {locator: "5.7", state: existing_rule_traceability_pending}
   - {locator: "6.10", state: existing_rule_traceability_pending}
-  - {locator: "6.18", state: existing_rule_traceability_pending}
-  - {locator: "6.20", state: existing_rule_traceability_pending}
-  - {locator: "6.21", state: existing_rule_traceability_pending}
-  - {locator: "8.6", state: existing_rule_traceability_pending}
+  - {locator: "6.18", state: amendment_partial_edit_verified_full_locator_pending}
+  - {locator: "6.20 third paragraph", state: authorized_latest_amendment_exact_text_verified, topic: loading_zone_typology}
+  - {locator: "6.21", state: authorized_latest_amendment_exact_text_verified, topic: canopy_over_open_loading_places}
+  - {locator: "6.24-6.32", state: authorized_latest_amendment_exact_text_verified, topic: foodservice_and_foodcourt_planning}
+  - {locator: "8.6 first sentence", state: authorized_latest_amendment_exact_text_verified, topic: threshold_free_sales_hall_evacuation_routes}
+  - {locator: "9.2", state: authorized_latest_amendment_exact_text_verified, topic: fire_safety_route_including_SP456}
   - {locator: "Appendix B; B.4", state: existing_rule_traceability_pending}
 release_gates:
   - exact_locator_evidence_required_for_numeric_rules
   - active_functional_zone_required_for_cinema_sport_foodservice_and_other_special_rules
-  - change1_card_never_counts_as_current_locator_text
+  - mixed_root_renderer_never_overrides_direct_latest_amendment_text
+  - partial_amendment_edit_requires_base_context_for_full_locator_use
+  - verified_change1_foodservice_values_are_not_automatic_production_rules

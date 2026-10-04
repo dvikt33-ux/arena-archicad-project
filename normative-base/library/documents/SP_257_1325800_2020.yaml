@@ -25,18 +25,35 @@ scope:
   max_underground_depth_m: 15
   note: "New/reconstructed hotel buildings and hotel premises in public/mixed-use buildings and nonresidential premises of MKD within scope."
 source_evidence:
+  base_url: "https://base.garant.ru/400535863/#block_503"
   direct_change1_url: "https://base.garant.ru/408657541/"
-  direct_change1_text_state: amendment_text_read_directly_public_GARANT
-  affected_locator: "5.3"
-  role: change_impact_mapping_only
-  production_promotion_allowed: false
+  base_5_3_text_read_directly: true
+  direct_change1_text_read_directly: true
+  latest_change_is_change1: true
+  root_renderer_state: stale_for_added_change1_paragraph
+  reconstruction_method: base_clause_plus_latest_amendment_added_paragraph
+  reconstruction_safe_because:
+    - only_registered_change_is_change1
+    - change1_affects_only_5_3_by_adding_fourth_paragraph
+    - base_paragraphs_1_to_3_were_read_directly
+    - added_paragraph_4_was_read_directly
+  production_authority: false
 locator_research:
-  state: blocked_pending_direct_current_locator
+  state: partial_locator_evidence_available
   queue: "../profile_primary_locator_extraction_registry.yaml"
-  direct_current_locator_access: change1_amendment_text_read_other_current_locators_pending
   production_promotion_allowed: false
 locators:
-  - {locator: "5.3", topic: EV_parking_and_charging_route, state: amendment_text_verified_current_consolidated_locator_pending}
+  - locator: "5.3"
+    topic: parking_and_EV_charging_route
+    state: authorized_locator_verified_by_base_plus_latest_amendment_reconstruction
+    verified_semantics:
+      parking_and_excursion_bus_capacity: by_design_brief
+      parking_design_routes: [SP_42_13330, SP_113_13330]
+      bus_place_parallel_m: [14.0, 3.5]
+      bus_place_perpendicular_m: [12.5, 3.5]
+      EV_charging_spaces_required_when_parking_is_provided: true
+      EV_parking_route: SP_113_13330
+      EV_demand_route: design_brief_but_not_less_than_SP118
   - {locator: "4.2", topic: standalone_embedded_and_MKD_hotel_placement, state: blocked_pending_direct_current_locator}
   - {locator: "6.1.4-6.1.15", topic: hotel_zoning_vertical_transport_and_accessibility, state: blocked_pending_direct_current_locator}
   - {locator: "6.2.3-6.2.11", topic: guestroom_types_areas_sanitary_and_geometry, state: blocked_pending_direct_current_locator}
@@ -45,8 +62,8 @@ locators:
   - {locator: "Appendix B", topic: hotel_room_area_measurement, state: blocked_pending_direct_current_locator}
   - {locator: "Appendix G", topic: room_minimum_area_table, state: blocked_pending_direct_current_locator}
 release_gates:
-  - exact_current_locator_evidence_required_for_numeric_rules
-  - direct_change1_text_only_proves_5_3_amendment_effect
+  - exact_current_locator_evidence_required_before_new_machine_rules
+  - verified_5_3_evidence_does_not_close_hotel_profile_gap
   - hotel_zone_classification_required_when_embedded
   - SP118_general_rules_do_not_close_SP257_specific_gap
   - current_parking_and_EV_special_routes_required_for_5_3_application

@@ -1,5 +1,5 @@
-registry_version: 2
-checked_at: 2026-10-03
+registry_version: 3
+checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
 role: engineering_system_presence_and_scope_gate
@@ -21,6 +21,7 @@ invariants:
   - section_specific_building_class_rules_do_not_leak_to_other_classes
   - engineering_calculation_is_not_replaced_by_architectural_default
   - IZHS_does_not_run_fire_or_public_engineering_system_rules_without_actual_trigger
+  - EV_charging_parking_requires_independent_SP113_planning_scope_and_SP551_fire_scope
 
 file_scopes:
   91_engineering_architectural_interfaces_2027.yaml:
@@ -108,11 +109,13 @@ file_scopes:
     gate_type: system_and_special_scope
     required_system: EV_charging_spaces
     required_scope: parking_object_or_parking_zone_within_SP113_scope
-    normative_basis: [SP_113_13330_2023, SP_256_1325800_2016]
+    required_fire_scope: parking_object_or_parking_zone_within_SP551_scope
+    normative_basis: [SP_113_13330_2023, SP_551_1311500_2026, SP_256_1325800_2016]
     allowed_object_classes: [IZHS, MKD, PUBLIC, TRK, INDUSTRIAL]
+    fire_evidence_gate: current_SP551_EV_locators_must_be_verified_before_numeric_fire_generation
     IZHS_note: >-
-      A private driveway/garage charger in ordinary IZHS does not activate SP113 parking rules
-      merely because an EV charger exists; SP113 parking scope must independently match.
+      A private driveway/garage charger in ordinary IZHS does not activate SP113 or SP551 parking
+      rules merely because an EV charger exists; each parking scope must independently match.
 
   104_integrated_heat_generator_100_360kw_2027.yaml:
     gate_type: equipment_scope
@@ -169,6 +172,9 @@ coverage:
   building_engineering_files: [99_heat_point_architectural_interfaces_2027.yaml, 101_transformer_substation_architectural_interfaces_2027.yaml, 102_ev_charging_parking_architectural_interfaces_2027.yaml, 104_integrated_heat_generator_100_360kw_2027.yaml, 107_diesel_generator_architectural_interfaces_2027.yaml, 108_refrigeration_machine_room_interfaces_2027.yaml, 109_domestic_water_meter_pump_interfaces_2027.yaml, 110_drainage_sumps_underground_rooms_2027.yaml]
 
 production_impact:
-  numeric_rules_changed: false
-  numeric_values_changed: false
+  numeric_rules_changed: true
+  numeric_values_changed: true
   applicability_gates_added: true
+  note: >-
+    Legacy SP113 EV-fire numeric generation was removed because Change 4 deleted the source
+    locators. No replacement SP551 fire numbers are generated until direct locator migration.

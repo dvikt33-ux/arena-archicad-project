@@ -27,15 +27,26 @@ scope:
 change_map: "../change_maps/SP_551_1311500_2026.yaml"
 rule_files:
   - "../../rules/64_parking_fire_safety_2026.yaml"
+  - "../../rules/102_ev_charging_parking_architectural_interfaces_2027.yaml"
 locators:
+  - {locator: "4.1", state: existing_rule_traceability_pending}
   - {locator: "5.1", state: existing_rule_traceability_pending}
   - {locator: "5.7", state: existing_rule_traceability_pending}
+  - {locator: "5.8", state: existing_rule_traceability_pending}
+  - {locator: "7.3", state: pending_direct_locator_verification, topic: EV_PHEV_charging_space_scope}
+  - {locator: "7.4", state: pending_direct_locator_verification, topic: deeper_underground_charge_current}
+  - {locator: "7.5", state: pending_direct_locator_verification, topic: EV_PHEV_grouping_and_separation}
+  - {locator: "7.6", state: pending_direct_locator_verification, topic: EV_PHEV_fire_sections}
   - {locator: "7.15", state: existing_rule_traceability_pending}
   - {locator: "7.16", state: existing_rule_traceability_pending}
   - {locator: "10.4", state: existing_rule_traceability_pending}
   - {locator: "11.1", state: existing_rule_traceability_pending}
   - {locator: "11.2", state: existing_rule_traceability_pending}
+  - {locator: "12.6", state: pending_direct_locator_verification, topic: EV_PHEV_AUPT_and_charger_shutdown}
+  - {locator: "12.7", state: pending_direct_locator_verification, topic: smoke_control_design_fire}
 release_gates:
   - exact_locator_evidence_required_for_new_library_PASS
   - independent_SP551_scope_match_required
   - use_with_SP113_not_instead_of_SP113
+  - EV_PHEV_numeric_fire_generation_blocked_until_locator_attestation
+  - deleted_SP113_6_2_12_6_2_30_7_10_2_must_not_be_used_as_current_fire_sources

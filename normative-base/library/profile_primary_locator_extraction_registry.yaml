@@ -1,4 +1,4 @@
-registry_version: 5
+registry_version: 6
 checked_at: 2026-10-04
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -23,6 +23,7 @@ invariants:
   - mixed_revision_root_renderer_is_not_current_consolidated_locator_evidence
   - official_provider_review_is_corroboration_not_direct_locator_proof
   - direct_amendment_text_does_not_automatically_equal_consolidated_current_locator_PASS
+  - official_no_change_status_does_not_automatically_convert_public_text_to_library_PASS
 
 states:
   blocked_pending_direct_current_locator: >-
@@ -45,25 +46,12 @@ profiles:
     root_renderer_state: stale_or_mixed_revision_not_current_consolidated
     current_locator_priority:
       first_pass: ["6.3", "Table 6.1 note 4"]
-      second_pass:
-        - "1.1-1.3 scope"
-        - "site_and_functional_zoning_core_locators"
-        - "classroom_and_laboratory_area_tables"
-        - "floor_and_vertical_placement_core_locators"
-        - "sanitary_foodservice_interfaces"
-        - "sports_and_assembly_space_interfaces"
+      second_pass: ["1.1-1.3 scope", "site_and_functional_zoning_core_locators", "classroom_and_laboratory_area_tables", "floor_and_vertical_placement_core_locators", "sanitary_foodservice_interfaces", "sports_and_assembly_space_interfaces"]
     change7_provider_corroboration:
       engineering_network_site_rules_changed: true
       sports_zone_running_track_exception_changed: true
       reported_values_are_not_locator_PASS: true
-    target_topics:
-      - site_and_functional_zoning
-      - room_composition_and_minimum_areas
-      - classrooms_laboratories_and_special_teaching_rooms
-      - floor_and_vertical_placement
-      - sanitary_foodservice_and_service_interfaces
-      - sports_and_assembly_interfaces
-      - accessibility_egress_and_lighting_interfaces
+    target_topics: [site_and_functional_zoning, room_composition_and_minimum_areas, classrooms_laboratories_and_special_teaching_rooms, floor_and_vertical_placement, sanitary_foodservice_and_service_interfaces, sports_and_assembly_interfaces, accessibility_egress_and_lighting_interfaces]
     fallback_if_locator_missing: profile_requirement_pending
     production_promotion_allowed: false
 
@@ -78,36 +66,10 @@ profiles:
     direct_locator_access: direct_public_GARANT_change3_read_consolidated_locator_pending
     direct_change3_text_read: true
     current_locator_priority:
-      first_pass:
-        - "1.1"
-        - "1.2"
-        - "4.1-4.7"
-        - "5.2"
-        - "5.3"
-        - "6.1"
-        - "6.2.3"
-        - "6.2.4"
-        - "6.2.8"
-        - "7.1.1"
-        - "7.1.2"
-        - "7.1.7"
-        - "7.1.8"
-        - "7.2.2.1"
-        - "7.2.2.7"
-      second_pass:
-        - "foodservice_and_laundry_locators"
-        - "sanitary_and_hygiene_locators"
-        - "daylight_and_microclimate_locators"
-        - "embedded_or_shared_complex_conditions"
+      first_pass: ["1.1", "1.2", "4.1-4.7", "5.2", "5.3", "6.1", "6.2.3", "6.2.4", "6.2.8", "7.1.1", "7.1.2", "7.1.7", "7.1.8", "7.2.2.1", "7.2.2.7"]
+      second_pass: [foodservice_and_laundry_locators, sanitary_and_hygiene_locators, daylight_and_microclimate_locators, embedded_or_shared_complex_conditions]
     change3_amendment_candidate_values_are_not_PASS: true
-    target_topics:
-      - site_and_group_play_area_zoning
-      - group_cell_composition_and_areas
-      - age_group_separation_and_vertical_placement
-      - entrances_stairs_and_safe_routes
-      - foodservice_laundry_and_service_interfaces
-      - sanitary_daylight_and_microclimate_interfaces
-      - embedded_or_shared_complex_conditions
+    target_topics: [site_and_group_play_area_zoning, group_cell_composition_and_areas, age_group_separation_and_vertical_placement, entrances_stairs_and_safe_routes, foodservice_laundry_and_service_interfaces, sanitary_daylight_and_microclimate_interfaces, embedded_or_shared_complex_conditions]
     fallback_if_locator_missing: profile_requirement_pending
     production_promotion_allowed: false
 
@@ -123,86 +85,45 @@ profiles:
     direct_change7_text_read: true
     root_renderer_state: mixed_revision_not_current_consolidated
     current_locator_priority:
-      first_pass:
-        - "1.1"
-        - "5.2"
-        - "5.5"
-        - "5.6"
-        - "5.7"
-        - "5.8"
-        - "5.11"
-        - "6.2.6"
-        - "6.2.8"
-        - "6.2.9"
-        - "6.2.11"
-        - "6.2.18"
-        - "6.2.19"
-        - "6.2.20 Table 6.1 notes"
-        - "6.2.22"
-        - "6.3.1"
-        - "6.3.4 Table 6.3 notes"
-        - "Appendix V high-impact room-area rows"
-      second_pass:
-        - "5.13-5.15"
-        - "5.18"
-        - "6.4.12"
-        - "6.5.2"
-        - "6.5.4"
-        - "6.6.1"
-        - "6.7 priority subclauses"
-        - "6.8.5 priority subclauses"
-        - "6.9 priority subclauses"
-        - "6.12.3 priority subclauses"
-    target_topics:
-      - site_parking_and_flow_separation
-      - department_and_clean_dirty_flow_separation
-      - corridor_door_and_patient_transport_geometry
-      - room_composition_and_minimum_areas
-      - floor_placement_and_vertical_connections
-      - daylight_insolation_and_sun_protection
-      - isolation_and_infection_control_interfaces
-      - sanitary_patient_staff_support_rooms
-      - ventilation_medical_gas_and_engineering_architectural_interfaces
+      first_pass: ["1.1", "5.2", "5.5", "5.6", "5.7", "5.8", "5.11", "6.2.6", "6.2.8", "6.2.9", "6.2.11", "6.2.18", "6.2.19", "6.2.20 Table 6.1 notes", "6.2.22", "6.3.1", "6.3.4 Table 6.3 notes", "Appendix V high-impact room-area rows"]
+      second_pass: ["5.13-5.15", "5.18", "6.4.12", "6.5.2", "6.5.4", "6.6.1", "6.7 priority subclauses", "6.8.5 priority subclauses", "6.9 priority subclauses", "6.12.3 priority subclauses"]
+    target_topics: [site_parking_and_flow_separation, department_and_clean_dirty_flow_separation, corridor_door_and_patient_transport_geometry, room_composition_and_minimum_areas, floor_placement_and_vertical_connections, daylight_insolation_and_sun_protection, isolation_and_infection_control_interfaces, sanitary_patient_staff_support_rooms, ventilation_medical_gas_and_engineering_architectural_interfaces]
     fallback_if_locator_missing: medical_profile_requirement_pending
     production_promotion_allowed: false
 
   HOTEL:
     primary_document: SP_257_1325800_2020
     change_map: change_maps/SP_257_1325800_2020.yaml
-    state: source_chain_ready_locator_pending
+    state: blocked_pending_direct_current_locator
     current_revision: {latest_change: 1, effective_from: 2024-01-29}
     official_card: "https://protect.gost.ru/sp/details/40bbe9d6-7fa7-4a7b-b1a6-a539ce75cc3e"
-    host_classes: [PUBLIC, MKD]
+    host_classes: [PUBLIC, MKD, MIXED_USE]
     scope_gate: hotel_building_or_classified_hotel_zone
-    direct_locator_access: not_yet_read_in_connected_session
-    target_topics:
-      - guestroom_types_composition_and_areas
-      - public_guest_and_service_flow_separation
-      - vertical_transport_and_floor_placement
-      - housekeeping_sanitary_and_service_interfaces
-      - accessible_room_and_route_interfaces
-      - site_access_loading_and_parking_interfaces
+    direct_locator_access: direct_public_GARANT_change1_read_other_current_locators_pending
+    direct_change1_text_read: true
+    current_locator_priority:
+      first_pass: ["5.3", "4.2", "6.1.4-6.1.15", "6.2.3-6.2.11", "6.3.2-6.3.9", "6.4.1-6.4.9", "Appendix B", "Appendix G"]
+    change1_affected_locator: "5.3"
+    change1_EV_parking_route_is_not_complete_hotel_profile_coverage: true
+    target_topics: [guestroom_types_composition_and_areas, public_guest_and_service_flow_separation, vertical_transport_and_floor_placement, housekeeping_sanitary_and_service_interfaces, accessible_room_and_route_interfaces, site_access_loading_parking_and_EV_interfaces]
     fallback_if_locator_missing: hotel_profile_requirement_pending
     production_promotion_allowed: false
 
   INDUSTRIAL_PRODUCTION_STORAGE:
     primary_document: SP_56_13330_2021
     change_map: change_maps/SP_56_13330_2021.yaml
-    state: source_chain_ready_locator_pending
+    state: blocked_pending_direct_current_locator
     current_revision: {latest_change: null, effective_from: 2022-01-28}
     official_card: "https://protect.gost.ru/sp/details/e3c56fe9-8768-4597-b5d1-92c72c6f3d5a"
     host_class: INDUSTRIAL
     embedded_zone_route: F5_1_or_F5_2_room_in_other_host_class_when_within_scope
     scope_gate: F5_1_or_F5_2_and_not_excluded_special_category
-    direct_locator_access: not_yet_read_in_connected_session
-    target_topics:
-      - scope_and_exclusions
-      - building_and_fire_compartment_geometry
-      - floor_area_height_and_storey_constraints
-      - production_and_storage_room_placement
-      - gates_loading_and_internal_transport_interfaces
-      - mezzanines_platforms_and_technical_levels
-      - evacuation_and_fire_safety_architectural_interfaces
+    direct_locator_access: public_GARANT_base_read_authorized_or_primary_attestation_pending
+    official_no_registered_changes: true
+    current_locator_priority:
+      first_pass: [scope_and_exclusions, "5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.4.4.5", "5.4.4.9", "5.4.4.11", "6.2.2", "6.2.18; Table 6.3", "6.2.22", "Appendix A.1-A.4"]
+    public_GARANT_candidate_values_are_not_PASS: true
+    target_topics: [scope_and_exclusions, building_and_fire_compartment_geometry, floor_area_height_and_storey_constraints, production_and_storage_room_placement, gates_loading_and_internal_transport_interfaces, mezzanines_platforms_and_technical_levels, evacuation_and_fire_safety_architectural_interfaces]
     fallback_if_locator_missing: industrial_profile_requirement_pending
     production_promotion_allowed: false
 
@@ -216,27 +137,10 @@ parking_reaudit:
     SP551: {latest_change: null, effective_from: 2026-06-01}
   state: blocked_pending_direct_current_locator
   note: >-
-    Change 4 deleted legacy SP113 fire locators. Current extraction is therefore split: SP113 for
-    planning/geometry and SP551 for fire protection. No new PASS until each target locator is
-    directly read under the accepted evidence policy.
-  planning_priority_locators:
-    - "Appendix A; Table A.1"
-    - "Appendix A; Table A.1 note 4"
-    - "4.4"
-    - "5.4"
-    - "5.6"
-    - "5.26"
-    - "5.42"
-    - "5.43"
-    - "7.1.4"
-    - "7.10.5"
-  fire_priority_locators:
-    - "SP551 7.3"
-    - "SP551 7.4"
-    - "SP551 7.5"
-    - "SP551 7.6"
-    - "SP551 12.6"
-    - "SP551 12.7"
+    Change 4 deleted legacy SP113 fire locators. Current extraction is split: SP113 for planning/geometry
+    and SP551 for fire protection. No new PASS until each target locator is directly read under accepted evidence policy.
+  planning_priority_locators: ["Appendix A; Table A.1", "Appendix A; Table A.1 note 4", "4.4", "5.4", "5.6", "5.26", "5.42", "5.43", "7.1.4", "7.10.5"]
+  fire_priority_locators: ["SP551 7.3", "SP551 7.4", "SP551 7.5", "SP551 7.6", "SP551 12.6", "SP551 12.7"]
   superseded_not_current_targets:
     - {document: SP_113_13330_2023, locator: "6.2.12", state: deleted_by_change4}
     - {document: SP_113_13330_2023, locator: "6.2.30", state: deleted_by_change4}
@@ -253,6 +157,7 @@ session_source_status:
 
 summary:
   P0_profiles_in_primary_extraction_queue: 5
+  P0_profiles_with_exact_locator_priority_lists: 5
   profiles_with_numeric_promotion: 0
   parking_reaudit_active: true
   parking_fire_route_current_document: SP_551_1311500_2026
@@ -262,4 +167,8 @@ summary:
   preschool_current_consolidated_locator_PASS: 0
   medical_change7_direct_amendment_text_read: true
   medical_current_consolidated_locator_PASS: 0
+  hotel_change1_direct_amendment_text_read: true
+  hotel_current_consolidated_locator_PASS: 0
+  industrial_public_base_text_read: true
+  industrial_accepted_locator_PASS: 0
   unresolved_profiles_fail_closed: true

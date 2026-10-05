@@ -1,5 +1,5 @@
 audit_id: P0_PUBLIC_CORROBORATION_AND_TRK_GAP_2026_10_05
-version: 2
+version: 3
 checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -44,8 +44,11 @@ SP56_industrial:
       extraction: full_rows_and_footnote
       state: public_full_text_corroborated_authorized_attestation_pending
     - locator: "Appendix A.4"
-      extraction: partial_semantics_including_40_percent_platform_mezzanine_threshold
-      state: public_partial_text_corroborated_complete_accepted_source_read_pending
+      extraction: full_locator_text
+      state: public_full_text_corroborated_authorized_attestation_pending
+      corroborated_thresholds_percent: {platform_rack_mezzanine: 40, roof_superstructures_exclusion: 15}
+  structural_extraction_backlog_remaining: 0
+  accepted_source_attestation_backlog: ["Table 6.5", "Table 6.6", "Appendix A.4"]
   production_impact:
     numeric_rules_changed: false
     production_promotions: 0
@@ -56,13 +59,14 @@ SP257_hotel:
   existing_authorized_locator_PASS: 12
   newly_corroborated_public_current_locators:
     - "4.2"
-    - "6.1.5"
-    - "6.1.6"
-    - "6.1.7"
-    - "6.1.9"
-    - "6.1.10"
-    - "6.1.11"
-    - "6.1.12"
+    - "6.1.4-6.1.15"
+    - "6.3.2-6.3.9"
+    - "6.4.1-6.4.9"
+  public_current_locator_corroboration_count: 30
+  structural_extraction_backlog_remaining: 0
+  accepted_source_attestation_remaining:
+    - "4.2"
+    - "6.1.4-6.1.15"
     - "6.3.2-6.3.9"
     - "6.4.1-6.4.9"
   state: public_current_text_corroborated_authorized_attestation_pending
@@ -126,7 +130,10 @@ summary:
   new_production_rules: 0
   new_authorized_locator_PASS: 0
   public_full_table_extractions_added: 2
-  hotel_public_current_locator_corroboration_added: 25
+  public_full_appendix_locator_extractions_added: 1
+  hotel_public_current_locator_corroboration_added: 30
+  hotel_structural_extraction_backlog_remaining: 0
+  industrial_structural_extraction_backlog_remaining: 0
   school_change7_effect_unresolved_preserved: true
   trk_loading_specific_traceability_gap_found: true
   trk_loading_all_public_numeric_rows_match_active_rules: true

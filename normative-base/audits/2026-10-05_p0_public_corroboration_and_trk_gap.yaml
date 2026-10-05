@@ -1,0 +1,110 @@
+audit_id: P0_PUBLIC_CORROBORATION_AND_TRK_GAP_2026_10_05
+checked_at: 2026-10-05
+target_profile: RU_2027_PLUS
+production_authority: false
+policy: fail_closed
+
+source_state:
+  opera_connector:
+    state: disconnected_at_end_of_pass
+    note: >-
+      Authorized GARANT was available earlier in the project cycle but disconnected during this
+      pass. No locator was promoted solely because a public GARANT search result existed.
+  public_GARANT:
+    role: exact_text_corroboration_and_structural_extraction_only_when_authorized_attestation_missing
+  Rosstandart:
+    role: official_revision_metadata_and_change_inventory
+
+SP251_school:
+  current_revision: {latest_change: 7, effective_from: 2026-01-01}
+  change6_exact_text_already_read: true
+  change7_full_text_not_available_in_accepted_locator_layer: true
+  official_change7_card:
+    state: official_card_verified
+    content_summary_exposes_reference_updates: true
+    does_not_resolve_all_change7_substantive_locator_effects: true
+  ConsultantPlus_review:
+    corroborates_substantive_change7_locators: ["6.3", "Table 6.1 note 4"]
+  conclusion: >-
+    Change 6 exact locator text must remain change7_effect_unresolved unless Change 7 full text or
+    exact accepted locator evidence proves the target was not altered. No production promotion.
+
+SP56_industrial:
+  current_revision: {changes: [], effective_from: 2022-01-28}
+  existing_authorized_locator_PASS: 14
+  newly_extracted_public_current_text:
+    - locator: "Table 6.5"
+      extraction: full_rows_and_footnotes
+      state: public_full_text_corroborated_authorized_attestation_pending
+    - locator: "Table 6.6"
+      extraction: full_rows_and_footnote
+      state: public_full_text_corroborated_authorized_attestation_pending
+    - locator: "Appendix A.4"
+      extraction: partial_semantics_including_40_percent_platform_mezzanine_threshold
+      state: public_partial_text_corroborated_complete_accepted_source_read_pending
+  production_impact:
+    numeric_rules_changed: false
+    production_promotions: 0
+
+SP257_hotel:
+  current_revision: {latest_change: 1, effective_from: 2024-01-29}
+  latest_change_only_affects_locator: "5.3"
+  existing_authorized_locator_PASS: 12
+  newly_corroborated_public_current_locators:
+    - "4.2"
+    - "6.1.5"
+    - "6.1.6"
+    - "6.1.7"
+    - "6.1.9"
+    - "6.1.10"
+    - "6.1.11"
+    - "6.1.12"
+    - "6.3.2-6.3.9"
+    - "6.4.1-6.4.9"
+  state: public_current_text_corroborated_authorized_attestation_pending
+  production_impact:
+    numeric_rules_changed: false
+    production_promotions: 0
+
+SP464_TRK:
+  current_revision: {latest_change: 1, effective_from: 2024-01-16}
+  production_rule_file: "../rules/89_trk_loading_logistics_2027.yaml"
+  verified_existing_locators:
+    - "5.6"
+    - "6.10"
+    - "6.18"
+    - "6.21"
+    - "8.6 first sentence"
+    - "Appendix V; V.3"
+    - "Appendix V; V.4"
+  new_traceability_gap:
+    active_rule_uses:
+      - "Appendix V; V.1"
+      - "Appendix V; V.2"
+    public_root_corroborates:
+      V1_table_rows: true
+      V1_shared_loading_reduction_cap_percent: 15
+      V2_platform_levels_and_depths: true
+    change1_note_for_V1:
+      active_rule_claims_change1_alternative_cargo_turnover_calculation: true
+      exact_authorized_change1_locator_not_re_read_in_this_pass: true
+      state: existing_rule_traceability_pending_specific_note
+  release_gate:
+    - do_not_promote_V1_or_V2_from_public_root_alone
+    - authorized_change1_note_for_V1_required
+    - verify_V1_V2_before_considering_loading_block_fully_migrated
+
+invariants_confirmed:
+  - public_corroboration_never_equals_authorized_locator_PASS
+  - official_revision_card_never_proves_clause_text
+  - mixed_revision_GARANT_root_never_overrides_direct_amendment_text
+  - no_numeric_production_change_without_accepted_current_locator_evidence
+
+summary:
+  new_numeric_production_values: 0
+  new_production_rules: 0
+  new_authorized_locator_PASS: 0
+  public_full_table_extractions_added: 2
+  hotel_public_current_locator_corroboration_added: 25
+  school_change7_effect_unresolved_preserved: true
+  trk_loading_specific_traceability_gap_found: true

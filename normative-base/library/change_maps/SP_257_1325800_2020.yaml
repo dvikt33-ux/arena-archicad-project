@@ -1,4 +1,4 @@
-change_map_version: 5
+change_map_version: 6
 document_id: SP_257_1325800_2020
 checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
@@ -46,13 +46,18 @@ source_layers:
       evidence policy it does not create a new authorized locator PASS by itself.
     exact_locators_or_groups_corroborated:
       - "4.2"
+      - "6.1.4"
       - "6.1.5"
       - "6.1.6"
       - "6.1.7"
+      - "6.1.8"
       - "6.1.9"
       - "6.1.10"
       - "6.1.11"
       - "6.1.12"
+      - "6.1.13"
+      - "6.1.14"
+      - "6.1.15"
       - "6.3.2"
       - "6.3.3"
       - "6.3.4"
@@ -111,10 +116,17 @@ public_current_locator_corroboration:
   - locator: "4.2"
     state: public_current_text_corroborated_authorized_attestation_pending
     topic: allowed_hotel_host_and_placement_types
-  - locator_group: "6.1.5-6.1.12_partial"
+  - locator_group: "6.1.4-6.1.15_architectural_core"
     state: public_current_text_corroborated_authorized_attestation_pending
-    exact_locators: ["6.1.5", "6.1.6", "6.1.7", "6.1.9", "6.1.10", "6.1.11", "6.1.12"]
-    topics: [host_separation, separate_entrances, entrance_weather_protection, atrium_route, mansard_route, operated_roof_route, passenger_lift_route]
+    exact_locators: ["6.1.4", "6.1.5", "6.1.6", "6.1.7", "6.1.8", "6.1.9", "6.1.10", "6.1.11", "6.1.12", "6.1.13", "6.1.14", "6.1.15"]
+    topics: [guestroom_zone_separation, host_separation, separate_entrances, entrance_weather_protection, basement_and_natural_light_conditions, atrium_route, mansard_route, operated_roof_route, passenger_and_service_lift_routes, MGN_lift_route]
+    selected_semantics:
+      guestroom_zone_separated_from_additional_service_group: true
+      guestroom_zone_over_50_rooms_separated_from_staff_and_public_zones: true
+      guest_rooms_without_natural_light_forbidden: true
+      four_five_star_over_50_rooms_service_and_freight_lift_required_subject_to_exceptions: true
+      MGN_rooms_second_floor_or_above_require_accessible_lift: true
+      one_passenger_lift_in_bank_accessible_for_wheelchair_user: true
   - locator_group: "6.3.2-6.3.9"
     state: public_current_text_corroborated_authorized_attestation_pending
     exact_locators: ["6.3.2", "6.3.3", "6.3.4", "6.3.5", "6.3.6", "6.3.7", "6.3.8", "6.3.9"]
@@ -128,14 +140,11 @@ locator_migration:
   state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
   authorized_locator_verified_count: 12
-  public_current_locator_corroboration_count: 25
-  P0_direct_read_remaining:
-    - "6.1.4"
-    - "6.1.8"
-    - "6.1.13-6.1.15"
+  public_current_locator_corroboration_count: 30
+  P0_direct_read_remaining: []
   P0_authorized_attestation_remaining:
     - "4.2"
-    - "6.1.5-6.1.12 partial set"
+    - "6.1.4-6.1.15 architectural core"
     - "6.3.2-6.3.9"
     - "6.4.1-6.4.9"
   target_topics:

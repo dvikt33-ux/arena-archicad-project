@@ -1,4 +1,5 @@
 audit_id: P0_PUBLIC_CORROBORATION_AND_TRK_GAP_2026_10_05
+version: 2
 checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
 production_authority: false
@@ -14,6 +15,9 @@ source_state:
     role: exact_text_corroboration_and_structural_extraction_only_when_authorized_attestation_missing
   Rosstandart:
     role: official_revision_metadata_and_change_inventory
+  secondary_change1_copies:
+    role: corroboration_only
+    production_promotion_allowed: false
 
 SP251_school:
   current_revision: {latest_change: 7, effective_from: 2026-01-01}
@@ -82,13 +86,29 @@ SP464_TRK:
       - "Appendix V; V.1"
       - "Appendix V; V.2"
     public_root_corroborates:
-      V1_table_rows: true
+      V1_full_table_rows: true
+      V1_active_rule_matrix_matches_all_20_rows: true
       V1_shared_loading_reduction_cap_percent: 15
       V2_platform_levels_and_depths: true
+      V2_active_rule_values_match_public_text: true
     change1_note_for_V1:
       active_rule_claims_change1_alternative_cargo_turnover_calculation: true
+      secondary_change1_text_corroborates_note_2: true
+      corroborated_semantics:
+        calculation_by_planned_trade_and_foodservice_cargo_turnover: true
+        technology_and_mechanization_considered: true
+        loading_place_schedule_considered: true
+        peak_hour_excluded: true
       exact_authorized_change1_locator_not_re_read_in_this_pass: true
       state: existing_rule_traceability_pending_specific_note
+  CI_protection:
+    revision_conflict_guard_requires_V1_V2_pending_state: true
+    dedicated_validator: "../tools/validate_trk_loading_evidence.py"
+    dedicated_validator_checks:
+      - active_rule_V1_15_percent_matches_evidence_map
+      - cargo_turnover_rule_retains_change1_note_traceability
+      - active_rule_V2_numeric_values_match_evidence_map
+      - V1_V2_do_not_enter_verified_existing_locator_set
   release_gate:
     - do_not_promote_V1_or_V2_from_public_root_alone
     - authorized_change1_note_for_V1_required
@@ -96,6 +116,7 @@ SP464_TRK:
 
 invariants_confirmed:
   - public_corroboration_never_equals_authorized_locator_PASS
+  - secondary_change_text_never_equals_authorized_locator_PASS
   - official_revision_card_never_proves_clause_text
   - mixed_revision_GARANT_root_never_overrides_direct_amendment_text
   - no_numeric_production_change_without_accepted_current_locator_evidence
@@ -108,3 +129,5 @@ summary:
   hotel_public_current_locator_corroboration_added: 25
   school_change7_effect_unresolved_preserved: true
   trk_loading_specific_traceability_gap_found: true
+  trk_loading_all_public_numeric_rows_match_active_rules: true
+  trk_loading_gap_now_CI_guarded: true

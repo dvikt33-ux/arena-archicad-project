@@ -37,5 +37,7 @@ jobs:
         run: python normative-base/tools/validate_p1_locator_extraction.py
       - name: Validate revision conflicts
         run: python normative-base/tools/validate_revision_conflicts.py
+      - name: Validate TRK loading evidence consistency
+        run: python normative-base/tools/validate_trk_loading_evidence.py
       - name: Validate library integration
         run: python normative-base/tools/validate_library_integration.py

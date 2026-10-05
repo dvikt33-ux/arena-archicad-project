@@ -1,4 +1,4 @@
-change_map_version: 5
+change_map_version: 6
 document_id: SP_56_13330_2021
 checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
@@ -43,13 +43,26 @@ source_layers:
   public_GARANT_appendix_A4_2026_10_05:
     authority: GARANT
     url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/"
-    state: partial_public_text_corroboration_only
+    state: full_public_text_corroboration_only
     corroborated_semantics:
-      counts_all_above_ground_storeys: true
-      includes_technical_basement_and_mansard_storeys: true
-      includes_platforms_rack_tiers_and_mezzanines_over_percent: 40
+      count_definition: all_above_ground_storeys
+      included:
+        - technical_storey
+        - basement_or_ground_storey_as_named_in_text
+        - mansard_storey
+        - platforms_rack_tiers_and_mezzanines_when_area_on_any_level_over_40_percent_of_floor_area
+      excluded:
+        - technical_attic
+        - technical_underfloor
+        - roof_superstructures_when_total_area_less_than_15_percent_of_roof_area
+      thresholds:
+        platform_rack_mezzanine_percent: 40
+        roof_superstructure_exclusion_percent: 15
+      separate_count_required_when:
+        - building_parts_have_different_storey_counts
+        - site_slope_changes_storey_count
     production_promotion_allowed: false
-    note: complete accepted-source locator read still required before PASS
+    note: accepted-source locator attestation still required before PASS
   current_text_logic: >-
     The official card shows no registered amendments to SP56.13330.2021. Existing authorized
     locator evidence remains valid. Public GARANT extraction of Tables 6.5-6.6 and Appendix A.4 is
@@ -98,20 +111,23 @@ verified_locators:
     - {locator: "Appendix A.1", proof_state: authorized_locator_verified, topic: total_building_area}
     - {locator: "Appendix A.2", proof_state: authorized_locator_verified, topic: fire_compartment_floor_area, platform_mezzanine_threshold_percent: 40}
     - locator: "Appendix A.4"
-      proof_state: public_partial_text_corroborated_authorized_attestation_pending
+      proof_state: public_full_text_corroborated_authorized_attestation_pending
       topic: storey_count_platform_mezzanine_semantics
-      corroborated_threshold_percent: 40
-      complete_locator_read_pending: true
+      corroborated_thresholds_percent: {platform_rack_mezzanine: 40, roof_superstructures_exclusion: 15}
+      extraction_state: full_locator_text_extracted
 
 remaining_locator_backlog:
   - {locator: "Tables 6.5-6.6", topic: accepted_source_attestation_and_matrix_normalization, state: public_full_text_extracted_authorized_attestation_pending}
-  - {locator: "Appendix A.4", topic: complete_storey_count_semantics, state: public_partial_text_corroborated_complete_accepted_source_read_pending}
+  - {locator: "Appendix A.4", topic: accepted_source_attestation, state: public_full_text_extracted_authorized_attestation_pending}
 
 locator_migration:
   state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
   authorized_locator_verified_count: 14
   public_full_table_corroboration_count: 2
+  public_full_appendix_locator_corroboration_count: 1
+  structural_extraction_backlog_remaining: 0
+  accepted_source_attestation_backlog_remaining: ["Table 6.5", "Table 6.6", "Appendix A.4"]
   numeric_table_production_promotions: 0
 
 release_gate:
@@ -120,7 +136,7 @@ release_gate:
   - scope_exclusions_must_be_resolved_before_rule_application
   - Table_6_3_rowspan_semantics_require_normalization_validation_before_machine_rule_creation
   - Tables_6_5_6_6_require_authorized_or_primary_attestation_before_numeric_rules
-  - Appendix_A_4_requires_complete_accepted_source_locator_read
+  - Appendix_A_4_requires_accepted_source_locator_attestation
   - public_GARANT_full_text_corroboration_does_not_equal_authorized_locator_PASS
 
 production_impact:

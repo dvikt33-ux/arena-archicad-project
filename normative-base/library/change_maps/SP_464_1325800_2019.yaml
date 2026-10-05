@@ -138,21 +138,22 @@ public_current_appendix_V_corroboration:
   source_url: "https://base.garant.ru/73866956/a496d02287c1e8a2f8df9041972293a4/"
   source_role: public_current_text_corroboration_only
   production_promotion_allowed: false
-  - locator: "Appendix V; V.1"
-    state: public_current_text_corroborated_authorized_attestation_pending
-    topic: minimum_loading_place_count_by_trade_enterprise_and_sales_area
-    full_table_rows_visible: true
-    shared_loading_reduction_cap_percent: 15
-    change1_alternative_cargo_turnover_note_state: exact_authorized_change1_note_re_read_pending
-  - locator: "Appendix V; V.2"
-    state: public_current_text_corroborated_authorized_attestation_pending
-    topic: loading_platform_levels_and_depths
-    values:
-      standard_platform_height_above_vehicle_area_m: [1.1, 1.2]
-      light_vehicle_platform_height_above_vehicle_area_m: [0.6, 0.8]
-      lifting_equipment_platform_relation: same_level_as_vehicle_area
-      rectangular_platform_min_depth_m: 4.0
-      sawtooth_platform_min_depth_at_narrowest_m: 2.5
+  locators:
+    - locator: "Appendix V; V.1"
+      state: public_current_text_corroborated_authorized_attestation_pending
+      topic: minimum_loading_place_count_by_trade_enterprise_and_sales_area
+      full_table_rows_visible: true
+      shared_loading_reduction_cap_percent: 15
+      change1_alternative_cargo_turnover_note_state: exact_authorized_change1_note_re_read_pending
+    - locator: "Appendix V; V.2"
+      state: public_current_text_corroborated_authorized_attestation_pending
+      topic: loading_platform_levels_and_depths
+      values:
+        standard_platform_height_above_vehicle_area_m: [1.1, 1.2]
+        light_vehicle_platform_height_above_vehicle_area_m: [0.6, 0.8]
+        lifting_equipment_platform_relation: same_level_as_vehicle_area
+        rectangular_platform_min_depth_m: 4.0
+        sawtooth_platform_min_depth_at_narrowest_m: 2.5
 
 root_renderer_conflicts:
   - locator: "6.18"

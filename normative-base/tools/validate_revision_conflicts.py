@@ -102,6 +102,47 @@ def main() -> None:
     if stale.get("stale_rule_found") is not True or stale.get("resolution") != "removed_superseded_rule_and_route_current_loading_typology_to_rule_89":
         fail("SP464 stale 6.21 rule resolution is missing from change map")
 
+    # SP464 Appendix V.1/V.2 are active in rules/89 but public corroboration must not silently become PASS.
+    appendix_v = sp464.get("public_current_appendix_V_corroboration") or {}
+    if appendix_v.get("production_promotion_allowed") is not False:
+        fail("SP464 Appendix V public corroboration must not grant production promotion")
+    appendix_v_rows = {
+        row.get("locator"): row
+        for row in (appendix_v.get("locators") or [])
+        if isinstance(row, dict) and row.get("locator")
+    }
+    v1 = appendix_v_rows.get("Appendix V; V.1") or {}
+    v2 = appendix_v_rows.get("Appendix V; V.2") or {}
+    pending_state = "public_current_text_corroborated_authorized_attestation_pending"
+    if v1.get("state") != pending_state:
+        fail("SP464 Appendix V.1 must remain public-corroborated and authorization-pending")
+    if v2.get("state") != pending_state:
+        fail("SP464 Appendix V.2 must remain public-corroborated and authorization-pending")
+    if v1.get("shared_loading_reduction_cap_percent") != 15:
+        fail("SP464 Appendix V.1 15% shared-loading cap changed unexpectedly")
+    if v1.get("change1_alternative_cargo_turnover_note_state") != "exact_authorized_change1_note_re_read_pending":
+        fail("SP464 Appendix V.1 Change-1 cargo-turnover note must remain pending exact authorized re-read")
+    v2_values = v2.get("values") or {}
+    if v2_values.get("standard_platform_height_above_vehicle_area_m") != [1.1, 1.2]:
+        fail("SP464 Appendix V.2 standard platform level range changed unexpectedly")
+    if v2_values.get("light_vehicle_platform_height_above_vehicle_area_m") != [0.6, 0.8]:
+        fail("SP464 Appendix V.2 light-vehicle platform level range changed unexpectedly")
+    if v2_values.get("rectangular_platform_min_depth_m") != 4.0:
+        fail("SP464 Appendix V.2 rectangular platform depth changed unexpectedly")
+    if v2_values.get("sawtooth_platform_min_depth_at_narrowest_m") != 2.5:
+        fail("SP464 Appendix V.2 sawtooth platform depth changed unexpectedly")
+
+    migration464 = sp464.get("existing_rule_migration") or {}
+    verified_existing464 = set(migration464.get("current_verified_existing_rule_locators") or [])
+    public_pending464 = set(migration464.get("public_corroborated_but_not_authorized_existing_rule_locators") or [])
+    still_pending464 = set(migration464.get("still_pending_existing_rule_locators") or [])
+    if {"Appendix V; V.1", "Appendix V; V.2"} & verified_existing464:
+        fail("SP464 Appendix V.1/V.2 must not appear in current verified existing-rule locators")
+    if not {"Appendix V; V.1", "Appendix V; V.2"}.issubset(public_pending464):
+        fail("SP464 Appendix V.1/V.2 must remain explicit public-corroborated pending locators")
+    if "Appendix V; V.1 Change 1 alternative cargo-turnover note" not in still_pending464:
+        fail("SP464 Appendix V.1 Change-1 cargo-turnover note must remain in pending existing-rule locators")
+
     # SP118 renderer/date conflict protection and amendment-chain authority.
     rev118 = sp118.get("revision") or {}
     if str(rev118.get("latest_change_effective_from")) != "2025-02-25":

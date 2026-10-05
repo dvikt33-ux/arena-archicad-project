@@ -1,6 +1,6 @@
-change_map_version: 4
+change_map_version: 5
 document_id: SP_56_13330_2021
-checked_at: 2026-10-04
+checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
 production_authority: false
 policy: fail_closed
@@ -30,9 +30,30 @@ source_layers:
     authority: GARANT
     url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/"
     state: appendix_text_read_directly
+  public_GARANT_table_extraction_2026_10_05:
+    authority: GARANT
+    url: "https://base.garant.ru/77100489/"
+    state: full_public_text_corroboration_only
+    exact_locators_read: ["Table 6.5", "Table 6.6"]
+    production_promotion_allowed: false
+    note: >-
+      Full current rows were extracted from the public GARANT comparison text. Under the project
+      evidence policy this closes the structural extraction backlog but does not by itself create
+      authorized locator PASS or production numeric rules.
+  public_GARANT_appendix_A4_2026_10_05:
+    authority: GARANT
+    url: "https://base.garant.ru/403556718/53f89421bbdaf741eb2d1ecc4ddb4c33/"
+    state: partial_public_text_corroboration_only
+    corroborated_semantics:
+      counts_all_above_ground_storeys: true
+      includes_technical_basement_and_mansard_storeys: true
+      includes_platforms_rack_tiers_and_mezzanines_over_percent: 40
+    production_promotion_allowed: false
+    note: complete accepted-source locator read still required before PASS
   current_text_logic: >-
-    The official card shows no registered amendments to SP56.13330.2021. Exact locators directly
-    read in GARANT are current. The comparison view is accepted for explicit 2021-side section 6.
+    The official card shows no registered amendments to SP56.13330.2021. Existing authorized
+    locator evidence remains valid. Public GARANT extraction of Tables 6.5-6.6 and Appendix A.4 is
+    retained as corroboration and normalization input only until accepted-source attestation.
 
 scope_and_exclusion_gate:
   state: official_card_verified_plus_direct_text
@@ -61,18 +82,36 @@ verified_locators:
       accessibility_header_unit_not_exposed: true
       production_matrix_normalization_pending: true
     - {locator: "6.2.22", proof_state: authorized_locator_verified, production_table: "Table 6.5", storage_table: "Table 6.6"}
+    - locator: "Table 6.5"
+      proof_state: public_full_text_corroborated_authorized_attestation_pending
+      topic: production_building_fire_compartment_height_area_matrix
+      extraction_state: full_table_rows_extracted
+      footnotes_extracted: true
+      production_matrix_normalization_pending: true
+    - locator: "Table 6.6"
+      proof_state: public_full_text_corroborated_authorized_attestation_pending
+      topic: storage_building_fire_compartment_height_area_matrix
+      extraction_state: full_table_rows_extracted
+      footnote_extracted: true
+      production_matrix_normalization_pending: true
   area_and_storey_semantics:
     - {locator: "Appendix A.1", proof_state: authorized_locator_verified, topic: total_building_area}
     - {locator: "Appendix A.2", proof_state: authorized_locator_verified, topic: fire_compartment_floor_area, platform_mezzanine_threshold_percent: 40}
+    - locator: "Appendix A.4"
+      proof_state: public_partial_text_corroborated_authorized_attestation_pending
+      topic: storey_count_platform_mezzanine_semantics
+      corroborated_threshold_percent: 40
+      complete_locator_read_pending: true
 
 remaining_locator_backlog:
-  - {locator: "Tables 6.5-6.6", topic: fire_compartment_height_area_matrices, state: blocked_pending_full_table_extraction}
-  - {locator: "Appendix A.4", topic: storey_count_platform_mezzanine_semantics, state: blocked_pending_complete_locator_read}
+  - {locator: "Tables 6.5-6.6", topic: accepted_source_attestation_and_matrix_normalization, state: public_full_text_extracted_authorized_attestation_pending}
+  - {locator: "Appendix A.4", topic: complete_storey_count_semantics, state: public_partial_text_corroborated_complete_accepted_source_read_pending}
 
 locator_migration:
   state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
   authorized_locator_verified_count: 14
+  public_full_table_corroboration_count: 2
   numeric_table_production_promotions: 0
 
 release_gate:
@@ -80,11 +119,12 @@ release_gate:
   - current_SP56_2021_must_be_used_not_SP56_2011
   - scope_exclusions_must_be_resolved_before_rule_application
   - Table_6_3_rowspan_semantics_require_normalization_validation_before_machine_rule_creation
-  - Tables_6_5_6_6_require_full_table_extraction_before_numeric_rules
-  - Appendix_A_4_requires_complete_locator_read
+  - Tables_6_5_6_6_require_authorized_or_primary_attestation_before_numeric_rules
+  - Appendix_A_4_requires_complete_accepted_source_locator_read
+  - public_GARANT_full_text_corroboration_does_not_equal_authorized_locator_PASS
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 14
+  direct_locator_PASS_added: 0

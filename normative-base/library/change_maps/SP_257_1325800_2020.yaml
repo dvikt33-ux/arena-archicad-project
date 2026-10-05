@@ -1,6 +1,6 @@
-change_map_version: 4
+change_map_version: 5
 document_id: SP_257_1325800_2020
-checked_at: 2026-10-04
+checked_at: 2026-10-05
 target_profile: RU_2027_PLUS
 production_authority: false
 policy: fail_closed
@@ -35,9 +35,45 @@ source_layers:
   appendix_G:
     url: "https://base.garant.ru/400535863/172a6d689833ce3e42dc0a8a7b3cddf9/"
     state: Table_G_1_read_directly
+  public_GARANT_current_text_2026_10_05:
+    authority: GARANT
+    url: "https://base.garant.ru/400535863/"
+    state: public_current_text_corroboration_only
+    production_promotion_allowed: false
+    revision_logic: >-
+      Change 1 is the only registered amendment and affects only clause 5.3. Publicly rendered base
+      text outside 5.3 is therefore useful for current-text corroboration, but under the project
+      evidence policy it does not create a new authorized locator PASS by itself.
+    exact_locators_or_groups_corroborated:
+      - "4.2"
+      - "6.1.5"
+      - "6.1.6"
+      - "6.1.7"
+      - "6.1.9"
+      - "6.1.10"
+      - "6.1.11"
+      - "6.1.12"
+      - "6.3.2"
+      - "6.3.3"
+      - "6.3.4"
+      - "6.3.5"
+      - "6.3.6"
+      - "6.3.7"
+      - "6.3.8"
+      - "6.3.9"
+      - "6.4.1"
+      - "6.4.2"
+      - "6.4.3"
+      - "6.4.4"
+      - "6.4.5"
+      - "6.4.6"
+      - "6.4.7"
+      - "6.4.8"
+      - "6.4.9"
   current_text_logic: >-
-    Change 1 is the only registered amendment and affects only 5.3. Directly read base locators
-    outside 5.3 are therefore current. Clause 5.3 is reconstructed from base text plus Change 1.
+    Change 1 is the only registered amendment and affects only 5.3. Existing authorized evidence
+    remains current. Newly extracted public current text outside 5.3 is retained as corroboration
+    until an accepted authorized or primary-source locator attestation is available.
 
 verified_locators:
   - locator: "5.3"
@@ -71,13 +107,35 @@ verified_locators:
       - {single: 12, double: 15, reduction_percent: 10, categories: ["три звезды", "четыре звезды"]}
       - {single: 14, double: 16, reduction_percent: 0, categories: ["пять звезд"]}
 
+public_current_locator_corroboration:
+  - locator: "4.2"
+    state: public_current_text_corroborated_authorized_attestation_pending
+    topic: allowed_hotel_host_and_placement_types
+  - locator_group: "6.1.5-6.1.12_partial"
+    state: public_current_text_corroborated_authorized_attestation_pending
+    exact_locators: ["6.1.5", "6.1.6", "6.1.7", "6.1.9", "6.1.10", "6.1.11", "6.1.12"]
+    topics: [host_separation, separate_entrances, entrance_weather_protection, atrium_route, mansard_route, operated_roof_route, passenger_lift_route]
+  - locator_group: "6.3.2-6.3.9"
+    state: public_current_text_corroborated_authorized_attestation_pending
+    exact_locators: ["6.3.2", "6.3.3", "6.3.4", "6.3.5", "6.3.6", "6.3.7", "6.3.8", "6.3.9"]
+    topics: [reception_and_waiting, public_toilets, floor_halls, hostel_common_space, television, safe_deposit_room, baggage, cloakroom]
+  - locator_group: "6.4.1-6.4.9"
+    state: public_current_text_corroborated_authorized_attestation_pending
+    exact_locators: ["6.4.1", "6.4.2", "6.4.3", "6.4.4", "6.4.5", "6.4.6", "6.4.7", "6.4.8", "6.4.9"]
+    topics: [staff_rooms, guard_post, porter_room, cleaning_storage, motel_mechanic, linen, paint_workshop_loading, high_room_lighting_service, basement_service_rooms]
+
 locator_migration:
   state: partial_authorized_locator_evidence_available
   production_promotion_allowed: false
   authorized_locator_verified_count: 12
+  public_current_locator_corroboration_count: 25
   P0_direct_read_remaining:
+    - "6.1.4"
+    - "6.1.8"
+    - "6.1.13-6.1.15"
+  P0_authorized_attestation_remaining:
     - "4.2"
-    - "6.1.4-6.1.15"
+    - "6.1.5-6.1.12 partial set"
     - "6.3.2-6.3.9"
     - "6.4.1-6.4.9"
   target_topics:
@@ -93,9 +151,10 @@ release_gate:
   - embedded_hotel_zone_must_be_classified_before_applying_SP257
   - SP118_general_rules_must_not_substitute_missing_SP257_specific_requirement
   - Appendix_G_category_mapping_must_be_preserved
+  - public_GARANT_current_text_corroboration_does_not_equal_authorized_locator_PASS
 
 production_impact:
   numeric_rules_changed: false
   numeric_values_changed: false
   production_rules_promoted: 0
-  direct_locator_PASS_added: 12
+  direct_locator_PASS_added: 0

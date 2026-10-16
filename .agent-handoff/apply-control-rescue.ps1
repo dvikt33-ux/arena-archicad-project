@@ -7,8 +7,9 @@ $ErrorActionPreference = "Stop"
 $repo = Join-Path $HOME "Documents\arena-archicad-project"
 $dispatcher = Join-Path $repo ".agent-handoff\dispatcher.py"
 $sourceBlob = "f690895dc2ebb36dae76b3442e1943dc225cfe42"
-$patchedBlob = "e8b570511d55e9cda47a4e5a65d63f86c34d5fb9"
-$commit = "493c1624bfc1d01be42bfce845ee6ea9d1a13b87"
+$previousPatchedBlob = "e8b570511d55e9cda47a4e5a65d63f86c34d5fb9"
+$patchedBlob = "8d4a4f2187c9ab009e7b1883c5e87b832ba5668e"
+$commit = "31e9628d04be3a70eea61f7ef0d9ac8f36500341"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$commit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("APA_Control_Rescue_" + [DateTime]::UtcNow.ToString("yyyyMMdd_HHmmss"))
 $testPath = Join-Path $stage "tests"
@@ -23,7 +24,7 @@ function GitBlob([string]$file) {
 }
 if (!(Test-Path -LiteralPath $dispatcher)) { throw "Dispatcher not found: $dispatcher" }
 $current = GitBlob $dispatcher
-if ($current -ne $patchedBlob -and $current -ne $sourceBlob) {
+if ($current -notin @($sourceBlob, $previousPatchedBlob, $patchedBlob)) {
     throw "STOP: installed dispatcher differs from reviewed source (blob=$current). Nothing changed."
 }
 
@@ -34,17 +35,36 @@ if ((GitBlob $downloaded) -ne $patchedBlob) {
     throw "STOP: downloaded code SHA mismatch. Nothing changed."
 }
 
-# Execute only syntax and unit tests; never run the dispatcher during preflight.
-& py.exe -3 -m py_compile $downloaded
-if ($LASTEXITCODE -ne 0) { throw "STOP: Python syntax error; no changes." }
-& py.exe -3 -m unittest discover -s $testPath -p "test_stale_control_rescue.py" -v
-if ($LASTEXITCODE -ne 0) { throw "STOP: regression tests failed; no changes." }
-# The same Python launcher will run the daemon. Ensure it can import Playwright
-# BEFORE any backup, process stop or source replacement.
-& py.exe -3 -c "from playwright.sync_api import sync_playwright"
-if ($LASTEXITCODE -ne 0) {
-    throw "STOP: selected Python lacks Playwright. Nothing changed; use the dispatcher's original Python environment."
+# Pick an existing Python interpreter with Playwright. No dependencies installed.
+$candidates = @(
+    [pscustomobject]@{ Exe = (Join-Path $repo ".venv\\Scripts\\python.exe"); Args = @() },
+    [pscustomobject]@{ Exe = (Join-Path $HOME "AppData\\Roaming\\uv\\tools\\archicad-mcp-server\\Scripts\\python.exe"); Args = @() },
+    [pscustomobject]@{ Exe = "py.exe"; Args = @("-3") },
+    [pscustomobject]@{ Exe = "python.exe"; Args = @() }
+)
+$runner = $null
+foreach ($candidate in $candidates) {
+    $found = Get-Command $candidate.Exe -ErrorAction SilentlyContinue
+    if (!$found) { continue }
+    $bin = [string]$found.Source
+    $flags = @($candidate.Args)
+    try {
+        & $bin @flags -c "from playwright.sync_api import sync_playwright" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            $runner = [pscustomobject]@{ Exe = $bin; Args = $flags }
+            break
+        }
+    } catch { continue }
 }
+if ($null -eq $runner) {
+    throw "STOP: no existing Python interpreter with Playwright found. Nothing changed."
+}
+Write-Host "PYTHON SELECTED: $($runner.Exe)"
+$runnerArgs = @($runner.Args)
+& ($runner.Exe) @runnerArgs -m py_compile $downloaded
+if ($LASTEXITCODE -ne 0) { throw "STOP: Python syntax error; no changes." }
+& ($runner.Exe) @runnerArgs -m unittest discover -s $testPath -p "test_stale_control_rescue.py" -v
+if ($LASTEXITCODE -ne 0) { throw "STOP: regression tests failed; no changes." }
 Write-Host "PREFLIGHT PASS"
 
 # Identify only the exact dispatcher script. A running launcher (py.exe) may
@@ -86,16 +106,16 @@ if ($current -eq $patchedBlob -and $mutexActive) {
     exit 0
 }
 
-if ($current -eq $sourceBlob) {
-    $backup = "$dispatcher.before-control-rescue-20261016.bak"
+if ($current -ne $patchedBlob) {
+    $backup = "$dispatcher.before-control-rescue-$($current.Substring(0,12)).bak"
     if (Test-Path -LiteralPath $backup) {
-        if ((GitBlob $backup) -ne $sourceBlob) {
+        if ((GitBlob $backup) -ne $current) {
             throw "STOP: an existing backup has unexpected SHA; nothing changed."
         }
         Write-Host "VERIFIED EXISTING BACKUP: $backup"
     } else {
         Copy-Item -LiteralPath $dispatcher -Destination $backup -ErrorAction Stop
-        if ((GitBlob $backup) -ne $sourceBlob) {
+        if ((GitBlob $backup) -ne $current) {
             throw "STOP: backup verification failed; source unchanged."
         }
         Write-Host "VERIFIED BACKUP: $backup"
@@ -133,10 +153,8 @@ if ($current -eq $sourceBlob) {
 }
 
 # Preserve %USERPROFILE% state files intact; the new code reads pending turn 72.
-$py = (Get-Command py.exe -ErrorAction Stop).Source
-$logPath = Join-Path $HOME "ai-dispatcher.log"
-$oldLogSize = if (Test-Path $logPath) { (Get-Item $logPath).Length } else { 0 }
-$started = Start-Process -FilePath $py -ArgumentList @("-3", "-u", ('"' + $dispatcher + '"')) -WorkingDirectory (Split-Path $dispatcher) -PassThru
+$startArgs = @($runner.Args) + @("-u", ('"' + $dispatcher + '"'))
+$started = Start-Process -FilePath $runner.Exe -ArgumentList $startArgs -WorkingDirectory (Split-Path $dispatcher) -PassThru
 Write-Host "DISPATCHER LAUNCH REQUESTED: pid=$($started.Id)"
 Start-Sleep -Seconds 8
 if ($started.HasExited -and $started.ExitCode -ne 0) {

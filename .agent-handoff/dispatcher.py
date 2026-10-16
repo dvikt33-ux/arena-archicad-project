@@ -622,6 +622,10 @@ def save_control_record(record: dict) -> None:
         payload["bootstrap_migrated_from"] = record["bootstrap_migrated_from"]
     if "recovery_used" in record:
         payload["recovery_used"] = bool(record.get("recovery_used"))
+    if "control_rescue_used" in record:
+        payload["control_rescue_used"] = bool(record.get("control_rescue_used"))
+    if record.get("control_rescue_from"):
+        payload["control_rescue_from"] = str(record["control_rescue_from"])
     if record.get("recovery_reason"):
         payload["recovery_reason"] = record["recovery_reason"]
     if record.get("recovered_from"):
@@ -771,7 +775,8 @@ def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
         "bootstrap_sent": bootstrap_sent,
         "bootstrap_sent_at": time.time() if bootstrap_sent else existing.get("bootstrap_sent_at"),
     }
-    for key in ("recovery_used", "recovery_reason", "recovered_from", "bootstrap_migrated_from"):
+    for key in ("recovery_used", "recovery_reason", "recovered_from", "bootstrap_migrated_from",
+                "control_rescue_used", "control_rescue_from"):
         if key in existing:
             record[key] = existing[key]
     if "unready_checks" in existing:
@@ -1566,9 +1571,12 @@ def restore_observation_accepted(
     if not is_durable_control_url(observed) or hard_control_unavailable(messages):
         return False
     identity = positive_control_identity(messages, wake)
+    # A blank ChatGPT home/redirect shell has a usable composer but is NOT
+    # proof that an established CONTROL transcript was restored.
+    # Never acknowledge restoration without at least one parsed message.
     if same_conversation(observed, saved_url):
-        return bool(messages) or bool(composer_ready)
-    return identity and (bool(messages) or bool(composer_ready))
+        return bool(messages)
+    return identity and bool(messages)
 
 
 def restore_cooldown_active(record: dict | None, now: float | None = None) -> bool:
@@ -3540,6 +3548,47 @@ def _mark_recovery(record: dict, reason: str) -> dict:
     return updated
 
 
+def abandoned_control_rescue_allowed(
+    record: dict | None,
+    action: str,
+    diagnosis: str,
+    messages: list[dict],
+    page_url: str,
+    composer_ready: bool,
+    generation_active: bool,
+    page_unavailable: bool,
+    signed_out: bool,
+) -> bool:
+    """One last bounded bootstrap after a persistently blank legacy CONTROL.
+
+    Older versions consumed the single recovery latch while accepting a blank
+    ChatGPT page by URL/composer alone. A stuck wake must not be discarded,
+    and rescue must never auto-repeat after a failed or interrupted attempt.
+    """
+    record = record or {}
+    if action != "wait" or diagnosis not in {"stale_url", "zero_messages"}:
+        return False
+    if not bool(record.get("recovery_used")) or bool(record.get("control_rescue_used")):
+        return False
+    if messages or generation_active or page_unavailable or signed_out or not composer_ready:
+        return False
+    if not is_usable_control_url(str(record.get("chatgpt_control_url") or "")):
+        return False
+    if not str(page_url or "").startswith("https://chatgpt.com"):
+        return False
+    if int(record.get("unready_checks") or 0) < 20:
+        return False
+    if int(record.get("restore_failures") or 0) < 2:
+        return False
+    if str(record.get("rebind_status") or "") in {"pending", "started"}:
+        return False
+    for field in ("rebind_replacement_status", "rebind_finalize_status",
+                  "rebind_reprovision_status"):
+        if str(record.get(field) or "") in {"pending", "started", "submitted"}:
+            return False
+    return True
+
+
 def ensure_control_ready(browser, wake: str = ""):
     record = load_control_record()
     saved = str(record.get("chatgpt_control_url") or "")
@@ -3622,6 +3671,26 @@ def ensure_control_ready(browser, wake: str = ""):
         now=now,
         page_unavailable=page_unavailable,
     )
+
+    if abandoned_control_rescue_allowed(
+        record, action, diagnose_control(
+            record, messages, page_url, wake=wake,
+            generation_active=generation_active, composer_ready=composer_ready,
+            now=now, page_unavailable=page_unavailable,
+        ), messages, page_url, composer_ready, generation_active,
+        page_unavailable, signed_out,
+    ):
+        # Persist BEFORE the attempt: a crash or network failure must not
+        # create a new CONTROL conversation every five seconds.
+        record["control_rescue_used"] = True
+        record["control_rescue_from"] = saved
+        save_control_record(record)
+        log("CONTROL: bounded rescue of blank conversation; pending turn preserved.")
+        try:
+            return provision_control_chat(browser), False
+        except Exception as exc:
+            log(f"CONTROL: bounded rescue failed={type(exc).__name__}; no retry.")
+            return page, False
 
     if action != "ready" and should_reprovision_rebind(record, saved, action):
         if rebind_reprovision_started(record, saved):

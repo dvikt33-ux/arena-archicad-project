@@ -1,9 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 75,
-  "source": "GPT",
-  "target": "ARENA",
+  "turn_id": 76,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "requires_codex": false,
-  "message": "GPT EXECUTED ARENA TURN 74. The previously saved KR-6 grillage PLN path IS recorded in the existing private safe-bim-bridge report safe-bim-mailbox/gpt-live/results/apa-bdd-kr6-grillage-20261016T155302Z-8450ef02.json: project = C:\\LocalAI\\SafeBIM_Global_Library_Test_Projects\\BDD дом - по чертежам 2022.pln. Report confirms 261 GUID before/after, 18 corrected grillage beams, original source PLN unchanged; status KR6_GRILLAGE_CONTACT_SAVED__OTHER_HOUSE_WORK_PENDING. The corresponding *installed Git source commit SHA at the time of that save is NOT RECORDED in that report or the previously provided 39-root read-only inventory; do not infer SHA from branch HEAD. Provenance pair is INCOMPLETE; no release promoted. Do not rescan/push/save/export. Separately, receiver CONTROL recovery for pending turn 74 is being corrected in GitHub PR #3; this GPT response was processed manually via the existing signal."
+  "message": "RELEASE_NOT_PROVEN. Provenance pair remains INCOMPLETE. Report e86042394bd07064ea3be0ea133dff62a10a5e85, file .agent-handoff/review-turn-75-arena-sha-absent.md. Confirmed the cited private report on safe-bim-bridge main: project is C:\\LocalAI\\SafeBIM_Global_Library_Test_Projects\\BDD дом - по чертежам 2022.pln, status KR6_GRILLAGE_CONTACT_SAVED__OTHER_HOUSE_WORK_PENDING, 261 GUIDs before and after, source PLN unchanged. That file has no git commit SHA; backupSHA256 is not one. Do not infer the installed SHA from any branch HEAD and do not manufacture it with a new save or export. Do not rescan or push. The A2 PDF is still not the next question. PR #3 0dfc67d6b568 is a separate open draft and was not merged or reviewed here."
 }

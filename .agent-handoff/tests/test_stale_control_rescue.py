@@ -54,17 +54,23 @@ class OneShotRescueTests(unittest.TestCase):
             "restore_failures": 12,
             "unready_checks": 100,
         }
-        self.params = ["wait", "stale_url", [], "https://chatgpt.com/", True, False, False, False]
+        self.params = ["wait", "zero_messages", [], "https://chatgpt.com/c/previous", True, False, False, False]
 
     def ok(self, record=None, args=None):
         return self.rescue(self.record if record is None else record, *(self.params if args is None else args))
 
     def test_recovers_once_from_existing_stranded_state(self):
         self.assertTrue(self.ok())
-        self.assertTrue(self.ok(args=["wait", "zero_messages", [], "https://chatgpt.com/", True, False, False, False]))
+        self.assertTrue(self.ok(args=["wait", "zero_messages", [], "https://chatgpt.com/c/previous", True, False, False, False]))
         # A matching but blank tab can be reused forever without counting a
         # failed restore; the legacy guard must not strand it indefinitely.
         self.assertTrue(self.ok({**self.record, "restore_failures": 0}))
+        self.assertTrue(self.ok({**self.record, "_blank_rebind": True},
+                                ["wait", "zero_messages", [], "https://chatgpt.com/c/previous",
+                                 False, False, False, False]))
+        self.assertFalse(self.ok({**self.record, "_blank_rebind": False},
+                                 ["wait", "zero_messages", [], "https://chatgpt.com/c/previous",
+                                  False, False, False, False]))
         for change in (
             {"control_rescue_used":True}, {"recovery_used":False},
             {"unready_checks":19},
@@ -74,15 +80,18 @@ class OneShotRescueTests(unittest.TestCase):
             self.assertFalse(self.ok({**self.record, **change}), change)
 
     def test_fail_closed_when_state_or_page_not_confirmed(self):
+        saved = "https://chatgpt.com/c/previous"
         edits = [
-            ["ready","stale_url",[],"https://chatgpt.com/",True,False,False,False],
-            ["wait","marker_mismatch",[],"https://chatgpt.com/",True,False,False,False],
-            ["wait","stale_url",[{"role":"user","text":"hi"}],"https://chatgpt.com/",True,False,False,False],
-            ["wait","stale_url",[],"https://chatgpt.com/",False,False,False,False],
-            ["wait","stale_url",[],"https://chatgpt.com/",True,True,False,False],
-            ["wait","stale_url",[],"https://chatgpt.com/",True,False,True,False],
-            ["wait","stale_url",[],"https://chatgpt.com/",True,False,False,True],
-            ["wait","stale_url",[],"https://example.com/",True,False,False,False],
+            ["ready", "zero_messages", [], saved, True, False, False, False],
+            ["wait", "marker_mismatch", [], saved, True, False, False, False],
+            ["wait", "zero_messages", [{"role":"user","text":"hi"}], saved, True, False, False, False],
+            ["wait", "zero_messages", [], saved, False, False, False, False],
+            ["wait", "zero_messages", [], saved, True, True, False, False],
+            ["wait", "zero_messages", [], saved, True, False, True, False],
+            ["wait", "zero_messages", [], saved, True, False, False, True],
+            ["wait", "stale_url", [], "https://chatgpt.com/", True, False, False, False],
+            ["wait", "zero_messages", [], "https://chatgpt.com/c/other", True, False, False, False],
+            ["wait", "zero_messages", [], "https://example.com/", True, False, False, False],
         ]
         for args in edits:
             self.assertFalse(self.ok(args=args), args)

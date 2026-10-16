@@ -8,8 +8,9 @@ $repo = Join-Path $HOME "Documents\arena-archicad-project"
 $dispatcher = Join-Path $repo ".agent-handoff\dispatcher.py"
 $sourceBlob = "f690895dc2ebb36dae76b3442e1943dc225cfe42"
 $previousPatchedBlob = "e8b570511d55e9cda47a4e5a65d63f86c34d5fb9"
-$patchedBlob = "8d4a4f2187c9ab009e7b1883c5e87b832ba5668e"
-$commit = "31e9628d04be3a70eea61f7ef0d9ac8f36500341"
+$secondPatchedBlob = "8d4a4f2187c9ab009e7b1883c5e87b832ba5668e"
+$patchedBlob = "e69e7cc50c1488c2fac9341ef681100521e65bc2"
+$commit = "e0449f1bc71f1066b4c2f9db3665b3941ba28d13"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$commit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("APA_Control_Rescue_" + [DateTime]::UtcNow.ToString("yyyyMMdd_HHmmss"))
 $testPath = Join-Path $stage "tests"
@@ -24,7 +25,7 @@ function GitBlob([string]$file) {
 }
 if (!(Test-Path -LiteralPath $dispatcher)) { throw "Dispatcher not found: $dispatcher" }
 $current = GitBlob $dispatcher
-if ($current -notin @($sourceBlob, $previousPatchedBlob, $patchedBlob)) {
+if ($current -notin @($sourceBlob, $previousPatchedBlob, $secondPatchedBlob, $patchedBlob)) {
     throw "STOP: installed dispatcher differs from reviewed source (blob=$current). Nothing changed."
 }
 

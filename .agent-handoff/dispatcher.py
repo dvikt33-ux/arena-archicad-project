@@ -3578,8 +3578,9 @@ def abandoned_control_rescue_allowed(
         return False
     if int(record.get("unready_checks") or 0) < 20:
         return False
-    if int(record.get("restore_failures") or 0) < 2:
-        return False
+    # Some valid-but-empty pages are reused by plan_control_page(), so no
+    # restore attempt occurs and restore_failures never increases. The bounded
+    # unready_checks threshold above is the independent sustained-failure gate.
     if str(record.get("rebind_status") or "") in {"pending", "started"}:
         return False
     for field in ("rebind_replacement_status", "rebind_finalize_status",

@@ -3793,31 +3793,83 @@ def ensure_control_ready(browser, wake: str = ""):
 # Arena handling
 # -------------------------
 
-def dismiss_arena_completion(page) -> bool:
-    selectors = [
-        'button:has-text("Продолжить работу")',
-        'button:has-text("Continue working")',
-        'button:has-text("Continue")',
-    ]
-
-    for selector in selectors:
-        loc = page.locator(selector)
+def arena_feedback_visible(page) -> bool:
+    """Only the finished-task feedback prompt, never a running job or editor."""
+    markers = (
+        "Эта задача была выполнена успешно?",
+        "Was this task completed successfully?",
+        "Was this task successful?",
+    )
+    for marker in markers:
         try:
-            count = loc.count()
+            loc = page.get_by_text(marker, exact=False)
+            if loc.count() and loc.first.is_visible():
+                return True
+        except Exception:
+            continue
+    return False
+
+
+def dismiss_arena_completion(page) -> bool:
+    """Dismiss the finished-task overlay without selecting Yes or No.
+
+    The 2026-10 Arena feedback rows may not be HTML buttons. Prefer the
+    visible exact text 'Продолжить работу' and let its click bubble to the
+    actual row handler. Never rate the task on the user's behalf.
+    """
+    if not arena_feedback_visible(page):
+        return False
+
+    for label in ("Продолжить работу", "Continue working", "Continue working on task"):
+        try:
+            loc = page.get_by_text(label, exact=True)
+            for index in range(loc.count()):
+                item = loc.nth(index)
+                if not item.is_visible():
+                    continue
+                item.click(timeout=2500)
+                page.wait_for_timeout(250)
+                if not arena_feedback_visible(page):
+                    log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
+                    return True
         except Exception:
             continue
 
-        for i in range(count):
-            btn = loc.nth(i)
-            try:
-                if btn.is_visible():
-                    btn.click(timeout=5000)
-                    page.wait_for_timeout(500)
-                    log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
-                    return True
-            except Exception:
-                continue
+    # Legacy builds wrapped the action in a button. Keep that existing path,
+    # but only while the finished-task prompt is visible.
+    for selector in (
+        'button:has-text("Продолжить работу")',
+        'button:has-text("Continue working")',
+    ):
+        try:
+            loc = page.locator(selector)
+            for index in range(loc.count()):
+                item = loc.nth(index)
+                if item.is_visible():
+                    item.click(timeout=2500)
+                    page.wait_for_timeout(250)
+                    if not arena_feedback_visible(page):
+                        log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
+                        return True
+        except Exception:
+            continue
 
+    log("ARENA: итоговое табло обнаружено, закрытие не подтверждено.")
+    return False
+
+
+def dismiss_visible_arena_feedback(browser) -> bool:
+    """Poll existing Arena agent tabs every loop, including during GPT turns.
+
+    Read-only discovery: never create or navigate tabs. The only click is
+    'Continue working' on a verified completed-task feedback prompt.
+    """
+    for page in all_pages(browser):
+        try:
+            if url_matches(str(page.url or ""), ARENA_URL) and arena_feedback_visible(page):
+                return dismiss_arena_completion(page)
+        except Exception:
+            continue
     return False
 
 
@@ -4202,6 +4254,9 @@ def watch() -> None:
                     start_service_chrome()
                     browser = p.chromium.connect_over_cdp(CDP)
 
+                # Feedback overlays can appear after Arena finishes even
+                # while the next target is GPT. Clear them before polling.
+                dismiss_visible_arena_feedback(browser)
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 

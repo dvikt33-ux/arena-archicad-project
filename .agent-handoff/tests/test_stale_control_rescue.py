@@ -62,9 +62,12 @@ class OneShotRescueTests(unittest.TestCase):
     def test_recovers_once_from_existing_stranded_state(self):
         self.assertTrue(self.ok())
         self.assertTrue(self.ok(args=["wait", "zero_messages", [], "https://chatgpt.com/", True, False, False, False]))
+        # A matching but blank tab can be reused forever without counting a
+        # failed restore; the legacy guard must not strand it indefinitely.
+        self.assertTrue(self.ok({**self.record, "restore_failures": 0}))
         for change in (
             {"control_rescue_used":True}, {"recovery_used":False},
-            {"restore_failures":1}, {"unready_checks":19},
+            {"unready_checks":19},
             {"rebind_status":"pending"}, {"rebind_finalize_status":"submitted"},
             {"rebind_reprovision_status":"started"},
         ):

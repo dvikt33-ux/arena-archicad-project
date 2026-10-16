@@ -3300,6 +3300,62 @@ def _normalize_message(item: dict) -> dict:
     return {"role": role, "text": str(item.get("text") or "").strip()}
 
 
+def _read_control_marker_fallback(page) -> list[dict]:
+    """Read *exact* visible CONTROL markers if ChatGPT removed turn attributes.
+
+    Only applies to the already-persisted same conversation. The initial user
+    bootstrap contains the words 'CONTROL READY' in an instruction, so a
+    substring search in document.body is NEVER proof of an assistant reply.
+    We require a standalone visible text node with that exact answer inside
+    the main conversation region, separate from the bootstrap paragraph.
+    """
+    page_url = str(getattr(page, "url", "") or "")
+    record = load_control_record()
+    saved = str(record.get("chatgpt_control_url") or "")
+    if not is_durable_control_url(page_url) or not same_conversation(page_url, saved):
+        return []
+
+    try:
+        facts = page.evaluate(
+            """() => {
+              const roots = [...document.querySelectorAll('main, [role="main"]')]
+                .filter(el => !!(el.getClientRects().length));
+              if (!roots.length) return null;
+              const root = roots.find(el =>
+                (el.innerText || '').includes('Служебный чат 01 — CONTROL & BRIDGE')
+              );
+              if (!root) return null;
+              const nodes = [];
+              const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+              while (walker.nextNode()) {
+                const n = walker.currentNode;
+                const p = n.parentElement;
+                if (!p || p.closest('nav, aside, textarea, [contenteditable="true"], script, style')) continue;
+                if (!p.getClientRects().length) continue;
+                const t = (n.textContent || '').replace(/\\s+/g, ' ').trim();
+                if (t) nodes.push(t);
+              }
+              const boot = nodes.some(t => t.includes('Служебный чат 01 — CONTROL & BRIDGE'));
+              const ready = nodes.some(t => /^CONTROL READY\\.?$/.test(t));
+              const wakes = nodes.filter(t => /^Проверь GitHub\\. turn_id=[0-9]+$/.test(t)).slice(-8);
+              return {boot, ready, wakes};
+            }"""
+        )
+    except Exception:
+        return []
+    if not isinstance(facts, dict) or not facts.get("boot") or not facts.get("ready"):
+        return []
+    messages = [
+        {"role": "user", "text": CONTROL_BOOTSTRAP_MARKER},
+        {"role": "assistant", "text": CONTROL_READY_MARKER},
+    ]
+    for wake in facts.get("wakes") or []:
+        if isinstance(wake, str) and len(wake) < 100 and wake.startswith("Проверь GitHub. turn_id="):
+            messages.append({"role": "user", "text": wake})
+    log(f"CONTROL: exact visible text fallback users={len(messages) - 1} assistants=1")
+    return messages
+
+
 def chatgpt_messages(page) -> list[dict]:
     primary = [_normalize_message(item) for item in _read_message_nodes(page, "[data-message-author-role]")]
     if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in primary):
@@ -3312,7 +3368,7 @@ def chatgpt_messages(page) -> list[dict]:
     if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in accessible):
         log(f"CONTROL: accessibility fallback messages={len(accessible)}")
         return accessible
-    return []
+    return _read_control_marker_fallback(page)
 
 
 def chatgpt_user_message_exists(page, text: str) -> bool:

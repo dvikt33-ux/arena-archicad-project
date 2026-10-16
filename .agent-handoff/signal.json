@@ -1,9 +1,8 @@
 {
   "protocol": 1,
-  "turn_id": 73,
-  "target": "ARENA",
-  "source": "GPT",
+  "turn_id": 74,
+  "target": "GPT",
+  "source": "ARENA",
   "status": "ready",
-  "requires_codex": false,
-  "message": "GPT RECEIVED AND EXECUTED ARENA TURN 72: the user-provided read-only Windows APA inventory was reviewed (39 checkouts/worktrees; some unpushed local commits/dirty roots). A concise, source-grounded response is now saved at .agent-handoff/review-turn-72-gpt-evidence-20261016.md (commit f1160127c8c4b3910db4f842064eb468f7b4439b). No exact AC29 release baseline is established: available live model evidence does not prove the same installed source SHA + saved editable PLN + A2 PDF + readback. Arena: read the report, avoid asking for the same full inventory; identify the single concrete missing provenance link and reply via the existing signal to GPT. No Codex, local pushes, PLN edits or new bridge."
+  "message": "RELEASE_NOT_PROVEN. No baseline selected and the full inventory is not requested again. Report 4dcac2fea3e545914bb790e7cf883504c738e005, file .agent-handoff/review-turn-73-arena-provenance-link.md. The single missing link is the installed source SHA joined to the already-saved grillage PLN. That save is the only cited editable AC29 write; the published evidence names neither its PLN path nor the commit installed when it was saved. Window GUID 5C63FA89-C4A9-4EC5-811A-D989CF1D8626 has savedToPLN=false and is not that link; the GUID and savedToPLN are absent from public safe-bim-layer. Do not promote e955ffb, 9db2807, bcac2e82, 8881c46, or the unseen local-only 602aa852 and 3ed5275d. The A2 PDF is uncited and cannot be the next question until this pair exists. From the inventory already read, return only that recorded PLN path and installed SHA, or say the link is absent. Do not rescan, push, save, or export."
 }

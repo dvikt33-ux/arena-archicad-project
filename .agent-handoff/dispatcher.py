@@ -3570,11 +3570,20 @@ def abandoned_control_rescue_allowed(
         return False
     if not bool(record.get("recovery_used")) or bool(record.get("control_rescue_used")):
         return False
-    if messages or generation_active or page_unavailable or signed_out or not composer_ready:
+    if messages or generation_active or page_unavailable or signed_out:
         return False
-    if not is_usable_control_url(str(record.get("chatgpt_control_url") or "")):
+    # An established CONTROL may lose both transcript and composer forever.
+    # The caller has already established repeated blank observations and a
+    # cooldown via blank_rebind_ready; it must not require a live composer in
+    # the old (unusable) conversation just to try a fresh home-page composer.
+    if not composer_ready and not bool(record.get("_blank_rebind")):
+        return False
+    saved_url = str(record.get("chatgpt_control_url") or "")
+    if not is_usable_control_url(saved_url):
         return False
     if not str(page_url or "").startswith("https://chatgpt.com"):
+        return False
+    if not same_conversation(page_url, saved_url):
         return False
     if int(record.get("unready_checks") or 0) < 20:
         return False

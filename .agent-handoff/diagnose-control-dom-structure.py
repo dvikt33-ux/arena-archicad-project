@@ -35,7 +35,7 @@ JS = r"""() => {
     ["ready", "CONTROL READY"],
     ["wake", "Проверь GitHub. turn_id="],
   ];
-  const normalize = s => String(s || "").replace(/\\u00a0/g," ").trim();
+  const normalize = s => String(s || "").replace(/\u00a0/g," ").trim();
   const main = [...document.querySelectorAll('main, [role="main"]')];
   const mainHasBootstrap = main.some(n => normalize(n.innerText).includes(labels[0][1]));
   const body = normalize(ROOT.innerText);
@@ -54,7 +54,7 @@ JS = r"""() => {
     else if (t.includes(labels[1][1])) kind = "ready";
     if (!kind) continue;
     counts[kind]++;
-    if (kind === "ready" && /^CONTROL READY\\.?$/.test(t)) counts.ready_exact++;
+    if (kind === "ready" && /^CONTROL READY\.?$/.test(t)) counts.ready_exact++;
     if (matched.length >= 14) continue;
     const chain = [];
     let ancestor = p;
@@ -73,8 +73,8 @@ JS = r"""() => {
     }
     matched.push({
       kind,
-      exact: kind === "ready" ? /^CONTROL READY\\.?$/.test(t) :
-        kind === "wake" ? /^Проверь GitHub\\. turn_id=[0-9]+$/.test(t) : false,
+      exact: kind === "ready" ? /^CONTROL READY\.?$/.test(t) :
+        kind === "wake" ? /^Проверь GitHub\. turn_id=[0-9]+$/.test(t) : false,
       length: t.length,
       visible: !!p.getClientRects().length,
       inMain: !!p.closest('main, [role="main"]'),

@@ -23,11 +23,7 @@ function GitBlob([string]$file) {
 }
 if (!(Test-Path -LiteralPath $dispatcher)) { throw "Dispatcher not found: $dispatcher" }
 $current = GitBlob $dispatcher
-if ($current -eq $patchedBlob) {
-    Write-Host "ALREADY_PATCHED: true; no replacement required."
-    exit 0
-}
-if ($current -ne $sourceBlob) {
+if ($current -ne $patchedBlob -and $current -ne $sourceBlob) {
     throw "STOP: installed dispatcher differs from reviewed source (blob=$current). Nothing changed."
 }
 
@@ -45,52 +41,106 @@ if ($LASTEXITCODE -ne 0) { throw "STOP: Python syntax error; no changes." }
 if ($LASTEXITCODE -ne 0) { throw "STOP: regression tests failed; no changes." }
 Write-Host "PREFLIGHT PASS"
 
-# Only stop a Python process explicitly running this exact script.
+# Identify only the exact dispatcher script. A running launcher (py.exe) may
+# have a separate python.exe child; never kill arbitrary Python processes.
 $targetNorm = $dispatcher.Replace("/","\").ToLowerInvariant()
-$matches = @(
-    Get-CimInstance Win32_Process -ErrorAction Stop |
-    Where-Object {
-        $_.Name -match '^(python|pythonw)\.exe$' -and
-        ([string]$_.CommandLine).Replace("/","\").ToLowerInvariant().Contains($targetNorm)
+$allProcs = @(Get-CimInstance Win32_Process -ErrorAction Stop)
+$matches = @($allProcs | Where-Object {
+    $cmd = ([string]$_.CommandLine).Replace("/","\").ToLowerInvariant()
+    $_.Name -match '^(python|pythonw|python[0-9.]+|pythonw[0-9.]+)\.exe$' -and
+    ($cmd.Contains($targetNorm) -or $cmd -match '(?:^|[\s\\\"])dispatcher\.py(?:$|[\s\"])')
+})
+
+# The original dispatcher uses Local\\AI_Dispatcher_22: it is a stronger
+# runtime-presence check than a guessed executable or command-line path.
+function Test-DispatcherMutex {
+    $opened = $null
+    try {
+        $present = [System.Threading.Mutex]::TryOpenExisting(
+            "Local\AI_Dispatcher_22", [ref]$opened
+        )
+        return [bool]$present
+    } finally {
+        if ($null -ne $opened) { $opened.Dispose() }
     }
-)
-if ($matches.Count -ne 1) {
-    throw "STOP: expected exactly ONE running dispatcher, found $($matches.Count). No process or source changed."
+}
+$mutexActive = Test-DispatcherMutex
+Write-Host "PROCESS CHECK: python-dispatchers=$($matches.Count), mutex-active=$mutexActive"
+if ($matches.Count -gt 1) {
+    throw "STOP: multiple candidate Python dispatchers. Nothing changed."
+}
+if ($matches.Count -eq 0 -and $mutexActive) {
+    throw "STOP: dispatcher mutex held by unidentified process; will not risk duplicate. Nothing changed."
+}
+if ($matches.Count -eq 1 -and !$mutexActive) {
+    throw "STOP: dispatcher process found without its expected mutex; refusing to stop unknown process."
+}
+if ($current -eq $patchedBlob -and $mutexActive) {
+    Write-Host "ALREADY_PATCHED_AND_RUNNING: true; no action required."
+    exit 0
 }
 
-$backup = "$dispatcher.before-control-rescue-20261016.bak"
-if (Test-Path -LiteralPath $backup) {
-    throw "STOP: backup already exists ($backup). No process or source changed."
-}
-Copy-Item -LiteralPath $dispatcher -Destination $backup -ErrorAction Stop
-if ((GitBlob $backup) -ne $sourceBlob) {
-    throw "STOP: backup verification failed; dispatcher not stopped or replaced."
-}
-Write-Host "VERIFIED BACKUP: $backup"
-
-$id = [int]$matches[0].ProcessId
-Stop-Process -Id $id -ErrorAction Stop
-for ($i=0; $i -lt 20; $i++) {
-    if (!(Get-Process -Id $id -ErrorAction SilentlyContinue)) { break }
-    Start-Sleep -Milliseconds 250
-}
-if (Get-Process -Id $id -ErrorAction SilentlyContinue) {
-    throw "STOP: dispatcher did not exit; original source untouched."
-}
-
-try {
-    Copy-Item -LiteralPath $downloaded -Destination $dispatcher -Force
-    if ((GitBlob $dispatcher) -ne $patchedBlob) {
-        throw "Installed hash check failed"
+if ($current -eq $sourceBlob) {
+    $backup = "$dispatcher.before-control-rescue-20261016.bak"
+    if (Test-Path -LiteralPath $backup) {
+        if ((GitBlob $backup) -ne $sourceBlob) {
+            throw "STOP: an existing backup has unexpected SHA; nothing changed."
+        }
+        Write-Host "VERIFIED EXISTING BACKUP: $backup"
+    } else {
+        Copy-Item -LiteralPath $dispatcher -Destination $backup -ErrorAction Stop
+        if ((GitBlob $backup) -ne $sourceBlob) {
+            throw "STOP: backup verification failed; source unchanged."
+        }
+        Write-Host "VERIFIED BACKUP: $backup"
     }
-} catch {
-    Copy-Item -LiteralPath $backup -Destination $dispatcher -Force
-    throw "Restored backup after install failure: $($_.Exception.Message)"
+
+    if ($matches.Count -eq 1) {
+        $id = [int]$matches[0].ProcessId
+        Stop-Process -Id $id -ErrorAction Stop
+        for ($i=0; $i -lt 30; $i++) {
+            if (!(Get-Process -Id $id -ErrorAction SilentlyContinue)) { break }
+            Start-Sleep -Milliseconds 250
+        }
+        if (Get-Process -Id $id -ErrorAction SilentlyContinue) {
+            throw "STOP: dispatcher did not exit; source untouched."
+        }
+        if (Test-DispatcherMutex) {
+            throw "STOP: mutex still held; original source untouched."
+        }
+    } else {
+        Write-Host "NO RUNNING DISPATCHER: install without stopping any process."
+    }
+
+    try {
+        Copy-Item -LiteralPath $downloaded -Destination $dispatcher -Force
+        if ((GitBlob $dispatcher) -ne $patchedBlob) {
+            throw "Installed hash check failed"
+        }
+    } catch {
+        Copy-Item -LiteralPath $backup -Destination $dispatcher -Force
+        throw "Restored backup after install failure: $($_.Exception.Message)"
+    }
+    Write-Host "PATCH INSTALLED: blob=$patchedBlob"
+} else {
+    Write-Host "ALREADY_PATCHED_NOT_RUNNING: starting existing patch."
 }
 
 # Preserve %USERPROFILE% state files intact; the new code reads pending turn 72.
 $py = (Get-Command py.exe -ErrorAction Stop).Source
-Start-Process -FilePath $py -ArgumentList @("-3", "-u", ('"' + $dispatcher + '"')) -WorkingDirectory (Split-Path $dispatcher)
-Write-Host "PATCH INSTALLED AND DISPATCHER START REQUESTED"
-Write-Host "Existing state and GitHub signal were not modified."
+$logPath = Join-Path $HOME "ai-dispatcher.log"
+$oldLogSize = if (Test-Path $logPath) { (Get-Item $logPath).Length } else { 0 }
+$started = Start-Process -FilePath $py -ArgumentList @("-3", "-u", ('"' + $dispatcher + '"')) -WorkingDirectory (Split-Path $dispatcher) -PassThru
+Write-Host "DISPATCHER LAUNCH REQUESTED: pid=$($started.Id)"
+Start-Sleep -Seconds 8
+if ($started.HasExited -and $started.ExitCode -ne 0) {
+    throw "PATCH INSTALLED but launcher failed (exit=$($started.ExitCode)). Check ai-dispatcher.log."
+}
+$runtimeActive = Test-DispatcherMutex
+Write-Host "RUNTIME MUTEX ACTIVE: $runtimeActive"
+if (!$runtimeActive) {
+    throw "PATCH INSTALLED but dispatcher not running; no state was deleted. Check ai-dispatcher.log."
+}
+Write-Host "DISPATCHER RUNNING; GitHub inflight and ChatGPT state files untouched."
+Write-Host "Delivery of Arena #72 must be confirmed in live log; no delivery claim yet."
 Write-Host "Watch live: Get-Content `"$HOME\ai-dispatcher.log`" -Tail 20 -Wait -Encoding UTF8"

@@ -39,6 +39,12 @@ if ((GitBlob $downloaded) -ne $patchedBlob) {
 if ($LASTEXITCODE -ne 0) { throw "STOP: Python syntax error; no changes." }
 & py.exe -3 -m unittest discover -s $testPath -p "test_stale_control_rescue.py" -v
 if ($LASTEXITCODE -ne 0) { throw "STOP: regression tests failed; no changes." }
+# The same Python launcher will run the daemon. Ensure it can import Playwright
+# BEFORE any backup, process stop or source replacement.
+& py.exe -3 -c "from playwright.sync_api import sync_playwright"
+if ($LASTEXITCODE -ne 0) {
+    throw "STOP: selected Python lacks Playwright. Nothing changed; use the dispatcher's original Python environment."
+}
 Write-Host "PREFLIGHT PASS"
 
 # Identify only the exact dispatcher script. A running launcher (py.exe) may

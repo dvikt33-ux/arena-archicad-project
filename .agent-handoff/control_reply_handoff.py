@@ -24,7 +24,11 @@ def _visible_turns(page) -> dict | None:
         const labels=[box.getAttribute('aria-label')||'',...[...box.querySelectorAll('h1,h2,h3,h4,h5,h6,[class*="sr-only"]')].map(x=>x.innerText||x.textContent||'')].join(' ').toLowerCase();
         if(!role){if(labels.includes('chatgpt said')||labels.includes('assistant'))role='assistant';else if(labels.includes('you said')||labels.includes('вы сказали'))role='user';}
         role=String(role||'').toLowerCase();role=role.includes('assistant')?'assistant':(role==='user'||role==='human'||role.endsWith(':user')?'user':'');
-        const text=clean(box.innerText||box.textContent||''),key=role+'\n'+text;
+        const labelNode=box.querySelector('h1,h2,h3,h4,h5,h6,[class*="sr-only"]');
+        const labelText=labelNode&&clean(labelNode.innerText||labelNode.textContent||'');
+        const rawText=box.innerText||box.textContent||'';
+        const text=clean(labelText?rawText.replace(labelText,''):rawText);
+        const key=role+'\\n'+text;
         if(role&&text&&!seen.has(key)){seen.add(key);turns.push({role,text});}
       }
       return {boot:texts.some(t=>t.includes('Служебный чат 01 — CONTROL & BRIDGE')),ready:texts.some(t=>/^CONTROL READY\.?$/.test(t)),wakes:texts.filter(t=>/^Проверь GitHub\. turn_id=\d+$/.test(t)).slice(-8),turns};

@@ -10,8 +10,9 @@ $sourceBlob = "f690895dc2ebb36dae76b3442e1943dc225cfe42"
 $previousPatchedBlob = "e8b570511d55e9cda47a4e5a65d63f86c34d5fb9"
 $secondPatchedBlob = "8d4a4f2187c9ab009e7b1883c5e87b832ba5668e"
 $thirdPatchedBlob = "e69e7cc50c1488c2fac9341ef681100521e65bc2"
-$patchedBlob = "48fb5c32f6d2c3d3a3ce0bf7be0d4fd4152d57cc"
-$commit = "7e4ecc07925b372d1b5f9d66e2618c249a9327e7"
+$fourthPatchedBlob = "48fb5c32f6d2c3d3a3ce0bf7be0d4fd4152d57cc"
+$patchedBlob = "a1160915fb6f3681bf92b181cd48dd3e5bce7814"
+$commit = "518c33fbc02ed0f5c522913589efdc16a7f8e179"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$commit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("APA_Control_Rescue_" + [DateTime]::UtcNow.ToString("yyyyMMdd_HHmmss"))
 $testPath = Join-Path $stage "tests"
@@ -19,6 +20,7 @@ $null = New-Item -ItemType Directory -Force -Path $testPath
 $downloaded = Join-Path $stage "dispatcher.py"
 $testFile = Join-Path $testPath "test_stale_control_rescue.py"
 $feedbackTestFile = Join-Path $testPath "test_arena_feedback_dismiss.py"
+$controlFallbackTestFile = Join-Path $testPath "test_control_marker_fallback.py"
 
 function GitBlob([string]$file) {
     $hash = & git.exe hash-object -- $file 2>$null
@@ -27,7 +29,7 @@ function GitBlob([string]$file) {
 }
 if (!(Test-Path -LiteralPath $dispatcher)) { throw "Dispatcher not found: $dispatcher" }
 $current = GitBlob $dispatcher
-if ($current -notin @($sourceBlob, $previousPatchedBlob, $secondPatchedBlob, $thirdPatchedBlob, $patchedBlob)) {
+if ($current -notin @($sourceBlob, $previousPatchedBlob, $secondPatchedBlob, $thirdPatchedBlob, $fourthPatchedBlob, $patchedBlob)) {
     throw "STOP: installed dispatcher differs from reviewed source (blob=$current). Nothing changed."
 }
 
@@ -35,6 +37,7 @@ Write-Host "Downloading pinned dispatcher and regression tests from commit $comm
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/dispatcher.py" -OutFile $downloaded
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/test_stale_control_rescue.py" -OutFile $testFile
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/test_arena_feedback_dismiss.py" -OutFile $feedbackTestFile
+Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/test_control_marker_fallback.py" -OutFile $controlFallbackTestFile
 if ((GitBlob $downloaded) -ne $patchedBlob) {
     throw "STOP: downloaded code SHA mismatch. Nothing changed."
 }
@@ -170,6 +173,6 @@ if (!$runtimeActive) {
     throw "PATCH INSTALLED but dispatcher not running; no state was deleted. Check ai-dispatcher.log."
 }
 Write-Host "DISPATCHER RUNNING; GitHub inflight and ChatGPT state files untouched."
-Write-Host "Arena feedback auto-dismiss enabled; verify live log: ARENA: итоговое табло закрыто."
+Write-Host "Arena feedback auto-dismiss retained. CONTROL marker fallback added; LIVE receipt of turn 76 still requires log verification."
 Write-Host "CONTROL delivery must be confirmed separately; patch does not reset queue or claim its success."
 Write-Host "Watch live: Get-Content `"$HOME\ai-dispatcher.log`" -Tail 20 -Wait -Encoding UTF8"

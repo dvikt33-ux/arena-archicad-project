@@ -1,7 +1,10 @@
 """Regression coverage for CONTROL reply extraction and CAS signal publication."""
 from __future__ import annotations
-import base64, json, unittest
+import ast, base64, json, unittest
+import sys
+from pathlib import Path
 from unittest.mock import patch
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import control_reply_handoff as handoff
 
 class FakePage:
@@ -75,4 +78,33 @@ class PublishTests(unittest.TestCase):
             self.assertFalse(handoff.publish_next_signal(76,"reply",token=""))
         api.assert_not_called()
 
+class CompletionIntegrationTests(unittest.TestCase):
+    def process(self, published):
+        events=[]
+        env={"ensure_control_ready":lambda browser,wake:(object(),True),
+             "chatgpt_response_complete":lambda page,wake:True,
+             "chatgpt_messages":lambda page:[{"role":"assistant","text":"answer"}],
+             "parse_control_reply":lambda messages,turn_id:"reply",
+             "publish_next_signal":lambda turn_id,reply:(events.append(("publish",turn_id,reply)) or published),
+             "consume_turn":lambda state,turn_id,reason:events.append(("consume",turn_id,reason)),
+             "log":lambda _:None}
+        fn=only_dispatcher_function("process_gpt",env)
+        state={"inflight":{"turn_id":76}}
+        fn(None,state,{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"})
+        return events,state
+    def test_consume_follows_successful_publish_readback(self):
+        events,state=self.process(True)
+        self.assertEqual([e[0] for e in events],["publish","consume"])
+        self.assertEqual(state["inflight"]["turn_id"],76)
+    def test_publish_failure_does_not_consume_turn(self):
+        events,state=self.process(False)
+        self.assertEqual([e[0] for e in events],["publish"])
+        self.assertEqual(state["inflight"]["turn_id"],76)
+
+def only_dispatcher_function(name,env):
+    source=Path(__file__).resolve().parents[1]/"dispatcher.py"
+    tree=ast.parse(source.read_text(encoding="utf-8"))
+    (node,)=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==name]
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(source),"exec"),env)
+    return env[name]
 if __name__ == "__main__": unittest.main()

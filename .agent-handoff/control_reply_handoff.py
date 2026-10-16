@@ -1,6 +1,7 @@
 """CONTROL assistant reply parsing and fail-closed Arena handoff publication."""
 from __future__ import annotations
-import base64, json, os, re, urllib.request
+import base64, json, os, re, subprocess, urllib.request
+from pathlib import Path
 from typing import Callable
 API_URL = "https://api.github.com/repos/dvikt33-ux/arena-archicad-project/contents/.agent-handoff/signal.json"
 BRANCH = "agent-handoff"
@@ -77,9 +78,36 @@ def _decode_contents(response: dict) -> dict:
     data=json.loads(base64.b64decode("".join(str(response.get("content") or "").split()),validate=True).decode("utf-8"))
     if not isinstance(data,dict):raise ValueError("signal is not an object")
     return data
+def _load_token() -> str:
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        return token
+    local = os.environ.get("LOCALAPPDATA", "").strip()
+    if not local:
+        return ""
+    path = Path(local) / "AI-Dispatcher" / "github-token.dpapi"
+    if not path.is_file():
+        return ""
+    safe_path = str(path).replace("'", "''")
+    script = f"""
+$p='{safe_path}'
+$s=ConvertTo-SecureString (Get-Content -LiteralPath $p -Raw)
+$b=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
+try {{ [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b) }}
+finally {{ [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }}
+"""
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True, text=True, timeout=5, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        return ""
 def publish_next_signal(turn_id: int, reply: str, token: str|None=None) -> bool:
     """CAS turn N to N+1, verify persisted content, then allow local consume."""
-    token=str(token if token is not None else os.environ.get("GITHUB_TOKEN","")).strip()
+    token=str(token if token is not None else _load_token()).strip()
     if not token:return False
     n=int(turn_id); wanted={"protocol":1,"turn_id":n+1,"target":"ARENA","source":"GPT","status":"ready","message":str(reply),"requires_codex":False}
     try:

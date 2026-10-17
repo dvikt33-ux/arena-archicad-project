@@ -4240,6 +4240,74 @@ def create_inflight(state: dict, signal: dict) -> dict:
     return inflight
 
 
+TERMINAL_CONTROL_ACK_GRACE_SECONDS = 180
+TERMINAL_CONTROL_RESUME_GRACE_SECONDS = 300
+
+
+def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visible: bool) -> None:
+    """One non-duplicating recovery prompt if GPT stayed silent after a final report.
+
+    The original wake was delivered and remains the sole processing instruction.
+    A distinct resume prompt may request its missing ACK once, after a grace
+    period. Every attempt is journaled before Enter and never repeated.
+    """
+    if not inflight.get("terminal_report") or not wake_visible:
+        return
+    control_id = control_wake_identity(page)
+    if (not control_id or control_id !=
+            str(inflight.get("wake_seen_control_identity") or "").lower()):
+        return
+    if generation_is_active(page):
+        return
+    now = time.time()
+    submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
+    if now - submitted_at < TERMINAL_CONTROL_ACK_GRACE_SECONDS:
+        return
+    turn_id = int(inflight["turn_id"])
+    if inflight.get("terminal_resume_intent"):
+        resumed_at = float(inflight.get("terminal_resume_at") or now)
+        if (now - resumed_at >= TERMINAL_CONTROL_RESUME_GRACE_SECONDS and
+                inflight.get("last_error") != "CONTROL_TERMINAL_ACK_TIMEOUT"):
+            inflight["last_error"] = "CONTROL_TERMINAL_ACK_TIMEOUT"
+            state["inflight"] = inflight
+            save_state(state)
+            log(f"CONTROL: terminal ACK turn_id={turn_id} not observed after one resume; manual inspection required.")
+        return
+
+    # Do not send a recovery request if a verified ACK appeared since the
+    # caller last inspected the page. The next cycle will consume it.
+    if parse_control_reply(_read_verified_ack_pair(page), turn_id):
+        return
+
+    recovery = (
+        f"CONTROL RESUME — turn_id={turn_id}\\n"
+        f"Предыдущее сообщение «Проверь GitHub. turn_id={turn_id}» уже доставлено. "
+        "Ничего не выполняй повторно. Прочитай существующий итоговый отчёт "
+        "Arena в .agent-handoff/signal.json. Это только подтверждение получения. "
+        f"Ответь один раз с первой строкой CONTROL ACK — turn_id={turn_id}, "
+        "затем кратко укажи маркер отчёта. Не публикуй новые сигналы, "
+        "не вызывай Arena и не меняй файлы."
+    )
+
+    def persist_resume_intent():
+        inflight["terminal_resume_intent"] = True
+        inflight["terminal_resume_at"] = time.time()
+        inflight["last_error"] = "CONTROL_TERMINAL_RESUME_PENDING"
+        state["inflight"] = inflight
+        save_state(state)
+
+    send_to_chatgpt(
+        page, recovery, on_before_submit=persist_resume_intent, allow_retry=False
+    )
+    if chatgpt_user_message_exists(page, recovery):
+        inflight["last_error"] = "CONTROL_TERMINAL_RESUME_AWAITING_ACK"
+        state["inflight"] = inflight
+        save_state(state)
+        log(f"CONTROL: one terminal ACK resume sent for turn_id={turn_id}; awaiting GPT reply.")
+    else:
+        log(f"CONTROL: terminal ACK resume delivery uncertain for turn_id={turn_id}; no retry.")
+
+
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
@@ -4295,6 +4363,10 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         reply = parse_control_reply(chatgpt_messages(page), turn_id)
         if not reply:
             log(f"GPT: matching CONTROL ACK not found for turn_id={turn_id}; keeping inflight.")
+            if inflight.get("wake_seen"):
+                maybe_resume_terminal_control(
+                    page, state, inflight, chatgpt_wake_exists(page, wake)
+                )
             return
         if inflight.get("terminal_report"):
             consume_turn(state, turn_id, "ARENA final report acknowledged in CONTROL; no GitHub follow-up")
@@ -4337,6 +4409,7 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
             state["inflight"] = inflight
             save_state(state)
             log(f"GPT: wake подтверждён в control chat ({wake})")
+        maybe_resume_terminal_control(page, state, inflight, wake_exists)
         return
 
     if not wake_send_allowed(inflight):

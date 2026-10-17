@@ -4919,11 +4919,11 @@ def watch() -> None:
                     browser = p.chromium.connect_over_cdp(CDP)
                     opera_waiting = False
 
-                # Feedback overlays can appear after Arena finishes even
-                # while the next target is GPT. Clear them before polling.
-                dismiss_visible_arena_feedback(browser)
+                # Never click in the user's Opera tabs while idle.
                 signal = fetch_signal()
                 inflight = state.get("inflight")
+                if inflight and str(inflight.get("target") or "").upper() == "ARENA":
+                    dismiss_visible_arena_feedback(browser)
 
                 if inflight and int(signal.get("turn_id", 0)) > int(inflight["turn_id"]):
                     if not newer_signal_supersedes_inflight(signal, inflight):

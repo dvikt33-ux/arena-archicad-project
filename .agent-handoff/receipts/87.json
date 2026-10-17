@@ -1,0 +1,17 @@
+{
+  "protocol": 1,
+  "kind": "terminal_ack",
+  "turn_id": 87,
+  "source": "VERIFIED_CONTROL_RECOVERY",
+  "method": "read_only_opera_connector_accessibility_tree",
+  "control_url": "https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a",
+  "reply_header": "CONTROL ACK — turn_id=87",
+  "report_marker": "BRIDGE_SMOKE_86_87_RECEIVED",
+  "signal_blob_sha": "c6ed9fc52437e4c2f78d472eb25cd53620132fcd",
+  "signal_source": "ARENA",
+  "signal_target": "NONE",
+  "signal_status": "done",
+  "ack_verified": true,
+  "repeat_instruction": false,
+  "notes": "Original user wake bubble was not observed; CONTROL RESUME user message and subsequent assistant ACK are visible in the original conversation in Opera. One-time externally verified recovery, NOT an automated Chrome E2E proof."
+}

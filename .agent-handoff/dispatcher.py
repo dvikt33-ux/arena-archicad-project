@@ -3938,8 +3938,11 @@ def dismiss_arena_completion(page) -> bool:
                 continue
         for loc in sources:
             try:
-                count = min(loc.count(), 4)
+                count = loc.count()
             except Exception:
+                continue
+            # An ambiguous global label must not trigger a click on history.
+            if count != 1:
                 continue
             for index in range(count):
                 try:

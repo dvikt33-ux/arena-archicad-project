@@ -3807,12 +3807,12 @@ def ensure_control_ready(browser, wake: str = ""):
 # -------------------------
 
 def arena_feedback_visible(page) -> bool:
-    """True only for a visible *active overlay*, not quoted chat history.
+    """Recognize a visible Arena feedback panel, not matching chat history.
 
-    A completed-task question can remain in old conversation text. The old
-    get_by_text(marker) predicate repeatedly misidentified it as an open
-    feedback dialog, even when the normal Arena composer was visible.
-    Never consider the page/body or a chat message an actionable overlay.
+    The 2026-10-17 screenshot shows a bounded in-flow card (not necessarily a
+    CSS-fixed or role=dialog element). Require a heading plus Continue/Yes/No
+    controls in the same compact visible container outside message history.
+    No DOM mutations, navigation, or clicks occur in this predicate.
     """
     try:
         return bool(page.evaluate(r"""() => {
@@ -3821,42 +3821,76 @@ def arena_feedback_visible(page) -> bool:
             'Was this task completed successfully?',
             'Was this task successful?'
           ];
+          const continuations = [
+            'Продолжить работу', 'Continue working',
+            'Continue working on task', 'Keep working'
+          ];
           const norm = x => String(x || '').replace(/\u00a0/g, ' ')
             .replace(/\s+/g, ' ').trim().toLowerCase();
-          const wanted = phrases.map(norm);
+          const wanted = new Set(phrases.map(norm));
+          const continueLabels = new Set(continuations.map(norm));
+          const yesLabels = new Set(['Да', 'Yes'].map(norm));
+          const noLabels = new Set(['Нет', 'No'].map(norm));
+          const history = '[data-message-author-role],article,' +
+            '[data-testid*="conversation-turn"],[class*="MarkdownRoot-"],' +
+            '.markdown,.prose,[class*="group/user-message"],' +
+            '[class~="bg-user-message"]';
           const visible = el => {
             if (!el || !el.getClientRects().length) return false;
             const r = el.getBoundingClientRect();
             const st = getComputedStyle(el);
             return r.width > 0 && r.height > 0 &&
-              st.display !== 'none' && st.visibility !== 'hidden';
+              r.right > 0 && r.bottom > 0 &&
+              r.left < innerWidth && r.top < innerHeight &&
+              st.display !== 'none' && st.visibility !== 'hidden' &&
+              st.opacity !== '0';
           };
+          const textNodes = box => [...box.querySelectorAll(
+            'button,a,[role="button"],[role="menuitem"],p,span,div'
+          )].filter(el => visible(el) && !el.closest(history) &&
+            ![...el.children].some(child => norm(child.textContent) === norm(el.textContent)));
           const nodes = [...document.querySelectorAll(
             'p,span,h1,h2,h3,h4,h5,h6,div,[role="heading"]'
-          )].filter(el => visible(el) && wanted.includes(norm(el.textContent)) &&
-            ![...el.children].some(child => wanted.includes(norm(child.textContent))));
+          )].filter(el => visible(el) && wanted.has(norm(el.textContent)) &&
+            ![...el.children].some(child => wanted.has(norm(child.textContent))) &&
+            !el.closest(history));
+          // A stray completed-task question anywhere in the transcript is not
+          // enough. There must be one recognizable active card with all three
+          // user choices, confined to one compact, non-message container.
+          let matchedCards = 0;
+          const visited = new Set();
           for (const node of nodes) {
-            let box=node;
-            for(let depth=0;box&&depth<12;box=box.parentElement,depth++){
-              if (!visible(box)) continue;
+            let box = node;
+            for (let depth = 0; box && depth < 12;
+                 box = box.parentElement, depth++) {
+              if (!visible(box) || box.closest(history) ||
+                  box.closest('nav,aside,[contenteditable="true"]') ||
+                  box.matches('html,body,main,[role="main"]') ||
+                  box.querySelector('[contenteditable="true"],textarea')) continue;
               const r = box.getBoundingClientRect();
+              const style = getComputedStyle(box);
               const semantic = box.matches(
                 '[role="dialog"],[aria-modal="true"],[data-testid*="modal"],[data-testid*="dialog"]');
-              const style = getComputedStyle(box);
               const floating = style.position === 'fixed' &&
                 r.width < innerWidth * .95 && r.height < innerHeight * .95;
-              if (!semantic && !floating) continue;
-              if (box.closest('nav,aside,[contenteditable="true"]')) continue;
-              // Only a scoped dialog or floating feedback card can trigger
-              // automatic dismissal; ordinary agent messages cannot.
-              return true;
+              const compact = r.width >= 220 && r.height >= 110 &&
+                r.width < innerWidth * .92 && r.height < innerHeight * .65 &&
+                r.top >= -8 && r.bottom <= innerHeight + 8;
+              if (!semantic && !floating && !compact) continue;
+              const labels = textNodes(box).map(el => norm(el.textContent));
+              if (!labels.some(t => continueLabels.has(t)) ||
+                  !labels.some(t => yesLabels.has(t)) ||
+                  !labels.some(t => noLabels.has(t))) continue;
+              if (visited.has(box)) break;
+              visited.add(box);
+              matchedCards++;
+              break;
             }
           }
-          return false;
+          return matchedCards === 1;
         }"""))
     except Exception:
         return False
-
 
 def dismiss_arena_completion(page) -> bool:
     """Automatically dismiss ONLY Arena's completed-task feedback overlay.

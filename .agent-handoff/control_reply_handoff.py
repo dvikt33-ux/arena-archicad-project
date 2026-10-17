@@ -57,6 +57,16 @@ def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]
             Node.DOCUMENT_POSITION_FOLLOWING);
           const metrics = {reason:'unstarted',roots:0,userBubbles:0,wakeBubbles:0,
             markdownBlocks:0,headingMatches:0,replyBodies:0,pairs:[]};
+          // Do not read or publish a partial assistant message while it streams.
+          // This guard is shared by the installer's live probe and dispatcher.
+          const generating = [...document.querySelectorAll(
+            '[data-testid="stop-button"],button[aria-label*="Stop"],' +
+            'button[aria-label*="Останов"]'
+          )].some(visible);
+          if (generating) {
+            metrics.reason = 'generation-in-progress';
+            return metrics;
+          }
           const roots = [...document.querySelectorAll('main,[role="main"]')].filter(visible);
           metrics.roots = roots.length;
           const candidates = [];

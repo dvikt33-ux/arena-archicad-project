@@ -4910,12 +4910,14 @@ def watch() -> None:
 
     with sync_playwright() as p:
         browser = None
+        opera_waiting = False
 
         while True:
             try:
                 if browser is None:
                     require_opera_cdp()
                     browser = p.chromium.connect_over_cdp(CDP)
+                    opera_waiting = False
 
                 # Feedback overlays can appear after Arena finishes even
                 # while the next target is GPT. Clear them before polling.
@@ -5032,13 +5034,20 @@ def watch() -> None:
                     "Это не ошибка GitHub; Opera не перезапускаю."
                 )
 
+            except RuntimeError as exc:
+                if str(exc).startswith("OPERA_CDP_REQUIRED"):
+                    if not opera_waiting:
+                        log(str(exc))
+                    opera_waiting = True
+                    browser = None
+                else:
+                    log(f"ERROR: {type(exc).__name__}: {exc}")
+                    browser = None
             except Exception as exc:
                 log(f"ERROR: {type(exc).__name__}: {exc}")
                 browser = None
-
                 # Never restart a user's Opera instance or create a new profile.
-                # The next poll can re-attach to the same authenticated Opera.
-                log("OPERA: CDP detached; will only reconnect when existing Opera is ready.")
+                log("OPERA: disconnected; reattach only when Opera is ready.")
 
             time.sleep(CHECK_INTERVAL)
 

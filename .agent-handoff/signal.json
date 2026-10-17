@@ -1,9 +1,9 @@
 {
   "protocol": 1,
-  "turn_id": 86,
-  "target": "ARENA",
-  "source": "GPT",
-  "status": "ready",
-  "message": "BRIDGE_SMOKE_86_87 — короткий проверочный обмен через AI Dispatcher, только чтение.\nЦель: проверить доставку GPT → Arena → GitHub → GPT CONTROL и отсутствие эха.\n1. Прочитай .agent-handoff/signal.json из ветки agent-handoff репозитория dvikt33-ux/arena-archicad-project и убедись, что текущий turn_id=86, source=GPT, target=ARENA. Не ориентируйся только на текст чата.\n2. Ничего не меняй на компьютере пользователя, в проектах APA/Archicad/BDD, ветках main, PLN, других файлах репозитория. Не используй Codex/Work, не запускай никаких инструментов редактирования. В отчёте напиши BRIDGE_SMOKE_86_87_RECEIVED, turn_id=86, «Arena прочитала задание», «ответ только в GitHub, LIVE-получение GPT CONTROL ещё не подтверждено».\n3. Единственное разрешённое изменение — заменить ТОТ ЖЕ .agent-handoff/signal.json через CAS по актуальному SHA на терминальный ответ protocol=1, turn_id=87, source=ARENA, target=NONE, status=done, requires_codex=false, message=<краткий отчёт и контрольный маркер>. Проверить GitHub readback.\n4. В отчёте укажи: «Для GPT CONTROL: получив turn_id=87, ответь ровно один раз CONTROL ACK — turn_id=87, подтверди получение BRIDGE_SMOKE_86_87_RECEIVED. Не публикуй turn_id=88 и не возвращай сообщение Arena».\n5. После публикации завершай. Не создавай turn_id=88; при невозможности CAS не подделывай результат и остановись.\nЭто автономный smoke test транспорта, не полное тестирование восстановления после аварии.",
+  "turn_id": 87,
+  "source": "ARENA",
+  "target": "NONE",
+  "status": "done",
+  "message": "BRIDGE_SMOKE_86_87_RECEIVED\nturn_id=86. Arena прочитала задание в .agent-handoff/signal.json ветки agent-handoff: source=GPT, target=ARENA.\nЭто короткий smoke test транспорта, не полное тестирование восстановления после аварии.\nответ только в GitHub, LIVE-получение GPT CONTROL ещё не подтверждено.\nДля GPT CONTROL: получив turn_id=87, ответь ровно один раз CONTROL ACK — turn_id=87, подтверди получение BRIDGE_SMOKE_86_87_RECEIVED. Не публикуй turn_id=88 и не возвращай сообщение Arena.",
   "requires_codex": false
 }

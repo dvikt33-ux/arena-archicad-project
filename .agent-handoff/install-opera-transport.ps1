@@ -69,11 +69,6 @@ function OperaAt9224 {
   } catch { return $false }
 }
 function OperaPath {
-  $installed = @(Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -match '^(opera|opera\w*|launcher)\.exe$' -and
-    $_.ExecutablePath -and (Test-Path -LiteralPath $_.ExecutablePath)
-  })
-  if ($installed.Count -gt 0) { return [string]$installed[0].ExecutablePath }
   $candidates = @(
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera\launcher.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera GX\launcher.exe'),
@@ -82,6 +77,11 @@ function OperaPath {
   foreach($candidate in $candidates) {
     if (Test-Path -LiteralPath $candidate) { return $candidate }
   }
+  $installed = @(Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match '^(opera|opera\w*|launcher)\.exe$' -and
+    $_.ExecutablePath -and (Test-Path -LiteralPath $_.ExecutablePath)
+  })
+  if ($installed.Count -gt 0) { return [string]$installed[0].ExecutablePath }
   return ''
 }
 if ($StartOnly) {
@@ -221,20 +221,45 @@ if ((Get-FileHash $statePath -Algorithm SHA256).Hash -ne $queueSHA) { StopSafe '
 Write-Host 'OPERA INSTALL PASS: dispatcher source, runtime and autostart core replaced.'
 Write-Host 'CONTROL PINNED: original ChatGPT conversation; rebind retired.'
 Write-Host 'QUEUE PRESERVED: LAST_TURN=87 PENDING=NONE.'
-if (OperaAt9224) {
-  $proc = Start-Process -FilePath $python -ArgumentList ('"' + $localCore + '"') -PassThru
-  Write-Host ("DISPATCHER STARTED WITH OPERA PID=" + $proc.Id)
-  Start-Sleep -Seconds 6
-  if ($proc.HasExited) { StopSafe 'new dispatcher exited; inspect ai-dispatcher.log' }
-  Write-Host 'OPERA READY: existing authenticated Opera attached on localhost:9224.'
-} else {
+if (!(OperaAt9224)) {
   $operaExe = OperaPath
-  Write-Host 'OPERA SETUP REQUIRED: dispatcher safely stopped, no Chrome fallback.'
-  Write-Host 'Close all Opera windows normally (preserve tabs), then start Opera with:'
-  if ($operaExe) {
-    Write-Host ('& "' + $operaExe + '" --remote-debugging-port=9224 --remote-debugging-address=127.0.0.1')
-  } else {
-    Write-Host 'Opera path not automatically found. Launch your Opera executable with --remote-debugging-port=9224'
+  if (!$operaExe) {
+    Write-Host 'OPERA NOT FOUND: dispatcher installed but stopped. No Chrome fallback.'
+    Write-Host 'Launch Opera with --remote-debugging-port=9224 then rerun -StartOnly.'
+    return
   }
-  Write-Host 'Then run this installer with -StartOnly to connect. No new signals.'
+  $runningOpera = @(Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match '^opera.*\.exe$'
+  })
+  if ($runningOpera.Count -gt 0) {
+    Write-Host 'ACTION REQUIRED: close Opera normally via its menu (Exit). Tabs are preserved.'
+    $null = Read-Host 'After all Opera windows are closed, press Enter'
+    $runningOpera = @(Get-CimInstance Win32_Process | Where-Object {
+      $_.Name -match '^opera.*\.exe$'
+    })
+    if ($runningOpera.Count -gt 0) {
+      Write-Host 'OPERA STILL RUNNING: no forced closure; dispatcher remains stopped.'
+      Write-Host 'Exit Opera, start it with debugging and rerun installer -StartOnly.'
+      return
+    }
+  }
+  Start-Process -FilePath $operaExe -ArgumentList @(
+    '--remote-debugging-port=9224','--remote-debugging-address=127.0.0.1'
+  ) -ErrorAction Stop | Out-Null
+  $connected = $false
+  for ($i=0; $i -lt 20; $i++) {
+    Start-Sleep -Seconds 1
+    if (OperaAt9224) { $connected = $true; break }
+  }
+  if (!$connected) {
+    Write-Host 'OPERA CDP NOT READY: dispatcher installed but safely stopped.'
+    Write-Host 'No new profile and no Chrome fallback. Rerun installer -StartOnly.'
+    return
+  }
 }
+$proc = Start-Process -FilePath $python -ArgumentList ('"' + $localCore + '"') -PassThru
+Write-Host ("DISPATCHER STARTED WITH OPERA PID=" + $proc.Id)
+Start-Sleep -Seconds 6
+if ($proc.HasExited) { StopSafe 'new dispatcher exited; inspect ai-dispatcher.log' }
+Write-Host 'OPERA READY: existing authenticated Opera attached on localhost:9224.'
+Write-Host 'QUEUE=87/NONE; original CONTROL pinned; no new signals.'

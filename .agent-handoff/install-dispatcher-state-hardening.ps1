@@ -7,12 +7,9 @@ $dispatcher = Join-Path $handoff 'dispatcher.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
-$codeCommit = '5582cdd7c91b4970b058b1a8526cf14b34b11544'
-$oldBlobs = @(
-    '24b571d1f0a33b047615be31c59dd6a15865364a',
-    '6f939f929d5ecd611ea2e4beaf364a7c7fe6499b'
-)
-$newBlob = '25f705baa274676ba88aeaab82e31896e8a1309e'
+$codeCommit = 'a8c74ea8f7afa228afad36decaa943c21170e978'
+$oldBlob = '25f705baa274676ba88aeaab82e31896e8a1309e'
+$newBlob = '9b2368367e916d4e8ace1fb06ed038cf05fd5026'
 $helperBlob = 'b79a002bcdd1bb517421c9b2f6792f00cd5e1d75'
 $controlURL = 'https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a'
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
@@ -42,24 +39,36 @@ function MutexPresent {
         if ($handle) { $handle.Dispose() }
     }
 }
-function AssertIdleState {
+function AssertSafeState {
     $record = Get-Content -LiteralPath $controlPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ([string]$record.chatgpt_control_url -ne $controlURL) {
         Refuse 'unexpected CONTROL identity'
     }
     $state = Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ([int]$state.last_turn_id -lt 81) {
-        Refuse 'live queue is older than verified turn 81'
+    $pending = $state.inflight
+    if ($null -eq $pending) {
+        if ([int]$state.last_turn_id -lt 87) { Refuse 'unexpected idle turn number' }
+        return
     }
-    if ($null -ne $state.inflight) {
-        Refuse 'queue is processing a turn; wait for idle before installing'
+    if ([int]$state.last_turn_id -ne 86 -or
+        [int]$pending.turn_id -ne 87 -or
+        [string]$pending.target -ne 'GPT' -or
+        $pending.terminal_report -ne $true -or
+        [string]$pending.wake -notmatch 'turn_id=87$' -or
+        $pending.wake_seen -ne $true -or
+        $pending.submitted -ne $true -or
+        [int]$pending.send_attempts -ne 1 -or
+        [string]$pending.wake_seen_control_identity -ne '6ad27341-1ea4-83eb-8238-5ce1cada094a' -or
+        $pending.terminal_resume_intent -eq $true) {
+        Refuse 'queue is not the pinned pending terminal 87'
     }
 }
 if (!(Test-Path -LiteralPath $dispatcher) -or !(Test-Path -LiteralPath $helper) -or
     !(Test-Path -LiteralPath $statePath) -or !(Test-Path -LiteralPath $controlPath)) {
     Refuse 'existing dispatcher, helper, queue or CONTROL record missing'
 }
-AssertIdleState
+AssertSafeState
+$initialQueueHash = (Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash
 if ((FileBlob $helper) -ne $helperBlob) {
     Refuse 'CONTROL multi-ACK helper is not verified baseline'
 }
@@ -68,8 +77,8 @@ if ($current -eq $newBlob) {
     Write-Host 'ALREADY INSTALLED: reviewed dispatcher state hardening.'
     exit 0
 }
-if ($oldBlobs -notcontains $current) {
-    Refuse 'dispatcher source not in permitted 24b571d/6f939f9 baselines; install skipped'
+if ($current -ne $oldBlob) {
+    Refuse 'dispatcher source is not the pinned 25f705 baseline'
 }
 $normalPath = $dispatcher.Replace('/','\').ToLowerInvariant()
 $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
@@ -93,7 +102,7 @@ foreach ($name in @(
     'test_stale_control_rescue.py','test_arena_feedback_dismiss.py',
     'test_control_multi_ack.py','test_dispatcher_state_loop.py','test_arena_feedback_inline.py',
     'test_dispatcher_atmost_once.py','test_dispatcher_recovery_contract.py',
-    'test_arena_terminal_receipt.py'
+    'test_arena_terminal_receipt.py','test_control_terminal_resume.py'
 )) {
     Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/$name" -OutFile (Join-Path $stagedTests $name)
 }
@@ -107,8 +116,8 @@ if ($LASTEXITCODE -ne 0) { Refuse 'Python compile failed; installed code untouch
 if ($LASTEXITCODE -ne 0) { Refuse 'regression suite failed; installed code untouched' }
 
 # Safe to restart ONLY an idle dispatcher with exactly matching current state.
-AssertIdleState
-if (($oldBlobs -notcontains (FileBlob $dispatcher)) -or
+AssertSafeState
+if ((FileBlob $dispatcher) -ne $oldBlob -or
     (FileBlob $helper) -ne $helperBlob -or !(MutexPresent) -or
     !(Get-Process -Id ([int]$process.ProcessId) -ErrorAction SilentlyContinue)) {
     Refuse 'live dispatcher changed while staging; install skipped'
@@ -133,7 +142,10 @@ try {
     }
     # Close the last-moment race between idle precheck and process stop.
     # On changed state, restart the original dispatcher without a file edit.
-    AssertIdleState
+    AssertSafeState
+    if ((Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash -ne $initialQueueHash) {
+        Refuse 'queue changed while staging; original code restarted'
+    }
     $temporary = "$dispatcher.installing"
     Copy-Item -LiteralPath (Join-Path $stagedHandoff 'dispatcher.py') -Destination $temporary -Force
     [IO.File]::Replace($temporary, $dispatcher,
@@ -156,7 +168,7 @@ try {
 if ($started -and $started.HasExited) { Refuse 'dispatcher exited after restart; check log' }
 if (!(MutexPresent)) { Refuse 'dispatcher mutex not restored' }
 if ((FileBlob $dispatcher) -ne $newBlob) { Refuse 'installed source changed after restart' }
-Write-Host 'INSTALL PASS: Arena final-report receipt into GPT CONTROL installed.'
-Write-Host 'No queue, CONTROL, mailbox, PLN or main changes.'
-Write-Host 'LIVE final-report E2E acknowledgement remains pending.'
+Write-Host 'INSTALL PASS: one-shot CONTROL ACK recovery installed.'
+Write-Host 'Queue preserved, pending turn 87 will resume once. No mailbox, PLN or main writes.'
+Write-Host 'LIVE confirmation of recovered CONTROL ACK is still pending.'
 Write-Host "Backup: $backup"

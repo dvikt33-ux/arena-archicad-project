@@ -4280,7 +4280,7 @@ def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visibl
         return
 
     recovery = (
-        f"CONTROL RESUME — turn_id={turn_id}\\n"
+        f"CONTROL RESUME — turn_id={turn_id}\n"
         f"Предыдущее сообщение «Проверь GitHub. turn_id={turn_id}» уже доставлено. "
         "Ничего не выполняй повторно. Прочитай существующий итоговый отчёт "
         "Arena в .agent-handoff/signal.json. Это только подтверждение получения. "

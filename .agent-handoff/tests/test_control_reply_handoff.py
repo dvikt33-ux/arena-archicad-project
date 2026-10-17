@@ -112,7 +112,8 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertIn("MarkdownRoot-", probe)
         self.assertIn("head.innerText", probe)
         self.assertNotIn("NodeFilter.SHOW_TEXT", probe)
-        self.assertIn("lines[0]", probe)
+        self.assertIn("const preface = raw.match(", probe)
+        self.assertIn("head.textContent || head.innerText", probe)
         self.assertIn("userScope", probe)
         # Earlier bootstrap may be virtualized; wake and its reply suffice.
         self.assertNotIn("Служебный чат 01 — CONTROL & BRIDGE", probe)

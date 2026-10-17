@@ -19,7 +19,7 @@ from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
-from control_reply_handoff import parse_control_reply, publish_next_signal, read_control_marker_fallback
+from control_reply_handoff import parse_control_reply, publish_next_signal, read_control_marker_fallback, _read_verified_ack_pair
 
 # =========================
 # AI Dispatcher 2.2.19
@@ -4064,6 +4064,31 @@ def create_inflight(state: dict, signal: dict) -> dict:
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
+
+    # Resume an ALREADY answered turn without depending on old bootstrap DOM.
+    # Only the exact persisted CONTROL tab is inspected. The assistant reply
+    # must have a distinct MarkdownRoot provenance after the exact user wake.
+    # Nothing is sent or marked consumed before GitHub CAS readback.
+    if browser is not None:
+        try:
+            record = load_control_record()
+            saved_url = str(record.get("chatgpt_control_url") or "")
+            pages = [
+                page for context in browser.contexts for page in context.pages
+                if is_durable_control_url(page.url or "")
+                and same_conversation(page.url or "", saved_url)
+            ]
+            if len(pages) == 1 and not generation_is_active(pages[0]):
+                pair = _read_verified_ack_pair(pages[0])
+                reply = parse_control_reply(pair, turn_id)
+                if reply:
+                    if not publish_next_signal(turn_id, reply):
+                        log(f"GITHUB: next signal for turn_id={turn_id + 1} not confirmed; keeping inflight.")
+                        return
+                    consume_turn(state, turn_id, "GPT->ARENA signal write verified by readback")
+                    return
+        except Exception as exc:
+            log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
 
     if (
         inflight.get("last_error") == "Control chat bootstrap pending"

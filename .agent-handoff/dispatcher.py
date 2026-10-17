@@ -1268,7 +1268,6 @@ def require_opera_cdp() -> None:
 
 
 # -------------------------
-# -------------------------
 # GitHub signal
 # -------------------------
 
@@ -3587,6 +3586,9 @@ def abandoned_control_rescue_allowed(
     return True
 
 
+_OPERA_PINNED_TAB = None
+
+
 def existing_opera_control_only(browser, wake: str = ""):
     """One pinned conversation only. No rebind, reprovision or bootstrap.
 
@@ -3608,25 +3610,42 @@ def existing_opera_control_only(browser, wake: str = ""):
         if len(browser.contexts) != 1:
             log("CONTROL: OPERA_CONTEXT_AMBIGUOUS; no GPT wake sent.")
             return None, False
-        page = browser.contexts[0].new_page()
+        # Opening the SAME conversation URL is allowed. Opening a NEW
+        # conversation, rebind or bootstrap is never allowed.
+        global _OPERA_PINNED_TAB
         try:
-            page.goto(saved, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
-        except Exception as exc:
-            log(f"CONTROL: pinned URL load failed: {type(exc).__name__}")
-            # Keep the tab for the next poll; do not create a new chat.
-            return page, False
+            reusable = _OPERA_PINNED_TAB if (
+                _OPERA_PINNED_TAB is not None
+                and _OPERA_PINNED_TAB in browser.contexts[0].pages
+                and not _OPERA_PINNED_TAB.is_closed()
+            ) else None
+        except Exception:
+            reusable = None
+        page = reusable or browser.contexts[0].new_page()
+        _OPERA_PINNED_TAB = page
+        if not same_conversation(page.url or "", saved):
+            try:
+                page.goto(saved, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+            except Exception as exc:
+                log(f"CONTROL: pinned URL load failed: {type(exc).__name__}")
+                return page, False
     else:
         page = pages[0]
     if not same_conversation(page.url or "", saved):
         log("CONTROL: OPERA_PINNED_IDENTITY_MISMATCH; no GPT wake sent.")
         return page, False
     messages = chatgpt_messages(page)
+    roles = {str(item.get("role") or "") for item in messages}
+    # Old welcome messages may be virtualized. Require a real two-sided
+    # transcript, exact pinned URL, saved bootstrap proof and live composer.
     ready = (
-        user_has_bootstrap_marker(messages)
-        and assistant_has_control_ready(messages)
+        bool(load_control_record().get("bootstrap_sent"))
+        and len(messages) >= 2
+        and {"user", "assistant"}.issubset(roles)
         and composer_is_ready(page)
         and not generation_is_active(page)
         and not page_shows_unavailable(page)
+        and not page_signed_out(page)
     )
     if not ready:
         log(f"CONTROL: OPERA_PINNED_HISTORY_UNREADY messages={len(messages)}; no rebind.")
@@ -4883,7 +4902,7 @@ def watch() -> None:
         + (
             f"машинный чат закреплён: {control_url}"
             if control_url
-            else "машинный чат будет создан автоматически при первом target=GPT"
+            else "исходный CONTROL не закреплён; создание нового чата запрещено"
         )
     )
     log(f"Проверка GitHub каждые {CHECK_INTERVAL} сек.")

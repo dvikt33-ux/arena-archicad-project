@@ -9,6 +9,7 @@ $localCore = Join-Path $handoff 'dispatcher.py'
 $localRuntime = Join-Path $handoff 'dispatcher-runtime.py'
 $homeCore = Join-Path $HOME 'dispatcher_core.py'
 $homeRuntime = Join-Path $HOME 'dispatcher.py'
+$homeHelper = Join-Path $HOME 'control_reply_handoff.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
@@ -82,7 +83,9 @@ if ($StartOnly) {
   if (!(Test-Path -LiteralPath $localCore) -or
       !(Test-Path -LiteralPath $homeCore) -or
       (Blob $localCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
-      (Blob $homeCore '.agent-handoff/dispatcher.py') -ne $newBlob) {
+      (Blob $homeCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
+      !(Test-Path -LiteralPath $homeHelper) -or
+      (Blob $homeHelper '.agent-handoff/control_reply_handoff.py') -ne $helperBlob) {
     StopSafe 'Opera migration not installed'
   }
   $s = Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -162,7 +165,8 @@ foreach($pair in @(
   @($localCore, (Join-Path $root 'dispatcher.py')),
   @($localRuntime, (Join-Path $root 'dispatcher-runtime.py')),
   @($homeCore, (Join-Path $root 'dispatcher.py')),
-  @($homeRuntime, (Join-Path $root 'dispatcher-runtime.py'))
+  @($homeRuntime, (Join-Path $root 'dispatcher-runtime.py')),
+  @($homeHelper, (Join-Path $root 'control_reply_handoff.py'))
 )) {
   $dest = [string]$pair[0]
   if (Test-Path -LiteralPath $dest) { Copy-Item -LiteralPath $dest -Destination ($dest + '.before-opera-' + $stamp + '.bak') -ErrorAction Stop }
@@ -178,7 +182,8 @@ foreach($pair in @(
   @($localCore, (Join-Path $root 'dispatcher.py')),
   @($localRuntime, (Join-Path $root 'dispatcher-runtime.py')),
   @($homeCore, (Join-Path $root 'dispatcher.py')),
-  @($homeRuntime, (Join-Path $root 'dispatcher-runtime.py'))
+  @($homeRuntime, (Join-Path $root 'dispatcher-runtime.py')),
+  @($homeHelper, (Join-Path $root 'control_reply_handoff.py'))
 )) {
   $dest = [string]$pair[0]
   $source = [string]$pair[1]
@@ -199,7 +204,8 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [IO.File]::Replace(($controlPath + '.installing'),$controlPath,($controlPath + '.pre-opera-replace-' + $stamp + '.bak'))
 if ((Blob $localCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
     (Blob $homeCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
-    (Blob $homeRuntime '.agent-handoff/dispatcher-runtime.py') -ne $newRuntimeBlob) {
+    (Blob $homeRuntime '.agent-handoff/dispatcher-runtime.py') -ne $newRuntimeBlob -or
+    (Blob $homeHelper '.agent-handoff/control_reply_handoff.py') -ne $helperBlob) {
   StopSafe 'post-install source validation failed; see backups'
 }
 if ((Get-FileHash $statePath -Algorithm SHA256).Hash -ne $queueSHA) { StopSafe 'queue changed unexpectedly' }

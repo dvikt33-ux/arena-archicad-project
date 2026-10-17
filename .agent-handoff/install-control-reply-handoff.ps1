@@ -93,6 +93,8 @@ if (!(Test-GitHubSignal $token)) { Stop-Install "GitHub token invalid or signal 
 Write-Host "Downloading pinned dispatcher, helper, and regression tests..."
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/dispatcher.py" -OutFile (Join-Path $stageHandoff "dispatcher.py")
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/control_reply_handoff.py" -OutFile (Join-Path $stageHandoff "control_reply_handoff.py")
+# Regression tests inspect the staged pinned installer, not an unavailable path.
+Invoke-WebRequest -UseBasicParsing -Uri "$prefix/install-control-reply-handoff.ps1" -OutFile (Join-Path $stageHandoff "install-control-reply-handoff.ps1")
 foreach ($name in @("test_control_reply_handoff.py","test_control_marker_fallback.py","test_stale_control_rescue.py","test_arena_feedback_dismiss.py")) {
     Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/$name" -OutFile (Join-Path $testPath $name)
 }

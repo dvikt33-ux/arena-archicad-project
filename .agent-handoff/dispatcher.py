@@ -4418,7 +4418,6 @@ def submitted_gpt_wake_needs_read_only_wait(inflight: dict) -> bool:
     """
     return (
         str(inflight.get("target") or "").upper() == "GPT"
-        and bool(inflight.get("wake_seen_control_identity"))
         and bool(
             inflight.get("submitted")
             or inflight.get("wake_seen")

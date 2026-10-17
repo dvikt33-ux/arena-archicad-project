@@ -35,73 +35,71 @@ def _visible_turns(page) -> dict | None:
       return {boot:texts.some(t=>t.includes('Служебный чат 01 — CONTROL & BRIDGE')),ready:texts.some(t=>/^CONTROL READY\.?$/.test(t)),wakes:texts.filter(t=>/^Проверь GitHub\. turn_id=\d+$/.test(t)).slice(-8),turns};
     }""")
 def _read_verified_ack_pair(page) -> list[dict]:
-    """Require an ordered wake and a separate, response-scoped Markdown ACK.
+    """Read one response with distinct user/assistant provenance from the 2026 UI.
 
-    Visible text alone does not confer the assistant role. The exact reply must
-    live in an assistant-labelled element or a distinct Markdown response body,
-    not in a user bubble, nav, composer or bootstrap instruction.
+    Real ChatGPT DOM uses bg-user-message and MarkdownRoot-*; no article,
+    .markdown, .prose or data-message-author-role nodes exist. The ACK <p>
+    is split into inline child elements, so matching whole text nodes fails.
     """
     try:
         facts = page.evaluate(r"""() => {
-          const main = [...document.querySelectorAll('main,[role="main"]')]
-            .find(el => el.getClientRects().length &&
-              (el.innerText || '').includes('Служебный чат 01 — CONTROL & BRIDGE'));
-          if (!main) return null;
-          const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
+          const clean = s => String(s || '').replace(/\u00a0/g, ' ').trim();
           const visible = el => !!(el && el.getClientRects().length);
-          const stop = [...document.querySelectorAll(
-            '[data-testid="stop-button"],button[aria-label="Stop streaming"],' +
-            'button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"]'
+          const main = [...document.querySelectorAll('main,[role="main"]')]
+            .find(el => visible(el) &&
+              clean(el.innerText).includes('Служебный чат 01 — CONTROL & BRIDGE') &&
+              clean(el.innerText).includes('CONTROL READY'));
+          if (!main) return null;
+          const generating = [...document.querySelectorAll(
+            '[data-testid="stop-button"],button[aria-label*="Stop"],' +
+            'button[aria-label*="Останов"]'
           )].some(visible);
-          if (stop) return null;
-          const nodes = [], walk = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
-          while (walk.nextNode()) {
-            const n = walk.currentNode, p = n.parentElement;
-            if (!p || !visible(p) ||
-                p.closest('nav,aside,textarea,[contenteditable="true"],script,style')) continue;
-            const text = clean(n.textContent);
-            if (text) nodes.push({node:n,text});
-          }
-          const wakeRe = /^Проверь GitHub\. turn_id=(\d+)$/;
-          const ackRe = /^CONTROL ACK\s*[—–-]\s*turn_id=(\d+)$/;
-          const wakes = nodes.map(x => ({...x, match:x.text.match(wakeRe)}))
-            .filter(x => x.match);
-          const acks = nodes.map(x => ({
-            ...x, match:x.text.split(/\r?\n/,1)[0].trim().match(ackRe)
-          })).filter(x => x.match);
-          const later = (a,b) => !!(a.compareDocumentPosition(b) &
+          if (generating) return null;
+          const wakeRE = /^Проверь GitHub\. turn_id=(\d+)$/;
+          const ackRE = /^CONTROL ACK\s*[—–-]\s*turn_id=(\d+)$/;
+          const after = (a,b) => !!(a.compareDocumentPosition(b) &
             Node.DOCUMENT_POSITION_FOLLOWING);
-          const pairs = [];
-          for (let i = 0; i < wakes.length; ++i) {
-            const wake = wakes[i], next = wakes[i+1], eligible = [];
-            for (const ack of acks) {
-              if (wake.match[1] !== ack.match[1] ||
-                  !later(wake.node,ack.node) ||
-                  (next && !later(ack.node,next.node))) continue;
-              const p = ack.node.parentElement;
-              if (!p || p.closest('[data-message-author-role="user"],' +
-                '[data-message-author="user"],[data-testid*="user-message"],' +
-                '[data-testid*="user-turn"]')) continue;
-              const labelled = p.closest('[data-message-author-role],[data-message-author]');
-              if (labelled) {
-                const role = String(labelled.getAttribute('data-message-author-role') ||
-                  labelled.getAttribute('data-message-author') || '').toLowerCase();
-                if (!role.includes('assistant')) continue;
-              }
-              const markdown = p.closest('.markdown,[class~="prose"],' +
-                '[data-testid="assistant-message"]');
-              if (!labelled && !markdown) continue;
-              const block = markdown || labelled;
-              if (!visible(block) || block.contains(wake.node)) continue;
-              const body = clean(block.innerText || block.textContent);
-              const lines = body.split(/\r?\n/);
-              if (lines.length < 2 || !ackRe.test(lines[0].trim()) ||
-                  !lines.slice(1).join('\n').trim()) continue;
-              eligible.push(body);
+          const userScope = '[class~="bg-user-message"],[class*="group/user-message"],' +
+            '[data-message-author-role="user"],[data-message-author="user"],' +
+            '[data-testid*="user-message"],[data-testid*="user-turn"]';
+          const users = [...main.querySelectorAll(
+            '[class~="bg-user-message"],[data-message-author-role="user"]'
+          )].filter(visible).map(el => ({
+            el, text:clean(el.innerText), match:clean(el.innerText).match(wakeRE)
+          }));
+          const wakes = users.filter(item => item.match);
+          // The actual assistant body is a MarkdownRoot-* block. Its first
+          // paragraph contains multiple child spans forming the ACK heading.
+          const markdowns = [...main.querySelectorAll(
+            '[class*="MarkdownRoot-"],.markdown,[class~="prose"],' +
+            '[data-testid="assistant-message"]'
+          )].filter(visible);
+          const answers = [];
+          for (const el of markdowns) {
+            if (el.closest(userScope)) continue;
+            const labelled = el.closest('[data-message-author-role],[data-message-author]');
+            if (labelled) {
+              const role = String(labelled.getAttribute('data-message-author-role') ||
+                labelled.getAttribute('data-message-author') || '').toLowerCase();
+              if (role !== 'assistant') continue;
             }
-            if (eligible.length === 1) pairs.push({
-              wake:wake.text, answer:eligible[0]
-            });
+            const body = clean(el.innerText);
+            const lines = body.split(/\r?\n/);
+            const match = clean(lines[0]).match(ackRE);
+            if (!match || lines.length < 2 || !lines.slice(1).join('\n').trim()) continue;
+            answers.push({el,body,match});
+          }
+          const pairs = [];
+          for (const wake of wakes) {
+            const nextUser = users.find(item => item.el !== wake.el &&
+              after(wake.el,item.el));
+            const matches = answers.filter(item =>
+              item.match[1] === wake.match[1] &&
+              after(wake.el,item.el) &&
+              (!nextUser || after(item.el,nextUser.el)) &&
+              !item.el.contains(wake.el));
+            if (matches.length === 1)
+              pairs.push({wake:wake.text,answer:matches[0].body});
           }
           return {pairs};
         }""")

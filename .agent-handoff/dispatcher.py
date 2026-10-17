@@ -33,11 +33,10 @@ CONTROL_PATH = HOME / ".ai-dispatcher-control.json"
 LOG_PATH = HOME / "ai-dispatcher.log"
 
 CDP_HOST = "127.0.0.1"
-CDP_PORT = 9223
+CDP_PORT = 9224
 CDP = f"http://{CDP_HOST}:{CDP_PORT}"
 
-CHROME_PATH = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
-CHROME_PROFILE = HOME / "AI-Dispatcher-Chrome"
+# Opera reuses the user's existing authenticated session; never spawn a second profile.
 
 SIGNAL_URL = (
     "https://raw.githubusercontent.com/"
@@ -73,7 +72,7 @@ CHECK_INTERVAL = 5
 ARENA_RETRY_SECONDS = 60
 CONTROL_RETRY_SECONDS = 15
 PAGE_TIMEOUT = 15000
-CHROME_START_TIMEOUT = 25
+OPERA_CONNECT_TIMEOUT = 10
 CONTROL_READY_MARKER = "CONTROL READY"
 CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
 CONTROL_RECOVERY_CHECKS = 3
@@ -1206,7 +1205,7 @@ def canonicalize_control_url(url: str) -> None:
 
 
 # -------------------------
-# Chrome / CDP
+# Opera / CDP: ATTACH ONLY, no browser launch, termination or forced restart
 # -------------------------
 
 def port_open(host: str, port: int, timeout: float = 0.7) -> bool:
@@ -1217,109 +1216,58 @@ def port_open(host: str, port: int, timeout: float = 0.7) -> bool:
         return False
 
 
-_CHROME_PROC = None
-
-
 def cdp_http_ready() -> bool:
     try:
-        req = urllib.request.Request(
+        request = urllib.request.Request(
             f"{CDP}/json/version",
             headers={"User-Agent": f"AI-Dispatcher-{VERSION}"},
         )
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            payload = json.loads(resp.read().decode("utf-8", "replace"))
-        return bool(payload.get("webSocketDebuggerUrl"))
+        with urllib.request.urlopen(request, timeout=2) as response:
+            data = json.loads(response.read().decode("utf-8", "replace"))
+        endpoint = str(data.get("webSocketDebuggerUrl") or "")
+        return bool(endpoint.startswith((
+            f"ws://{CDP_HOST}:{CDP_PORT}/devtools/browser/",
+            f"ws://localhost:{CDP_PORT}/devtools/browser/",
+        )))
     except Exception:
         return False
 
 
-def stop_owned_chrome() -> None:
-    global _CHROME_PROC
-
-    if _CHROME_PROC is not None and _CHROME_PROC.poll() is None:
-        _CHROME_PROC.terminate()
-        try:
-            _CHROME_PROC.wait(timeout=5)
-        except Exception:
-            _CHROME_PROC.kill()
-    _CHROME_PROC = None
-
+def opera_owns_cdp_port() -> bool:
+    """Fail closed unless Windows attributes the exact CDP listener to Opera."""
     if os.name != "nt":
-        return
-
+        return False
     script = (
-        "Get-CimInstance Win32_Process -Filter \"Name = 'chrome.exe'\" | "
-        "Where-Object { $_.CommandLine -like '*AI-Dispatcher-Chrome*' -and "
-        "$_.CommandLine -like '*--remote-debugging-port=9223*' } | "
-        "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+        f"$ports=@(Get-NetTCPConnection -State Listen -LocalPort {CDP_PORT} "
+        "-ErrorAction SilentlyContinue); "
+        "$ids=@($ports | Select-Object -ExpandProperty OwningProcess -Unique); "
+        "if($ids.Count -ne 1){exit 4}; "
+        "$proc=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $ids[0]); "
+        "if(!$proc -or $proc.Name -notmatch '^(opera|opera\\w*|launcher)\\.exe$'){exit 5}; "
+        "if([string]$proc.CommandLine -notmatch '--remote-debugging-port="
+        f"{CDP_PORT}(\\s|$)'){{exit 6}}; exit 0"
     )
-    subprocess.run(
-        ["powershell", "-NoProfile", "-Command", script],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=20,
-    )
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=OPERA_CONNECT_TIMEOUT,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
-    deadline = time.time() + 8
-    while time.time() < deadline and port_open(CDP_HOST, CDP_PORT):
-        time.sleep(0.3)
 
-
-def start_service_chrome(force: bool = False) -> None:
-    global _CHROME_PROC
-
-    if not force and cdp_http_ready():
-        return
-
-    if force or port_open(CDP_HOST, CDP_PORT):
-        log("CHROME: перезапускаю сервисный профиль.")
-        stop_owned_chrome()
-        if port_open(CDP_HOST, CDP_PORT):
-            raise RuntimeError(
-                f"Порт {CDP_PORT} занят, но это не CDP сервисного Chrome."
-            )
-
-    if not CHROME_PATH.exists():
-        raise FileNotFoundError(f"Chrome не найден: {CHROME_PATH}")
-
-    CHROME_PROFILE.mkdir(parents=True, exist_ok=True)
-
-    args = [
-        str(CHROME_PATH),
-        f"--remote-debugging-port={CDP_PORT}",
-        "--remote-allow-origins=*",
-        f"--user-data-dir={CHROME_PROFILE}",
-        "--no-first-run",
-        "--no-default-browser-check",
-    ]
-
-    creationflags = 0
-    if os.name == "nt":
-        creationflags = (
-            getattr(subprocess, "DETACHED_PROCESS", 0)
-            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+def require_opera_cdp() -> None:
+    """Connect-only. Never start or close Chrome/Opera, never change profile."""
+    if not cdp_http_ready() or not opera_owns_cdp_port():
+        raise RuntimeError(
+            f"OPERA_CDP_REQUIRED: start existing Opera with local remote debugging "
+            f"on {CDP_HOST}:{CDP_PORT}; dispatcher will wait, no Chrome fallback"
         )
 
-    _CHROME_PROC = subprocess.Popen(
-        args,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=creationflags,
-    )
 
-    deadline = time.time() + CHROME_START_TIMEOUT
-    while time.time() < deadline:
-        if cdp_http_ready():
-            log("CHROME: сервисный Chrome запущен.")
-            return
-        time.sleep(0.5)
-
-    raise RuntimeError(
-        f"Chrome запущен, но CDP {CDP_HOST}:{CDP_PORT} не поднялся "
-        f"за {CHROME_START_TIMEOUT} сек."
-    )
-
-
+# -------------------------
 # -------------------------
 # GitHub signal
 # -------------------------
@@ -3639,7 +3587,56 @@ def abandoned_control_rescue_allowed(
     return True
 
 
+def existing_opera_control_only(browser, wake: str = ""):
+    """One pinned conversation only. No rebind, reprovision or bootstrap.
+
+    If the tab is absent, open only the persisted /c/<id> URL. Do not create
+    another chat and do not infer readiness from an empty composer.
+    """
+    saved = str(load_control_record().get("chatgpt_control_url") or "").strip()
+    if not is_durable_control_url(saved):
+        log("CONTROL: OPERA_PINNED_URL_REQUIRED; no GPT wake sent.")
+        return None, False
+    pages = [
+        p for ctx in browser.contexts for p in ctx.pages
+        if same_conversation(p.url or "", saved)
+    ]
+    if len(pages) > 1:
+        log("CONTROL: OPERA_DUPLICATE_PINNED_TABS; no GPT wake sent.")
+        return None, False
+    if not pages:
+        if len(browser.contexts) != 1:
+            log("CONTROL: OPERA_CONTEXT_AMBIGUOUS; no GPT wake sent.")
+            return None, False
+        page = browser.contexts[0].new_page()
+        try:
+            page.goto(saved, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+        except Exception as exc:
+            log(f"CONTROL: pinned URL load failed: {type(exc).__name__}")
+            # Keep the tab for the next poll; do not create a new chat.
+            return page, False
+    else:
+        page = pages[0]
+    if not same_conversation(page.url or "", saved):
+        log("CONTROL: OPERA_PINNED_IDENTITY_MISMATCH; no GPT wake sent.")
+        return page, False
+    messages = chatgpt_messages(page)
+    ready = (
+        user_has_bootstrap_marker(messages)
+        and assistant_has_control_ready(messages)
+        and composer_is_ready(page)
+        and not generation_is_active(page)
+        and not page_shows_unavailable(page)
+    )
+    if not ready:
+        log(f"CONTROL: OPERA_PINNED_HISTORY_UNREADY messages={len(messages)}; no rebind.")
+    return page, ready
+
+
 def ensure_control_ready(browser, wake: str = ""):
+    # All live entrypoints use strict Opera-only existing-conversation policy.
+    return existing_opera_control_only(browser, wake)
+
     record = load_control_record()
     saved = str(record.get("chatgpt_control_url") or "")
     page = None
@@ -4873,9 +4870,8 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
 def watch() -> None:
     acquire_single_instance()
-    # Refuse a missing/corrupted established queue BEFORE opening Chrome.
+    # Refuse a missing/corrupted queue before even attempting Opera CDP.
     state = load_state()
-    start_service_chrome()
 
     log(f"AI Dispatcher {VERSION} запущен")
     log(f"Последний обработанный turn_id: {state['last_turn_id']}")
@@ -4899,7 +4895,7 @@ def watch() -> None:
         while True:
             try:
                 if browser is None:
-                    start_service_chrome()
+                    require_opera_cdp()
                     browser = p.chromium.connect_over_cdp(CDP)
 
                 # Feedback overlays can appear after Arena finishes even
@@ -5002,35 +4998,28 @@ def watch() -> None:
                 raise
 
             except DispatcherStateWriteError:
-                log("STATE: write failure; stopping dispatcher without CDP restart or wake replay.")
+                log("STATE: write failure; stopping dispatcher without Opera restart or wake replay.")
                 raise
 
             except GitHubNetworkError:
-                log("GITHUB: endpoint=unavailable error=GitHubNetworkError. CDP не перезапускаю.")
+                log("GITHUB: endpoint=unavailable error=GitHubNetworkError. Opera не перезапускаю.")
 
             except GitHubSignalError:
-                log("GITHUB: endpoint=signal error=GitHubSignalError. CDP не перезапускаю.")
+                log("GITHUB: endpoint=signal error=GitHubSignalError. Opera не перезапускаю.")
 
             except PlaywrightTimeoutError as exc:
                 log(
                     f"UI: Playwright timeout: {exc}. "
-                    "Это не ошибка GitHub; CDP не перезапускаю."
+                    "Это не ошибка GitHub; Opera не перезапускаю."
                 )
 
             except Exception as exc:
                 log(f"ERROR: {type(exc).__name__}: {exc}")
                 browser = None
 
-                try:
-                    log("CHROME: восстанавливаю CDP после не-классифицированной ошибки.")
-                    start_service_chrome(force=not cdp_http_ready())
-                    browser = p.chromium.connect_over_cdp(CDP)
-                    log("CHROME: соединение восстановлено.")
-                except Exception as chrome_exc:
-                    log(
-                        f"CHROME: восстановление не удалось: "
-                        f"{type(chrome_exc).__name__}: {chrome_exc}"
-                    )
+                # Never restart a user's Opera instance or create a new profile.
+                # The next poll can re-attach to the same authenticated Opera.
+                log("OPERA: CDP detached; will only reconnect when existing Opera is ready.")
 
             time.sleep(CHECK_INTERVAL)
 
@@ -5041,7 +5030,7 @@ def watch() -> None:
 
 def manual_wake(target: str) -> None:
     acquire_single_instance()
-    start_service_chrome()
+    require_opera_cdp()
 
     target = target.upper()
     if target not in {"GPT", "ARENA"}:

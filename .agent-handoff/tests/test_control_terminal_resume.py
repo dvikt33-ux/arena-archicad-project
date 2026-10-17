@@ -35,6 +35,8 @@ class AckRecoveryTests(unittest.TestCase):
             "save_state":lambda state:events.append("saved"),
             "log":lambda msg:events.append("logged"),
             "chatgpt_user_message_exists":lambda page,text:True,
+            "terminal_resume_observation":lambda page,turn:{
+                "wake_seen":True,"resume_seen":True,"ack":None},
         }
         def send(page,text,on_before_submit=None,allow_retry=True):
             events.append("prepared")
@@ -69,3 +71,48 @@ class AckRecoveryTests(unittest.TestCase):
         pending["wake_seen_control_identity"]="other"
         action(object(),state,pending,True)
         self.assertEqual(events,[])
+
+class TerminalReceiptDomContract(unittest.TestCase):
+    def test_matching_resume_ack_from_correct_page(self):
+        class Page:
+            def evaluate(self, javascript, turn_id):
+                return {"wake_seen":True,"resume_seen":True,
+                        "ack":"CONTROL ACK — turn_id=87\\nBRIDGE_SMOKE_86_87_RECEIVED".replace("\\n","\\n")}
+        environment={
+            "parse_control_reply":lambda messages,number:
+                "BRIDGE_SMOKE_86_87_RECEIVED" if number==87 and
+                messages[0]["text"]=="Проверь GitHub. turn_id=87"
+                and messages[1]["text"].startswith("CONTROL ACK — turn_id=87") else None,
+            "wake_text":lambda number:f"Проверь GitHub. turn_id={number}",
+        }
+        reader=load("terminal_resume_observation",environment)
+        result=reader(Page(),87)
+        self.assertTrue(result["resume_seen"])
+        self.assertTrue(result["ack"])
+
+    def test_missing_resume_or_wrong_ack_is_not_accepted(self):
+        class Page:
+            def __init__(self,payload):self.payload=payload
+            def evaluate(self,javascript,turn_id):return self.payload
+        environment={
+            "parse_control_reply":lambda messages,number:(
+                "accepted" if messages[1]["text"].startswith(
+                  "CONTROL ACK — turn_id="+str(number)+"\\n") else None),
+            "wake_text":lambda number:f"Проверь GitHub. turn_id={number}",
+        }
+        reader=load("terminal_resume_observation",environment)
+        for facts in (
+            {"wake_seen":True,"resume_seen":False,"ack":"CONTROL ACK — turn_id=87\\nbody"},
+            {"wake_seen":False,"resume_seen":True,"ack":"CONTROL ACK — turn_id=87\\nbody"},
+            {"wake_seen":True,"resume_seen":True,"ack":"CONTROL ACK — turn_id=86\\nbody"},
+        ):
+            with self.subTest(facts=facts):
+                self.assertIsNone(reader(Page(facts),87)["ack"])
+
+    def test_no_backend_publication_in_terminal_resume_consume_path(self):
+        dispatcher=SRC.read_text(encoding="utf-8")
+        self.assertIn('if observed["ack"]:',dispatcher)
+        self.assertIn('ARENA final report acknowledged after CONTROL resume; no GitHub follow-up',dispatcher)
+        reader=next(n for n in TREE.body if isinstance(n,ast.FunctionDef)
+                    and n.name=="terminal_resume_observation")
+        self.assertNotIn("publish_next_signal",ast.get_source_segment(dispatcher,reader))

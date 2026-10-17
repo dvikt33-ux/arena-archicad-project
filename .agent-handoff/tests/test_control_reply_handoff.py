@@ -42,6 +42,68 @@ class FallbackTests(unittest.TestCase):
             [{"role":"user","text":"Проверь GitHub. turn_id=76"},{"role":"assistant","text":"reply without ack"}],
         ): self.assertIsNone(handoff.parse_control_reply(bad,76))
 
+
+class DomProvenanceTests(unittest.TestCase):
+    """The real-browser DOM scanner must never accept an unproven ACK."""
+    class ProbePage:
+        url = "https://chatgpt.com/c/known"
+        def __init__(self, pair=None, raise_error=False):
+            self.pair, self.raise_error, self.scripts = pair, raise_error, []
+        def evaluate(self, script):
+            self.scripts.append(script)
+            if self.raise_error:
+                raise RuntimeError("browser detached")
+            if "return {pairs}" in script:
+                return {"pairs": [] if self.pair is None else [self.pair]}
+            return {"boot": True, "ready": True,
+                    "wakes": ["Проверь GitHub. turn_id=76"],
+                    "turns": [{"role": "user", "text": "Проверь GitHub. turn_id=76"}]}
+
+    def test_dom_proven_ack_preserves_payload_and_order(self):
+        page = self.ProbePage({
+            "wake": "Проверь GitHub. turn_id=76",
+            "answer": "CONTROL ACK — turn_id=76\nRELEASE_NOT_PROVEN\n- Provenance pair: INCOMPLETE.\n- GUID: 261 → 261.",
+        })
+        msgs = handoff.read_control_marker_fallback(
+            page, {"chatgpt_control_url":page.url},
+            lambda value: "/c/" in value, lambda first,second:first==second,
+            "Служебный чат 01 — CONTROL & BRIDGE", "CONTROL READY", lambda _:None
+        )
+        self.assertEqual([m["role"] for m in msgs], ["user","assistant","user","assistant"])
+        self.assertEqual(handoff.parse_control_reply(msgs,76),
+                         "RELEASE_NOT_PROVEN\n- Provenance pair: INCOMPLETE.\n- GUID: 261 → 261.")
+        self.assertTrue(any("parent.closest('.markdown" in x for x in page.scripts))
+        self.assertTrue(any("block.contains(wake.node)" in x for x in page.scripts))
+        self.assertTrue(any("stop-button" in x for x in page.scripts))
+
+    def test_dom_proven_ack_wrong_turn_rejected(self):
+        page = self.ProbePage({
+            "wake": "Проверь GitHub. turn_id=76",
+            "answer": "CONTROL ACK — turn_id=75\nRELEASE_NOT_PROVEN",
+        })
+        self.assertEqual(handoff._read_verified_ack_pair(page), [])
+        self.assertIsNone(handoff.parse_control_reply(
+            [{"role":"user","text":"Проверь GitHub. turn_id=76"},
+             {"role":"assistant","text":"CONTROL ACK — turn_id=75\nRELEASE_NOT_PROVEN"}],76))
+
+    def test_absent_or_ambiguous_reply_fails_closed(self):
+        self.assertEqual(handoff._read_verified_ack_pair(self.ProbePage()), [])
+        page = self.ProbePage(raise_error=True)
+        self.assertEqual(handoff._read_verified_ack_pair(page), [])
+        self.assertEqual(handoff.read_control_marker_fallback(
+            page, {"chatgpt_control_url":page.url},
+            lambda value:True, lambda a,b:a==b,"bootstrap","ready",lambda _:None
+        ), [])
+
+    def test_missing_ack_is_not_synthesized(self):
+        page = self.ProbePage()
+        messages=handoff.read_control_marker_fallback(
+            page, {"chatgpt_control_url":page.url},
+            lambda value:True, lambda a,b:a==b,
+            "Служебный чат 01 — CONTROL & BRIDGE","CONTROL READY",lambda _:None)
+        self.assertEqual(sum(m["role"]=="assistant" for m in messages),1)
+        self.assertIsNone(handoff.parse_control_reply(messages,76))
+
 class PublishTests(unittest.TestCase):
     def encoded(self,obj,sha="blob76"):
         raw=json.dumps(obj,ensure_ascii=False,indent=2).encode()

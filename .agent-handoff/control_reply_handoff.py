@@ -35,7 +35,7 @@ def _visible_turns(page) -> dict | None:
       return {boot:texts.some(t=>t.includes('Служебный чат 01 — CONTROL & BRIDGE')),ready:texts.some(t=>/^CONTROL READY\.?$/.test(t)),wakes:texts.filter(t=>/^Проверь GitHub\. turn_id=\d+$/.test(t)).slice(-8),turns};
     }""")
 def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]:
-    """Extract a DOM-proven wake/response pair; diagnostics expose counts only.
+    """Extract independently DOM-proven wake/ACK pairs; diagnostics expose counts only.
 
     The installer and the active dispatcher call THIS IDENTICAL reader.
     The page's persisted conversation identity is verified by the caller.
@@ -69,7 +69,7 @@ def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]
           }
           const roots = [...document.querySelectorAll('main,[role="main"]')].filter(visible);
           metrics.roots = roots.length;
-          const candidates = [];
+          const candidates = [], seenTurns = new Set(), ambiguousTurns = new Set();
           for (const root of roots) {
             const users = [...root.querySelectorAll(usersel)].filter(visible);
             const answers = [...root.querySelectorAll(markdownsel)].filter(visible);
@@ -123,17 +123,25 @@ def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]
                 'CONTROL ACK — turn_id='+match[1]+'\n'+payload});
             }
             for(const wake of wakes){
+              const turn = wake.match[1];
+              // Duplicate wakes or multiple matching ACKs for one turn are
+              // unsafe. Other independent turns remain eligible.
+              if (seenTurns.has(turn)) ambiguousTurns.add(turn);
+              seenTurns.add(turn);
               const following=parsed.filter(u=>u.el!==wake.el&&after(wake.el,u.el));
               const next=following[0];
               const hits=assistant.filter(reply=>
-                reply.turn===wake.match[1]&&after(wake.el,reply.el)&&
+                reply.turn===turn&&after(wake.el,reply.el)&&
                 (!next||after(reply.el,next.el))&&!reply.el.contains(wake.el));
+              if(hits.length>1)ambiguousTurns.add(turn);
               if(hits.length===1)candidates.push({
-                wake:wake.wake,answer:hits[0].answer});
+                turn,wake:wake.wake,answer:hits[0].answer});
             }
           }
-          metrics.pairs = candidates.length === 1 ? candidates : [];
-          metrics.reason = candidates.length===1?'verified':
+          // Historical turns are allowed. Never merge an ACK with another
+          // wake, or discard an unambiguous pending turn because of history.
+          metrics.pairs = candidates.filter(p=>!ambiguousTurns.has(p.turn));
+          metrics.reason = metrics.pairs.length?'verified':
             !metrics.wakeBubbles?'wake-not-matched':
             !metrics.headingMatches?'heading-not-matched':
             !metrics.replyBodies?'body-not-extracted':'ordering-or-ambiguous';
@@ -154,21 +162,29 @@ def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]
              "markdownBlocks","headingMatches","replyBodies")
             if key in facts})
     pairs = facts.get("pairs")
-    if not isinstance(pairs, list) or len(pairs) != 1:
+    if not isinstance(pairs, list) or not 1 <= len(pairs) <= 128:
         return []
-    pair = pairs[0]
-    if not isinstance(pair, dict):
-        return []
-    wake, answer = _clean(pair.get("wake")), _clean(pair.get("answer"))
-    matched_wake = re.fullmatch(r"Проверь GitHub\. turn_id=(\d+)", wake)
-    matched_ack = _ACK.fullmatch(answer.splitlines()[0].strip()) if answer else None
-    if (not matched_wake or not matched_ack or
-            matched_wake.group(1) != matched_ack.group(1) or
-            not "\n".join(answer.splitlines()[1:]).strip()):
-        if diagnostics is not None:
-            diagnostics["reason"] = "final-python-ack-validation-failed"
-        return []
-    return [{"role":"user","text":wake},{"role":"assistant","text":answer}]
+    messages = []
+    seen_turns = set()
+    for pair in pairs:
+        if not isinstance(pair, dict):
+            if diagnostics is not None:
+                diagnostics["reason"] = "final-python-ack-validation-failed"
+            return []
+        wake, answer = _clean(pair.get("wake")), _clean(pair.get("answer"))
+        matched_wake = re.fullmatch(r"Проверь GitHub\. turn_id=(\d+)", wake)
+        matched_ack = _ACK.fullmatch(answer.splitlines()[0].strip()) if answer else None
+        if (not matched_wake or not matched_ack or
+                matched_wake.group(1) != matched_ack.group(1) or
+                matched_wake.group(1) in seen_turns or
+                not "\n".join(answer.splitlines()[1:]).strip()):
+            if diagnostics is not None:
+                diagnostics["reason"] = "final-python-ack-validation-failed"
+            return []
+        seen_turns.add(matched_wake.group(1))
+        messages.extend([{"role":"user","text":wake},
+                         {"role":"assistant","text":answer}])
+    return messages
 
 
 def read_control_marker_fallback(page, record: dict, is_durable_control_url: Callable[[str],bool], same_conversation: Callable[[str,str],bool], bootstrap_marker: str, ready_marker: str, log: Callable[[str],None]) -> list[dict]:

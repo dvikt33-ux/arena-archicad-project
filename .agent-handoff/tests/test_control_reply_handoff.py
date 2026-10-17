@@ -195,6 +195,7 @@ class CompletionIntegrationTests(unittest.TestCase):
              "consume_turn":lambda state,turn_id,reason:events.append(("consume",turn_id,reason)),
              "log":lambda _:None}
         only_dispatcher_function("submitted_gpt_wake_needs_read_only_wait",env)
+        only_dispatcher_function("submitted_control_readback_url",env)
         fn=only_dispatcher_function("process_gpt",env)
         state={"inflight":{"turn_id":76}}
         fn(None,state,{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"})
@@ -238,6 +239,7 @@ class DirectResumeTests(unittest.TestCase):
                 self.fail("completed wake must not be sent again"),
         }
         only_dispatcher_function("submitted_gpt_wake_needs_read_only_wait",env)
+        only_dispatcher_function("submitted_control_readback_url",env)
         fn=only_dispatcher_function("process_gpt",env)
         state={"inflight":{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"}}
         fn(Browser(),state,state["inflight"])
@@ -266,6 +268,7 @@ class DirectResumeTests(unittest.TestCase):
                 self.fail("should return before other flow"),
         }
         only_dispatcher_function("submitted_gpt_wake_needs_read_only_wait",env)
+        only_dispatcher_function("submitted_control_readback_url",env)
         fn=only_dispatcher_function("process_gpt",env)
         fn(Browser(),{},{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"})
         self.assertEqual(events,["publish"])

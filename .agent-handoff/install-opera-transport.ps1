@@ -28,6 +28,11 @@ function Blob([string]$file,[string]$gitPath) {
   if ($LASTEXITCODE -ne 0 -or !$sha) { StopSafe 'git hash unavailable' }
   return ([string]$sha).Trim()
 }
+function MutexPresent {
+  $handle = $null
+  try { return [bool][Threading.Mutex]::TryOpenExisting('Local\AI_Dispatcher_22',[ref]$handle) }
+  finally { if ($handle) { $handle.Dispose() } }
+}
 function DispatcherProcesses {
   return @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
     $cmd = ([string]$_.CommandLine).Replace('/','\').ToLowerInvariant()
@@ -97,6 +102,7 @@ if ($StartOnly) {
   if (!(OperaAt9224)) { StopSafe 'Opera debug endpoint 127.0.0.1:9224 unavailable or not owned by Opera' }
   $running = @(DispatcherProcesses)
   if ($running.Count -gt 1) { StopSafe 'multiple dispatcher instances' }
+  if ($running.Count -eq 0 -and (MutexPresent)) { StopSafe 'dispatcher mutex in use by unknown process' }
   if ($running.Count -eq 1) {
     Write-Host ("OPERA DISPATCHER RUNNING: PID=" + $running[0].ProcessId)
     return
@@ -120,6 +126,7 @@ $queueSHA = (Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash
 $controlSHA = (Get-FileHash -LiteralPath $controlPath -Algorithm SHA256).Hash
 $processes = @(DispatcherProcesses)
 if ($processes.Count -gt 1) { StopSafe 'multiple dispatcher processes, refusing mutation' }
+if ($processes.Count -eq 0 -and (MutexPresent)) { StopSafe 'dispatcher mutex owned by unknown process' }
 $stage = Join-Path $env:TEMP ('opera-dispatcher-' + [guid]::NewGuid().ToString('N'))
 $root = Join-Path $stage '.agent-handoff'
 $tests = Join-Path $root 'tests'
@@ -176,7 +183,9 @@ if ($processes.Count -eq 1) {
   Stop-Process -Id $processes[0].ProcessId -Force -ErrorAction Stop
   Start-Sleep -Seconds 2
 }
-if ((DispatcherProcesses).Count -ne 0) { StopSafe 'dispatcher did not stop, no installation performed' }
+if ((DispatcherProcesses).Count -ne 0 -or (MutexPresent)) {
+  StopSafe 'dispatcher did not stop, no installation performed'
+}
 if ((Get-FileHash $statePath -Algorithm SHA256).Hash -ne $queueSHA) { StopSafe 'queue changed after stop' }
 foreach($pair in @(
   @($localCore, (Join-Path $root 'dispatcher.py')),

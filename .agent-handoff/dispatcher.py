@@ -3853,6 +3853,7 @@ def dismiss_arena_completion(page) -> bool:
     )
     seen = 0
     click_errors = 0
+    click_attempts = 0
     # Every action is scoped by an exact continuation label AND a visible
     # completed-task prompt. Parent rows are limited to nearby ancestors.
     for label in labels:
@@ -3901,15 +3902,19 @@ def dismiss_arena_completion(page) -> bool:
                     try:
                         if not option.count() or not option.first.is_visible():
                             continue
+                        if click_attempts >= 4:
+                            break
                         option.first.click(timeout=1500)
-                        page.wait_for_timeout(250)
+                        click_attempts += 1
+                        page.wait_for_timeout(400)
                         if not arena_feedback_visible(page):
                             retry.pop(key, None)
                             log("ARENA: завершённый диалог автоматически закрыт (без оценки).")
                             return True
-                        # Do not repeatedly press a visible action; wait for
-                        # a future poll before trying a different DOM target.
-                        break
+                        # This element accepted a click but didn't close the
+                        # dialog. Try a different nearby target in this pass;
+                        # total clicks are bounded, then backoff applies.
+                        continue
                     except Exception:
                         click_errors += 1
                         continue
@@ -3926,7 +3931,7 @@ def dismiss_arena_completion(page) -> bool:
     if attempts == 1 or attempts % 5 == 0:
         log(
             "ARENA: диалог завершённой задачи пока открыт; "
-            f"элементов продолжения={seen}, ошибок клика={click_errors}; "
+            f"элементов продолжения={seen}, попыток={click_attempts}, ошибок клика={click_errors}; "
             f"пауза {int(delay)} сек., автоматический повтор."
         )
     return False

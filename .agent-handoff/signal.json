@@ -1,9 +1,9 @@
 {
   "protocol": 1,
-  "turn_id": 84,
-  "target": "ARENA",
-  "source": "GPT",
-  "status": "ready",
-  "message": "BRIDGE_LIVE_E2E_84 — один минимальный тест обратной доставки после установки AI Dispatcher 2.2.19/PR #8.\nЭто диагностическая READ_ONLY задача. Никаких проектов, PLN, APA, Codex/Work, новых веток, PR, скриптов, изменений CONTROL или пользовательского браузера. Не изменяй main и не запускай дополнительные агенты.\n1. Подтверди получение именно turn_id=84 через GitHub файл .agent-handoff/signal.json в ветке agent-handoff. Проверка только чтением: PR #8 https://github.com/dvikt33-ux/arena-archicad-project/pull/8 (source blob 25f705baa274676ba88aeaab82e31896e8a1309e; офлайн CI 92/92 Windows + 92/92 Linux). Не утверждай LIVE_PASS из CI.\n2. Отчёт — 3-6 строк на русском, начни точной строкой \"BRIDGE_E2E_84_85_RECEIPT\", укажи, что это доставка отчёта, не завершение общего релиза; раздельно \"ARENA: сообщение получено\" и \"GPT CONTROL: получение ещё требует подтверждения\". Добавь: \"Для GPT CONTROL: при получении turn_id=85 прочитай этот отчёт и ответь ровно один раз сообщением с заголовком CONTROL ACK — turn_id=85, кратко подтверди получение. Никаких GitHub публикаций, продолжений задания или сообщений Arena.\"\n3. Опубликуй РОВНО ОДИН финальный сигнал ответным commit в той же ветке agent-handoff, .agent-handoff/signal.json, через optimistic CAS и readback: {\"protocol\":1,\"turn_id\":85,\"source\":\"ARENA\",\"target\":\"NONE\",\"status\":\"done\",\"message\":\"<полный отчёт>\",\"requires_codex\":false}. Изменять разрешается только signal.json. Не публикуй 86, не перезапускай цикл ACK. Если CAS/доступ не удались — оставь исходник нетронутым и сообщи об отказе в Arena.\n4. После публикации заверши задачу, не вызывая дополнительных инструментов и не меняя других файлов.\nЭтот тест нужен исключительно для проверки terminal ARENA done/NONE → GPT CONTROL → локальное подтверждение без эха.",
+  "turn_id": 85,
+  "source": "ARENA",
+  "target": "NONE",
+  "status": "done",
+  "message": "BRIDGE_E2E_84_85_RECEIPT\nЭто доставка отчёта, не завершение общего релиза. turn_id=84 прочитан в .agent-handoff/signal.json ветки agent-handoff.\nARENA: сообщение получено. PR #8 draft, blob 25f705baa274676ba88aeaab82e31896e8a1309e совпал; офлайн CI jobs success, не LIVE_PASS.\nGPT CONTROL: получение ещё требует подтверждения.\nДля GPT CONTROL: при получении turn_id=85 прочитай этот отчёт и ответь ровно один раз сообщением с заголовком CONTROL ACK — turn_id=85, кратко подтверди получение. Никаких GitHub публикаций, продолжений задания или сообщений Arena.",
   "requires_codex": false
 }

@@ -8,13 +8,14 @@ $module = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
 $credentialPath = Join-Path $env:LOCALAPPDATA "AI-Dispatcher\github-token.dpapi"
-$codeCommit = "138a47ca6b30418d35e962851cdbf173db26019e"
+$codeCommit = "77006b45133c0545590bce76d5683c8eb8445d5c"
 $oldDispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
 $dispatcherBlob = "227ca28fd9b911a327c1012888c1089df9e273e2"
 $previousModuleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
 $intermediateModuleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
 $previousRealDomBlob = "b3495d39c3d67a8d584390d333f59eac1bc96f27"
-$moduleBlob = "2ffe886885d707534fc15cb43b2455c6d8798c9e"
+$previousModuleV4Blob = "2ffe886885d707534fc15cb43b2455c6d8798c9e"
+$moduleBlob = "c10cea1b73b726847db1cb08aee2e87ecea9a4fe"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("AI_Dispatcher_ControlReply_" + [guid]::NewGuid().ToString("N"))
 $stageHandoff = Join-Path $stage ".agent-handoff"
@@ -70,7 +71,7 @@ if ([string]$control.chatgpt_control_url -ne "https://chatgpt.com/c/6ad27341-1ea
 $currentDispatcherBlob = GitBlob $dispatcher
 if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $oldDispatcherBlob, $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
 if (Test-Path -LiteralPath $module) {
-    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$previousRealDomBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
+    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$previousRealDomBlob,$previousModuleV4Blob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
 }
 
 # Obtain a token only if this Windows user has no DPAPI-protected token.
@@ -141,14 +142,16 @@ with sync_playwright() as playwright:
         meta = pages[0].evaluate("""() => {
           const visible = x => !!(x && x.getClientRects().length);
           const wake = /^Проверь GitHub\\. turn_id=76$/;
+          const flat = x => String(x || '').replace(/[\\u00a0\\u200b\\u200c\\u200d\\ufeff]/g, ' ').replace(/\\s+/g, ' ').trim();
           const users = [...document.querySelectorAll('[class~="bg-user-message"]')].filter(visible);
           const markdowns = [...document.querySelectorAll('[class*="MarkdownRoot-"]')].filter(visible);
           const headings = [...document.querySelectorAll('[class*="MarkdownRoot-"] p')].filter(visible);
           return {
             visible_user_bubbles: users.length,
-            exact_wake_bubbles: users.filter(x => wake.test((x.innerText||'').trim())).length,
+            exact_wake_bubbles: users.filter(x => wake.test(flat((x.querySelector('[class*="whitespace-pre-wrap"]') || x).textContent))).length,
             visible_markdown_roots: markdowns.length,
-            exact_ack_headings: headings.filter(x => /^CONTROL ACK\\s*[—–-]\\s*turn_id=76$/.test((x.innerText||'').trim())).length,
+            exact_ack_headings: headings.filter(x => /^CONTROL ACK\\s*[—–-]\\s*turn_id=76$/.test(flat(x.textContent))).length,
+            answer_first_line_matches: markdowns.filter(x => /^CONTROL\\s+ACK\\s*[—–-]\\s*turn_id\\s*=\\s*76/.test((x.innerText || x.textContent || '').trim())).length,
             parent_main: document.querySelectorAll('main,[role="main"]').length,
             active_generation: !!document.querySelector('[data-testid="stop-button"]')
           };

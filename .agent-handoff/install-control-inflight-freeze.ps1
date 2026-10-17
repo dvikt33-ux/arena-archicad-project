@@ -69,6 +69,7 @@ $tests = Join-Path $stagedRoot 'tests'
 $null = New-Item -ItemType Directory -Path $tests -Force
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/dispatcher.py" -OutFile (Join-Path $stagedRoot 'dispatcher.py')
 Invoke-WebRequest -UseBasicParsing -Uri "$prefix/control_reply_handoff.py" -OutFile (Join-Path $stagedRoot 'control_reply_handoff.py')
+Invoke-WebRequest -UseBasicParsing -Uri "$prefix/install-control-reply-handoff.ps1" -OutFile (Join-Path $stagedRoot 'install-control-reply-handoff.ps1')
 $names = @(
   'test_control_reply_handoff.py','test_control_marker_fallback.py',
   'test_stale_control_rescue.py','test_arena_feedback_dismiss.py',

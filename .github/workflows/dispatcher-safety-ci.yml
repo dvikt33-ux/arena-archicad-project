@@ -40,15 +40,20 @@ jobs:
       - name: Windows PowerShell 5.1 syntax and encoding
         shell: powershell
         run: |
-          $script = '.agent-handoff/install-dispatcher-state-hardening.ps1'
-          $bytes = [IO.File]::ReadAllBytes((Resolve-Path $script))
-          if ($bytes | Where-Object { $_ -gt 127 }) { throw 'Installer is not ASCII' }
-          $tokens = $null
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path $script), [ref]$tokens, [ref]$parseErrors
-          ) | Out-Null
-          if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
+          $scripts = @(
+              '.agent-handoff/install-dispatcher-state-hardening.ps1',
+              '.agent-handoff/install-control-inflight-freeze.ps1'
+          )
+          foreach ($script in $scripts) {
+              $bytes = [IO.File]::ReadAllBytes((Resolve-Path $script))
+              if ($bytes | Where-Object { $_ -gt 127 }) { throw 'Installer is not ASCII' }
+              $tokens = $null
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  (Resolve-Path $script), [ref]$tokens, [ref]$parseErrors
+              ) | Out-Null
+              if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
+          }
       - name: Windows no-browser Python regressions
         shell: powershell
         run: |

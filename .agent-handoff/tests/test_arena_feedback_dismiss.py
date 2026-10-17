@@ -47,9 +47,15 @@ class FakeLocator:
 class FakePage:
     def __init__(self, feedback=True, url="https://arena.ai/agent/a1",
                  prompt="Эта задача была выполнена успешно?",
-                 actions=("Продолжить работу",)):
+                 actions=("Продолжить работу",), active_overlay=True):
         self.feedback, self.url, self.prompt = feedback, url, prompt
+        self.active_overlay = active_overlay
         self.actions, self.clicked = actions, []
+
+    def evaluate(self, script):
+        # Model the result of active-modal DOM scoping, not global message text.
+        assert '[role="dialog"]' in script and "style.position === 'fixed'" in script
+        return bool(self.feedback and self.active_overlay)
     def get_by_text(self, label, exact=False):
         if label in ("Эта задача была выполнена успешно?",
                      "Was this task completed successfully?",
@@ -80,6 +86,23 @@ class ArenaFeedbackTests(unittest.TestCase):
         page = FakePage(feedback=False)
         self.assertFalse(self.env["dismiss_arena_completion"](page))
         self.assertFalse(page.clicked)
+
+    def test_historical_feedback_text_in_chat_is_not_a_dialog(self):
+        # This reproduces the screenshot: normal Arena composer is available
+        # but a previous message still contains the completed-task question.
+        page = FakePage(feedback=True, active_overlay=False, actions=())
+        self.assertFalse(self.env["arena_feedback_visible"](page))
+        self.assertFalse(self.env["dismiss_arena_completion"](page))
+        self.assertFalse(page.clicked)
+        self.assertEqual(self.logs, [])
+
+    def test_must_have_visible_active_overlay_even_when_old_text_remains(self):
+        page = FakePage(active_overlay=False)
+        self.assertFalse(self.env["dismiss_visible_arena_feedback"]([page]))
+        self.assertEqual(page.clicked, [])
+        page.active_overlay = True
+        self.assertTrue(self.env["dismiss_visible_arena_feedback"]([page]))
+        self.assertEqual(page.clicked, ["Продолжить работу"])
 
     def test_english_prompt(self):
         page = FakePage(prompt="Was this task completed successfully?",

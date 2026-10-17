@@ -34,6 +34,98 @@ def _visible_turns(page) -> dict | None:
       }
       return {boot:texts.some(t=>t.includes('Служебный чат 01 — CONTROL & BRIDGE')),ready:texts.some(t=>/^CONTROL READY\.?$/.test(t)),wakes:texts.filter(t=>/^Проверь GitHub\. turn_id=\d+$/.test(t)).slice(-8),turns};
     }""")
+def _read_verified_ack_pair(page) -> list[dict]:
+    """Require an ordered wake and a separate, response-scoped Markdown ACK.
+
+    Visible text alone does not confer the assistant role. The exact reply must
+    live in an assistant-labelled element or a distinct Markdown response body,
+    not in a user bubble, nav, composer or bootstrap instruction.
+    """
+    try:
+        facts = page.evaluate(r"""() => {
+          const main = [...document.querySelectorAll('main,[role="main"]')]
+            .find(el => el.getClientRects().length &&
+              (el.innerText || '').includes('Служебный чат 01 — CONTROL & BRIDGE'));
+          if (!main) return null;
+          const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
+          const visible = el => !!(el && el.getClientRects().length);
+          const stop = [...document.querySelectorAll(
+            '[data-testid="stop-button"],button[aria-label="Stop streaming"],' +
+            'button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"]'
+          )].some(visible);
+          if (stop) return null;
+          const nodes = [], walk = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+          while (walk.nextNode()) {
+            const n = walk.currentNode, p = n.parentElement;
+            if (!p || !visible(p) ||
+                p.closest('nav,aside,textarea,[contenteditable="true"],script,style')) continue;
+            const text = clean(n.textContent);
+            if (text) nodes.push({node:n,text});
+          }
+          const wakeRe = /^Проверь GitHub\. turn_id=(\d+)$/;
+          const ackRe = /^CONTROL ACK\s*[—–-]\s*turn_id=(\d+)$/;
+          const wakes = nodes.map(x => ({...x, match:x.text.match(wakeRe)}))
+            .filter(x => x.match);
+          const acks = nodes.map(x => ({
+            ...x, match:x.text.split(/\r?\n/,1)[0].trim().match(ackRe)
+          })).filter(x => x.match);
+          const later = (a,b) => !!(a.compareDocumentPosition(b) &
+            Node.DOCUMENT_POSITION_FOLLOWING);
+          const pairs = [];
+          for (let i = 0; i < wakes.length; ++i) {
+            const wake = wakes[i], next = wakes[i+1], eligible = [];
+            for (const ack of acks) {
+              if (wake.match[1] !== ack.match[1] ||
+                  !later(wake.node,ack.node) ||
+                  (next && !later(ack.node,next.node))) continue;
+              const p = ack.node.parentElement;
+              if (!p || p.closest('[data-message-author-role="user"],' +
+                '[data-message-author="user"],[data-testid*="user-message"],' +
+                '[data-testid*="user-turn"]')) continue;
+              const labelled = p.closest('[data-message-author-role],[data-message-author]');
+              if (labelled) {
+                const role = String(labelled.getAttribute('data-message-author-role') ||
+                  labelled.getAttribute('data-message-author') || '').toLowerCase();
+                if (!role.includes('assistant')) continue;
+              }
+              const markdown = p.closest('.markdown,[class~="prose"],' +
+                '[data-testid="assistant-message"]');
+              if (!labelled && !markdown) continue;
+              const block = markdown || labelled;
+              if (!visible(block) || block.contains(wake.node)) continue;
+              const body = clean(block.innerText || block.textContent);
+              const lines = body.split(/\r?\n/);
+              if (lines.length < 2 || !ackRe.test(lines[0].trim()) ||
+                  !lines.slice(1).join('\n').trim()) continue;
+              eligible.push(body);
+            }
+            if (eligible.length === 1) pairs.push({
+              wake:wake.text, answer:eligible[0]
+            });
+          }
+          return {pairs};
+        }""")
+    except Exception:
+        return []
+    if not isinstance(facts, dict):
+        return []
+    pairs = facts.get("pairs")
+    if not isinstance(pairs, list) or len(pairs) != 1:
+        return []
+    pair = pairs[0]
+    if not isinstance(pair, dict):
+        return []
+    wake, answer = _clean(pair.get("wake")), _clean(pair.get("answer"))
+    matched_wake = re.fullmatch(r"Проверь GitHub\. turn_id=(\d+)", wake)
+    head = answer.splitlines()[0].strip() if answer else ""
+    matched_ack = _ACK.fullmatch(head)
+    if not matched_wake or not matched_ack or matched_wake.group(1) != matched_ack.group(1):
+        return []
+    if len(answer.splitlines()) < 2 or not "\n".join(answer.splitlines()[1:]).strip():
+        return []
+    return [{"role":"user","text":wake},{"role":"assistant","text":answer}]
+
+
 def read_control_marker_fallback(page, record: dict, is_durable_control_url: Callable[[str],bool], same_conversation: Callable[[str,str],bool], bootstrap_marker: str, ready_marker: str, log: Callable[[str],None]) -> list[dict]:
     """Return only visible, role-labelled turns from the persisted CONTROL chat."""
     page_url=str(getattr(page,"url","") or ""); saved=str((record or {}).get("chatgpt_control_url") or "")
@@ -42,7 +134,9 @@ def read_control_marker_fallback(page, record: dict, is_durable_control_url: Cal
     except Exception: return []
     if not isinstance(facts,dict) or not facts.get("boot") or not facts.get("ready"): return []
     messages=[]
-    for item in facts.get("turns") or []:
+    # Prefer DOM-proven wake/answer pairs. Never invent an assistant ACK.
+    verified = _read_verified_ack_pair(page)
+    for item in (verified or facts.get("turns") or []):
         if not isinstance(item,dict): continue
         role=str(item.get("role") or "").lower(); text=_clean(item.get("text"))
         if role in {"user","assistant"} and text: messages.append({"role":role,"text":text})
@@ -53,7 +147,14 @@ def read_control_marker_fallback(page, record: dict, is_durable_control_url: Cal
     for wake in facts.get("wakes") or []:
         wake=_clean(wake)
         if re.fullmatch(r"Проверь GitHub\. turn_id=\d+",wake) and not any(m["role"]=="user" and m["text"]==wake for m in messages):
-            messages.append({"role":"user","text":wake})
+            # Preserve chronology if a role-labelled ACK precedes fallback wake.
+            expected = wake.rsplit("=", 1)[-1]
+            position = next((i for i, item in enumerate(messages)
+                if item["role"] == "assistant"
+                and _ACK.fullmatch(item["text"].splitlines()[0].strip())
+                and _ACK.fullmatch(item["text"].splitlines()[0].strip()).group(1) == expected),
+                len(messages))
+            messages.insert(position, {"role":"user","text":wake})
     log("CONTROL: visible text fallback users={} assistants={}".format(sum(m["role"]=="user" for m in messages),sum(m["role"]=="assistant" for m in messages)))
     return messages
 def parse_control_reply(messages: list[dict], turn_id: int) -> str | None:

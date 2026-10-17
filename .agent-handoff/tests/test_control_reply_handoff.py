@@ -53,8 +53,8 @@ class DomProvenanceTests(unittest.TestCase):
             self.scripts.append(script)
             if self.raise_error:
                 raise RuntimeError("browser detached")
-            if "return {pairs" in script:
-                return {"pairs": [] if self.pair is None else [self.pair]}
+            if "return metrics" in script:
+                return {"pairs": [] if self.pair is None else [self.pair], "reason":"verified" if self.pair else "wake-not-matched", "userBubbles":1, "wakeBubbles":1 if self.pair else 0, "markdownBlocks":1, "headingMatches":1 if self.pair else 0, "replyBodies":1 if self.pair else 0}
             return {"boot": True, "ready": True,
                     "wakes": ["Проверь GitHub. turn_id=76"],
                     "turns": [{"role": "user", "text": "Проверь GitHub. turn_id=76"}]}
@@ -77,7 +77,7 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertTrue(any('[class~="bg-user-message"]' in x for x in page.scripts))
         self.assertTrue(any('[class*="MarkdownRoot-"]' in x for x in page.scripts))
         self.assertTrue(any('el.innerText' in x for x in page.scripts))
-        self.assertTrue(any('after(wake.el,a.el)' in x for x in page.scripts))
+        self.assertTrue(any('after(wake.el,reply.el)' in x for x in page.scripts))
         self.assertTrue(any('el.closest(userScope)' in x for x in page.scripts))
         self.assertTrue(any('stop-button' in x for x in page.scripts))
 
@@ -108,16 +108,36 @@ class DomProvenanceTests(unittest.TestCase):
             "answer": "CONTROL ACK — turn_id=76\nRELEASE_NOT_PROVEN",
         })
         self.assertEqual(len(handoff._read_verified_ack_pair(p)), 2)
-        probe = next(x for x in p.scripts if "return {pairs" in x)
+        probe = next(x for x in p.scripts if "return metrics" in x)
         self.assertIn("MarkdownRoot-", probe)
         self.assertIn("head.innerText", probe)
         self.assertNotIn("NodeFilter.SHOW_TEXT", probe)
-        self.assertIn("const preface = raw.match(", probe)
-        self.assertIn("head.textContent || head.innerText", probe)
+        self.assertIn("const m=raw.match(", probe)
+        self.assertIn("first.textContent", probe)
         self.assertIn("userScope", probe)
         # Earlier bootstrap may be virtualized; wake and its reply suffice.
         self.assertNotIn("Служебный чат 01 — CONTROL & BRIDGE", probe)
-        self.assertIn("matchingHeadings", probe)
+        self.assertIn("headingMatches", probe)
+
+    def test_same_reader_exposes_redacted_preflight_reason(self):
+        page = self.ProbePage()
+        diagnostic = {}
+        self.assertEqual(handoff._read_verified_ack_pair(page, diagnostic), [])
+        self.assertEqual(diagnostic["reason"], "wake-not-matched")
+        self.assertEqual(diagnostic["wakeBubbles"], 0)
+        self.assertNotIn("answer", diagnostic)
+        self.assertNotIn("wake", diagnostic)
+
+    def test_shared_reader_accepts_proven_pair_with_diagnostics(self):
+        page = self.ProbePage({
+            "wake": "Проверь GitHub. turn_id=76",
+            "answer": "CONTROL ACK — turn_id=76\\nRELEASE_NOT_PROVEN".replace("\\n", "\n")
+        })
+        diagnostic = {}
+        actual = handoff._read_verified_ack_pair(page, diagnostic)
+        self.assertEqual(len(actual), 2)
+        self.assertEqual(diagnostic["reason"], "verified")
+        self.assertEqual(handoff.parse_control_reply(actual, 76), "RELEASE_NOT_PROVEN")
 
     def test_missing_ack_is_not_synthesized(self):
         page = self.ProbePage()

@@ -230,29 +230,54 @@ def default_state() -> dict:
 
 
 def load_state() -> dict:
+    """Resume the persisted queue or fail closed. Never replay from zero on error."""
     if not STATE_PATH.exists():
+        # Never reconstruct an established queue from the latest signal.
+        # A new installation may start without state ONLY before CONTROL
+        # has been provisioned; otherwise missing state means recovery.
+        if CONTROL_PATH.exists():
+            raise RuntimeError("STATE_MISSING_STOP: established queue needs recovery")
         return default_state()
 
     try:
         data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
-        log(f"STATE: повреждён state-файл, использую безопасный default: {exc}")
-        return default_state()
+        if not isinstance(data, dict):
+            raise ValueError("state_not_object")
+        last = data.get("last_turn_id")
+        if type(last) is not int or last < 0:
+            raise ValueError("invalid_last_turn_id")
+        pending = data.get("inflight")
+        if pending is not None:
+            if not isinstance(pending, dict):
+                raise ValueError("inflight_not_object")
+            turn = pending.get("turn_id")
+            target = pending.get("target")
+            if (type(turn) is not int or turn <= last or
+                    target not in {"GPT", "ARENA"} or
+                    pending.get("wake") != wake_text(turn)):
+                raise ValueError("inflight_identity_invalid")
+        return {"last_turn_id": last, "inflight": pending}
+    except (OSError, ValueError, TypeError) as exc:
+        # An absent/invalid state must not silently replay a GitHub signal.
+        raise RuntimeError("STATE_INVALID_STOP: local queue needs recovery") from exc
 
-    state = default_state()
-    state["last_turn_id"] = int(data.get("last_turn_id", 0) or 0)
-    inflight = data.get("inflight")
-    state["inflight"] = inflight if isinstance(inflight, dict) else None
-    return state
+
+class DispatcherStateWriteError(RuntimeError):
+    """Queue persistence failed: stop, never keep sending via browser."""
+    pass
 
 
 def save_state(state: dict) -> None:
     tmp = STATE_PATH.with_suffix(".tmp")
-    tmp.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    os.replace(tmp, STATE_PATH)
+    try:
+        with tmp.open("w", encoding="utf-8") as stream:
+            json.dump(state, stream, ensure_ascii=False, indent=2)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, STATE_PATH)
+    except (OSError, TypeError, ValueError) as exc:
+        # We cannot safely continue dispatching when durable state is unknown.
+        raise DispatcherStateWriteError("STATE_WRITE_FAILED_STOP") from exc
 
 
 def is_chatgpt_conversation_url(url: str) -> bool:
@@ -3449,7 +3474,7 @@ def chatgpt_prompt(page):
         return fallback.first
 
 
-def send_to_chatgpt(page, text: str) -> bool:
+def send_to_chatgpt(page, text: str, on_before_submit=None, allow_retry: bool = True) -> bool:
     """Fill once, confirm submission, and never log the text."""
     before = str(getattr(page, "url", "") or "")
     box = chatgpt_prompt(page)
@@ -3458,11 +3483,13 @@ def send_to_chatgpt(page, text: str) -> bool:
     except Exception:
         pass
     box.fill(text)
+    if on_before_submit is not None:
+        on_before_submit()
     box.press("Enter")
     if _submit_confirmed(page, text, before):
         log("CONTROL: submit=confirmed")
         return True
-    if submit_confirmation_action(False, False, False, composer_has_exact_text(page, text), False) == "retry":
+    if allow_retry and submit_confirmation_action(False, False, False, composer_has_exact_text(page, text), False) == "retry":
         log("CONTROL: submit=retry")
         submit_composer_only(page, text)
         if _submit_confirmed(page, text, before):
@@ -4086,7 +4113,7 @@ def arena_wake_exists(page, wake: str) -> bool:
     return len(lines) >= 1
 
 
-def send_to_arena(page, wake: str) -> None:
+def send_to_arena(page, wake: str, on_before_submit=None) -> None:
     dismiss_arena_completion(page)
     if arena_feedback_visible(page):
         # Never send into a blocked editor behind a feedback dialog.
@@ -4117,6 +4144,8 @@ def send_to_arena(page, wake: str) -> None:
     if not inserted:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
+    if on_before_submit is not None:
+        on_before_submit()
     editor.press("Enter", timeout=10000)
     page.wait_for_timeout(800)
 
@@ -4137,45 +4166,41 @@ def wake_attempt_count(inflight: dict) -> int:
 
 
 def wake_send_allowed(inflight: dict, now: float | None = None) -> bool:
+    """At-most-once Enter for a turn; a missing DOM wake is not a failed send."""
     now = time.time() if now is None else now
-    attempts = wake_attempt_count(inflight)
-
-    if attempts >= MAX_WAKE_ATTEMPTS:
+    if (bool(inflight.get("send_intent")) or bool(inflight.get("submitted"))
+            or wake_attempt_count(inflight) > 0):
         return False
+    return now >= float(inflight.get("retry_after", 0) or 0)
 
-    retry_after = float(inflight.get("retry_after", 0) or 0)
-    if attempts == 0:
-        return now >= retry_after
-    if retry_after:
-        return now >= retry_after
 
-    submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
-    return now >= submitted_at + WAKE_CONFIRM_SECONDS
+def mark_wake_send_intent(state: dict, inflight: dict, turn_id: int, target: str) -> None:
+    """Persist intent before Enter. A crash can hold, but cannot resend."""
+    if (inflight.get("send_intent") or inflight.get("submitted")
+            or wake_attempt_count(inflight) > 0):
+        raise RuntimeError("WAKE_ALREADY_ATTEMPTED")
+    inflight["send_intent"] = True
+    inflight["send_attempts"] = 1
+    inflight["submitted"] = True
+    inflight["submitted_at"] = time.time()
+    inflight["retry_after"] = 0
+    inflight["last_error"] = "UNCONFIRMED_WAKE_DELIVERY"
+    state["inflight"] = inflight
+    save_state(state)
+    log(f"{target}: send intent persisted for turn_id={turn_id}")
 
 
 def mark_unobserved_wake(state: dict, inflight: dict, turn_id: int, target: str) -> None:
-    attempts = wake_attempt_count(inflight) + 1
-    inflight["send_attempts"] = attempts
+    """Quarantine ambiguous delivery; never blindly replay the same wake."""
+    inflight["send_attempts"] = max(1, wake_attempt_count(inflight))
     inflight["submitted"] = True
     inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
-    inflight["last_error"] = f"{target} wake not observed"
-
-    if attempts < MAX_WAKE_ATTEMPTS:
-        inflight["retry_after"] = time.time() + WAKE_CONFIRM_SECONDS
-        log(
-            f"{target}: wake turn_id={turn_id} не подтверждён. "
-            f"Попытка {attempts}/{MAX_WAKE_ATTEMPTS}. "
-            f"Повтор того же turn_id через {WAKE_CONFIRM_SECONDS} сек."
-        )
-    else:
-        inflight["retry_after"] = 0
-        log(
-            f"{target}: wake turn_id={turn_id} не подтверждён после {attempts} попыток. "
-            "Больше не отправляю; жду историю или новый turn_id."
-        )
-
+    inflight["last_error"] = "UNCONFIRMED_WAKE_DELIVERY"
+    inflight["send_intent"] = True
+    inflight["retry_after"] = 0
     state["inflight"] = inflight
     save_state(state)
+    log(f"{target}: wake turn_id={turn_id} not observed; automatic resend forbidden")
 
 
 def consume_turn(state: dict, turn_id: int, reason: str) -> None:
@@ -4228,6 +4253,11 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
                         return
                     consume_turn(state, turn_id, "GPT->ARENA signal write verified by readback")
                     return
+        except DispatcherStateWriteError:
+            # The recovery path can publish a successor before consuming the
+            # local turn. A failed state write must stop, never fall through
+            # into a second wake attempt.
+            raise
         except Exception as exc:
             log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
 
@@ -4293,7 +4323,11 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     if not wake_send_allowed(inflight):
         return
 
-    send_to_chatgpt(page, wake)
+    send_to_chatgpt(
+        page, wake,
+        on_before_submit=lambda: mark_wake_send_intent(state, inflight, turn_id, "GPT"),
+        allow_retry=False,
+    )
 
     try:
         page.wait_for_timeout(800)
@@ -4305,7 +4339,8 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         bind_wake_to_control(inflight, page)
         inflight["submitted"] = True
         inflight["submitted_at"] = time.time()
-        inflight["send_attempts"] = wake_attempt_count(inflight) + 1
+        inflight["send_attempts"] = max(1, wake_attempt_count(inflight))
+        inflight.pop("send_intent", None)
         inflight["last_error"] = None
         inflight["retry_after"] = 0
         state["inflight"] = inflight
@@ -4332,10 +4367,16 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         return
 
     try:
-        send_to_arena(page, wake)
+        send_to_arena(
+            page, wake,
+            on_before_submit=lambda: mark_wake_send_intent(state, inflight, turn_id, "ARENA"),
+        )
     except RuntimeError as exc:
         if str(exc) != "ARENA_INPUT_UNAVAILABLE":
             raise
+        if inflight.get("send_intent"):
+            mark_unobserved_wake(state, inflight, turn_id, "ARENA")
+            return
 
         inflight["retry_after"] = time.time() + ARENA_RETRY_SECONDS
         inflight["last_error"] = "Arena input unavailable"
@@ -4355,6 +4396,7 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
 
     inflight["submitted"] = True
     inflight["submitted_at"] = time.time()
+    inflight.pop("send_intent", None)
     inflight["last_error"] = None
     state["inflight"] = inflight
     save_state(state)
@@ -4377,9 +4419,54 @@ def current_signal_cancels_inflight(signal: dict, inflight: dict) -> bool:
 
 
 def newer_signal_supersedes_inflight(signal: dict, inflight: dict) -> bool:
+    """Only a direct response by the prior recipient proves supersession.
+
+    A greater turn number alone does NOT prove that a previously pending
+    command reached its recipient. Preserve unknown/gapped transitions.
+    """
     if not inflight:
         return False
-    return int(signal.get("turn_id", 0)) > int(inflight.get("turn_id", 0))
+    current = int(inflight.get("turn_id", 0))
+    next_id = int(signal.get("turn_id", 0))
+    recipient = str(inflight.get("target", "")).upper()
+    source = str(signal.get("source", "")).upper()
+    target = str(signal.get("target", "")).upper()
+    status = str(signal.get("status", "")).lower()
+    if next_id != current + 1 or recipient not in {"GPT", "ARENA"}:
+        return False
+    if source != recipient:
+        return False
+    if target == "NONE" and status in TERMINAL_STATUSES:
+        return True
+    return target in {"GPT", "ARENA"} and target != recipient and status in READY_STATUSES
+
+
+def signal_is_closed_ack_loop(signal: dict) -> bool:
+    """Conservative compatibility guard for a known non-actionable GPT echo.
+
+    New peers should publish status=done, target=NONE for terminal messages.
+    Older GPT peers sent a closed-loop notice with status=ready and target=ARENA.
+    Recognize that exact, evidence-free closure form ONLY. Do not classify a
+    real user task, a normal repeated instruction, or a different status.
+    """
+    if (str(signal.get("source", "")).upper() != "GPT" or
+            str(signal.get("target", "")).upper() != "ARENA" or
+            str(signal.get("status", "")).lower() != "ready" or
+            signal.get("requires_codex", False) is not False):
+        return False
+    message = str(signal.get("message", "")).strip()
+    if not message.startswith("RELEASE_NOT_PROVEN\n"):
+        return False
+    lines = [line.strip() for line in message.splitlines() if line.strip()]
+    if not any(re.fullmatch(r"Turn \d+: accepted\.", line) for line in lines):
+        return False
+    terminal_tail = [
+        "Acknowledgement loop closed until new evidence exists.",
+        "No further handoff published. No rescan, push, save, export, or Codex/Work invocation performed.",
+    ]
+    # The closing marker must be the *end* of the signal. A new action or
+    # instruction appended after this footer must never be silently dropped.
+    return lines[-2:] == terminal_tail
 
 
 def handle_signal_without_action(state: dict, signal: dict) -> bool:
@@ -4392,6 +4479,10 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
     if status in HOLD_STATUSES and target != "NONE":
         log(f"TURN {turn_id}: status={status}, отправка отложена без consume.")
+        return True
+
+    if signal_is_closed_ack_loop(signal):
+        consume_turn(state, turn_id, "ACK loop terminal notice; no new task delivered")
         return True
 
     if target == "NONE" or status in TERMINAL_STATUSES:
@@ -4411,9 +4502,9 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
 def watch() -> None:
     acquire_single_instance()
-    start_service_chrome()
-
+    # Refuse a missing/corrupted established queue BEFORE opening Chrome.
     state = load_state()
+    start_service_chrome()
 
     log(f"AI Dispatcher {VERSION} запущен")
     log(f"Последний обработанный turn_id: {state['last_turn_id']}")
@@ -4446,13 +4537,24 @@ def watch() -> None:
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 
-                if inflight and newer_signal_supersedes_inflight(signal, inflight):
+                if inflight and int(signal.get("turn_id", 0)) > int(inflight["turn_id"]):
+                    if not newer_signal_supersedes_inflight(signal, inflight):
+                        if inflight.get("last_error") != "UNVERIFIED_SUCCESSOR":
+                            inflight["last_error"] = "UNVERIFIED_SUCCESSOR"
+                            state["inflight"] = inflight
+                            save_state(state)
+                            log(
+                                f"TURN {inflight['turn_id']}: unverified newer GitHub "
+                                f"turn_id={signal['turn_id']}; retaining pending state."
+                            )
+                        time.sleep(CHECK_INTERVAL)
+                        continue
                     old_turn = int(inflight["turn_id"])
                     new_turn = int(signal["turn_id"])
                     consume_turn(
                         state,
                         old_turn,
-                        f"подтверждён более новым GitHub turn_id={new_turn}",
+                        f"verified successor source={signal['source']} turn_id={new_turn}",
                     )
                     inflight = None
 
@@ -4522,6 +4624,10 @@ def watch() -> None:
 
             except KeyboardInterrupt:
                 log("Остановка по Ctrl+C.")
+                raise
+
+            except DispatcherStateWriteError:
+                log("STATE: write failure; stopping dispatcher without CDP restart or wake replay.")
                 raise
 
             except GitHubNetworkError:

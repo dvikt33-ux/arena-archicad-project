@@ -4427,6 +4427,23 @@ def submitted_gpt_wake_needs_read_only_wait(inflight: dict) -> bool:
     )
 
 
+def submitted_control_readback_url(inflight: dict, stored_control_url: str) -> str:
+    """Read pending receipts ONLY from their persisted submit-time CONTROL URL.
+
+    A prior blank-history rebind may have changed the CONTROL record. That
+    must not retarget an already-submitted wake/ACK to the replacement chat.
+    Missing or inconsistent submit-time provenance fails closed.
+    """
+    if not submitted_gpt_wake_needs_read_only_wait(inflight):
+        return str(stored_control_url or "")
+    pinned = str(inflight.get("wake_seen_control_url") or "").strip()
+    identity = str(inflight.get("wake_seen_control_identity") or "").lower()
+    if (not is_durable_control_url(pinned) or not identity
+            or conversation_identity(pinned) != identity):
+        return ""
+    return pinned
+
+
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
@@ -4438,10 +4455,12 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     if browser is not None:
         try:
             record = load_control_record()
-            saved_url = str(record.get("chatgpt_control_url") or "")
+            saved_url = submitted_control_readback_url(
+                inflight, str(record.get("chatgpt_control_url") or "")
+            )
             pages = [
                 page for context in browser.contexts for page in context.pages
-                if is_durable_control_url(page.url or "")
+                if saved_url and is_durable_control_url(page.url or "")
                 and same_conversation(page.url or "", saved_url)
             ]
             if len(pages) == 1 and not generation_is_active(pages[0]):

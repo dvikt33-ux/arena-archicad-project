@@ -7,9 +7,9 @@ $dispatcher = Join-Path $handoff 'dispatcher.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
-$codeCommit = 'a8c74ea8f7afa228afad36decaa943c21170e978'
-$oldBlob = '25f705baa274676ba88aeaab82e31896e8a1309e'
-$newBlob = '9b2368367e916d4e8ace1fb06ed038cf05fd5026'
+$codeCommit = 'ada7f2d8a618cd32aaf00554a0f81da0ccfeae44'
+$oldBlob = '9b2368367e916d4e8ace1fb06ed038cf05fd5026'
+$newBlob = '86f60e2bf9c64589962851474ca5cc5975786a3e'
 $helperBlob = 'b79a002bcdd1bb517421c9b2f6792f00cd5e1d75'
 $controlURL = 'https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a'
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
@@ -59,8 +59,14 @@ function AssertSafeState {
         $pending.submitted -ne $true -or
         [int]$pending.send_attempts -ne 1 -or
         [string]$pending.wake_seen_control_identity -ne '6ad27341-1ea4-83eb-8238-5ce1cada094a' -or
-        $pending.terminal_resume_intent -eq $true) {
-        Refuse 'queue is not the pinned pending terminal 87'
+        $pending.terminal_resume_intent -ne $true -or
+        [double]$pending.terminal_resume_at -le 0 -or
+        @('CONTROL_TERMINAL_RESUME_PENDING',
+          'CONTROL_TERMINAL_RESUME_AWAITING_ACK',
+          'CONTROL_TERMINAL_RESUME_SUBMITTED_UNOBSERVED',
+          'CONTROL_TERMINAL_RESUME_UNCONFIRMED',
+          'CONTROL_TERMINAL_ACK_TIMEOUT') -notcontains [string]$pending.last_error) {
+        Refuse 'queue is not the pinned pending terminal 87 after one resume attempt'
     }
 }
 if (!(Test-Path -LiteralPath $dispatcher) -or !(Test-Path -LiteralPath $helper) -or
@@ -78,7 +84,7 @@ if ($current -eq $newBlob) {
     exit 0
 }
 if ($current -ne $oldBlob) {
-    Refuse 'dispatcher source is not the pinned 25f705 baseline'
+    Refuse 'dispatcher source is not the pinned 9b236 baseline'
 }
 $normalPath = $dispatcher.Replace('/','\').ToLowerInvariant()
 $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
@@ -168,7 +174,7 @@ try {
 if ($started -and $started.HasExited) { Refuse 'dispatcher exited after restart; check log' }
 if (!(MutexPresent)) { Refuse 'dispatcher mutex not restored' }
 if ((FileBlob $dispatcher) -ne $newBlob) { Refuse 'installed source changed after restart' }
-Write-Host 'INSTALL PASS: one-shot CONTROL ACK recovery installed.'
-Write-Host 'Queue preserved, pending turn 87 will resume once. No mailbox, PLN or main writes.'
-Write-Host 'LIVE confirmation of recovered CONTROL ACK is still pending.'
+Write-Host 'INSTALL PASS: read-only CONTROL RESUME acknowledgement recognition installed.'
+Write-Host 'Queue preserved: terminal resume intent remains set; no additional send is permitted.'
+Write-Host 'LIVE proof of existing CONTROL RESUME and matching ACK is still required.'
 Write-Host "Backup: $backup"

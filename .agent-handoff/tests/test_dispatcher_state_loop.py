@@ -26,9 +26,11 @@ def env_for(state_path, control_path):
            "json":json, "os":os, "re":re, "log":lambda _:None,
            "wake_text":lambda n:f"Проверь GitHub. turn_id={n}",
            "HOLD_STATUSES":{"blocked", "paused", "idle"},
+           "READY_STATUSES":{"ready", "pending", "queued"},
            "TERMINAL_STATUSES":{"done", "cancelled", "canceled"}}
     for name in ("default_state", "load_state", "save_state",
-                 "signal_is_closed_ack_loop", "handle_signal_without_action"):
+                 "signal_is_closed_ack_loop", "handle_signal_without_action",
+                 "newer_signal_supersedes_inflight"):
         isolated(name, env)
     return env
 
@@ -160,6 +162,51 @@ class LoopClosureGuard(unittest.TestCase):
         self.assertTrue(self.e["handle_signal_without_action"](
             {"last_turn_id":81},CLOSED))
         self.assertEqual(self.events,[])
+
+
+class SuccessorIntegrity(unittest.TestCase):
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.addCleanup(self.td.cleanup)
+        p = Path(self.td.name)
+        self.e = env_for(p/"queue.json",p/"control.json")
+        self.check = self.e["newer_signal_supersedes_inflight"]
+
+    def test_adjacent_reply_from_actual_recipient_is_proven(self):
+        examples = [
+            ({"turn_id":78,"target":"GPT"},
+             {"turn_id":79,"source":"GPT","target":"ARENA","status":"ready"}),
+            ({"turn_id":79,"target":"ARENA"},
+             {"turn_id":80,"source":"ARENA","target":"GPT","status":"ready"}),
+            ({"turn_id":80,"target":"GPT"},
+             {"turn_id":81,"source":"GPT","target":"NONE","status":"done"}),
+        ]
+        for pending,new in examples:
+            with self.subTest(pending=pending,new=new):
+                self.assertTrue(self.check(new,pending))
+
+    def test_gaps_wrong_source_or_nonterminal_status_do_not_consume(self):
+        pending={"turn_id":78,"target":"GPT"}
+        candidates=[
+            {"turn_id":80,"source":"GPT","target":"ARENA","status":"ready"},
+            {"turn_id":79,"source":"ARENA","target":"GPT","status":"ready"},
+            {"turn_id":79,"source":"GPT","target":"GPT","status":"ready"},
+            {"turn_id":79,"source":"GPT","target":"NONE","status":"ready"},
+            {"turn_id":79,"source":"GPT","target":"ARENA","status":"paused"},
+        ]
+        for new in candidates:
+            with self.subTest(new=new):
+                self.assertFalse(self.check(new,pending))
+        self.assertFalse(self.check(candidates[0],None))
+
+    def test_watch_quarantines_unverified_successor_without_consume(self):
+        source=SOURCE.read_text(encoding="utf-8")
+        watch=source[source.index("def watch() -> None:"):
+                     source.index("# Manual diagnostics")]
+        self.assertIn('inflight["last_error"] = "UNVERIFIED_SUCCESSOR"',watch)
+        self.assertIn("save_state(state)",watch)
+        self.assertIn("if not newer_signal_supersedes_inflight",watch)
+        self.assertIn("time.sleep(CHECK_INTERVAL)",watch)
 
 if __name__ == "__main__":
     unittest.main()

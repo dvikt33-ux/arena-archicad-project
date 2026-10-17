@@ -3465,7 +3465,7 @@ def chatgpt_prompt(page):
         return fallback.first
 
 
-def send_to_chatgpt(page, text: str) -> bool:
+def send_to_chatgpt(page, text: str, on_before_submit=None, allow_retry: bool = True) -> bool:
     """Fill once, confirm submission, and never log the text."""
     before = str(getattr(page, "url", "") or "")
     box = chatgpt_prompt(page)
@@ -3474,11 +3474,13 @@ def send_to_chatgpt(page, text: str) -> bool:
     except Exception:
         pass
     box.fill(text)
+    if on_before_submit is not None:
+        on_before_submit()
     box.press("Enter")
     if _submit_confirmed(page, text, before):
         log("CONTROL: submit=confirmed")
         return True
-    if submit_confirmation_action(False, False, False, composer_has_exact_text(page, text), False) == "retry":
+    if allow_retry and submit_confirmation_action(False, False, False, composer_has_exact_text(page, text), False) == "retry":
         log("CONTROL: submit=retry")
         submit_composer_only(page, text)
         if _submit_confirmed(page, text, before):
@@ -4102,7 +4104,7 @@ def arena_wake_exists(page, wake: str) -> bool:
     return len(lines) >= 1
 
 
-def send_to_arena(page, wake: str) -> None:
+def send_to_arena(page, wake: str, on_before_submit=None) -> None:
     dismiss_arena_completion(page)
     if arena_feedback_visible(page):
         # Never send into a blocked editor behind a feedback dialog.
@@ -4133,6 +4135,8 @@ def send_to_arena(page, wake: str) -> None:
     if not inserted:
         raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
+    if on_before_submit is not None:
+        on_before_submit()
     editor.press("Enter", timeout=10000)
     page.wait_for_timeout(800)
 
@@ -4153,45 +4157,41 @@ def wake_attempt_count(inflight: dict) -> int:
 
 
 def wake_send_allowed(inflight: dict, now: float | None = None) -> bool:
+    """At-most-once Enter for a turn; a missing DOM wake is not a failed send."""
     now = time.time() if now is None else now
-    attempts = wake_attempt_count(inflight)
-
-    if attempts >= MAX_WAKE_ATTEMPTS:
+    if (bool(inflight.get("send_intent")) or bool(inflight.get("submitted"))
+            or wake_attempt_count(inflight) > 0):
         return False
+    return now >= float(inflight.get("retry_after", 0) or 0)
 
-    retry_after = float(inflight.get("retry_after", 0) or 0)
-    if attempts == 0:
-        return now >= retry_after
-    if retry_after:
-        return now >= retry_after
 
-    submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
-    return now >= submitted_at + WAKE_CONFIRM_SECONDS
+def mark_wake_send_intent(state: dict, inflight: dict, turn_id: int, target: str) -> None:
+    """Persist intent before Enter. A crash can hold, but cannot resend."""
+    if (inflight.get("send_intent") or inflight.get("submitted")
+            or wake_attempt_count(inflight) > 0):
+        raise RuntimeError("WAKE_ALREADY_ATTEMPTED")
+    inflight["send_intent"] = True
+    inflight["send_attempts"] = 1
+    inflight["submitted"] = True
+    inflight["submitted_at"] = time.time()
+    inflight["retry_after"] = 0
+    inflight["last_error"] = "UNCONFIRMED_WAKE_DELIVERY"
+    state["inflight"] = inflight
+    save_state(state)
+    log(f"{target}: send intent persisted for turn_id={turn_id}")
 
 
 def mark_unobserved_wake(state: dict, inflight: dict, turn_id: int, target: str) -> None:
-    attempts = wake_attempt_count(inflight) + 1
-    inflight["send_attempts"] = attempts
+    """Quarantine ambiguous delivery; never blindly replay the same wake."""
+    inflight["send_attempts"] = max(1, wake_attempt_count(inflight))
     inflight["submitted"] = True
     inflight["submitted_at"] = inflight.get("submitted_at") or time.time()
-    inflight["last_error"] = f"{target} wake not observed"
-
-    if attempts < MAX_WAKE_ATTEMPTS:
-        inflight["retry_after"] = time.time() + WAKE_CONFIRM_SECONDS
-        log(
-            f"{target}: wake turn_id={turn_id} не подтверждён. "
-            f"Попытка {attempts}/{MAX_WAKE_ATTEMPTS}. "
-            f"Повтор того же turn_id через {WAKE_CONFIRM_SECONDS} сек."
-        )
-    else:
-        inflight["retry_after"] = 0
-        log(
-            f"{target}: wake turn_id={turn_id} не подтверждён после {attempts} попыток. "
-            "Больше не отправляю; жду историю или новый turn_id."
-        )
-
+    inflight["last_error"] = "UNCONFIRMED_WAKE_DELIVERY"
+    inflight["send_intent"] = True
+    inflight["retry_after"] = 0
     state["inflight"] = inflight
     save_state(state)
+    log(f"{target}: wake turn_id={turn_id} not observed; automatic resend forbidden")
 
 
 def consume_turn(state: dict, turn_id: int, reason: str) -> None:
@@ -4309,7 +4309,11 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     if not wake_send_allowed(inflight):
         return
 
-    send_to_chatgpt(page, wake)
+    send_to_chatgpt(
+        page, wake,
+        on_before_submit=lambda: mark_wake_send_intent(state, inflight, turn_id, "GPT"),
+        allow_retry=False,
+    )
 
     try:
         page.wait_for_timeout(800)
@@ -4321,7 +4325,8 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         bind_wake_to_control(inflight, page)
         inflight["submitted"] = True
         inflight["submitted_at"] = time.time()
-        inflight["send_attempts"] = wake_attempt_count(inflight) + 1
+        inflight["send_attempts"] = max(1, wake_attempt_count(inflight))
+        inflight.pop("send_intent", None)
         inflight["last_error"] = None
         inflight["retry_after"] = 0
         state["inflight"] = inflight
@@ -4348,10 +4353,16 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
         return
 
     try:
-        send_to_arena(page, wake)
+        send_to_arena(
+            page, wake,
+            on_before_submit=lambda: mark_wake_send_intent(state, inflight, turn_id, "ARENA"),
+        )
     except RuntimeError as exc:
         if str(exc) != "ARENA_INPUT_UNAVAILABLE":
             raise
+        if inflight.get("send_intent"):
+            mark_unobserved_wake(state, inflight, turn_id, "ARENA")
+            return
 
         inflight["retry_after"] = time.time() + ARENA_RETRY_SECONDS
         inflight["last_error"] = "Arena input unavailable"
@@ -4371,6 +4382,7 @@ def process_arena(browser, state: dict, inflight: dict) -> None:
 
     inflight["submitted"] = True
     inflight["submitted_at"] = time.time()
+    inflight.pop("send_intent", None)
     inflight["last_error"] = None
     state["inflight"] = inflight
     save_state(state)

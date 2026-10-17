@@ -4244,6 +4244,100 @@ TERMINAL_CONTROL_ACK_GRACE_SECONDS = 180
 TERMINAL_CONTROL_RESUME_GRACE_SECONDS = 300
 
 
+def terminal_resume_observation(page, turn_id: int) -> dict:
+    """Read only: prove a CONTROL RESUME bubble and subsequent matching ACK.
+
+    Do not synthesize an acknowledgement from page-wide text or a quoted
+    message. Only an assistant MarkdownRoot after the exact recovery user
+    bubble in the persisted CONTROL conversation can close the local turn.
+    """
+    empty = {"wake_seen": False, "resume_seen": False, "ack": None}
+    try:
+        facts = page.evaluate(r"""(turn) => {
+          const visible = el => !!(el && el.getClientRects().length);
+          const clean = text => String(text || '').normalize('NFKC')
+            .replace(/[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '')
+            .replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+          const wakeText = 'Проверь GitHub. turn_id=' + turn;
+          const resumeText = 'CONTROL RESUME — turn_id=' + turn;
+          const ackRE = /^CONTROL ACK\s*[—–−-]\s*turn_id=(\d+)$/u;
+          const userScope = '[class~="bg-user-message"],[class*="group/user-message"],' +
+            '[data-message-author-role="user"],[data-message-author="user"]';
+          const userSel = '[class~="bg-user-message"],[data-message-author-role="user"]';
+          const markdownSel = '[class*="MarkdownRoot-"],.markdown,[class~="prose"],' +
+            '[data-testid="assistant-message"]';
+          const after = (a,b) => !!(a.compareDocumentPosition(b) &
+            Node.DOCUMENT_POSITION_FOLLOWING);
+          const result = {wake_seen:false,resume_seen:false,ack:null};
+          if ([...document.querySelectorAll(
+            '[data-testid="stop-button"],button[aria-label*="Stop"],' +
+            'button[aria-label*="Останов"]')].some(visible)) return result;
+          for (const root of [...document.querySelectorAll('main,[role="main"]')].filter(visible)) {
+            const allUsers = [...root.querySelectorAll(userSel)].filter(visible);
+            const users = allUsers.filter(el => !allUsers.some(
+              other => other !== el && el.contains(other)));
+            const value = el => {
+              const descendant=el.querySelector('[class*="whitespace-pre-wrap"]');
+              return [el.innerText,descendant&&descendant.innerText,el.textContent]
+                .map(clean).find(Boolean) || '';
+            };
+            const wakes = users.filter(el=>value(el)===wakeText);
+            const resumes = users.filter(el=> {
+              const text=value(el);
+              return text.startsWith(resumeText + ' ') &&
+                text.includes('Предыдущее сообщение') &&
+                text.includes(wakeText);
+            });
+            if(wakes.length !== 1)continue;
+            result.wake_seen=true;
+            if(resumes.length !== 1)continue;
+            const wake=wakes[0],resume=resumes[0];
+            if(!after(wake,resume))continue;
+            result.resume_seen=true;
+            const laterUsers=users.filter(el=>after(resume,el));
+            const next=laterUsers[0];
+            const answers=[];
+            for(const el of [...root.querySelectorAll(markdownSel)].filter(visible)){
+              if(el.closest(userScope) || !after(resume,el) ||
+                 (next && !after(el,next)))continue;
+              const annotated=el.closest('[data-message-author-role]');
+              if(annotated &&
+                 annotated.getAttribute('data-message-author-role')!=='assistant')continue;
+              const first=[...el.querySelectorAll('p')].filter(visible)[0];
+              if(!first || first.closest('blockquote,pre,code'))continue;
+              const heading=clean(first.innerText || first.textContent);
+              const match=heading.match(ackRE);
+              if(!match || Number(match[1])!==turn)continue;
+              const raw=el.innerText || el.textContent || '';
+              const header=first.innerText || first.textContent || '';
+              if(!raw.startsWith(header))continue;
+              const payload=raw.slice(header.length).trim();
+              if(payload)answers.push('CONTROL ACK — turn_id='+turn+'\n'+payload);
+            }
+            if(answers.length===1)result.ack=answers[0];
+          }
+          return result;
+        }""", int(turn_id))
+        if not isinstance(facts, dict):
+            return empty
+        observed = {
+            "wake_seen": facts.get("wake_seen") is True,
+            "resume_seen": facts.get("resume_seen") is True,
+            "ack": None,
+        }
+        ack = facts.get("ack")
+        if (observed["wake_seen"] and observed["resume_seen"] and
+                isinstance(ack, str) and
+                parse_control_reply([
+                    {"role": "user", "text": wake_text(int(turn_id))},
+                    {"role": "assistant", "text": ack},
+                ], int(turn_id))):
+            observed["ack"] = ack
+        return observed
+    except Exception:
+        return empty
+
+
 def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visible: bool) -> None:
     """One non-duplicating recovery prompt if GPT stayed silent after a final report.
 
@@ -4296,16 +4390,23 @@ def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visibl
         state["inflight"] = inflight
         save_state(state)
 
-    send_to_chatgpt(
+    confirmed = send_to_chatgpt(
         page, recovery, on_before_submit=persist_resume_intent, allow_retry=False
     )
-    if chatgpt_user_message_exists(page, recovery):
+    observed = terminal_resume_observation(page, turn_id)
+    if observed["resume_seen"]:
         inflight["last_error"] = "CONTROL_TERMINAL_RESUME_AWAITING_ACK"
         state["inflight"] = inflight
         save_state(state)
-        log(f"CONTROL: one terminal ACK resume sent for turn_id={turn_id}; awaiting GPT reply.")
+        log(f"CONTROL: terminal resume turn_id={turn_id} observed in CONTROL; awaiting ACK.")
     else:
-        log(f"CONTROL: terminal ACK resume delivery uncertain for turn_id={turn_id}; no retry.")
+        inflight["last_error"] = (
+            "CONTROL_TERMINAL_RESUME_SUBMITTED_UNOBSERVED"
+            if confirmed else "CONTROL_TERMINAL_RESUME_UNCONFIRMED"
+        )
+        state["inflight"] = inflight
+        save_state(state)
+        log(f"CONTROL: terminal resume turn_id={turn_id} visibility unverified; no retry.")
 
 
 def process_gpt(browser, state: dict, inflight: dict) -> None:
@@ -4326,6 +4427,11 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
                 and same_conversation(page.url or "", saved_url)
             ]
             if len(pages) == 1 and not generation_is_active(pages[0]):
+                if inflight.get("terminal_report") and inflight.get("terminal_resume_intent"):
+                    observed = terminal_resume_observation(pages[0], turn_id)
+                    if observed["ack"]:
+                        consume_turn(state, turn_id, "ARENA final report acknowledged after CONTROL resume; no GitHub follow-up")
+                        return
                 pair = _read_verified_ack_pair(pages[0])
                 reply = parse_control_reply(pair, turn_id)
                 if reply:
@@ -4358,6 +4464,12 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         state["inflight"] = inflight
         save_state(state)
         return
+
+    if inflight.get("terminal_report") and inflight.get("terminal_resume_intent"):
+        observed = terminal_resume_observation(page, turn_id)
+        if observed["ack"]:
+            consume_turn(state, turn_id, "ARENA final report acknowledged after CONTROL resume; no GitHub follow-up")
+            return
 
     if chatgpt_response_complete(page, wake):
         reply = parse_control_reply(chatgpt_messages(page), turn_id)

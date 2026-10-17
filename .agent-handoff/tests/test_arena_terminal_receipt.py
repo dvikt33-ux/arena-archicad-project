@@ -78,6 +78,7 @@ class RoutingTests(unittest.TestCase):
             "consume_turn":lambda st,n,why:events.append(("consume",n,why)),
             "log":lambda *_:None,
         }
+        load("submitted_gpt_wake_needs_read_only_wait",env)
         process=load("process_gpt",env)
         state={"last_turn_id":82}
         pending={"turn_id":83,"wake":"Проверь GitHub. turn_id=83",
@@ -98,6 +99,7 @@ class RoutingTests(unittest.TestCase):
             "consume_turn":lambda *_:events.append("BAD_CONSUME"),
             "log":lambda *_:None,
         }
+        load("submitted_gpt_wake_needs_read_only_wait",env)
         process=load("process_gpt",env)
         state={"last_turn_id":82,"inflight":{"turn_id":83}}
         process(None,state,{"turn_id":83,"wake":"Проверь GitHub. turn_id=83",
@@ -116,6 +118,7 @@ class RoutingTests(unittest.TestCase):
             "consume_turn":lambda st,n,reason:events.append(("consume",n)),
             "log":lambda *_:None,
         }
+        load("submitted_gpt_wake_needs_read_only_wait",env)
         process=load("process_gpt",env)
         process(None,{},{"turn_id":80,"wake":"Проверь GitHub. turn_id=80"})
         self.assertEqual(events,[("publish",80,"continuation"),("consume",80)])

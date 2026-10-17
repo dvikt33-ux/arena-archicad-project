@@ -132,7 +132,7 @@ core.send_to_arena = send_to_arena
 
 
 def dismiss_prompt_once() -> int:
-    core.start_service_chrome()
+    core.require_opera_cdp()
     with core.sync_playwright() as p:
         browser = p.chromium.connect_over_cdp(core.CDP)
         page = _original_find_arena_page(browser)

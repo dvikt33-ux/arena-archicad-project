@@ -230,28 +230,41 @@ def default_state() -> dict:
 
 
 def load_state() -> dict:
+    """Resume the persisted queue or fail closed. Never replay from zero on error."""
     if not STATE_PATH.exists():
+        # A brand-new installation has no queue. After deployment the
+        # installer must preserve this file on disk.
         return default_state()
 
     try:
         data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
-        log(f"STATE: повреждён state-файл, использую безопасный default: {exc}")
-        return default_state()
-
-    state = default_state()
-    state["last_turn_id"] = int(data.get("last_turn_id", 0) or 0)
-    inflight = data.get("inflight")
-    state["inflight"] = inflight if isinstance(inflight, dict) else None
-    return state
+        if not isinstance(data, dict):
+            raise ValueError("state_not_object")
+        last = data.get("last_turn_id")
+        if type(last) is not int or last < 0:
+            raise ValueError("invalid_last_turn_id")
+        pending = data.get("inflight")
+        if pending is not None:
+            if not isinstance(pending, dict):
+                raise ValueError("inflight_not_object")
+            turn = pending.get("turn_id")
+            target = pending.get("target")
+            if (type(turn) is not int or turn <= last or
+                    target not in {"GPT", "ARENA"} or
+                    pending.get("wake") != wake_text(turn)):
+                raise ValueError("inflight_identity_invalid")
+        return {"last_turn_id": last, "inflight": pending}
+    except (OSError, ValueError, TypeError) as exc:
+        # An absent/invalid state must not silently replay a GitHub signal.
+        raise RuntimeError("STATE_INVALID_STOP: local queue needs recovery") from exc
 
 
 def save_state(state: dict) -> None:
     tmp = STATE_PATH.with_suffix(".tmp")
-    tmp.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    with tmp.open("w", encoding="utf-8") as stream:
+        json.dump(state, stream, ensure_ascii=False, indent=2)
+        stream.flush()
+        os.fsync(stream.fileno())
     os.replace(tmp, STATE_PATH)
 
 
@@ -4382,6 +4395,32 @@ def newer_signal_supersedes_inflight(signal: dict, inflight: dict) -> bool:
     return int(signal.get("turn_id", 0)) > int(inflight.get("turn_id", 0))
 
 
+def signal_is_closed_ack_loop(signal: dict) -> bool:
+    """Conservative compatibility guard for a known non-actionable GPT echo.
+
+    New peers should publish status=done, target=NONE for terminal messages.
+    Older GPT peers sent a closed-loop notice with status=ready and target=ARENA.
+    Recognize that exact, evidence-free closure form ONLY. Do not classify a
+    real user task, a normal repeated instruction, or a different status.
+    """
+    if (str(signal.get("source", "")).upper() != "GPT" or
+            str(signal.get("target", "")).upper() != "ARENA" or
+            str(signal.get("status", "")).lower() != "ready" or
+            signal.get("requires_codex", False) is not False):
+        return False
+    message = str(signal.get("message", "")).strip()
+    if not message.startswith("RELEASE_NOT_PROVEN\n"):
+        return False
+    lines = [line.strip() for line in message.splitlines() if line.strip()]
+    if not any(re.fullmatch(r"Turn \d+: accepted\.", line) for line in lines):
+        return False
+    markers = (
+        "Acknowledgement loop closed until new evidence exists.",
+        "No further handoff published.",
+    )
+    return all(marker in lines for marker in markers)
+
+
 def handle_signal_without_action(state: dict, signal: dict) -> bool:
     turn_id = int(signal["turn_id"])
     target = str(signal["target"]).upper()
@@ -4392,6 +4431,10 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
     if status in HOLD_STATUSES and target != "NONE":
         log(f"TURN {turn_id}: status={status}, отправка отложена без consume.")
+        return True
+
+    if signal_is_closed_ack_loop(signal):
+        consume_turn(state, turn_id, "ACK loop terminal notice; no new task delivered")
         return True
 
     if target == "NONE" or status in TERMINAL_STATUSES:

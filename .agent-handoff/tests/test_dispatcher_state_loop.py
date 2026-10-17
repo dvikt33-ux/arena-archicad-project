@@ -29,7 +29,7 @@ def env_for(state_path, control_path):
            "READY_STATUSES":{"ready", "pending", "queued"},
            "TERMINAL_STATUSES":{"done", "cancelled", "canceled"}}
     for name in ("default_state", "load_state", "save_state",
-                 "signal_is_closed_ack_loop", "handle_signal_without_action",
+                 "signal_is_closed_ack_loop", "is_arena_terminal_report", "handle_signal_without_action",
                  "newer_signal_supersedes_inflight"):
         isolated(name, env)
     return env

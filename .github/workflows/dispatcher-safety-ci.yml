@@ -1,0 +1,30 @@
+name: Dispatcher safety regression
+on:
+  push:
+    branches:
+      - fix/dispatcher-terminal-and-state-20261017
+  pull_request:
+    paths:
+      - '.agent-handoff/**'
+      - '.github/workflows/dispatcher-safety-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile reviewed modules
+        run: |
+          python -m py_compile \
+            .agent-handoff/dispatcher.py \
+            .agent-handoff/control_reply_handoff.py
+      - name: Offline regression suite (no CDP or GitHub writes)
+        run: python -m unittest discover -s .agent-handoff/tests -p 'test_*.py' -v

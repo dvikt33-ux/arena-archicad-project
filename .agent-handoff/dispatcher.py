@@ -4409,6 +4409,25 @@ def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visibl
         log(f"CONTROL: terminal resume turn_id={turn_id} visibility unverified; no retry.")
 
 
+def submitted_gpt_wake_needs_read_only_wait(inflight: dict) -> bool:
+    """Never rebuild CONTROL after a wake was submitted to a pinned chat.
+
+    Once Enter may have happened, rebind/restore/bootstrap can create a new
+    conversation or misidentify a partial transcript. Only the existing
+    read-only ACK recovery above this guard may close the pending turn.
+    """
+    return (
+        str(inflight.get("target") or "").upper() == "GPT"
+        and bool(inflight.get("wake_seen_control_identity"))
+        and bool(
+            inflight.get("submitted")
+            or inflight.get("wake_seen")
+            or inflight.get("send_intent")
+            or inflight.get("terminal_resume_intent")
+        )
+    )
+
+
 def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
@@ -4450,6 +4469,24 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
             raise
         except Exception as exc:
             log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
+
+    # The wake has already been submitted to this CONTROL conversation.
+    # Its transcript may be temporarily unrendered (zero_messages), but
+    # absence of DOM messages is not evidence that the chat disappeared.
+    # Do not call ensure_control_ready: it can rebind/provision and mutate
+    # the persisted CONTROL URL while an ACK is still outstanding.
+    # The read-only verified-ACK recovery above still runs every poll.
+    if submitted_gpt_wake_needs_read_only_wait(inflight):
+        reason = "CONTROL_SUBMITTED_ACK_UNOBSERVED_READ_ONLY"
+        if inflight.get("last_error") != reason:
+            inflight["last_error"] = reason
+            state["inflight"] = inflight
+            save_state(state)
+            log(
+                f"CONTROL: turn_id={turn_id} submitted; ACK not visible in pinned "
+                "conversation; read-only hold (no bootstrap/rebind/wake retry)."
+            )
+        return
 
     if (
         inflight.get("last_error") == "Control chat bootstrap pending"

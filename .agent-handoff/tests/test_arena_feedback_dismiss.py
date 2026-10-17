@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "dispatcher.py"
@@ -92,6 +93,47 @@ class ArenaFeedbackTests(unittest.TestCase):
         self.assertTrue(self.env["dismiss_visible_arena_feedback"]([wrong, target]))
         self.assertEqual(wrong.clicked, [])
         self.assertEqual(target.clicked, ["Продолжить работу"])
+
+    def test_stuck_overlay_retries_with_backoff_not_log_spam(self):
+        page = FakePage(actions=())
+        dismiss = self.env["dismiss_arena_completion"]
+        with patch("time.monotonic", side_effect=[100, 101, 104, 105]):
+            self.assertFalse(dismiss(page))
+            self.assertFalse(dismiss(page))
+            self.assertFalse(dismiss(page))
+            self.assertFalse(dismiss(page))
+        # First and second actual attempts occurred at 100 and 104.
+        # The 5-second polling must not generate an endless log torrent.
+        self.assertEqual(len(self.logs), 1)
+        self.assertIn("автоматический повтор", self.logs[0])
+        self.assertEqual(page.clicked, [])
+
+    def test_overlay_reappearing_after_success_is_dismissed_again(self):
+        page = FakePage()
+        dismiss = self.env["dismiss_arena_completion"]
+        self.assertTrue(dismiss(page))
+        self.assertFalse(dismiss(page))
+        page.feedback = True
+        self.assertTrue(dismiss(page))
+        self.assertEqual(page.clicked, ["Продолжить работу", "Продолжить работу"])
+
+    def test_no_buttons_yes_no_are_ever_activated(self):
+        page = FakePage(actions=("Да", "Нет"))
+        dismiss = self.env["dismiss_arena_completion"]
+        self.assertFalse(dismiss(page))
+        self.assertEqual(page.clicked, [])
+
+    def test_dismissal_failed_keeps_arena_editor_blocked(self):
+        page = FakePage(actions=())
+        env = dict(self.env)
+        env["arena_editor"] = lambda page: self.fail("editor should not be queried")
+        fn, = [f for f in AST.body if isinstance(f, ast.FunctionDef)
+               and f.name == "send_to_arena"]
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[fn], type_ignores=[])),
+                     str(SOURCE), "exec"), env)
+        with self.assertRaisesRegex(RuntimeError, "ARENA_INPUT_UNAVAILABLE"):
+            env["send_to_arena"](page, "Проверь GitHub. turn_id=77")
+        self.assertEqual(page.clicked, [])
 
     def test_no_arena_open_does_not_create_page(self):
         foreign = FakePage(url="https://chatgpt.com/c/xxx")

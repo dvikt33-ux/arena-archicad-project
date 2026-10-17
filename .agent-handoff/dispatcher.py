@@ -4419,12 +4419,11 @@ def signal_is_closed_ack_loop(signal: dict) -> bool:
         return False
     terminal_tail = [
         "Acknowledgement loop closed until new evidence exists.",
-        "No further handoff published.",
-        "No rescan, push, save, export, or Codex/Work invocation performed.",
+        "No further handoff published. No rescan, push, save, export, or Codex/Work invocation performed.",
     ]
     # The closing marker must be the *end* of the signal. A new action or
     # instruction appended after this footer must never be silently dropped.
-    return lines[-3:] == terminal_tail
+    return lines[-2:] == terminal_tail
 
 
 def handle_signal_without_action(state: dict, signal: dict) -> bool:

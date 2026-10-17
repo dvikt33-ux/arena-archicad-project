@@ -34,7 +34,7 @@ class Browser:
         self.contexts=[Context(pages)]
 
 class OperaSafety(unittest.TestCase):
-    def env(self, control=PINN, messages=None):
+    def env(self, control=PINNED, messages=None):
         if messages is None: messages=[
             {"role":"user","text":"bootstrap"},
             {"role":"assistant","text":"CONTROL READY"}]

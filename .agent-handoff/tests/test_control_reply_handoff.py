@@ -77,7 +77,7 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertTrue(any('[class~="bg-user-message"]' in x for x in page.scripts))
         self.assertTrue(any('[class*="MarkdownRoot-"]' in x for x in page.scripts))
         self.assertTrue(any('el.innerText' in x for x in page.scripts))
-        self.assertTrue(any('after(wake.el,item.el)' in x for x in page.scripts))
+        self.assertTrue(any('after(wake.el,a.el)' in x for x in page.scripts))
         self.assertTrue(any('el.closest(userScope)' in x for x in page.scripts))
         self.assertTrue(any('stop-button' in x for x in page.scripts))
 
@@ -108,7 +108,7 @@ class DomProvenanceTests(unittest.TestCase):
             "answer": "CONTROL ACK — turn_id=76\nRELEASE_NOT_PROVEN",
         })
         self.assertEqual(len(handoff._read_verified_ack_pair(p)), 2)
-        probe = next(x for x in p.scripts if "return {pairs}" in x)
+        probe = next(x for x in p.scripts if "return {pairs" in x)
         self.assertIn("MarkdownRoot-", probe)
         self.assertIn("head.innerText", probe)
         self.assertNotIn("NodeFilter.SHOW_TEXT", probe)

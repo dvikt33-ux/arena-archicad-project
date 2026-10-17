@@ -3807,20 +3807,55 @@ def ensure_control_ready(browser, wake: str = ""):
 # -------------------------
 
 def arena_feedback_visible(page) -> bool:
-    """Only the finished-task feedback prompt, never a running job or editor."""
-    markers = (
-        "Эта задача была выполнена успешно?",
-        "Was this task completed successfully?",
-        "Was this task successful?",
-    )
-    for marker in markers:
-        try:
-            loc = page.get_by_text(marker, exact=False)
-            if loc.count() and loc.first.is_visible():
-                return True
-        except Exception:
-            continue
-    return False
+    """True only for a visible *active overlay*, not quoted chat history.
+
+    A completed-task question can remain in old conversation text. The old
+    get_by_text(marker) predicate repeatedly misidentified it as an open
+    feedback dialog, even when the normal Arena composer was visible.
+    Never consider the page/body or a chat message an actionable overlay.
+    """
+    try:
+        return bool(page.evaluate(r"""() => {
+          const phrases = [
+            'Эта задача была выполнена успешно?',
+            'Was this task completed successfully?',
+            'Was this task successful?'
+          ];
+          const norm = x => String(x || '').replace(/\u00a0/g, ' ')
+            .replace(/\s+/g, ' ').trim().toLowerCase();
+          const wanted = phrases.map(norm);
+          const visible = el => {
+            if (!el || !el.getClientRects().length) return false;
+            const r = el.getBoundingClientRect();
+            const st = getComputedStyle(el);
+            return r.width > 0 && r.height > 0 &&
+              st.display !== 'none' && st.visibility !== 'hidden';
+          };
+          const nodes = [...document.querySelectorAll(
+            'p,span,h1,h2,h3,h4,h5,h6,div,[role="heading"]'
+          )].filter(el => visible(el) && wanted.includes(norm(el.textContent)) &&
+            ![...el.children].some(child => wanted.includes(norm(child.textContent))));
+          for (const node of nodes) {
+            let box=node;
+            for(let depth=0;box&&depth<12;box=box.parentElement,depth++){
+              if (!visible(box)) continue;
+              const r = box.getBoundingClientRect();
+              const semantic = box.matches(
+                '[role="dialog"],[aria-modal="true"],[data-testid*="modal"],[data-testid*="dialog"]');
+              const style = getComputedStyle(box);
+              const floating = style.position === 'fixed' &&
+                r.width < innerWidth * .95 && r.height < innerHeight * .95;
+              if (!semantic && !floating) continue;
+              if (box.closest('nav,aside,[contenteditable="true"]')) continue;
+              // Only a scoped dialog or floating feedback card can trigger
+              // automatic dismissal; ordinary agent messages cannot.
+              return true;
+            }
+          }
+          return false;
+        }"""))
+    except Exception:
+        return False
 
 
 def dismiss_arena_completion(page) -> bool:

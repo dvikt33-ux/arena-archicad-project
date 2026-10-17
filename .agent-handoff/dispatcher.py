@@ -4444,9 +4444,113 @@ def submitted_control_readback_url(inflight: dict, stored_control_url: str) -> s
     return pinned
 
 
-def process_gpt(browser, state: dict, inflight: dict) -> None:
+def terminal_receipt_matches(
+    receipt: dict, signal: dict, signal_sha: str, inflight: dict
+) -> bool:
+    """Exact-match independently persisted CONTROL receipt, never a new signal.
+
+    For the old stalled turn 87 only, accept the separately observed Opera
+    accessibility-tree proof. This is an externally verified recovery, not
+    proof that the Chrome chat transport delivered an ACK. Fail closed for
+    all wrong turns, stale signal blobs or chat identities.
+    """
+    if not all(isinstance(x, dict) for x in (receipt, signal, inflight)):
+        return False
+    turn = inflight.get("turn_id")
+    if type(turn) is not int or type(signal.get("turn_id")) is not int:
+        return False
+    if not (
+        turn == 87 == signal["turn_id"] == receipt.get("turn_id")
+        and receipt.get("protocol") == 1
+        and receipt.get("kind") == "terminal_ack"
+        and receipt.get("source") == "VERIFIED_CONTROL_RECOVERY"
+        and receipt.get("method") == "read_only_opera_connector_accessibility_tree"
+        and receipt.get("ack_verified") is True
+        and receipt.get("repeat_instruction") is False
+        and receipt.get("reply_header") == "CONTROL ACK — turn_id=87"
+        and receipt.get("report_marker") == "BRIDGE_SMOKE_86_87_RECEIVED"
+        and receipt.get("signal_blob_sha") == signal_sha
+        and receipt.get("signal_source") == "ARENA"
+        and receipt.get("signal_target") == "NONE"
+        and receipt.get("signal_status") == "done"
+        and str(receipt.get("control_url") or "").strip()
+            == str(inflight.get("wake_seen_control_url") or "").strip()
+        and conversation_identity(receipt["control_url"])
+            == str(inflight.get("wake_seen_control_identity") or "").lower()
+        and signal.get("source") == "ARENA"
+        and signal.get("target") == "NONE"
+        and signal.get("status") == "done"
+        and signal.get("requires_codex") is False
+        and inflight.get("terminal_report") is True
+        and inflight.get("submitted") is True
+        and inflight.get("terminal_resume_intent") is True
+        and inflight.get("send_attempts") == 1
+    ):
+        return False
+    lines = str(signal.get("message") or "").splitlines()
+    return bool(lines and lines[0] == receipt["report_marker"])
+
+
+def _github_contents_with_sha(url: str) -> tuple[dict, str]:
+    response = json.loads(_read_response(url, SIGNAL_FETCH_TIMEOUT))
+    if not isinstance(response, dict) or response.get("encoding") != "base64":
+        raise GitHubSignalError("receipt_contents_invalid")
+    sha = str(response.get("sha") or "")
+    encoded = "".join(str(response.get("content") or "").split())
+    if len(sha) != 40 or not encoded:
+        raise GitHubSignalError("receipt_missing_sha_or_body")
+    raw = base64.b64decode(encoded, validate=True).decode("utf-8")
+    body = json.loads(raw)
+    if not isinstance(body, dict):
+        raise GitHubSignalError("receipt_body_invalid")
+    return body, sha
+
+
+def verified_terminal_receipt_from_github(signal: dict, inflight: dict) -> bool:
+    """Read only and bounded to historical turn 87. Never writes GitHub."""
+    if not (
+        inflight.get("turn_id") == 87
+        and signal.get("turn_id") == 87
+        and inflight.get("terminal_report") is True
+    ):
+        return False
+    base = (
+        "https://api.github.com/repos/dvikt33-ux/"
+        "arena-archicad-project/contents/.agent-handoff/"
+    )
+    try:
+        receipt, _ = _github_contents_with_sha(
+            base + "receipts/87.json?ref=agent-handoff"
+        )
+        latest_signal, signal_sha = _github_contents_with_sha(
+            base + "signal.json?ref=agent-handoff"
+        )
+    except (OSError, ValueError, KeyError, GitHubSignalError, UnicodeError) as exc:
+        log(f"CONTROL: external receipt 87 unavailable: {type(exc).__name__}")
+        return False
+    # Current GitHub signal must still match the poll's parsed signal.
+    try:
+        if parse_signal(latest_signal) != signal:
+            return False
+    except (ValueError, TypeError, GitHubSignalError):
+        return False
+    return terminal_receipt_matches(receipt, signal, signal_sha, inflight)
+
+
+def process_gpt(browser, state: dict, inflight: dict, signal: dict | None = None) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
+
+    # One-time manual recovery from an externally observed original CONTROL
+    # reply in Opera and an immutable exact GitHub signal blob. This avoids
+    # confusing a stale Chrome DOM with the absence of the actual receipt.
+    if signal is not None and verified_terminal_receipt_from_github(signal, inflight):
+        consume_turn(
+            state, turn_id,
+            "Externally verified CONTROL receipt in GitHub (Opera observation); "
+            "no GitHub successor, not Chrome E2E proof"
+        )
+        return
 
     # Resume an ALREADY answered turn without depending on old bootstrap DOM.
     # Only the exact persisted CONTROL tab is inspected. The assistant reply
@@ -4883,7 +4987,7 @@ def watch() -> None:
                     target = str(inflight.get("target", "")).upper()
 
                     if target == "GPT":
-                        process_gpt(browser, state, inflight)
+                        process_gpt(browser, state, inflight, signal)
                     elif target == "ARENA":
                         process_arena(browser, state, inflight)
                     else:

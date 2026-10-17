@@ -83,3 +83,25 @@ jobs:
           }
           python -m unittest discover -s $tests -p 'test_*.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'Staged installer offline tests failed' }
+
+      - name: Reproduce Opera installer-staged Python suite
+        shell: powershell
+        run: |
+          $source = Get-Content '.agent-handoff/install-opera-transport.ps1' -Raw
+          $list = [regex]::Match($source, '(?s)\$names\s*=\s*@\((.*?)\)')
+          if (-not $list.Success) { throw 'Opera staged test manifest missing' }
+          $files = [regex]::Matches($list.Groups[1].Value, "'([^']+)'")
+          if ($files.Count -lt 14) { throw 'Opera staged tests unexpectedly incomplete' }
+          $root = Join-Path $env:RUNNER_TEMP 'opera-dispatcher-stage'
+          $dest = Join-Path $root '.agent-handoff'
+          $tests = Join-Path $dest 'tests'
+          New-Item -ItemType Directory -Path $tests -Force | Out-Null
+          foreach ($name in @('dispatcher.py','dispatcher-runtime.py','control_reply_handoff.py','install-control-reply-handoff.ps1')) {
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff' $name) -Destination (Join-Path $dest $name)
+          }
+          foreach ($item in $files) {
+            $name = $item.Groups[1].Value
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff/tests' $name) -Destination (Join-Path $tests $name)
+          }
+          python -m unittest discover -s $tests -p 'test_*.py' -q
+          if ($LASTEXITCODE -ne 0) { throw 'Opera staged suite failed' }

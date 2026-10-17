@@ -43,7 +43,8 @@ def _read_verified_ack_pair(page) -> list[dict]:
     """
     try:
         facts = page.evaluate(r"""() => {
-          const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
+          const clean = value => String(value || '').replace(/[\u00a0\u200b\u200c\u200d\ufeff]/g, ' ').trim();
+          const flat = value => clean(value).replace(/\s+/g, ' ');
           const visible = el => !!(el && el.getClientRects().length);
           const wakeRE = /^Проверь GitHub\. turn_id=(\d+)$/;
           const ackRE = /^CONTROL ACK\s*[—–-]\s*turn_id=(\d+)$/;
@@ -60,7 +61,7 @@ def _read_verified_ack_pair(page) -> list[dict]:
           // An isolated wake in the saved CONTROL conversation is sufficient:
           // the initial bootstrap can be virtualized or absent on refresh.
           const root = roots.find(el => [...el.querySelectorAll(userSelector)]
-            .some(u => visible(u) && wakeRE.test(clean(u.innerText))));
+            .some(u => visible(u) && wakeRE.test(flat((u.querySelector('[class*="whitespace-pre-wrap"]') || u).textContent))));
           if (!root) return {pairs:[],reason:'wake-bubble-absent',
             roots:roots.length, userBubbles:document.querySelectorAll(userSelector).length};
           const generating = [...document.querySelectorAll(
@@ -70,7 +71,7 @@ def _read_verified_ack_pair(page) -> list[dict]:
           if (generating) return {pairs:[],reason:'generation-in-progress'};
           const users = [...root.querySelectorAll(userSelector)]
             .filter(visible).map(el => {
-              const text=clean(el.innerText);
+              const text=flat((el.querySelector('[class*="whitespace-pre-wrap"]') || el).textContent);
               return {el,text,match:text.match(wakeRE)};
             });
           const wakes = users.filter(u => u.match);
@@ -89,17 +90,17 @@ def _read_verified_ack_pair(page) -> list[dict]:
             // children. Match whole rendered <p> instead of text-node text.
             for (const head of el.querySelectorAll('p')) {
               if (!visible(head)) continue;
-              const heading = clean(head.innerText);
+              const heading = flat(head.textContent || head.innerText);
               const match = heading.match(ackRE);
               if (!match) continue;
               headingNodes.push(head);
-              const raw = clean(el.innerText);
-              const position = raw.indexOf(heading);
-              if (position < 0 || raw.slice(0, position).trim()) continue;
-              const body = clean(raw.slice(position));
-              const lines = body.split(/\r?\n/);
-              if (lines.length < 2 || !ackRE.test(clean(lines[0])) ||
-                  !lines.slice(1).join('\n').trim()) continue;
+              const raw = clean(el.innerText || el.textContent);
+              // Rendered markdown may insert extra line breaks between the
+              // 4 child spans of the heading; trust the exact <p>.textContent
+              // and normalize only the heading, never fabricate the payload.
+              const preface = raw.match(/^CONTROL\s+ACK\s*[—–-]\s*turn_id\s*=\s*(\d+)([\s\S]*)$/);
+              if (!preface || preface[1] !== match[1] || !preface[2].trim()) continue;
+              const body = `CONTROL ACK — turn_id=${match[1]}\n` + clean(preface[2]);
               answers.push({el,body,match});
             }
           }

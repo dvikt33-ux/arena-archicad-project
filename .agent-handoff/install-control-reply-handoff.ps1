@@ -8,9 +8,10 @@ $module = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
 $credentialPath = Join-Path $env:LOCALAPPDATA "AI-Dispatcher\github-token.dpapi"
-$codeCommit = "e5694880877662a09d76ca5c0f9365a119120978"
+$codeCommit = "80cc1f14ad888049b5126915c84f48ef9aec57e9"
 $dispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
-$moduleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
+$previousModuleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
+$moduleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("AI_Dispatcher_ControlReply_" + [guid]::NewGuid().ToString("N"))
 $stageHandoff = Join-Path $stage ".agent-handoff"
@@ -57,17 +58,16 @@ function Test-DispatcherMutex {
 }
 
 if (!(Test-Path -LiteralPath $dispatcher) -or !(Test-Path -LiteralPath $statePath) -or !(Test-Path -LiteralPath $controlPath)) { Stop-Install "existing dispatcher, state, and CONTROL records must all be present" }
-$branch = (& git.exe -C $repo branch --show-current 2>$null).Trim()
-if ($branch -ne "fix/arena-control-stale-rescue-20261016") { Stop-Install "run from branch fix/arena-control-stale-rescue-20261016" }
+Write-Host "Existing checkout: source hashes checked; no branch switching."
 $state = Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ([int]$state.last_turn_id -ne 75 -or [int]$state.inflight.turn_id -ne 76 -or [string]$state.inflight.target -ne "GPT") { Stop-Install "pending dispatcher state is not exactly turn 76 to GPT" }
 $control = Get-Content -LiteralPath $controlPath -Raw -Encoding UTF8 | ConvertFrom-Json
-if ([string]$control.chatgpt_control_url -notmatch '^https://chatgpt\.com/c/[^/?#]+') { Stop-Install "saved CONTROL URL is not a durable existing conversation" }
+if ([string]$control.chatgpt_control_url -ne "https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a") { Stop-Install "unexpected CONTROL conversation; refusing to change the queue" }
 
 $currentDispatcherBlob = GitBlob $dispatcher
 if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
 if (Test-Path -LiteralPath $module) {
-    if ((GitBlob $module) -ne $moduleBlob) { Stop-Install "existing helper module differs from the reviewed source" }
+    if ((GitBlob $module) -notin @($previousModuleBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
 }
 
 # Obtain a token only if this Windows user has no DPAPI-protected token.
@@ -116,6 +116,38 @@ if ($LASTEXITCODE -ne 0) { Stop-Install "Python syntax check failed" }
 & $runner.Exe @runnerArgs -m unittest discover -s $testPath -p "test_*.py" -v
 if ($LASTEXITCODE -ne 0) { Stop-Install "regression tests failed; installed files unchanged" }
 
+
+# A live, read-only proof must succeed before touching any installed file.
+# It inspects ONLY the existing CONTROL tab and prints no reply text.
+$ackProbe = @'
+import sys
+sys.path.insert(0, sys.argv[1])
+from control_reply_handoff import _read_verified_ack_pair
+from playwright.sync_api import sync_playwright
+url = sys.argv[2]
+with sync_playwright() as playwright:
+    browser = playwright.chromium.connect_over_cdp("http://127.0.0.1:9223", timeout=8000)
+    pages = [page for ctx in browser.contexts for page in ctx.pages
+             if page.url.split("?",1)[0].split("#",1)[0] == url]
+    if len(pages) != 1:
+        print("STOP: expected CONTROL tab not uniquely present; installed files unchanged")
+        sys.exit(7)
+    matches = _read_verified_ack_pair(pages[0])
+    if len(matches) != 2 or matches[0] != {"role":"user","text":"Проверь GitHub. turn_id=76"} or not matches[1]["text"].startswith("CONTROL ACK — turn_id=76\n"):
+        # Minimal structural flags: do not print messages or token material.
+        meta = pages[0].evaluate("""() => ({
+            boot: document.body.innerText.includes('Служебный чат 01 — CONTROL & BRIDGE'),
+            ack: document.body.innerText.includes('CONTROL ACK'),
+            markdown: document.querySelectorAll('main .markdown,main .prose').length,
+            stop: !!document.querySelector('[data-testid="stop-button"]')
+        })""")
+        print("STOP: LIVE DOM ACK NOT PROVEN; installed files unchanged; structural flags:", meta)
+        sys.exit(8)
+    print("LIVE DOM ACK PROBE PASS: separate reply for wake 76 confirmed without sending")
+'@
+& $runner.Exe @runnerArgs -c $ackProbe $stageHandoff $control.chatgpt_control_url
+if ($LASTEXITCODE -ne 0) { Stop-Install "ACK verification failed: no installation performed" }
+
 # Identify only the exact current Python dispatcher; never stop an ambiguous process.
 $targetNorm = $dispatcher.Replace("/","\").ToLowerInvariant()
 $matches = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
@@ -159,9 +191,9 @@ try {
         $newModule = "$module.installing"
         Copy-Item -LiteralPath (Join-Path $stageHandoff "dispatcher.py") -Destination $newDispatcher -Force
         Copy-Item -LiteralPath (Join-Path $stageHandoff "control_reply_handoff.py") -Destination $newModule -Force
-        if (Test-Path -LiteralPath $module) { [IO.File]::Replace($newModule, $module, $null) }
+        if (Test-Path -LiteralPath $module) { [IO.File]::Replace($newModule, $module, ("$module.replace-" + [guid]::NewGuid().ToString("N") + ".bak")) }
         else { Move-Item -LiteralPath $newModule -Destination $module }
-        [IO.File]::Replace($newDispatcher, $dispatcher, $null)
+        [IO.File]::Replace($newDispatcher, $dispatcher, ("$dispatcher.replace-" + [guid]::NewGuid().ToString("N") + ".bak"))
         if ((GitBlob $dispatcher) -ne $dispatcherBlob -or (GitBlob $module) -ne $moduleBlob) {
             throw "installed hashes do not match"
         }

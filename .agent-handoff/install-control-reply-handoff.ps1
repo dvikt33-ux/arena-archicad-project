@@ -8,11 +8,13 @@ $module = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
 $credentialPath = Join-Path $env:LOCALAPPDATA "AI-Dispatcher\github-token.dpapi"
-$codeCommit = "cfba411c36285c5d413c9df8faad4ae1151d5516"
-$dispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
+$codeCommit = "c43aec400656ba28d1371ac7ae1bac171c5ea606"
+$oldDispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
+$dispatcherBlob = "227ca28fd9b911a327c1012888c1089df9e273e2"
 $previousModuleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
 $intermediateModuleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
-$moduleBlob = "b3495d39c3d67a8d584390d333f59eac1bc96f27"
+$previousRealDomBlob = "b3495d39c3d67a8d584390d333f59eac1bc96f27"
+$moduleBlob = "2ffe886885d707534fc15cb43b2455c6d8798c9e"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("AI_Dispatcher_ControlReply_" + [guid]::NewGuid().ToString("N"))
 $stageHandoff = Join-Path $stage ".agent-handoff"
@@ -66,9 +68,9 @@ $control = Get-Content -LiteralPath $controlPath -Raw -Encoding UTF8 | ConvertFr
 if ([string]$control.chatgpt_control_url -ne "https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a") { Stop-Install "unexpected CONTROL conversation; refusing to change the queue" }
 
 $currentDispatcherBlob = GitBlob $dispatcher
-if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
+if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $oldDispatcherBlob, $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
 if (Test-Path -LiteralPath $module) {
-    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
+    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$previousRealDomBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
 }
 
 # Obtain a token only if this Windows user has no DPAPI-protected token.
@@ -136,12 +138,21 @@ with sync_playwright() as playwright:
     matches = _read_verified_ack_pair(pages[0])
     if len(matches) != 2 or matches[0] != {"role":"user","text":"Проверь GitHub. turn_id=76"} or not matches[1]["text"].startswith("CONTROL ACK — turn_id=76\n"):
         # Minimal structural flags: do not print messages or token material.
-        meta = pages[0].evaluate("""() => ({
-            boot: document.body.innerText.includes('Служебный чат 01 — CONTROL & BRIDGE'),
-            ack: document.body.innerText.includes('CONTROL ACK'),
-            markdown: document.querySelectorAll('main .markdown,main .prose').length,
-            stop: !!document.querySelector('[data-testid="stop-button"]')
-        })""")
+        meta = pages[0].evaluate("""() => {
+          const visible = x => !!(x && x.getClientRects().length);
+          const wake = /^Проверь GitHub\\. turn_id=76$/;
+          const users = [...document.querySelectorAll('[class~="bg-user-message"]')].filter(visible);
+          const markdowns = [...document.querySelectorAll('[class*="MarkdownRoot-"]')].filter(visible);
+          const headings = [...document.querySelectorAll('[class*="MarkdownRoot-"] p')].filter(visible);
+          return {
+            visible_user_bubbles: users.length,
+            exact_wake_bubbles: users.filter(x => wake.test((x.innerText||'').trim())).length,
+            visible_markdown_roots: markdowns.length,
+            exact_ack_headings: headings.filter(x => /^CONTROL ACK\\s*[—–-]\\s*turn_id=76$/.test((x.innerText||'').trim())).length,
+            parent_main: document.querySelectorAll('main,[role="main"]').length,
+            active_generation: !!document.querySelector('[data-testid="stop-button"]')
+          };
+        }""")
         print("STOP: LIVE DOM ACK NOT PROVEN; installed files unchanged; structural flags:", meta)
         sys.exit(8)
     print("LIVE DOM ACK PROBE PASS: separate reply for wake 76 confirmed without sending")

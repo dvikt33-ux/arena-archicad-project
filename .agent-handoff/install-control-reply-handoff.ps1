@@ -128,7 +128,7 @@ if ($LASTEXITCODE -ne 0) { Stop-Install "regression tests failed; installed file
 $ackProbe = @'
 import sys
 sys.path.insert(0, sys.argv[1])
-from control_reply_handoff import _read_verified_ack_pair
+from control_reply_handoff import _read_verified_ack_pair, parse_control_reply
 from playwright.sync_api import sync_playwright
 url = sys.argv[2]
 with sync_playwright() as playwright:
@@ -140,20 +140,21 @@ with sync_playwright() as playwright:
         sys.exit(7)
     diagnostics = {}
     messages = _read_verified_ack_pair(pages[0], diagnostics)
+    # Delegate all exact Unicode wake/ACK validation to the UTF-8 module.
+    # This installer embeds ASCII only: Windows PowerShell 5.1 reads a
+    # UTF-8-without-BOM .ps1 in the system ANSI codepage.
+    reply = parse_control_reply(messages, 76)
     valid = (
         len(messages) == 2 and
-        messages[0] == {"role":"user","text":"Проверь GitHub. turn_id=76"} and
-        messages[1].get("role") == "assistant" and
-        messages[1].get("text","").startswith("CONTROL ACK — turn_id=76\n")
+        diagnostics.get("reason") == "verified" and
+        reply is not None
     )
     if not valid:
-        # The SAME parsing function is used here and later by the dispatcher.
-        # Prints ONLY stage counters; no reply text or credential.
+        # Diagnostic counters only: no text, token or reply contents.
         print("STOP: LIVE ACK NOT VERIFIED; code untouched; reason:", diagnostics)
         sys.exit(8)
     print("LIVE DOM ACK PROBE PASS: existing wake 76 and bounded reply verified")
-'@
-# PowerShell's native argument passing can strip quoting inside a multiline
+'@# PowerShell's native argument passing can strip quoting inside a multiline
 # -c argument (reproduced on the user's Windows PowerShell 5.1).  Write the
 # exact script as UTF-8 and invoke a real .py file instead.  This probe only
 # reads the open CONTROL page; it never sends a message.

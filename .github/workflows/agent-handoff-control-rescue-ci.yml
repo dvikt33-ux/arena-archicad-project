@@ -1,0 +1,25 @@
+name: Arena CONTROL rescue regression
+on:
+  push:
+    branches:
+      - fix/arena-control-stale-rescue-20261016
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  control-rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Python syntax (no Playwright session)
+        run: python -m py_compile .agent-handoff/dispatcher.py .agent-handoff/control_reply_handoff.py .agent-handoff/diagnose-control-ack-dom.py
+      - name: CONTROL rescue regression
+        run: python -m unittest discover -s .agent-handoff/tests -p 'test_stale_control_rescue.py' -v
+      - name: CONTROL reply handoff regression
+        run: python -m unittest discover -s .agent-handoff/tests -p 'test_control_reply_handoff.py' -v

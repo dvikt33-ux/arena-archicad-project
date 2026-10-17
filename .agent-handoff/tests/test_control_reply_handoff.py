@@ -110,7 +110,7 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertEqual(len(handoff._read_verified_ack_pair(p)), 2)
         probe = next(x for x in p.scripts if "return metrics" in x)
         self.assertIn("MarkdownRoot-", probe)
-        self.assertIn("head.innerText", probe)
+        self.assertIn("first.innerText", probe)
         self.assertNotIn("NodeFilter.SHOW_TEXT", probe)
         self.assertIn("const m=raw.match(", probe)
         self.assertIn("first.textContent", probe)

@@ -72,9 +72,14 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertEqual([m["role"] for m in msgs], ["user","assistant","user","assistant"])
         self.assertEqual(handoff.parse_control_reply(msgs,76),
                          "RELEASE_NOT_PROVEN\n- Provenance pair: INCOMPLETE.\n- GUID: 261 → 261.")
-        self.assertTrue(any("p.closest('.markdown" in x for x in page.scripts))
-        self.assertTrue(any("block.contains(wake.node)" in x for x in page.scripts))
-        self.assertTrue(any("stop-button" in x for x in page.scripts))
+        # 2026-10-17 real DOM: user bubble bg-user-message and the
+        # MarkdownRoot-* answer. ACK heading is a <p> with split inline spans.
+        self.assertTrue(any('[class~="bg-user-message"]' in x for x in page.scripts))
+        self.assertTrue(any('[class*="MarkdownRoot-"]' in x for x in page.scripts))
+        self.assertTrue(any('el.innerText' in x for x in page.scripts))
+        self.assertTrue(any('after(wake.el,item.el)' in x for x in page.scripts))
+        self.assertTrue(any('el.closest(userScope)' in x for x in page.scripts))
+        self.assertTrue(any('stop-button' in x for x in page.scripts))
 
     def test_dom_proven_ack_wrong_turn_rejected(self):
         page = self.ProbePage({
@@ -94,6 +99,21 @@ class DomProvenanceTests(unittest.TestCase):
             page, {"chatgpt_control_url":page.url},
             lambda value:True, lambda a,b:a==b,"bootstrap","ready",lambda _:None
         ), [])
+
+    def test_split_span_heading_is_evaluated_from_bounded_block(self):
+        # The real ACK paragraph has four inline children, so the scanner
+        # must not demand an entire CONTROL ACK in one NodeFilter text node.
+        p = self.ProbePage({
+            "wake": "Проверь GitHub. turn_id=76",
+            "answer": "CONTROL ACK — turn_id=76\nRELEASE_NOT_PROVEN",
+        })
+        self.assertEqual(len(handoff._read_verified_ack_pair(p)), 2)
+        probe = next(x for x in p.scripts if "return {pairs}" in x)
+        self.assertIn("MarkdownRoot-", probe)
+        self.assertIn("el.innerText", probe)
+        self.assertNotIn("NodeFilter.SHOW_TEXT", probe)
+        self.assertIn("lines[0]", probe)
+        self.assertIn("userScope", probe)
 
     def test_missing_ack_is_not_synthesized(self):
         page = self.ProbePage()

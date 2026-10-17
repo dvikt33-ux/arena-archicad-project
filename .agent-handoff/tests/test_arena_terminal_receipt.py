@@ -28,7 +28,7 @@ def environment():
         "consume_turn":consume,
         "save_state":lambda s:events.append(("save",s.get("last_turn_id"))),
     }
-    for name in ("is_arena_terminal_report","create_inflight",
+    for name in ("signal_is_closed_ack_loop","is_arena_terminal_report","create_inflight",
                  "current_signal_cancels_inflight","handle_signal_without_action"):
         load(name,env)
     return env,events

@@ -186,6 +186,66 @@ class CompletionIntegrationTests(unittest.TestCase):
         self.assertEqual([e[0] for e in events],["publish"])
         self.assertEqual(state["inflight"]["turn_id"],76)
 
+class DirectResumeTests(unittest.TestCase):
+    """Previously submitted wake can finish even when bootstrap is virtualized."""
+    def test_real_ack_resumes_from_existing_control_without_duplicate_send(self):
+        events = []
+        class Browser:
+            contexts = [type("Context", (), {"pages": [
+                type("Page", (), {"url": "https://chatgpt.com/c/known"})()
+            ]})()]
+        env = {
+            "load_control_record": lambda: {
+                "chatgpt_control_url":"https://chatgpt.com/c/known"},
+            "is_durable_control_url": lambda u: "/c/" in u,
+            "same_conversation": lambda a,b:a==b,
+            "generation_is_active": lambda page:False,
+            "_read_verified_ack_pair":lambda page:[
+                {"role":"user","text":"Проверь GitHub. turn_id=76"},
+                {"role":"assistant","text":"CONTROL ACK — turn_id=76\nRELEASE_NOT_PROVEN"},
+            ],
+            "parse_control_reply": handoff.parse_control_reply,
+            "publish_next_signal": lambda n,p:
+                (events.append(("publish",n,p)) or True),
+            "consume_turn":lambda state,n,reason:
+                events.append(("consume",n,reason)),
+            "log":lambda value:events.append(("log",value)),
+            "ensure_control_ready":lambda b,w:
+                self.fail("completed reply must not call ensure_control_ready"),
+            "send_to_chatgpt":lambda p,w:
+                self.fail("completed wake must not be sent again"),
+        }
+        fn=only_dispatcher_function("process_gpt",env)
+        state={"inflight":{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"}}
+        fn(Browser(),state,state["inflight"])
+        self.assertEqual([event[0] for event in events],["publish","consume"])
+        self.assertEqual(events[0],("publish",76,"RELEASE_NOT_PROVEN"))
+
+    def test_github_write_failure_keeps_pending_turn(self):
+        events=[]
+        class Browser:
+            contexts=[type("Context",(),{"pages":[
+                type("Page",(),{"url":"https://chatgpt.com/c/known"})()
+            ]})()]
+        env={
+            "load_control_record":lambda:{"chatgpt_control_url":"https://chatgpt.com/c/known"},
+            "is_durable_control_url":lambda u:True,
+            "same_conversation":lambda a,b:a==b,
+            "generation_is_active":lambda page:False,
+            "_read_verified_ack_pair":lambda page:[
+                {"role":"user","text":"Проверь GitHub. turn_id=76"},
+                {"role":"assistant","text":"CONTROL ACK — turn_id=76\nbody"}],
+            "parse_control_reply":handoff.parse_control_reply,
+            "publish_next_signal":lambda n,p:(events.append("publish") or False),
+            "consume_turn":lambda *args:events.append("consume"),
+            "log":lambda _:None,
+            "ensure_control_ready":lambda b,w:
+                self.fail("should return before other flow"),
+        }
+        fn=only_dispatcher_function("process_gpt",env)
+        fn(Browser(),{},{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"})
+        self.assertEqual(events,["publish"])
+
 def only_dispatcher_function(name,env):
     source=Path(__file__).resolve().parents[1]/"dispatcher.py"
     tree=ast.parse(source.read_text(encoding="utf-8"))

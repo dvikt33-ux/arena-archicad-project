@@ -1,6 +1,7 @@
 # Migrate AI Dispatcher 2.2.19 to the existing Opera profile. PowerShell 5.1 ASCII.
 # Never launches Chrome or signs in to a second Opera profile.
 # Preserves closed queue 87 and the historical GitHub signal.
+param([switch]$StartOnly)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $handoff = Join-Path $repo '.agent-handoff'
@@ -76,6 +77,35 @@ function OperaPath {
     if (Test-Path -LiteralPath $candidate) { return $candidate }
   }
   return ''
+}
+if ($StartOnly) {
+  if (!(Test-Path -LiteralPath $localCore) -or
+      !(Test-Path -LiteralPath $homeCore) -or
+      (Blob $localCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
+      (Blob $homeCore '.agent-handoff/dispatcher.py') -ne $newBlob) {
+    StopSafe 'Opera migration not installed'
+  }
+  $s = Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $c = Get-Content -LiteralPath $controlPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  if ([int]$s.last_turn_id -ne 87 -or $null -ne $s.inflight -or
+      [string]$c.chatgpt_control_url -ne $pinned) {
+    StopSafe 'queue or pinned CONTROL changed'
+  }
+  if (!(OperaAt9224)) { StopSafe 'Opera debug endpoint 127.0.0.1:9224 unavailable or not owned by Opera' }
+  $running = @(DispatcherProcesses)
+  if ($running.Count -gt 1) { StopSafe 'multiple dispatcher instances' }
+  if ($running.Count -eq 1) {
+    Write-Host ("OPERA DISPATCHER RUNNING: PID=" + $running[0].ProcessId)
+    return
+  }
+  $python = & py -c 'import sys; print(sys.executable)'
+  if ($LASTEXITCODE -ne 0) { StopSafe 'Python missing' }
+  $proc = Start-Process -FilePath $python -ArgumentList ('"' + $localCore + '"') -PassThru
+  Start-Sleep -Seconds 6
+  if ($proc.HasExited) { StopSafe 'dispatcher did not remain running' }
+  Write-Host ("OPERA DISPATCHER STARTED: PID=" + $proc.Id)
+  Write-Host 'QUEUE LAST_TURN=87 PENDING=NONE, original CONTROL pinned.'
+  return
 }
 foreach($file in @($localCore,$helper,$statePath,$controlPath)) {
   if (!(Test-Path -LiteralPath $file)) { StopSafe "required file missing: $file" }
@@ -162,9 +192,11 @@ foreach($pair in @(
 $control.chatgpt_control_url = $pinned
 $control.rebind_status = 'retired'
 $control.rebind_for_url = $rebound
-$control.unready_checks = 0
-$control | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath ($controlPath + '.installing') -Encoding UTF8
-Move-Item -LiteralPath ($controlPath + '.installing') -Destination $controlPath -Force
+$control | Add-Member -NotePropertyName unready_checks -NotePropertyValue 0 -Force
+$json = $control | ConvertTo-Json -Depth 20
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllText(($controlPath + '.installing'),$json,$utf8NoBom)
+[IO.File]::Replace(($controlPath + '.installing'),$controlPath,($controlPath + '.pre-opera-replace-' + $stamp + '.bak'))
 if ((Blob $localCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
     (Blob $homeCore '.agent-handoff/dispatcher.py') -ne $newBlob -or
     (Blob $homeRuntime '.agent-handoff/dispatcher-runtime.py') -ne $newRuntimeBlob) {
@@ -189,5 +221,5 @@ if (OperaAt9224) {
   } else {
     Write-Host 'Opera path not automatically found. Launch your Opera executable with --remote-debugging-port=9224'
   }
-  Write-Host 'Then run the installer with -StartOnly to connect. No new signals.'
+  Write-Host 'Then run this installer with -StartOnly to connect. No new signals.'
 }

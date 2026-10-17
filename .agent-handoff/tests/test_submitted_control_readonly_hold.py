@@ -50,6 +50,7 @@ class NoRebindForSubmittedWake(unittest.TestCase):
         def forbidden(*a,**k):raise AssertionError("GitHub/rebind forbidden")
         env={
             "load_control_record":lambda:{"chatgpt_control_url":Page.url},
+            "conversation_identity":lambda url:url.rsplit("/",1)[-1],
             "is_durable_control_url":lambda url:url.startswith("https://chatgpt.com/c/"),
             "same_conversation":lambda a,b:a==b,
             "generation_is_active":lambda page:False,
@@ -59,11 +60,79 @@ class NoRebindForSubmittedWake(unittest.TestCase):
             "ensure_control_ready":forbidden,
             "log":lambda *a:None,
         }
+        load("submitted_gpt_wake_needs_read_only_wait",env)
+        load("submitted_control_readback_url",env)
         process=load("process_gpt",env)
         pending={"turn_id":87,"target":"GPT","terminal_report":True,
                  "terminal_resume_intent":True,
-                 "wake":"Проверь GitHub. turn_id=87","submitted":True}
+                 "wake":"Проверь GitHub. turn_id=87","submitted":True,
+                 "wake_seen_control_url":Page.url,
+                 "wake_seen_control_identity":"existing"}
         process(Browser(),{"last_turn_id":86,"inflight":pending},pending)
+        self.assertEqual(len(events),1)
+        self.assertEqual(events[0][0],87)
+        self.assertIn("no GitHub follow-up",events[0][1])
+
+
+class PinnedControlRecovery(unittest.TestCase):
+    def reader(self):
+        env={
+            "submitted_gpt_wake_needs_read_only_wait":
+                load("submitted_gpt_wake_needs_read_only_wait",{}),
+            "is_durable_control_url":lambda url:url.startswith("https://chatgpt.com/c/"),
+            "conversation_identity":lambda url:url.split("?")[0].rsplit("/",1)[-1],
+        }
+        return load("submitted_control_readback_url",env)
+
+    def test_old_pinned_control_wins_over_pending_rebind(self):
+        fn=self.reader()
+        old="https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a"
+        new="https://chatgpt.com/c/6ad3e97f-5980-83eb-babf-d34379e0df0c"
+        pending={"target":"GPT","submitted":True,"wake_seen":True,
+                 "wake_seen_control_url":old,
+                 "wake_seen_control_identity":old.rsplit("/",1)[-1]}
+        self.assertEqual(fn(pending,new),old)
+        self.assertEqual(fn({**pending,"wake_seen_control_identity":"wrong"},new),"")
+        self.assertEqual(fn({**pending,"wake_seen_control_url":""},new),"")
+        self.assertEqual(fn({"target":"GPT","submitted":False},new),new)
+
+    def test_ack_only_on_pinned_tab_not_changed_saved_url(self):
+        events=[]
+        old="https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a"
+        new="https://chatgpt.com/c/6ad3e97f-5980-83eb-babf-d34379e0df0c"
+        class Page:
+            def __init__(self,url): self.url=url
+        class Browser:
+            def __init__(self,urls):
+                self.contexts=[type("Context",(),{"pages":[Page(url) for url in urls]})()]
+        def forbidden(*args):raise AssertionError("side effect forbidden")
+        env={
+            "load_control_record":lambda:{"chatgpt_control_url":new},
+            "is_durable_control_url":lambda url:url.startswith("https://chatgpt.com/c/"),
+            "conversation_identity":lambda url:url.split("?")[0].rsplit("/",1)[-1],
+            "same_conversation":lambda a,b:a==b,
+            "generation_is_active":lambda page:False,
+            "terminal_resume_observation":lambda page,turn:
+                {"ack":"valid"} if page.url==old else {"ack":None},
+            "consume_turn":lambda state,turn,reason:events.append((turn,reason)),
+            "publish_next_signal":forbidden,
+            "ensure_control_ready":forbidden,
+            "log":lambda *args:None,
+            "save_state":lambda state:None,
+        }
+        load("submitted_gpt_wake_needs_read_only_wait",env)
+        load("submitted_control_readback_url",env)
+        process=load("process_gpt",env)
+        task={"turn_id":87,"wake":"Проверь GitHub. turn_id=87",
+              "target":"GPT","terminal_report":True,
+              "terminal_resume_intent":True,"submitted":True,
+              "wake_seen_control_identity":old.rsplit("/",1)[-1],
+              "wake_seen_control_url":old,
+              "last_error":None}
+        process(Browser([new]),{"last_turn_id":86,"inflight":task},task)
+        self.assertEqual(events,[])
+        self.assertEqual(task["last_error"],"CONTROL_SUBMITTED_ACK_UNOBSERVED_READ_ONLY")
+        process(Browser([new,old]),{"last_turn_id":86,"inflight":task},task)
         self.assertEqual(len(events),1)
         self.assertEqual(events[0][0],87)
         self.assertIn("no GitHub follow-up",events[0][1])

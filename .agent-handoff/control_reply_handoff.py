@@ -34,98 +34,115 @@ def _visible_turns(page) -> dict | None:
       }
       return {boot:texts.some(t=>t.includes('Служебный чат 01 — CONTROL & BRIDGE')),ready:texts.some(t=>/^CONTROL READY\.?$/.test(t)),wakes:texts.filter(t=>/^Проверь GitHub\. turn_id=\d+$/.test(t)).slice(-8),turns};
     }""")
-def _read_verified_ack_pair(page) -> list[dict]:
-    """Find one exact assistant Markdown response after a real user wake.
+def _read_verified_ack_pair(page, diagnostics: dict | None = None) -> list[dict]:
+    """Extract a DOM-proven wake/response pair; diagnostics expose counts only.
 
-    Read-only DOM scan; no synthesis. The persisted CONTROL identity is
-    validated by the caller, not by relying on an old virtualized bootstrap.
-    The 2026 HTML renders the heading in a four-child <p> inside MarkdownRoot.
+    The installer and the active dispatcher call THIS IDENTICAL reader.
+    The page's persisted conversation identity is verified by the caller.
+    Never synthesize an assistant reply, inspect unrelated tabs or send a wake.
     """
     try:
         facts = page.evaluate(r"""() => {
-          const clean = value => String(value || '').replace(/[\u00a0\u200b\u200c\u200d\ufeff]/g, ' ').trim();
-          const flat = value => clean(value).replace(/\s+/g, ' ');
           const visible = el => !!(el && el.getClientRects().length);
-          const wakeRE = /^Проверь GitHub\. turn_id=(\d+)$/;
-          const ackRE = /^CONTROL ACK\s*[—–-]\s*turn_id=(\d+)$/;
+          const clean = text => String(text || '').normalize('NFKC')
+            .replace(/[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '')
+            .replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+          const wakeRE = /^Проверь GitHub[.] turn_id=(\d+)$/u;
+          const ackRE = /^CONTROL ACK\s*[—–−-]\s*turn_id=(\d+)$/u;
+          const usersel = '[class~="bg-user-message"],[data-message-author-role="user"]';
+          const markdownsel = '[class*="MarkdownRoot-"],.markdown,[class~="prose"],[data-testid="assistant-message"]';
+          const userScope = '[class~="bg-user-message"],[class*="group/user-message"],' +
+            '[data-message-author-role="user"],[data-message-author="user"]';
           const after = (a,b) => !!(a.compareDocumentPosition(b) &
             Node.DOCUMENT_POSITION_FOLLOWING);
-          const userSelector = '[class~="bg-user-message"],' +
-            '[data-message-author-role="user"],[data-message-author="user"]';
-          const userScope = userSelector + ',[class*="group/user-message"],' +
-            '[data-testid*="user-message"],[data-testid*="user-turn"]';
-          const answerSelector = '[class*="MarkdownRoot-"],.markdown,' +
-            '[class~="prose"],[data-testid="assistant-message"]';
-          const roots = [...document.querySelectorAll('main,[role="main"]')]
-            .filter(visible);
-          // An isolated wake in the saved CONTROL conversation is sufficient:
-          // the initial bootstrap can be virtualized or absent on refresh.
-          const root = roots.find(el => [...el.querySelectorAll(userSelector)]
-            .some(u => visible(u) && wakeRE.test(flat((u.querySelector('[class*="whitespace-pre-wrap"]') || u).textContent))));
-          if (!root) return {pairs:[],reason:'wake-bubble-absent',
-            roots:roots.length, userBubbles:document.querySelectorAll(userSelector).length};
-          const generating = [...document.querySelectorAll(
-            '[data-testid="stop-button"],button[aria-label*="Stop"],' +
-            'button[aria-label*="Останов"]'
-          )].some(visible);
-          if (generating) return {pairs:[],reason:'generation-in-progress'};
-          const users = [...root.querySelectorAll(userSelector)]
-            .filter(visible).map(el => {
-              const text=flat((el.querySelector('[class*="whitespace-pre-wrap"]') || el).textContent);
-              return {el,text,match:text.match(wakeRE)};
+          const metrics = {reason:'unstarted',roots:0,userBubbles:0,wakeBubbles:0,
+            markdownBlocks:0,headingMatches:0,replyBodies:0,pairs:[]};
+          const roots = [...document.querySelectorAll('main,[role="main"]')].filter(visible);
+          metrics.roots = roots.length;
+          const candidates = [];
+          for (const root of roots) {
+            const users = [...root.querySelectorAll(usersel)].filter(visible);
+            const answers = [...root.querySelectorAll(markdownsel)].filter(visible);
+            metrics.userBubbles += users.length;
+            metrics.markdownBlocks += answers.length;
+            const parsed = users.map(el => {
+              const descendant = el.querySelector('[class*="whitespace-pre-wrap"]');
+              const texts = [el.innerText, el.textContent,
+                descendant && descendant.innerText, descendant && descendant.textContent];
+              const wake = texts.map(clean).find(text => wakeRE.test(text)) || '';
+              return {el,wake,match:wake.match(wakeRE)};
             });
-          const wakes = users.filter(u => u.match);
-          const answers = [];
-          const answerRoots = [...root.querySelectorAll(answerSelector)].filter(visible);
-          const headingNodes = [];
-          for (const el of answerRoots) {
-            if (el.closest(userScope)) continue;
-            const labelled = el.closest('[data-message-author-role],[data-message-author]');
-            if (labelled) {
-              const role = String(labelled.getAttribute('data-message-author-role') ||
-                labelled.getAttribute('data-message-author') || '').toLowerCase();
-              if (role !== 'assistant') continue;
-            }
-            // Individual heading text nodes cannot match: <p> has four
-            // children. Match whole rendered <p> instead of text-node text.
-            for (const head of el.querySelectorAll('p')) {
-              if (!visible(head)) continue;
-              const heading = flat(head.textContent || head.innerText);
+            const wakes = parsed.filter(p=>p.match);
+            metrics.wakeBubbles += wakes.length;
+            if (!wakes.length) continue;
+            const assistant = [];
+            for (const el of answers) {
+              if (el.closest(userScope)) continue;
+              const annotated = el.closest('[data-message-author-role]');
+              if (annotated && annotated.getAttribute('data-message-author-role') !== 'assistant')continue;
+              const paragraphs = [...el.querySelectorAll('p')].filter(visible);
+              // First visible paragraph only: never treat a quoted ACK inside
+              // the assistant body as an answer heading.
+              const first = paragraphs[0];
+              if (!first || first.closest('blockquote,pre,code'))continue;
+              const labels = [clean(first.innerText),clean(first.textContent)];
+              const heading = labels.find(label => ackRE.test(label));
+              if (!heading)continue;
               const match = heading.match(ackRE);
-              if (!match) continue;
-              headingNodes.push(head);
-              const raw = clean(el.innerText || el.textContent);
-              // Rendered markdown may insert extra line breaks between the
-              // 4 child spans of the heading; trust the exact <p>.textContent
-              // and normalize only the heading, never fabricate the payload.
-              const preface = raw.match(/^CONTROL\s+ACK\s*[—–-]\s*turn_id\s*=\s*(\d+)([\s\S]*)$/);
-              if (!preface || preface[1] !== match[1] || !preface[2].trim()) continue;
-              const body = `CONTROL ACK — turn_id=${match[1]}\n` + clean(preface[2]);
-              answers.push({el,body,match});
+              metrics.headingMatches++;
+              const renderings = [el.innerText,el.textContent].filter(Boolean);
+              let payload = '';
+              for (const raw of renderings) {
+                // Read body after its actually rendered heading, never from
+                // the entire page nor from the user's message.
+                const headVariants = [first.innerText,first.textContent].filter(Boolean);
+                for (const hdr of headVariants) {
+                  let pos=raw.indexOf(hdr);
+                  if (pos<0 || clean(raw.slice(0,pos)))continue;
+                  const rest=raw.slice(pos+hdr.length).trim();
+                  if (rest) {payload=rest;break;}
+                }
+                if (payload)break;
+                // Allow formatting whitespace/newlines between inline spans.
+                const m=raw.match(/^\s*CONTROL\s+ACK\s*[—–−-]\s*turn_id\s*=\s*(\d+)([\s\S]*)$/u);
+                if(m && m[1]===match[1] && m[2].trim()){payload=m[2].trim();break;}
+              }
+              if(!payload)continue;
+              metrics.replyBodies++;
+              assistant.push({el,turn:match[1],answer:
+                'CONTROL ACK — turn_id='+match[1]+'\n'+payload});
+            }
+            for(const wake of wakes){
+              const following=parsed.filter(u=>u.el!==wake.el&&after(wake.el,u.el));
+              const next=following[0];
+              const hits=assistant.filter(reply=>
+                reply.turn===wake.match[1]&&after(wake.el,reply.el)&&
+                (!next||after(reply.el,next.el))&&!reply.el.contains(wake.el));
+              if(hits.length===1)candidates.push({
+                wake:wake.wake,answer:hits[0].answer});
             }
           }
-          const pairs = [];
-          for (const wake of wakes) {
-            const followingUsers = users.filter(u => u.el !== wake.el &&
-              after(wake.el,u.el));
-            const next = followingUsers[0];
-            const matches = answers.filter(a =>
-              a.match[1] === wake.match[1] &&
-              after(wake.el,a.el) &&
-              (!next || after(a.el,next.el)) &&
-              !a.el.contains(wake.el));
-            if (matches.length === 1)
-              pairs.push({wake:wake.text,answer:matches[0].body});
-          }
-          return {pairs,reason:pairs.length===1?'verified':'no-unique-pair',
-            roots:roots.length, wakeBubbles:wakes.length,
-            answerBlocks:answerRoots.length, matchingHeadings:headingNodes.length,
-            candidateAnswers:answers.length};
+          metrics.pairs = candidates.length === 1 ? candidates : [];
+          metrics.reason = candidates.length===1?'verified':
+            !metrics.wakeBubbles?'wake-not-matched':
+            !metrics.headingMatches?'heading-not-matched':
+            !metrics.replyBodies?'body-not-extracted':'ordering-or-ambiguous';
+          return metrics;
         }""")
-    except Exception:
+    except Exception as exc:
+        if diagnostics is not None:
+            diagnostics.update(reason="javascript-or-browser-error",
+                               error_type=type(exc).__name__)
         return []
     if not isinstance(facts, dict):
+        if diagnostics is not None:
+            diagnostics.update(reason="invalid-dom-result")
         return []
+    if diagnostics is not None:
+        diagnostics.update({key: facts[key] for key in
+            ("reason","roots","userBubbles","wakeBubbles",
+             "markdownBlocks","headingMatches","replyBodies")
+            if key in facts})
     pairs = facts.get("pairs")
     if not isinstance(pairs, list) or len(pairs) != 1:
         return []
@@ -134,11 +151,12 @@ def _read_verified_ack_pair(page) -> list[dict]:
         return []
     wake, answer = _clean(pair.get("wake")), _clean(pair.get("answer"))
     matched_wake = re.fullmatch(r"Проверь GitHub\. turn_id=(\d+)", wake)
-    head = answer.splitlines()[0].strip() if answer else ""
-    matched_ack = _ACK.fullmatch(head)
-    if not matched_wake or not matched_ack or matched_wake.group(1) != matched_ack.group(1):
-        return []
-    if len(answer.splitlines()) < 2 or not "\n".join(answer.splitlines()[1:]).strip():
+    matched_ack = _ACK.fullmatch(answer.splitlines()[0].strip()) if answer else None
+    if (not matched_wake or not matched_ack or
+            matched_wake.group(1) != matched_ack.group(1) or
+            not "\n".join(answer.splitlines()[1:]).strip()):
+        if diagnostics is not None:
+            diagnostics["reason"] = "final-python-ack-validation-failed"
         return []
     return [{"role":"user","text":wake},{"role":"assistant","text":answer}]
 

@@ -262,13 +262,22 @@ def load_state() -> dict:
         raise RuntimeError("STATE_INVALID_STOP: local queue needs recovery") from exc
 
 
+class DispatcherStateWriteError(RuntimeError):
+    """Queue persistence failed: stop, never keep sending via browser."""
+    pass
+
+
 def save_state(state: dict) -> None:
     tmp = STATE_PATH.with_suffix(".tmp")
-    with tmp.open("w", encoding="utf-8") as stream:
-        json.dump(state, stream, ensure_ascii=False, indent=2)
-        stream.flush()
-        os.fsync(stream.fileno())
-    os.replace(tmp, STATE_PATH)
+    try:
+        with tmp.open("w", encoding="utf-8") as stream:
+            json.dump(state, stream, ensure_ascii=False, indent=2)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, STATE_PATH)
+    except (OSError, TypeError, ValueError) as exc:
+        # We cannot safely continue dispatching when durable state is unknown.
+        raise DispatcherStateWriteError("STATE_WRITE_FAILED_STOP") from exc
 
 
 def is_chatgpt_conversation_url(url: str) -> bool:
@@ -4488,9 +4497,9 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
 def watch() -> None:
     acquire_single_instance()
-    start_service_chrome()
-
+    # Refuse a missing/corrupted established queue BEFORE opening Chrome.
     state = load_state()
+    start_service_chrome()
 
     log(f"AI Dispatcher {VERSION} запущен")
     log(f"Последний обработанный turn_id: {state['last_turn_id']}")
@@ -4610,6 +4619,10 @@ def watch() -> None:
 
             except KeyboardInterrupt:
                 log("Остановка по Ctrl+C.")
+                raise
+
+            except DispatcherStateWriteError:
+                log("STATE: write failure; stopping dispatcher without CDP restart or wake replay.")
                 raise
 
             except GitHubNetworkError:

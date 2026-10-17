@@ -7,9 +7,9 @@ $dispatcher = Join-Path $handoff 'dispatcher.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
-$codeCommit = 'f18a3cb5f18523c882ad414692bde136b9da1ea9'
-$oldBlob = 'eee43c73d9c15dc3fb9d3a12b6214fbdd1fe8656'
-$newBlob = '24b571d1f0a33b047615be31c59dd6a15865364a'
+$codeCommit = '04c8054ca80535537867422293eed60d3cfc4111'
+$oldBlob = '24b571d1f0a33b047615be31c59dd6a15865364a'
+$newBlob = '6f939f929d5ecd611ea2e4beaf364a7c7fe6499b'
 $helperBlob = 'b79a002bcdd1bb517421c9b2f6792f00cd5e1d75'
 $controlURL = 'https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a'
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
@@ -66,7 +66,7 @@ if ($current -eq $newBlob) {
     exit 0
 }
 if ($current -ne $oldBlob) {
-    Refuse 'dispatcher differs from installed inline Arena baseline; install skipped'
+    Refuse 'dispatcher differs from verified 24b571d live baseline; install skipped'
 }
 $normalPath = $dispatcher.Replace('/','\').ToLowerInvariant()
 $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
@@ -89,7 +89,7 @@ foreach ($name in @(
     'test_control_reply_handoff.py','test_control_marker_fallback.py',
     'test_stale_control_rescue.py','test_arena_feedback_dismiss.py',
     'test_control_multi_ack.py','test_dispatcher_state_loop.py','test_arena_feedback_inline.py',
-    'test_dispatcher_atmost_once.py'
+    'test_dispatcher_atmost_once.py','test_dispatcher_recovery_contract.py'
 )) {
     Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/$name" -OutFile (Join-Path $stagedTests $name)
 }

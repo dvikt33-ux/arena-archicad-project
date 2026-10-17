@@ -8,7 +8,7 @@ $module = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
 $credentialPath = Join-Path $env:LOCALAPPDATA "AI-Dispatcher\github-token.dpapi"
-$codeCommit = "2fac7ad8615f037d9ff426df960cdf079f64c6fb"
+$codeCommit = "a32bca781bab0d6804079f9f230e282263c50a7d"
 $oldDispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
 $dispatcherBlob = "227ca28fd9b911a327c1012888c1089df9e273e2"
 $previousModuleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
@@ -16,7 +16,8 @@ $intermediateModuleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
 $previousRealDomBlob = "b3495d39c3d67a8d584390d333f59eac1bc96f27"
 $previousModuleV4Blob = "2ffe886885d707534fc15cb43b2455c6d8798c9e"
 $olderModuleBlob = "c10cea1b73b726847db1cb08aee2e87ecea9a4fe"
-$moduleBlob = "0f5ad63e3ff2f9f4e79bc154cc772b37ed9d9235"
+$previousModuleSharedBlob = "0f5ad63e3ff2f9f4e79bc154cc772b37ed9d9235"
+$moduleBlob = "eb4d64030a027940d9fee50255fd66953f5fd40d"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("AI_Dispatcher_ControlReply_" + [guid]::NewGuid().ToString("N"))
 $stageHandoff = Join-Path $stage ".agent-handoff"
@@ -72,7 +73,7 @@ if ([string]$control.chatgpt_control_url -ne "https://chatgpt.com/c/6ad27341-1ea
 $currentDispatcherBlob = GitBlob $dispatcher
 if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $oldDispatcherBlob, $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
 if (Test-Path -LiteralPath $module) {
-    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$previousRealDomBlob,$previousModuleV4Blob,$olderModuleBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
+    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$previousRealDomBlob,$previousModuleV4Blob,$olderModuleBlob,$previousModuleSharedBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
 }
 
 # Obtain a token only if this Windows user has no DPAPI-protected token.

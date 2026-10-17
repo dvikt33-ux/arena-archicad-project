@@ -72,7 +72,7 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertEqual([m["role"] for m in msgs], ["user","assistant","user","assistant"])
         self.assertEqual(handoff.parse_control_reply(msgs,76),
                          "RELEASE_NOT_PROVEN\n- Provenance pair: INCOMPLETE.\n- GUID: 261 → 261.")
-        self.assertTrue(any("parent.closest('.markdown" in x for x in page.scripts))
+        self.assertTrue(any("p.closest('.markdown" in x for x in page.scripts))
         self.assertTrue(any("block.contains(wake.node)" in x for x in page.scripts))
         self.assertTrue(any("stop-button" in x for x in page.scripts))
 

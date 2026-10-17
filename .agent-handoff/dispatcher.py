@@ -4356,9 +4356,26 @@ def current_signal_cancels_inflight(signal: dict, inflight: dict) -> bool:
 
 
 def newer_signal_supersedes_inflight(signal: dict, inflight: dict) -> bool:
+    """Only a direct response by the prior recipient proves supersession.
+
+    A greater turn number alone does NOT prove that a previously pending
+    command reached its recipient. Preserve unknown/gapped transitions.
+    """
     if not inflight:
         return False
-    return int(signal.get("turn_id", 0)) > int(inflight.get("turn_id", 0))
+    current = int(inflight.get("turn_id", 0))
+    next_id = int(signal.get("turn_id", 0))
+    recipient = str(inflight.get("target", "")).upper()
+    source = str(signal.get("source", "")).upper()
+    target = str(signal.get("target", "")).upper()
+    status = str(signal.get("status", "")).lower()
+    if next_id != current + 1 or recipient not in {"GPT", "ARENA"}:
+        return False
+    if source != recipient:
+        return False
+    if target == "NONE" and status in TERMINAL_STATUSES:
+        return True
+    return target in {"GPT", "ARENA"} and target != recipient and status in READY_STATUSES
 
 
 def signal_is_closed_ack_loop(signal: dict) -> bool:
@@ -4457,13 +4474,24 @@ def watch() -> None:
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 
-                if inflight and newer_signal_supersedes_inflight(signal, inflight):
+                if inflight and int(signal.get("turn_id", 0)) > int(inflight["turn_id"]):
+                    if not newer_signal_supersedes_inflight(signal, inflight):
+                        if inflight.get("last_error") != "UNVERIFIED_SUCCESSOR":
+                            inflight["last_error"] = "UNVERIFIED_SUCCESSOR"
+                            state["inflight"] = inflight
+                            save_state(state)
+                            log(
+                                f"TURN {inflight['turn_id']}: unverified newer GitHub "
+                                f"turn_id={signal['turn_id']}; retaining pending state."
+                            )
+                        time.sleep(CHECK_INTERVAL)
+                        continue
                     old_turn = int(inflight["turn_id"])
                     new_turn = int(signal["turn_id"])
                     consume_turn(
                         state,
                         old_turn,
-                        f"подтверждён более новым GitHub turn_id={new_turn}",
+                        f"verified successor source={signal['source']} turn_id={new_turn}",
                     )
                     inflight = None
 

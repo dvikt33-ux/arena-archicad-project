@@ -145,7 +145,15 @@ with sync_playwright() as playwright:
         sys.exit(8)
     print("LIVE DOM ACK PROBE PASS: separate reply for wake 76 confirmed without sending")
 '@
-& $runner.Exe @runnerArgs -c $ackProbe $stageHandoff $control.chatgpt_control_url
+# PowerShell's native argument passing can strip quoting inside a multiline
+# -c argument (reproduced on the user's Windows PowerShell 5.1).  Write the
+# exact script as UTF-8 and invoke a real .py file instead.  This probe only
+# reads the open CONTROL page; it never sends a message.
+$ackProbeFile = Join-Path $stage "probe_live_control_ack.py"
+[IO.File]::WriteAllText($ackProbeFile, $ackProbe, [Text.UTF8Encoding]::new($false))
+& $runner.Exe @runnerArgs -m py_compile $ackProbeFile
+if ($LASTEXITCODE -ne 0) { Stop-Install "ACK probe Python syntax failed: no installation performed" }
+& $runner.Exe @runnerArgs $ackProbeFile $stageHandoff $control.chatgpt_control_url
 if ($LASTEXITCODE -ne 0) { Stop-Install "ACK verification failed: no installation performed" }
 
 # Identify only the exact current Python dispatcher; never stop an ambiguous process.

@@ -4253,6 +4253,11 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
                         return
                     consume_turn(state, turn_id, "GPT->ARENA signal write verified by readback")
                     return
+        except DispatcherStateWriteError:
+            # The recovery path can publish a successor before consuming the
+            # local turn. A failed state write must stop, never fall through
+            # into a second wake attempt.
+            raise
         except Exception as exc:
             log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
 

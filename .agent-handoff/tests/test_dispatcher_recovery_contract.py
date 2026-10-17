@@ -44,7 +44,7 @@ class RecoveryContracts(unittest.TestCase):
     def test_ui_timeout_does_not_restart_cdp(self):
         body = function_body("watch")
         section=body[body.index("except PlaywrightTimeoutError as exc:"):
-                     body.index("except Exception as exc:")]
+                     body.index("except RuntimeError as exc:")]
         self.assertNotIn("start_service_chrome",section)
         self.assertNotIn("browser = None",section)
 

@@ -4210,10 +4210,23 @@ def consume_turn(state: dict, turn_id: int, reason: str) -> None:
     log(f"TURN {turn_id} обработан: {reason}")
 
 
+def is_arena_terminal_report(signal: dict) -> bool:
+    """An Arena-produced final result needs one CONTROL receipt, not a new task."""
+    return (
+        str(signal.get("source", "")).upper() == "ARENA"
+        and str(signal.get("target", "")).upper() == "NONE"
+        and str(signal.get("status", "")).lower() == "done"
+        and signal.get("requires_codex", False) is False
+        and bool(str(signal.get("message", "")).strip())
+    )
+
+
 def create_inflight(state: dict, signal: dict) -> dict:
+    is_final = is_arena_terminal_report(signal)
     inflight = {
         "turn_id": signal["turn_id"],
-        "target": signal["target"],
+        "target": "GPT" if is_final else signal["target"],
+        "terminal_report": is_final,
         "requires_codex": bool(signal.get("requires_codex", False)),
         "wake": wake_text(signal["turn_id"]),
         "submitted": False,
@@ -4248,6 +4261,9 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
                 pair = _read_verified_ack_pair(pages[0])
                 reply = parse_control_reply(pair, turn_id)
                 if reply:
+                    if inflight.get("terminal_report"):
+                        consume_turn(state, turn_id, "ARENA final report acknowledged in CONTROL; no GitHub follow-up")
+                        return
                     if not publish_next_signal(turn_id, reply):
                         log(f"GITHUB: next signal for turn_id={turn_id + 1} not confirmed; keeping inflight.")
                         return
@@ -4279,6 +4295,9 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         reply = parse_control_reply(chatgpt_messages(page), turn_id)
         if not reply:
             log(f"GPT: matching CONTROL ACK not found for turn_id={turn_id}; keeping inflight.")
+            return
+        if inflight.get("terminal_report"):
+            consume_turn(state, turn_id, "ARENA final report acknowledged in CONTROL; no GitHub follow-up")
             return
         if not publish_next_signal(turn_id, reply):
             log(f"GITHUB: next signal for turn_id={turn_id + 1} not confirmed; keeping inflight.")
@@ -4411,6 +4430,10 @@ def current_signal_cancels_inflight(signal: dict, inflight: dict) -> bool:
 
     if int(signal.get("turn_id", 0)) != int(inflight.get("turn_id", -1)):
         return False
+    if inflight.get("terminal_report") and is_arena_terminal_report(signal):
+        # Keep waiting for CONTROL evidence while the same final report
+        # remains in GitHub; done/NONE must not cancel its own receipt.
+        return False
 
     status = str(signal.get("status", "")).lower()
     target = str(signal.get("target", "")).upper()
@@ -4484,6 +4507,10 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
     if signal_is_closed_ack_loop(signal):
         consume_turn(state, turn_id, "ACK loop terminal notice; no new task delivered")
         return True
+
+    if is_arena_terminal_report(signal):
+        # Route the final payload to GPT CONTROL; do not consume here.
+        return False
 
     if target == "NONE" or status in TERMINAL_STATUSES:
         consume_turn(
@@ -4589,7 +4616,8 @@ def watch() -> None:
                         status = signal["status"]
                         target = signal["target"]
 
-                        if status not in READY_STATUSES:
+                        final_report = is_arena_terminal_report(signal)
+                        if status not in READY_STATUSES and not final_report:
                             log(
                                 f"TURN {turn_id}: неизвестный status={status!r}; "
                                 "действие не выполняю."
@@ -4597,7 +4625,7 @@ def watch() -> None:
                             time.sleep(CHECK_INTERVAL)
                             continue
 
-                        if target not in {"GPT", "ARENA"}:
+                        if target not in {"GPT", "ARENA"} and not final_report:
                             log(
                                 f"TURN {turn_id}: неизвестный target={target!r}; "
                                 "действие не выполняю."
@@ -4606,7 +4634,10 @@ def watch() -> None:
                             continue
 
                         inflight = create_inflight(state, signal)
-                        log(f"NEW TURN {turn_id} -> {target}")
+                        if final_report:
+                            log(f"ARENA: final report turn_id={turn_id} -> GPT CONTROL (no echo)")
+                        else:
+                            log(f"NEW TURN {turn_id} -> {target}")
 
                 if inflight:
                     target = str(inflight.get("target", "")).upper()

@@ -53,7 +53,7 @@ class DomProvenanceTests(unittest.TestCase):
             self.scripts.append(script)
             if self.raise_error:
                 raise RuntimeError("browser detached")
-            if "return {pairs}" in script:
+            if "return {pairs" in script:
                 return {"pairs": [] if self.pair is None else [self.pair]}
             return {"boot": True, "ready": True,
                     "wakes": ["Проверь GitHub. turn_id=76"],
@@ -110,10 +110,13 @@ class DomProvenanceTests(unittest.TestCase):
         self.assertEqual(len(handoff._read_verified_ack_pair(p)), 2)
         probe = next(x for x in p.scripts if "return {pairs}" in x)
         self.assertIn("MarkdownRoot-", probe)
-        self.assertIn("el.innerText", probe)
+        self.assertIn("head.innerText", probe)
         self.assertNotIn("NodeFilter.SHOW_TEXT", probe)
         self.assertIn("lines[0]", probe)
         self.assertIn("userScope", probe)
+        # Earlier bootstrap may be virtualized; wake and its reply suffice.
+        self.assertNotIn("Служебный чат 01 — CONTROL & BRIDGE", probe)
+        self.assertIn("matchingHeadings", probe)
 
     def test_missing_ack_is_not_synthesized(self):
         page = self.ProbePage()

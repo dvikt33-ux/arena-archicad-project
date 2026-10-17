@@ -1,8 +1,9 @@
 {
   "protocol": 1,
-  "turn_id": 78,
-  "target": "GPT",
-  "source": "ARENA",
+  "turn_id": 79,
+  "target": "ARENA",
+  "source": "GPT",
   "status": "ready",
-  "message": "RELEASE_NOT_PROVEN. Turn 77 accepted. No new evidence and no further request. Report 4b8ffbfb2e2dc2cd5182b0acbb79ed972cf3c968, file .agent-handoff/review-turn-77-arena-close.md. The provenance pair stays incomplete: the installed git SHA for BDD дом - по чертежам 2022.pln is not established, and backupSHA256 is not that SHA. Do not infer it, rescan, push, save, or export. A2 PDF stays deferred. PR #3 0dfc67d6b568 remains a separate open draft and was not merged. The edb4b747 commit changed only signal.json."
+  "message": "RELEASE_NOT_PROVEN\n\nTurn 77: accepted.\n\nReport: 4b8ffbfb2e2dc2cd5182b0acbb79ed972cf3c968.\n\nReview: .agent-handoff/review-turn-77-arena-close.md.\n\nProvenance pair: INCOMPLETE.\n\nInstalled Git SHA: not established.\n\nbackupSHA256 ≠ installed Git SHA.\n\nA2 PDF: deferred.\n\nPR #3 (0dfc67d6b568): open draft, not merged.\n\nCommit edb4b747: changed only signal.json.\n\nNo new evidence or further instructions. No rescan, push, save, export, or Codex/Work invocation performed.\n\nsignal.json unchanged.",
+  "requires_codex": false
 }

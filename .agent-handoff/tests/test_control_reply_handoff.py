@@ -267,6 +267,30 @@ class DirectResumeTests(unittest.TestCase):
         fn(Browser(),{},{"turn_id":76,"wake":"Проверь GitHub. turn_id=76"})
         self.assertEqual(events,["publish"])
 
+class WindowsPowerShellEncodingTests(unittest.TestCase):
+    def test_installer_stays_7bit_ascii_for_windows_powershell_51(self):
+        # PS 5.1 interprets UTF-8-without-BOM scripts with an ANSI code page.
+        # Every literal, especially the embedded Python probe, must survive.
+        path = Path(__file__).resolve().parents[1] / "install-control-reply-handoff.ps1"
+        raw = path.read_bytes()
+        self.assertTrue(raw.isascii())
+        self.assertIn(b"parse_control_reply(messages, 76)", raw)
+        self.assertIn(b'from control_reply_handoff import _read_verified_ack_pair, parse_control_reply', raw)
+        self.assertNotIn(b'startswith("CONTROL ACK', raw)
+        self.assertEqual(raw.decode("cp1251"), raw.decode("utf-8"))
+
+    def test_probe_uses_same_parser_as_dispatcher(self):
+        path = Path(__file__).resolve().parents[1] / "install-control-reply-handoff.ps1"
+        code = path.read_text(encoding="ascii")
+        start = code.index("$ackProbe = @'")
+        end = code.index("'@", start + 13)
+        probe = code[start:end]
+        self.assertIn("_read_verified_ack_pair(pages[0], diagnostics)", probe)
+        self.assertIn('diagnostics.get("reason") == "verified"', probe)
+        self.assertIn("parse_control_reply(messages, 76)", probe)
+        self.assertNotIn("GitHub. turn_id=76", probe)
+        self.assertNotIn("startswith(", probe)
+
 def only_dispatcher_function(name,env):
     source=Path(__file__).resolve().parents[1]/"dispatcher.py"
     tree=ast.parse(source.read_text(encoding="utf-8"))

@@ -232,8 +232,11 @@ def default_state() -> dict:
 def load_state() -> dict:
     """Resume the persisted queue or fail closed. Never replay from zero on error."""
     if not STATE_PATH.exists():
-        # A brand-new installation has no queue. After deployment the
-        # installer must preserve this file on disk.
+        # Never reconstruct an established queue from the latest signal.
+        # A new installation may start without state ONLY before CONTROL
+        # has been provisioned; otherwise missing state means recovery.
+        if CONTROL_PATH.exists():
+            raise RuntimeError("STATE_MISSING_STOP: established queue needs recovery")
         return default_state()
 
     try:

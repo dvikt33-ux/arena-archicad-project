@@ -3909,7 +3909,7 @@ def dismiss_arena_completion(page) -> bool:
                         page.wait_for_timeout(400)
                         if not arena_feedback_visible(page):
                             retry.pop(key, None)
-                            log("ARENA: завершённый диалог автоматически закрыт (без оценки).")
+                            log("ARENA: завершённое окно автоматически закрыто (без оценки).")
                             return True
                         # This element accepted a click but didn't close the
                         # dialog. Try a different nearby target in this pass;

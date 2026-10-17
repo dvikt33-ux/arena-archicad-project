@@ -49,7 +49,8 @@ function CheckQueue {
       [int]$pending.send_attempts -ne 1 -or $pending.wake_seen -ne $true -or
       $pending.terminal_resume_intent -ne $true -or
       [string]$pending.wake_seen_control_url -ne $url -or
-      [string]$pending.wake -notmatch '^.+turn_id=87
+      [string]$pending.wake -notmatch 'turn_id=87$' -or
+      [string]$pending.wake_seen_control_identity -ne '6ad27341-1ea4-83eb-8238-5ce1cada094a') {
     Refuse 'saved queue differs from approved pending 87'
   }
 }

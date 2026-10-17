@@ -59,3 +59,26 @@ jobs:
         run: |
           python -m py_compile .agent-handoff/dispatcher.py .agent-handoff/control_reply_handoff.py
           python -m unittest discover -s .agent-handoff/tests -p 'test_*.py' -v
+      - name: Test actual installer-staged offline suite
+        shell: powershell
+        run: |
+          $source = Get-Content '.agent-handoff/install-control-inflight-freeze.ps1' -Raw
+          $list = [regex]::Match($source, '(?s)\$names\s*=\s*@\((.*?)\)')
+          if (-not $list.Success) { throw 'No staged test manifest found' }
+          $files = [regex]::Matches($list.Groups[1].Value, "'([^']+)'")
+          $root = Join-Path $env:RUNNER_TEMP 'control-freeze-stage'
+          $dir = Join-Path $root '.agent-handoff'
+          $tests = Join-Path $dir 'tests'
+          New-Item -ItemType Directory -Path $tests -Force | Out-Null
+          $pattern = '\$prefix/([^"]+)"\s+-OutFile\s+\(Join-Path\s+\$stagedRoot\s+''([^'']+)''\)'
+          $rootFiles = [regex]::Matches($source, $pattern)
+          if ($rootFiles.Count -lt 2) { throw 'No root-stage installer dependencies found' }
+          foreach ($match in $rootFiles) {
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff' $match.Groups[1].Value) -Destination (Join-Path $dir $match.Groups[2].Value)
+          }
+          foreach ($match in $files) {
+            $name = $match.Groups[1].Value
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff/tests' $name) -Destination (Join-Path $tests $name)
+          }
+          python -m unittest discover -s $tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Staged installer offline tests failed' }

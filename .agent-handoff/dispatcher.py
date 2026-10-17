@@ -3824,50 +3824,111 @@ def arena_feedback_visible(page) -> bool:
 
 
 def dismiss_arena_completion(page) -> bool:
-    """Dismiss the finished-task overlay without selecting Yes or No.
+    """Automatically dismiss ONLY Arena's completed-task feedback overlay.
 
-    The 2026-10 Arena feedback rows may not be HTML buttons. Prefer the
-    visible exact text 'Продолжить работу' and let its click bubble to the
-    actual row handler. Never rate the task on the user's behalf.
+    Never answer Yes/No, send a message, navigate tabs, or click unrelated
+    controls. Try the labelled control / closest interactive row. A failed
+    attempt is cooled down so the 5-second poll does not spam clicks or logs.
     """
+    import time as _time
+
+    key = str(getattr(page, "url", "") or "")
+    retry = getattr(dismiss_arena_completion, "_retry", None)
+    if retry is None:
+        retry = {}
+        dismiss_arena_completion._retry = retry
+
     if not arena_feedback_visible(page):
+        retry.pop(key, None)
         return False
 
-    for label in ("Продолжить работу", "Continue working", "Continue working on task"):
+    now = _time.monotonic()
+    previous = retry.get(key, {"attempts": 0, "after": 0.0})
+    if now < previous["after"]:
+        return False
+
+    labels = (
+        "Продолжить работу", "Continue working",
+        "Continue working on task", "Keep working",
+    )
+    seen = 0
+    click_errors = 0
+    # Every action is scoped by an exact continuation label AND a visible
+    # completed-task prompt. Parent rows are limited to nearby ancestors.
+    for label in labels:
         try:
-            loc = page.get_by_text(label, exact=True)
-            for index in range(loc.count()):
-                item = loc.nth(index)
-                if not item.is_visible():
+            sources = (
+                page.get_by_role("button", name=label, exact=True),
+                page.get_by_text(label, exact=True),
+            )
+        except Exception:
+            try:
+                sources = (page.get_by_text(label, exact=True),)
+            except Exception:
+                continue
+        for loc in sources:
+            try:
+                count = min(loc.count(), 4)
+            except Exception:
+                continue
+            for index in range(count):
+                try:
+                    target = loc.nth(index)
+                    if not target.is_visible():
+                        continue
+                except Exception:
                     continue
-                item.click(timeout=2500)
-                page.wait_for_timeout(250)
-                if not arena_feedback_visible(page):
-                    log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
-                    return True
-        except Exception:
-            continue
+                seen += 1
+                options = []
+                try:
+                    options.append(target.locator(
+                        "xpath=ancestor-or-self::*[self::button or self::a or "
+                        "@role='button' or @role='menuitem'][1]"
+                    ))
+                    options.append(target.locator(
+                        "xpath=ancestor-or-self::*[contains(concat(' ', "
+                        "normalize-space(@class), ' '), ' cursor-pointer ')][1]"
+                    ))
+                except Exception:
+                    pass
+                options.append(target)
+                try:
+                    parent = target.locator("xpath=..")
+                    options.append(parent)
+                except Exception:
+                    pass
+                for option in options:
+                    try:
+                        if not option.count() or not option.first.is_visible():
+                            continue
+                        option.first.click(timeout=1500)
+                        page.wait_for_timeout(250)
+                        if not arena_feedback_visible(page):
+                            retry.pop(key, None)
+                            log("ARENA: завершённый диалог автоматически закрыт (без оценки).")
+                            return True
+                        # Do not repeatedly press a visible action; wait for
+                        # a future poll before trying a different DOM target.
+                        break
+                    except Exception:
+                        click_errors += 1
+                        continue
+                if seen >= 4:
+                    break
+            if seen >= 4:
+                break
+        if seen >= 4:
+            break
 
-    # Legacy builds wrapped the action in a button. Keep that existing path,
-    # but only while the finished-task prompt is visible.
-    for selector in (
-        'button:has-text("Продолжить работу")',
-        'button:has-text("Continue working")',
-    ):
-        try:
-            loc = page.locator(selector)
-            for index in range(loc.count()):
-                item = loc.nth(index)
-                if item.is_visible():
-                    item.click(timeout=2500)
-                    page.wait_for_timeout(250)
-                    if not arena_feedback_visible(page):
-                        log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
-                        return True
-        except Exception:
-            continue
-
-    log("ARENA: итоговое табло обнаружено, закрытие не подтверждено.")
+    attempts = int(previous["attempts"]) + 1
+    delay = min(60.0, 3.0 * (2 ** min(attempts - 1, 5)))
+    retry[key] = {"attempts": attempts, "after": now + delay}
+    if attempts == 1 or attempts % 5 == 0:
+        log(
+            "ARENA: диалог завершённой задачи пока открыт; "
+            f"элементов продолжения={seen}, ошибок клика={click_errors}; "
+            f"пауза {int(delay)} сек., автоматический повтор."
+        )
     return False
 
 
@@ -3950,6 +4011,9 @@ def arena_wake_exists(page, wake: str) -> bool:
 
 def send_to_arena(page, wake: str) -> None:
     dismiss_arena_completion(page)
+    if arena_feedback_visible(page):
+        # Never send into a blocked editor behind a feedback dialog.
+        raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
     editor = arena_editor(page)
     if editor is None:

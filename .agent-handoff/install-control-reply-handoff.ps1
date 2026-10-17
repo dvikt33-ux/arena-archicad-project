@@ -8,10 +8,11 @@ $module = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
 $credentialPath = Join-Path $env:LOCALAPPDATA "AI-Dispatcher\github-token.dpapi"
-$codeCommit = "80cc1f14ad888049b5126915c84f48ef9aec57e9"
+$codeCommit = "cfba411c36285c5d413c9df8faad4ae1151d5516"
 $dispatcherBlob = "ec23434a0864c81c0d0ea69ecbde771b7445b70f"
 $previousModuleBlob = "f1aba7a9b3c1bd5c608dcabc5fa4a079004ffcec"
-$moduleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
+$intermediateModuleBlob = "24533e171566f5038c77a11dd552d4e450fb429d"
+$moduleBlob = "b3495d39c3d67a8d584390d333f59eac1bc96f27"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("AI_Dispatcher_ControlReply_" + [guid]::NewGuid().ToString("N"))
 $stageHandoff = Join-Path $stage ".agent-handoff"
@@ -67,7 +68,7 @@ if ([string]$control.chatgpt_control_url -ne "https://chatgpt.com/c/6ad27341-1ea
 $currentDispatcherBlob = GitBlob $dispatcher
 if ($currentDispatcherBlob -notin @("a1160915fb6f3681bf92b181cd48dd3e5bce7814", $dispatcherBlob)) { Stop-Install "installed dispatcher differs from the reviewed source" }
 if (Test-Path -LiteralPath $module) {
-    if ((GitBlob $module) -notin @($previousModuleBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
+    if ((GitBlob $module) -notin @($previousModuleBlob,$intermediateModuleBlob,$moduleBlob)) { Stop-Install "existing helper module differs from the reviewed source" }
 }
 
 # Obtain a token only if this Windows user has no DPAPI-protected token.

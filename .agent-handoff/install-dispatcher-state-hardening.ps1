@@ -7,9 +7,12 @@ $dispatcher = Join-Path $handoff 'dispatcher.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
-$codeCommit = '04c8054ca80535537867422293eed60d3cfc4111'
-$oldBlob = '24b571d1f0a33b047615be31c59dd6a15865364a'
-$newBlob = '6f939f929d5ecd611ea2e4beaf364a7c7fe6499b'
+$codeCommit = '5582cdd7c91b4970b058b1a8526cf14b34b11544'
+$oldBlobs = @(
+    '24b571d1f0a33b047615be31c59dd6a15865364a',
+    '6f939f929d5ecd611ea2e4beaf364a7c7fe6499b'
+)
+$newBlob = '25f705baa274676ba88aeaab82e31896e8a1309e'
 $helperBlob = 'b79a002bcdd1bb517421c9b2f6792f00cd5e1d75'
 $controlURL = 'https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a'
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
@@ -65,8 +68,8 @@ if ($current -eq $newBlob) {
     Write-Host 'ALREADY INSTALLED: reviewed dispatcher state hardening.'
     exit 0
 }
-if ($current -ne $oldBlob) {
-    Refuse 'dispatcher differs from verified 24b571d live baseline; install skipped'
+if ($oldBlobs -notcontains $current) {
+    Refuse 'dispatcher source not in permitted 24b571d/6f939f9 baselines; install skipped'
 }
 $normalPath = $dispatcher.Replace('/','\').ToLowerInvariant()
 $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
@@ -89,7 +92,8 @@ foreach ($name in @(
     'test_control_reply_handoff.py','test_control_marker_fallback.py',
     'test_stale_control_rescue.py','test_arena_feedback_dismiss.py',
     'test_control_multi_ack.py','test_dispatcher_state_loop.py','test_arena_feedback_inline.py',
-    'test_dispatcher_atmost_once.py','test_dispatcher_recovery_contract.py'
+    'test_dispatcher_atmost_once.py','test_dispatcher_recovery_contract.py',
+    'test_arena_terminal_receipt.py'
 )) {
     Invoke-WebRequest -UseBasicParsing -Uri "$prefix/tests/$name" -OutFile (Join-Path $stagedTests $name)
 }
@@ -104,7 +108,7 @@ if ($LASTEXITCODE -ne 0) { Refuse 'regression suite failed; installed code untou
 
 # Safe to restart ONLY an idle dispatcher with exactly matching current state.
 AssertIdleState
-if ((FileBlob $dispatcher) -ne $oldBlob -or
+if (($oldBlobs -notcontains (FileBlob $dispatcher)) -or
     (FileBlob $helper) -ne $helperBlob -or !(MutexPresent) -or
     !(Get-Process -Id ([int]$process.ProcessId) -ErrorAction SilentlyContinue)) {
     Refuse 'live dispatcher changed while staging; install skipped'
@@ -152,7 +156,7 @@ try {
 if ($started -and $started.HasExited) { Refuse 'dispatcher exited after restart; check log' }
 if (!(MutexPresent)) { Refuse 'dispatcher mutex not restored' }
 if ((FileBlob $dispatcher) -ne $newBlob) { Refuse 'installed source changed after restart' }
-Write-Host 'INSTALL PASS: dispatcher state/terminal-loop hardening deployed.'
-Write-Host 'No queue, CONTROL, token, mailbox, PLN or main changes.'
-Write-Host 'LIVE controlled crash/recovery test is still pending.'
+Write-Host 'INSTALL PASS: Arena final-report receipt into GPT CONTROL installed.'
+Write-Host 'No queue, CONTROL, mailbox, PLN or main changes.'
+Write-Host 'LIVE final-report E2E acknowledgement remains pending.'
 Write-Host "Backup: $backup"

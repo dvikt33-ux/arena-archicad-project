@@ -8,9 +8,10 @@ $dispatcher = Join-Path $handoff "dispatcher.py"
 $helper = Join-Path $handoff "control_reply_handoff.py"
 $statePath = Join-Path $HOME ".ai-dispatcher-state.json"
 $controlPath = Join-Path $HOME ".ai-dispatcher-control.json"
-$sourceCommit = "88f3edc47cb8b5cac57d3940c680a8702135c9c1"
+$sourceCommit = "894827d5907ac9efabb3cf51a088217357aad9c8"
 $oldDispatcherBlob = "227ca28fd9b911a327c1012888c1089df9e273e2"
-$newDispatcherBlob = "b9f490ce1ebdde44da9d5c2377a2573e84e233fd"
+$previousAutoCloseBlob = "b9f490ce1ebdde44da9d5c2377a2573e84e233fd"
+$newDispatcherBlob = "37bed0d797bae940a2ad52b7445fbbb8f36aedcb"
 $requiredHelperBlob = "eb4d64030a027940d9fee50255fd66953f5fd40d"
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$sourceCommit/.agent-handoff"
 $stage = Join-Path $env:TEMP ("arena-feedback-autoclose-" + [guid]::NewGuid().ToString("N"))
@@ -52,7 +53,7 @@ if ($existing -eq $newDispatcherBlob) {
     Write-Host "ALREADY INSTALLED: Arena feedback auto-close, no restart necessary."
     exit 0
 }
-if ($existing -ne $oldDispatcherBlob) { Stop-Install "dispatcher hash differs from the approved live baseline" }
+if ($existing -notin @($oldDispatcherBlob,$previousAutoCloseBlob)) { Stop-Install "dispatcher hash differs from reviewed live baseline" }
 
 Write-Host "Downloading pinned Arena auto-close patch and focused tests..."
 $incoming = Join-Path $stage "dispatcher.py"

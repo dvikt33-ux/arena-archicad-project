@@ -7,9 +7,9 @@ $dispatcher = Join-Path $handoff 'dispatcher.py'
 $helper = Join-Path $handoff 'control_reply_handoff.py'
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
 $controlPath = Join-Path $HOME '.ai-dispatcher-control.json'
-$codeCommit = 'c6e74326792328b9f10601e18b458d1ad46e6350'
+$codeCommit = '88595608cc808c40284c92a71061daba9730b589'
 $oldBlob = '37bed0d797bae940a2ad52b7445fbbb8f36aedcb'
-$newBlob = '0844f400f90d74fc970a453d6e070f9ab0d92435'
+$newBlob = 'd57623299bd662511f11ed2a0e92dff8d1540bdd'
 $helperBlob = 'b79a002bcdd1bb517421c9b2f6792f00cd5e1d75'
 $controlURL = 'https://chatgpt.com/c/6ad27341-1ea4-83eb-8238-5ce1cada094a'
 $prefix = "https://raw.githubusercontent.com/dvikt33-ux/arena-archicad-project/$codeCommit/.agent-handoff"
@@ -126,6 +126,9 @@ try {
     if ((Get-Process -Id $pidToStop -ErrorAction SilentlyContinue) -or (MutexPresent)) {
         Refuse 'dispatcher did not release mutex; existing code kept'
     }
+    # Close the last-moment race between idle precheck and process stop.
+    # On changed state, restart the original dispatcher without a file edit.
+    AssertIdleState
     $temporary = "$dispatcher.installing"
     Copy-Item -LiteralPath (Join-Path $stagedHandoff 'dispatcher.py') -Destination $temporary -Force
     [IO.File]::Replace($temporary, $dispatcher,

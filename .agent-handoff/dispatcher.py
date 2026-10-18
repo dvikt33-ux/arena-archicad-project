@@ -19,6 +19,7 @@ from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
+from control_reply_handoff import parse_control_reply, publish_next_signal, read_control_marker_fallback, _read_verified_ack_pair
 
 # =========================
 # AI Dispatcher 2.2.19
@@ -622,6 +623,10 @@ def save_control_record(record: dict) -> None:
         payload["bootstrap_migrated_from"] = record["bootstrap_migrated_from"]
     if "recovery_used" in record:
         payload["recovery_used"] = bool(record.get("recovery_used"))
+    if "control_rescue_used" in record:
+        payload["control_rescue_used"] = bool(record.get("control_rescue_used"))
+    if record.get("control_rescue_from"):
+        payload["control_rescue_from"] = str(record["control_rescue_from"])
     if record.get("recovery_reason"):
         payload["recovery_reason"] = record["recovery_reason"]
     if record.get("recovered_from"):
@@ -771,7 +776,8 @@ def save_control_url(url: str, bootstrap_sent: bool = True) -> None:
         "bootstrap_sent": bootstrap_sent,
         "bootstrap_sent_at": time.time() if bootstrap_sent else existing.get("bootstrap_sent_at"),
     }
-    for key in ("recovery_used", "recovery_reason", "recovered_from", "bootstrap_migrated_from"):
+    for key in ("recovery_used", "recovery_reason", "recovered_from", "bootstrap_migrated_from",
+                "control_rescue_used", "control_rescue_from"):
         if key in existing:
             record[key] = existing[key]
     if "unready_checks" in existing:
@@ -1566,9 +1572,12 @@ def restore_observation_accepted(
     if not is_durable_control_url(observed) or hard_control_unavailable(messages):
         return False
     identity = positive_control_identity(messages, wake)
+    # A blank ChatGPT home/redirect shell has a usable composer but is NOT
+    # proof that an established CONTROL transcript was restored.
+    # Never acknowledge restoration without at least one parsed message.
     if same_conversation(observed, saved_url):
-        return bool(messages) or bool(composer_ready)
-    return identity and (bool(messages) or bool(composer_ready))
+        return bool(messages)
+    return identity and bool(messages)
 
 
 def restore_cooldown_active(record: dict | None, now: float | None = None) -> bool:
@@ -3292,6 +3301,18 @@ def _normalize_message(item: dict) -> dict:
     return {"role": role, "text": str(item.get("text") or "").strip()}
 
 
+def _read_control_marker_fallback(page) -> list[dict]:
+    return read_control_marker_fallback(
+        page,
+        load_control_record(),
+        is_durable_control_url,
+        same_conversation,
+        CONTROL_BOOTSTRAP_MARKER,
+        CONTROL_READY_MARKER,
+        log,
+    )
+
+
 def chatgpt_messages(page) -> list[dict]:
     primary = [_normalize_message(item) for item in _read_message_nodes(page, "[data-message-author-role]")]
     if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in primary):
@@ -3304,7 +3325,7 @@ def chatgpt_messages(page) -> list[dict]:
     if any(item.get("role") in {"user", "assistant"} and item.get("text") for item in accessible):
         log(f"CONTROL: accessibility fallback messages={len(accessible)}")
         return accessible
-    return []
+    return _read_control_marker_fallback(page)
 
 
 def chatgpt_user_message_exists(page, text: str) -> bool:
@@ -3540,6 +3561,57 @@ def _mark_recovery(record: dict, reason: str) -> dict:
     return updated
 
 
+def abandoned_control_rescue_allowed(
+    record: dict | None,
+    action: str,
+    diagnosis: str,
+    messages: list[dict],
+    page_url: str,
+    composer_ready: bool,
+    generation_active: bool,
+    page_unavailable: bool,
+    signed_out: bool,
+) -> bool:
+    """One last bounded bootstrap after a persistently blank legacy CONTROL.
+
+    Older versions consumed the single recovery latch while accepting a blank
+    ChatGPT page by URL/composer alone. A stuck wake must not be discarded,
+    and rescue must never auto-repeat after a failed or interrupted attempt.
+    """
+    record = record or {}
+    if action != "wait" or diagnosis not in {"stale_url", "zero_messages"}:
+        return False
+    if not bool(record.get("recovery_used")) or bool(record.get("control_rescue_used")):
+        return False
+    if messages or generation_active or page_unavailable or signed_out:
+        return False
+    # An established CONTROL may lose both transcript and composer forever.
+    # The caller has already established repeated blank observations and a
+    # cooldown via blank_rebind_ready; it must not require a live composer in
+    # the old (unusable) conversation just to try a fresh home-page composer.
+    if not composer_ready and not bool(record.get("_blank_rebind")):
+        return False
+    saved_url = str(record.get("chatgpt_control_url") or "")
+    if not is_usable_control_url(saved_url):
+        return False
+    if not str(page_url or "").startswith("https://chatgpt.com"):
+        return False
+    if not same_conversation(page_url, saved_url):
+        return False
+    if int(record.get("unready_checks") or 0) < 20:
+        return False
+    # Some valid-but-empty pages are reused by plan_control_page(), so no
+    # restore attempt occurs and restore_failures never increases. The bounded
+    # unready_checks threshold above is the independent sustained-failure gate.
+    if str(record.get("rebind_status") or "") in {"pending", "started"}:
+        return False
+    for field in ("rebind_replacement_status", "rebind_finalize_status",
+                  "rebind_reprovision_status"):
+        if str(record.get(field) or "") in {"pending", "started", "submitted"}:
+            return False
+    return True
+
+
 def ensure_control_ready(browser, wake: str = ""):
     record = load_control_record()
     saved = str(record.get("chatgpt_control_url") or "")
@@ -3622,6 +3694,26 @@ def ensure_control_ready(browser, wake: str = ""):
         now=now,
         page_unavailable=page_unavailable,
     )
+
+    if abandoned_control_rescue_allowed(
+        record, action, diagnose_control(
+            record, messages, page_url, wake=wake,
+            generation_active=generation_active, composer_ready=composer_ready,
+            now=now, page_unavailable=page_unavailable,
+        ), messages, page_url, composer_ready, generation_active,
+        page_unavailable, signed_out,
+    ):
+        # Persist BEFORE the attempt: a crash or network failure must not
+        # create a new CONTROL conversation every five seconds.
+        record["control_rescue_used"] = True
+        record["control_rescue_from"] = saved
+        save_control_record(record)
+        log("CONTROL: bounded rescue of blank conversation; pending turn preserved.")
+        try:
+            return provision_control_chat(browser), False
+        except Exception as exc:
+            log(f"CONTROL: bounded rescue failed={type(exc).__name__}; no retry.")
+            return page, False
 
     if action != "ready" and should_reprovision_rebind(record, saved, action):
         if rebind_reprovision_started(record, saved):
@@ -3714,31 +3806,184 @@ def ensure_control_ready(browser, wake: str = ""):
 # Arena handling
 # -------------------------
 
+def arena_feedback_visible(page) -> bool:
+    """True only for a visible *active overlay*, not quoted chat history.
+
+    A completed-task question can remain in old conversation text. The old
+    get_by_text(marker) predicate repeatedly misidentified it as an open
+    feedback dialog, even when the normal Arena composer was visible.
+    Never consider the page/body or a chat message an actionable overlay.
+    """
+    try:
+        return bool(page.evaluate(r"""() => {
+          const phrases = [
+            'Эта задача была выполнена успешно?',
+            'Was this task completed successfully?',
+            'Was this task successful?'
+          ];
+          const norm = x => String(x || '').replace(/\u00a0/g, ' ')
+            .replace(/\s+/g, ' ').trim().toLowerCase();
+          const wanted = phrases.map(norm);
+          const visible = el => {
+            if (!el || !el.getClientRects().length) return false;
+            const r = el.getBoundingClientRect();
+            const st = getComputedStyle(el);
+            return r.width > 0 && r.height > 0 &&
+              st.display !== 'none' && st.visibility !== 'hidden';
+          };
+          const nodes = [...document.querySelectorAll(
+            'p,span,h1,h2,h3,h4,h5,h6,div,[role="heading"]'
+          )].filter(el => visible(el) && wanted.includes(norm(el.textContent)) &&
+            ![...el.children].some(child => wanted.includes(norm(child.textContent))));
+          for (const node of nodes) {
+            let box=node;
+            for(let depth=0;box&&depth<12;box=box.parentElement,depth++){
+              if (!visible(box)) continue;
+              const r = box.getBoundingClientRect();
+              const semantic = box.matches(
+                '[role="dialog"],[aria-modal="true"],[data-testid*="modal"],[data-testid*="dialog"]');
+              const style = getComputedStyle(box);
+              const floating = style.position === 'fixed' &&
+                r.width < innerWidth * .95 && r.height < innerHeight * .95;
+              if (!semantic && !floating) continue;
+              if (box.closest('nav,aside,[contenteditable="true"]')) continue;
+              // Only a scoped dialog or floating feedback card can trigger
+              // automatic dismissal; ordinary agent messages cannot.
+              return true;
+            }
+          }
+          return false;
+        }"""))
+    except Exception:
+        return False
+
+
 def dismiss_arena_completion(page) -> bool:
-    selectors = [
-        'button:has-text("Продолжить работу")',
-        'button:has-text("Continue working")',
-        'button:has-text("Continue")',
-    ]
+    """Automatically dismiss ONLY Arena's completed-task feedback overlay.
 
-    for selector in selectors:
-        loc = page.locator(selector)
+    Never answer Yes/No, send a message, navigate tabs, or click unrelated
+    controls. Try the labelled control / closest interactive row. A failed
+    attempt is cooled down so the 5-second poll does not spam clicks or logs.
+    """
+    import time as _time
+
+    key = str(getattr(page, "url", "") or "")
+    retry = getattr(dismiss_arena_completion, "_retry", None)
+    if retry is None:
+        retry = {}
+        dismiss_arena_completion._retry = retry
+
+    if not arena_feedback_visible(page):
+        retry.pop(key, None)
+        return False
+
+    now = _time.monotonic()
+    previous = retry.get(key, {"attempts": 0, "after": 0.0})
+    if now < previous["after"]:
+        return False
+
+    labels = (
+        "Продолжить работу", "Continue working",
+        "Continue working on task", "Keep working",
+    )
+    seen = 0
+    click_errors = 0
+    click_attempts = 0
+    # Every action is scoped by an exact continuation label AND a visible
+    # completed-task prompt. Parent rows are limited to nearby ancestors.
+    for label in labels:
         try:
-            count = loc.count()
+            sources = (
+                page.get_by_role("button", name=label, exact=True),
+                page.get_by_text(label, exact=True),
+            )
         except Exception:
-            continue
-
-        for i in range(count):
-            btn = loc.nth(i)
             try:
-                if btn.is_visible():
-                    btn.click(timeout=5000)
-                    page.wait_for_timeout(500)
-                    log("ARENA: итоговое табло закрыто через 'Продолжить работу'.")
-                    return True
+                sources = (page.get_by_text(label, exact=True),)
             except Exception:
                 continue
+        for loc in sources:
+            try:
+                count = min(loc.count(), 4)
+            except Exception:
+                continue
+            for index in range(count):
+                try:
+                    target = loc.nth(index)
+                    if not target.is_visible():
+                        continue
+                except Exception:
+                    continue
+                seen += 1
+                options = []
+                try:
+                    options.append(target.locator(
+                        "xpath=ancestor-or-self::*[self::button or self::a or "
+                        "@role='button' or @role='menuitem'][1]"
+                    ))
+                    options.append(target.locator(
+                        "xpath=ancestor-or-self::*[contains(concat(' ', "
+                        "normalize-space(@class), ' '), ' cursor-pointer ')][1]"
+                    ))
+                except Exception:
+                    pass
+                options.append(target)
+                try:
+                    parent = target.locator("xpath=..")
+                    options.append(parent)
+                except Exception:
+                    pass
+                for option in options:
+                    try:
+                        if not option.count() or not option.first.is_visible():
+                            continue
+                        if click_attempts >= 4:
+                            break
+                        option.first.click(timeout=1500)
+                        click_attempts += 1
+                        page.wait_for_timeout(400)
+                        if not arena_feedback_visible(page):
+                            retry.pop(key, None)
+                            log("ARENA: завершённое окно автоматически закрыто (без оценки).")
+                            return True
+                        # This element accepted a click but didn't close the
+                        # dialog. Try a different nearby target in this pass;
+                        # total clicks are bounded, then backoff applies.
+                        continue
+                    except Exception:
+                        click_errors += 1
+                        continue
+                if seen >= 4:
+                    break
+            if seen >= 4:
+                break
+        if seen >= 4:
+            break
 
+    attempts = int(previous["attempts"]) + 1
+    delay = min(60.0, 3.0 * (2 ** min(attempts - 1, 5)))
+    retry[key] = {"attempts": attempts, "after": now + delay}
+    if attempts == 1 or attempts % 5 == 0:
+        log(
+            "ARENA: диалог завершённой задачи пока открыт; "
+            f"элементов продолжения={seen}, попыток={click_attempts}, ошибок клика={click_errors}; "
+            f"пауза {int(delay)} сек., автоматический повтор."
+        )
+    return False
+
+
+def dismiss_visible_arena_feedback(browser) -> bool:
+    """Poll existing Arena agent tabs every loop, including during GPT turns.
+
+    Read-only discovery: never create or navigate tabs. The only click is
+    'Continue working' on a verified completed-task feedback prompt.
+    """
+    for page in all_pages(browser):
+        try:
+            if url_matches(str(page.url or ""), ARENA_URL) and arena_feedback_visible(page):
+                return dismiss_arena_completion(page)
+        except Exception:
+            continue
     return False
 
 
@@ -3806,6 +4051,9 @@ def arena_wake_exists(page, wake: str) -> bool:
 
 def send_to_arena(page, wake: str) -> None:
     dismiss_arena_completion(page)
+    if arena_feedback_visible(page):
+        # Never send into a blocked editor behind a feedback dialog.
+        raise RuntimeError("ARENA_INPUT_UNAVAILABLE")
 
     editor = arena_editor(page)
     if editor is None:
@@ -3921,6 +4169,31 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
 
+    # Resume an ALREADY answered turn without depending on old bootstrap DOM.
+    # Only the exact persisted CONTROL tab is inspected. The assistant reply
+    # must have a distinct MarkdownRoot provenance after the exact user wake.
+    # Nothing is sent or marked consumed before GitHub CAS readback.
+    if browser is not None:
+        try:
+            record = load_control_record()
+            saved_url = str(record.get("chatgpt_control_url") or "")
+            pages = [
+                page for context in browser.contexts for page in context.pages
+                if is_durable_control_url(page.url or "")
+                and same_conversation(page.url or "", saved_url)
+            ]
+            if len(pages) == 1 and not generation_is_active(pages[0]):
+                pair = _read_verified_ack_pair(pages[0])
+                reply = parse_control_reply(pair, turn_id)
+                if reply:
+                    if not publish_next_signal(turn_id, reply):
+                        log(f"GITHUB: next signal for turn_id={turn_id + 1} not confirmed; keeping inflight.")
+                        return
+                    consume_turn(state, turn_id, "GPT->ARENA signal write verified by readback")
+                    return
+        except Exception as exc:
+            log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
+
     if (
         inflight.get("last_error") == "Control chat bootstrap pending"
         and time.time() < float(inflight.get("retry_after", 0) or 0)
@@ -3936,7 +4209,14 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         return
 
     if chatgpt_response_complete(page, wake):
-        consume_turn(state, turn_id, "GPT control chat уже ответил")
+        reply = parse_control_reply(chatgpt_messages(page), turn_id)
+        if not reply:
+            log(f"GPT: matching CONTROL ACK not found for turn_id={turn_id}; keeping inflight.")
+            return
+        if not publish_next_signal(turn_id, reply):
+            log(f"GITHUB: next signal for turn_id={turn_id + 1} not confirmed; keeping inflight.")
+            return
+        consume_turn(state, turn_id, "GPT->ARENA signal write verified by readback")
         return
 
     current_control = control_wake_identity(page)
@@ -4123,6 +4403,9 @@ def watch() -> None:
                     start_service_chrome()
                     browser = p.chromium.connect_over_cdp(CDP)
 
+                # Feedback overlays can appear after Arena finishes even
+                # while the next target is GPT. Clear them before polling.
+                dismiss_visible_arena_feedback(browser)
                 signal = fetch_signal()
                 inflight = state.get("inflight")
 

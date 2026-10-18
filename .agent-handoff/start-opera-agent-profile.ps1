@@ -10,12 +10,12 @@ $signalBlob = 'c82202ac54bcd9675bd5786d5f12f784ac6a5c27'
 
 function Fail([string]$why) { throw "STOP: $why" }
 function FindOpera {
-  $candidates = @(
+  $candidates = @(@(
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera\launcher.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera GX\launcher.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera Software\Opera Stable\launcher.exe'),
     (Join-Path $env:ProgramFiles 'Opera Software\Opera\launcher.exe')
-  ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+  ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
   if ($candidates.Count -gt 0) { return [string]$candidates[0] }
   $running = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -match '^opera.*\.exe$' -and $_.ExecutablePath -and

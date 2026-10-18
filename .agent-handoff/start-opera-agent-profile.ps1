@@ -25,6 +25,7 @@ function FindOpera {
   if ($running.Count -gt 0) { return [string]$running[0].ExecutablePath }
   return ''
 }
+$script:LastOperaProbe = 'NOT_ATTEMPTED'
 function PortOwners {
   return @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
 }
@@ -44,12 +45,28 @@ function VerifiedOperaPort {
       !$cmd.Contains($profile)) {
     Fail 'debug port owner is not the dedicated Opera agent profile'
   }
+  # Bypass machine/user HTTP proxies. Opera's CDP endpoint is strictly loopback.
   try {
-    $version = Invoke-RestMethod -UseBasicParsing -TimeoutSec 3 -Uri 'http://127.0.0.1:9224/json/version'
-  } catch { Fail 'Opera opened port but JSON debugger endpoint is unreachable' }
-  if ([string]$version.webSocketDebuggerUrl -notmatch '^ws://(127\.0\.0\.1|localhost):9224/devtools/browser/') {
-    Fail 'Opera debugger endpoint identity is not valid'
+    $request = [System.Net.HttpWebRequest]::Create('http://127.0.0.1:9224/json/version')
+    $request.Proxy = $null
+    $request.Timeout = 2000
+    $request.ReadWriteTimeout = 2000
+    $request.Method = 'GET'
+    $response = $request.GetResponse()
+    try {
+      $reader = New-Object IO.StreamReader($response.GetResponseStream())
+      try { $payload = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    } finally { $response.Dispose() }
+    $version = $payload | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    $script:LastOperaProbe = ('HTTP_' + $_.Exception.GetType().Name)
+    return $null
   }
+  if ([string]$version.webSocketDebuggerUrl -notmatch '^ws://(127\.0\.0\.1|localhost):9224/devtools/browser/') {
+    $script:LastOperaProbe = 'HTTP_OK_NO_VALID_BROWSER_WEBSOCKET'
+    return $null
+  }
+  $script:LastOperaProbe = 'READY'
   return $ownerProcess
 }
 $statePath = Join-Path $HOME '.ai-dispatcher-state.json'
@@ -79,8 +96,18 @@ if ([string]$doc.sha -ne $signalBlob) { Fail 'turn 88 signal changed since last 
 
 $owners = @(PortOwners)
 if ($owners.Count -gt 0) {
-  $verified = VerifiedOperaPort
-  if (!$verified) { Fail 'port in use but no verified Opera listener' }
+  # Existing listener may be up before /json/version starts responding.
+  # Wait on the SAME listener, never launch a second browser while occupied.
+  $verified = $null
+  for($attempt=0; $attempt -lt 24; $attempt++) {
+    $verified = VerifiedOperaPort
+    if ($verified) { break }
+    Start-Sleep -Seconds 1
+  }
+  if (!$verified) {
+    Write-Host ('OPERA_CDP_WAIT_FAILED: ' + $script:LastOperaProbe)
+    Fail 'dedicated Opera listener is present but debugger endpoint is not ready'
+  }
   Write-Host ('OPERA_CDP_READY: port=9224 pid=' + $verified.ProcessId)
   Write-Host 'Existing dedicated Opera browser retained.'
   Write-Host 'QUEUE=87/PENDING_88: dispatcher will resume without any new signal.'
@@ -103,11 +130,12 @@ for($attempt=0;$attempt -lt 24;$attempt++) {
   Start-Sleep -Seconds 1
   if (@(PortOwners).Count -gt 0) {
     $verified = VerifiedOperaPort
-    break
+    if ($verified) { break }
   }
 }
 if (!$verified) {
-  Write-Host 'OPERA_CDP_CLOSED: dedicated browser did not expose debugger port.'
+  Write-Host ('OPERA_CDP_NOT_READY: ' + $script:LastOperaProbe)
+  Write-Host 'Dedicated browser launch was not retried; existing profile remains untouched.'
   Write-Host ('EXECUTABLE: ' + $opera)
   Write-Host ('PROFILE: ' + $profile)
   Fail 'no remote debugger; do not restart personal Opera or resubmit turn 88'

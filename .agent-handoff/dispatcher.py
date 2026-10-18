@@ -3604,8 +3604,36 @@ def existing_opera_control_only(browser, wake: str = ""):
         if same_conversation(p.url or "", saved)
     ]
     if len(pages) > 1:
-        log("CONTROL: OPERA_DUPLICATE_PINNED_TABS; no GPT wake sent.")
-        return None, False
+        # Two tabs of the SAME persisted conversation are common after a
+        # session restore. Select only if exactly one has an independently
+        # verifiable two-sided transcript and live composer. Never close tabs
+        # or send into a guess if zero or multiple candidates are ready.
+        verified = []
+        for candidate in pages:
+            try:
+                transcript = chatgpt_messages(candidate)
+                roles = {str(item.get("role") or "") for item in transcript}
+                if (
+                    bool(load_control_record().get("bootstrap_sent"))
+                    and len(transcript) >= 2
+                    and {"user", "assistant"}.issubset(roles)
+                    and composer_is_ready(candidate)
+                    and not generation_is_active(candidate)
+                    and not page_shows_unavailable(candidate)
+                    and not page_signed_out(candidate)
+                ):
+                    verified.append(candidate)
+            except Exception:
+                continue
+        if len(verified) == 1:
+            pages = verified
+            log("CONTROL: OPERA_DUPLICATE_PINNED_TABS unique_ready=1; selecting verified tab, no tab closed.")
+        else:
+            log(
+                "CONTROL: OPERA_DUPLICATE_PINNED_TABS "
+                f"ready={len(verified)} total={len(pages)}; no GPT wake sent."
+            )
+            return None, False
     if not pages:
         if len(browser.contexts) != 1:
             log("CONTROL: OPERA_CONTEXT_AMBIGUOUS; no GPT wake sent.")

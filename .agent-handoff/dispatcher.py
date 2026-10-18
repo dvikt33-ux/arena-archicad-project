@@ -33,11 +33,10 @@ CONTROL_PATH = HOME / ".ai-dispatcher-control.json"
 LOG_PATH = HOME / "ai-dispatcher.log"
 
 CDP_HOST = "127.0.0.1"
-CDP_PORT = 9223
+CDP_PORT = 9224
 CDP = f"http://{CDP_HOST}:{CDP_PORT}"
 
-CHROME_PATH = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
-CHROME_PROFILE = HOME / "AI-Dispatcher-Chrome"
+# Opera reuses the user's existing authenticated session; never spawn a second profile.
 
 SIGNAL_URL = (
     "https://raw.githubusercontent.com/"
@@ -73,7 +72,7 @@ CHECK_INTERVAL = 5
 ARENA_RETRY_SECONDS = 60
 CONTROL_RETRY_SECONDS = 15
 PAGE_TIMEOUT = 15000
-CHROME_START_TIMEOUT = 25
+OPERA_CONNECT_TIMEOUT = 10
 CONTROL_READY_MARKER = "CONTROL READY"
 CONTROL_BOOTSTRAP_MARKER = "Служебный чат 01 — CONTROL & BRIDGE"
 CONTROL_RECOVERY_CHECKS = 3
@@ -1206,7 +1205,7 @@ def canonicalize_control_url(url: str) -> None:
 
 
 # -------------------------
-# Chrome / CDP
+# Opera / CDP: ATTACH ONLY, no browser launch, termination or forced restart
 # -------------------------
 
 def port_open(host: str, port: int, timeout: float = 0.7) -> bool:
@@ -1217,107 +1216,55 @@ def port_open(host: str, port: int, timeout: float = 0.7) -> bool:
         return False
 
 
-_CHROME_PROC = None
-
-
 def cdp_http_ready() -> bool:
     try:
-        req = urllib.request.Request(
+        request = urllib.request.Request(
             f"{CDP}/json/version",
             headers={"User-Agent": f"AI-Dispatcher-{VERSION}"},
         )
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            payload = json.loads(resp.read().decode("utf-8", "replace"))
-        return bool(payload.get("webSocketDebuggerUrl"))
+        with urllib.request.urlopen(request, timeout=2) as response:
+            data = json.loads(response.read().decode("utf-8", "replace"))
+        endpoint = str(data.get("webSocketDebuggerUrl") or "")
+        return bool(endpoint.startswith((
+            f"ws://{CDP_HOST}:{CDP_PORT}/devtools/browser/",
+            f"ws://localhost:{CDP_PORT}/devtools/browser/",
+        )))
     except Exception:
         return False
 
 
-def stop_owned_chrome() -> None:
-    global _CHROME_PROC
-
-    if _CHROME_PROC is not None and _CHROME_PROC.poll() is None:
-        _CHROME_PROC.terminate()
-        try:
-            _CHROME_PROC.wait(timeout=5)
-        except Exception:
-            _CHROME_PROC.kill()
-    _CHROME_PROC = None
-
+def opera_owns_cdp_port() -> bool:
+    """Fail closed unless Windows attributes the exact CDP listener to Opera."""
     if os.name != "nt":
-        return
-
+        return False
     script = (
-        "Get-CimInstance Win32_Process -Filter \"Name = 'chrome.exe'\" | "
-        "Where-Object { $_.CommandLine -like '*AI-Dispatcher-Chrome*' -and "
-        "$_.CommandLine -like '*--remote-debugging-port=9223*' } | "
-        "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+        f"$ports=@(Get-NetTCPConnection -State Listen -LocalPort {CDP_PORT} "
+        "-ErrorAction SilentlyContinue); "
+        "$ids=@($ports | Select-Object -ExpandProperty OwningProcess -Unique); "
+        "if($ids.Count -ne 1){exit 4}; "
+        "$proc=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $ids[0]); "
+        "if(!$proc -or $proc.Name -notmatch '^(opera|opera\\w*|launcher)\\.exe$'){exit 5}; "
+        "if([string]$proc.CommandLine -notmatch '--remote-debugging-port="
+        f"{CDP_PORT}(\\s|$)'){{exit 6}}; exit 0"
     )
-    subprocess.run(
-        ["powershell", "-NoProfile", "-Command", script],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=20,
-    )
-
-    deadline = time.time() + 8
-    while time.time() < deadline and port_open(CDP_HOST, CDP_PORT):
-        time.sleep(0.3)
-
-
-def start_service_chrome(force: bool = False) -> None:
-    global _CHROME_PROC
-
-    if not force and cdp_http_ready():
-        return
-
-    if force or port_open(CDP_HOST, CDP_PORT):
-        log("CHROME: перезапускаю сервисный профиль.")
-        stop_owned_chrome()
-        if port_open(CDP_HOST, CDP_PORT):
-            raise RuntimeError(
-                f"Порт {CDP_PORT} занят, но это не CDP сервисного Chrome."
-            )
-
-    if not CHROME_PATH.exists():
-        raise FileNotFoundError(f"Chrome не найден: {CHROME_PATH}")
-
-    CHROME_PROFILE.mkdir(parents=True, exist_ok=True)
-
-    args = [
-        str(CHROME_PATH),
-        f"--remote-debugging-port={CDP_PORT}",
-        "--remote-allow-origins=*",
-        f"--user-data-dir={CHROME_PROFILE}",
-        "--no-first-run",
-        "--no-default-browser-check",
-    ]
-
-    creationflags = 0
-    if os.name == "nt":
-        creationflags = (
-            getattr(subprocess, "DETACHED_PROCESS", 0)
-            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=OPERA_CONNECT_TIMEOUT,
         )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
-    _CHROME_PROC = subprocess.Popen(
-        args,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=creationflags,
-    )
 
-    deadline = time.time() + CHROME_START_TIMEOUT
-    while time.time() < deadline:
-        if cdp_http_ready():
-            log("CHROME: сервисный Chrome запущен.")
-            return
-        time.sleep(0.5)
-
-    raise RuntimeError(
-        f"Chrome запущен, но CDP {CDP_HOST}:{CDP_PORT} не поднялся "
-        f"за {CHROME_START_TIMEOUT} сек."
-    )
+def require_opera_cdp() -> None:
+    """Connect-only. Never start or close Chrome/Opera, never change profile."""
+    if not cdp_http_ready() or not opera_owns_cdp_port():
+        raise RuntimeError(
+            f"OPERA_CDP_REQUIRED: start existing Opera with local remote debugging "
+            f"on {CDP_HOST}:{CDP_PORT}; dispatcher will wait, no Chrome fallback"
+        )
 
 
 # -------------------------
@@ -3639,7 +3586,104 @@ def abandoned_control_rescue_allowed(
     return True
 
 
+_OPERA_PINNED_TAB = None
+
+
+def existing_opera_control_only(browser, wake: str = ""):
+    """One pinned conversation only. No rebind, reprovision or bootstrap.
+
+    If the tab is absent, open only the persisted /c/<id> URL. Do not create
+    another chat and do not infer readiness from an empty composer.
+    """
+    saved = str(load_control_record().get("chatgpt_control_url") or "").strip()
+    if not is_durable_control_url(saved):
+        log("CONTROL: OPERA_PINNED_URL_REQUIRED; no GPT wake sent.")
+        return None, False
+    pages = [
+        p for ctx in browser.contexts for p in ctx.pages
+        if same_conversation(p.url or "", saved)
+    ]
+    if len(pages) > 1:
+        # Two tabs of the SAME persisted conversation are common after a
+        # session restore. Select only if exactly one has an independently
+        # verifiable two-sided transcript and live composer. Never close tabs
+        # or send into a guess if zero or multiple candidates are ready.
+        verified = []
+        for candidate in pages:
+            try:
+                transcript = chatgpt_messages(candidate)
+                roles = {str(item.get("role") or "") for item in transcript}
+                if (
+                    bool(load_control_record().get("bootstrap_sent"))
+                    and len(transcript) >= 2
+                    and {"user", "assistant"}.issubset(roles)
+                    and composer_is_ready(candidate)
+                    and not generation_is_active(candidate)
+                    and not page_shows_unavailable(candidate)
+                    and not page_signed_out(candidate)
+                ):
+                    verified.append(candidate)
+            except Exception:
+                continue
+        if len(verified) == 1:
+            pages = verified
+            log("CONTROL: OPERA_DUPLICATE_PINNED_TABS unique_ready=1; selecting verified tab, no tab closed.")
+        else:
+            log(
+                "CONTROL: OPERA_DUPLICATE_PINNED_TABS "
+                f"ready={len(verified)} total={len(pages)}; no GPT wake sent."
+            )
+            return None, False
+    if not pages:
+        if len(browser.contexts) != 1:
+            log("CONTROL: OPERA_CONTEXT_AMBIGUOUS; no GPT wake sent.")
+            return None, False
+        # Opening the SAME conversation URL is allowed. Opening a NEW
+        # conversation, rebind or bootstrap is never allowed.
+        global _OPERA_PINNED_TAB
+        try:
+            reusable = _OPERA_PINNED_TAB if (
+                _OPERA_PINNED_TAB is not None
+                and _OPERA_PINNED_TAB in browser.contexts[0].pages
+                and not _OPERA_PINNED_TAB.is_closed()
+            ) else None
+        except Exception:
+            reusable = None
+        page = reusable or browser.contexts[0].new_page()
+        _OPERA_PINNED_TAB = page
+        if not same_conversation(page.url or "", saved):
+            try:
+                page.goto(saved, wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
+            except Exception as exc:
+                log(f"CONTROL: pinned URL load failed: {type(exc).__name__}")
+                return page, False
+    else:
+        page = pages[0]
+    if not same_conversation(page.url or "", saved):
+        log("CONTROL: OPERA_PINNED_IDENTITY_MISMATCH; no GPT wake sent.")
+        return page, False
+    messages = chatgpt_messages(page)
+    roles = {str(item.get("role") or "") for item in messages}
+    # Old welcome messages may be virtualized. Require a real two-sided
+    # transcript, exact pinned URL, saved bootstrap proof and live composer.
+    ready = (
+        bool(load_control_record().get("bootstrap_sent"))
+        and len(messages) >= 2
+        and {"user", "assistant"}.issubset(roles)
+        and composer_is_ready(page)
+        and not generation_is_active(page)
+        and not page_shows_unavailable(page)
+        and not page_signed_out(page)
+    )
+    if not ready:
+        log(f"CONTROL: OPERA_PINNED_HISTORY_UNREADY messages={len(messages)}; no rebind.")
+    return page, ready
+
+
 def ensure_control_ready(browser, wake: str = ""):
+    # All live entrypoints use strict Opera-only existing-conversation policy.
+    return existing_opera_control_only(browser, wake)
+
     record = load_control_record()
     saved = str(record.get("chatgpt_control_url") or "")
     page = None
@@ -4240,9 +4284,317 @@ def create_inflight(state: dict, signal: dict) -> dict:
     return inflight
 
 
-def process_gpt(browser, state: dict, inflight: dict) -> None:
+TERMINAL_CONTROL_ACK_GRACE_SECONDS = 180
+TERMINAL_CONTROL_RESUME_GRACE_SECONDS = 300
+
+
+def terminal_resume_observation(page, turn_id: int) -> dict:
+    """Read only: prove a CONTROL RESUME bubble and subsequent matching ACK.
+
+    Do not synthesize an acknowledgement from page-wide text or a quoted
+    message. Only an assistant MarkdownRoot after the exact recovery user
+    bubble in the persisted CONTROL conversation can close the local turn.
+    """
+    empty = {"wake_seen": False, "resume_seen": False, "ack": None}
+    try:
+        facts = page.evaluate(r"""(turn) => {
+          const visible = el => !!(el && el.getClientRects().length);
+          const clean = text => String(text || '').normalize('NFKC')
+            .replace(/[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, '')
+            .replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+          const wakeText = 'Проверь GitHub. turn_id=' + turn;
+          const resumeText = 'CONTROL RESUME — turn_id=' + turn;
+          const ackRE = /^CONTROL ACK\s*[—–−-]\s*turn_id=(\d+)$/u;
+          const userScope = '[class~="bg-user-message"],[class*="group/user-message"],' +
+            '[data-message-author-role="user"],[data-message-author="user"]';
+          const userSel = '[class~="bg-user-message"],[data-message-author-role="user"]';
+          const markdownSel = '[class*="MarkdownRoot-"],.markdown,[class~="prose"],' +
+            '[data-testid="assistant-message"]';
+          const after = (a,b) => !!(a.compareDocumentPosition(b) &
+            Node.DOCUMENT_POSITION_FOLLOWING);
+          const result = {wake_seen:false,resume_seen:false,ack:null};
+          if ([...document.querySelectorAll(
+            '[data-testid="stop-button"],button[aria-label*="Stop"],' +
+            'button[aria-label*="Останов"]')].some(visible)) return result;
+          for (const root of [...document.querySelectorAll('main,[role="main"]')].filter(visible)) {
+            const allUsers = [...root.querySelectorAll(userSel)].filter(visible);
+            const users = allUsers.filter(el => !allUsers.some(
+              other => other !== el && el.contains(other)));
+            const value = el => {
+              const descendant=el.querySelector('[class*="whitespace-pre-wrap"]');
+              return [el.innerText,descendant&&descendant.innerText,el.textContent]
+                .map(clean).find(Boolean) || '';
+            };
+            const wakes = users.filter(el=>value(el)===wakeText);
+            const resumes = users.filter(el=> {
+              const text=value(el);
+              return text.startsWith(resumeText + ' ') &&
+                text.includes('Предыдущее сообщение') &&
+                text.includes(wakeText);
+            });
+            if(wakes.length !== 1)continue;
+            result.wake_seen=true;
+            if(resumes.length !== 1)continue;
+            const wake=wakes[0],resume=resumes[0];
+            if(!after(wake,resume))continue;
+            result.resume_seen=true;
+            const laterUsers=users.filter(el=>after(resume,el));
+            const next=laterUsers[0];
+            const answers=[];
+            for(const el of [...root.querySelectorAll(markdownSel)].filter(visible)){
+              if(el.closest(userScope) || !after(resume,el) ||
+                 (next && !after(el,next)))continue;
+              const annotated=el.closest('[data-message-author-role]');
+              if(annotated &&
+                 annotated.getAttribute('data-message-author-role')!=='assistant')continue;
+              const first=[...el.querySelectorAll('p')].filter(visible)[0];
+              if(!first || first.closest('blockquote,pre,code'))continue;
+              const heading=clean(first.innerText || first.textContent);
+              const match=heading.match(ackRE);
+              if(!match || Number(match[1])!==turn)continue;
+              const raw=el.innerText || el.textContent || '';
+              const header=first.innerText || first.textContent || '';
+              if(!raw.startsWith(header))continue;
+              const payload=raw.slice(header.length).trim();
+              if(payload)answers.push('CONTROL ACK — turn_id='+turn+'\n'+payload);
+            }
+            if(answers.length===1)result.ack=answers[0];
+          }
+          return result;
+        }""", int(turn_id))
+        if not isinstance(facts, dict):
+            return empty
+        observed = {
+            "wake_seen": facts.get("wake_seen") is True,
+            "resume_seen": facts.get("resume_seen") is True,
+            "ack": None,
+        }
+        ack = facts.get("ack")
+        if (observed["wake_seen"] and observed["resume_seen"] and
+                isinstance(ack, str) and
+                parse_control_reply([
+                    {"role": "user", "text": wake_text(int(turn_id))},
+                    {"role": "assistant", "text": ack},
+                ], int(turn_id))):
+            observed["ack"] = ack
+        return observed
+    except Exception:
+        return empty
+
+
+def maybe_resume_terminal_control(page, state: dict, inflight: dict, wake_visible: bool) -> None:
+    """One non-duplicating recovery prompt if GPT stayed silent after a final report.
+
+    The original wake was delivered and remains the sole processing instruction.
+    A distinct resume prompt may request its missing ACK once, after a grace
+    period. Every attempt is journaled before Enter and never repeated.
+    """
+    if not inflight.get("terminal_report") or not wake_visible:
+        return
+    control_id = control_wake_identity(page)
+    if (not control_id or control_id !=
+            str(inflight.get("wake_seen_control_identity") or "").lower()):
+        return
+    if generation_is_active(page):
+        return
+    now = time.time()
+    submitted_at = float(inflight.get("submitted_at") or inflight.get("created_at") or now)
+    if now - submitted_at < TERMINAL_CONTROL_ACK_GRACE_SECONDS:
+        return
+    turn_id = int(inflight["turn_id"])
+    if inflight.get("terminal_resume_intent"):
+        resumed_at = float(inflight.get("terminal_resume_at") or now)
+        if (now - resumed_at >= TERMINAL_CONTROL_RESUME_GRACE_SECONDS and
+                inflight.get("last_error") != "CONTROL_TERMINAL_ACK_TIMEOUT"):
+            inflight["last_error"] = "CONTROL_TERMINAL_ACK_TIMEOUT"
+            state["inflight"] = inflight
+            save_state(state)
+            log(f"CONTROL: terminal ACK turn_id={turn_id} not observed after one resume; manual inspection required.")
+        return
+
+    # Do not send a recovery request if a verified ACK appeared since the
+    # caller last inspected the page. The next cycle will consume it.
+    if parse_control_reply(_read_verified_ack_pair(page), turn_id):
+        return
+
+    recovery = (
+        f"CONTROL RESUME — turn_id={turn_id}\n"
+        f"Предыдущее сообщение «Проверь GitHub. turn_id={turn_id}» уже доставлено. "
+        "Ничего не выполняй повторно. Прочитай существующий итоговый отчёт "
+        "Arena в .agent-handoff/signal.json. Это только подтверждение получения. "
+        f"Ответь один раз с первой строкой CONTROL ACK — turn_id={turn_id}, "
+        "затем кратко укажи маркер отчёта. Не публикуй новые сигналы, "
+        "не вызывай Arena и не меняй файлы."
+    )
+
+    def persist_resume_intent():
+        inflight["terminal_resume_intent"] = True
+        inflight["terminal_resume_at"] = time.time()
+        inflight["last_error"] = "CONTROL_TERMINAL_RESUME_PENDING"
+        state["inflight"] = inflight
+        save_state(state)
+
+    confirmed = send_to_chatgpt(
+        page, recovery, on_before_submit=persist_resume_intent, allow_retry=False
+    )
+    observed = terminal_resume_observation(page, turn_id)
+    if observed["resume_seen"]:
+        inflight["last_error"] = "CONTROL_TERMINAL_RESUME_AWAITING_ACK"
+        state["inflight"] = inflight
+        save_state(state)
+        log(f"CONTROL: terminal resume turn_id={turn_id} observed in CONTROL; awaiting ACK.")
+    else:
+        inflight["last_error"] = (
+            "CONTROL_TERMINAL_RESUME_SUBMITTED_UNOBSERVED"
+            if confirmed else "CONTROL_TERMINAL_RESUME_UNCONFIRMED"
+        )
+        state["inflight"] = inflight
+        save_state(state)
+        log(f"CONTROL: terminal resume turn_id={turn_id} visibility unverified; no retry.")
+
+
+def submitted_gpt_wake_needs_read_only_wait(inflight: dict) -> bool:
+    """Never rebuild CONTROL after a wake was submitted to a pinned chat.
+
+    Once Enter may have happened, rebind/restore/bootstrap can create a new
+    conversation or misidentify a partial transcript. Only the existing
+    read-only ACK recovery above this guard may close the pending turn.
+    """
+    return (
+        str(inflight.get("target") or "").upper() == "GPT"
+        and bool(
+            inflight.get("submitted")
+            or inflight.get("wake_seen")
+            or inflight.get("send_intent")
+            or inflight.get("terminal_resume_intent")
+        )
+    )
+
+
+def submitted_control_readback_url(inflight: dict, stored_control_url: str) -> str:
+    """Read pending receipts ONLY from their persisted submit-time CONTROL URL.
+
+    A prior blank-history rebind may have changed the CONTROL record. That
+    must not retarget an already-submitted wake/ACK to the replacement chat.
+    Missing or inconsistent submit-time provenance fails closed.
+    """
+    if not submitted_gpt_wake_needs_read_only_wait(inflight):
+        return str(stored_control_url or "")
+    pinned = str(inflight.get("wake_seen_control_url") or "").strip()
+    identity = str(inflight.get("wake_seen_control_identity") or "").lower()
+    if (not is_durable_control_url(pinned) or not identity
+            or conversation_identity(pinned) != identity):
+        return ""
+    return pinned
+
+
+def terminal_receipt_matches(
+    receipt: dict, signal: dict, signal_sha: str, inflight: dict
+) -> bool:
+    """Exact-match independently persisted CONTROL receipt, never a new signal.
+
+    For the old stalled turn 87 only, accept the separately observed Opera
+    accessibility-tree proof. This is an externally verified recovery, not
+    proof that the Chrome chat transport delivered an ACK. Fail closed for
+    all wrong turns, stale signal blobs or chat identities.
+    """
+    if not all(isinstance(x, dict) for x in (receipt, signal, inflight)):
+        return False
+    turn = inflight.get("turn_id")
+    if type(turn) is not int or type(signal.get("turn_id")) is not int:
+        return False
+    if not (
+        turn == 87 == signal["turn_id"] == receipt.get("turn_id")
+        and receipt.get("protocol") == 1
+        and receipt.get("kind") == "terminal_ack"
+        and receipt.get("source") == "VERIFIED_CONTROL_RECOVERY"
+        and receipt.get("method") == "read_only_opera_connector_accessibility_tree"
+        and receipt.get("ack_verified") is True
+        and receipt.get("repeat_instruction") is False
+        and receipt.get("reply_header") == "CONTROL ACK — turn_id=87"
+        and receipt.get("report_marker") == "BRIDGE_SMOKE_86_87_RECEIVED"
+        and receipt.get("signal_blob_sha") == signal_sha
+        and receipt.get("signal_source") == "ARENA"
+        and receipt.get("signal_target") == "NONE"
+        and receipt.get("signal_status") == "done"
+        and str(receipt.get("control_url") or "").strip()
+            == str(inflight.get("wake_seen_control_url") or "").strip()
+        and conversation_identity(receipt["control_url"])
+            == str(inflight.get("wake_seen_control_identity") or "").lower()
+        and signal.get("source") == "ARENA"
+        and signal.get("target") == "NONE"
+        and signal.get("status") == "done"
+        and signal.get("requires_codex") is False
+        and inflight.get("terminal_report") is True
+        and inflight.get("submitted") is True
+        and inflight.get("terminal_resume_intent") is True
+        and inflight.get("send_attempts") == 1
+    ):
+        return False
+    lines = str(signal.get("message") or "").splitlines()
+    return bool(lines and lines[0] == receipt["report_marker"])
+
+
+def _github_contents_with_sha(url: str) -> tuple[dict, str]:
+    response = json.loads(_read_response(url, SIGNAL_FETCH_TIMEOUT))
+    if not isinstance(response, dict) or response.get("encoding") != "base64":
+        raise GitHubSignalError("receipt_contents_invalid")
+    sha = str(response.get("sha") or "")
+    encoded = "".join(str(response.get("content") or "").split())
+    if len(sha) != 40 or not encoded:
+        raise GitHubSignalError("receipt_missing_sha_or_body")
+    raw = base64.b64decode(encoded, validate=True).decode("utf-8")
+    body = json.loads(raw)
+    if not isinstance(body, dict):
+        raise GitHubSignalError("receipt_body_invalid")
+    return body, sha
+
+
+def verified_terminal_receipt_from_github(signal: dict, inflight: dict) -> bool:
+    """Read only and bounded to historical turn 87. Never writes GitHub."""
+    if not (
+        inflight.get("turn_id") == 87
+        and signal.get("turn_id") == 87
+        and inflight.get("terminal_report") is True
+    ):
+        return False
+    base = (
+        "https://api.github.com/repos/dvikt33-ux/"
+        "arena-archicad-project/contents/.agent-handoff/"
+    )
+    try:
+        receipt, _ = _github_contents_with_sha(
+            base + "receipts/87.json?ref=agent-handoff"
+        )
+        latest_signal, signal_sha = _github_contents_with_sha(
+            base + "signal.json?ref=agent-handoff"
+        )
+    except (OSError, ValueError, KeyError, GitHubSignalError, UnicodeError) as exc:
+        log(f"CONTROL: external receipt 87 unavailable: {type(exc).__name__}")
+        return False
+    # Current GitHub signal must still match the poll's parsed signal.
+    try:
+        if parse_signal(latest_signal) != signal:
+            return False
+    except (ValueError, TypeError, GitHubSignalError):
+        return False
+    return terminal_receipt_matches(receipt, signal, signal_sha, inflight)
+
+
+def process_gpt(browser, state: dict, inflight: dict, signal: dict | None = None) -> None:
     turn_id = int(inflight["turn_id"])
     wake = str(inflight["wake"])
+
+    # One-time manual recovery from an externally observed original CONTROL
+    # reply in Opera and an immutable exact GitHub signal blob. This avoids
+    # confusing a stale Chrome DOM with the absence of the actual receipt.
+    if signal is not None and verified_terminal_receipt_from_github(signal, inflight):
+        consume_turn(
+            state, turn_id,
+            "Externally verified CONTROL receipt in GitHub (Opera observation); "
+            "no GitHub successor, not Chrome E2E proof"
+        )
+        return
 
     # Resume an ALREADY answered turn without depending on old bootstrap DOM.
     # Only the exact persisted CONTROL tab is inspected. The assistant reply
@@ -4251,13 +4603,20 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
     if browser is not None:
         try:
             record = load_control_record()
-            saved_url = str(record.get("chatgpt_control_url") or "")
+            saved_url = submitted_control_readback_url(
+                inflight, str(record.get("chatgpt_control_url") or "")
+            )
             pages = [
                 page for context in browser.contexts for page in context.pages
-                if is_durable_control_url(page.url or "")
+                if saved_url and is_durable_control_url(page.url or "")
                 and same_conversation(page.url or "", saved_url)
             ]
             if len(pages) == 1 and not generation_is_active(pages[0]):
+                if inflight.get("terminal_report") and inflight.get("terminal_resume_intent"):
+                    observed = terminal_resume_observation(pages[0], turn_id)
+                    if observed["ack"]:
+                        consume_turn(state, turn_id, "ARENA final report acknowledged after CONTROL resume; no GitHub follow-up")
+                        return
                 pair = _read_verified_ack_pair(pages[0])
                 reply = parse_control_reply(pair, turn_id)
                 if reply:
@@ -4277,6 +4636,24 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         except Exception as exc:
             log(f"CONTROL: existing reply recovery unavailable: {type(exc).__name__}")
 
+    # The wake has already been submitted to this CONTROL conversation.
+    # Its transcript may be temporarily unrendered (zero_messages), but
+    # absence of DOM messages is not evidence that the chat disappeared.
+    # Do not call ensure_control_ready: it can rebind/provision and mutate
+    # the persisted CONTROL URL while an ACK is still outstanding.
+    # The read-only verified-ACK recovery above still runs every poll.
+    if submitted_gpt_wake_needs_read_only_wait(inflight):
+        reason = "CONTROL_SUBMITTED_ACK_UNOBSERVED_READ_ONLY"
+        if inflight.get("last_error") != reason:
+            inflight["last_error"] = reason
+            state["inflight"] = inflight
+            save_state(state)
+            log(
+                f"CONTROL: turn_id={turn_id} submitted; ACK not visible in pinned "
+                "conversation; read-only hold (no bootstrap/rebind/wake retry)."
+            )
+        return
+
     if (
         inflight.get("last_error") == "Control chat bootstrap pending"
         and time.time() < float(inflight.get("retry_after", 0) or 0)
@@ -4291,10 +4668,20 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
         save_state(state)
         return
 
+    if inflight.get("terminal_report") and inflight.get("terminal_resume_intent"):
+        observed = terminal_resume_observation(page, turn_id)
+        if observed["ack"]:
+            consume_turn(state, turn_id, "ARENA final report acknowledged after CONTROL resume; no GitHub follow-up")
+            return
+
     if chatgpt_response_complete(page, wake):
         reply = parse_control_reply(chatgpt_messages(page), turn_id)
         if not reply:
             log(f"GPT: matching CONTROL ACK not found for turn_id={turn_id}; keeping inflight.")
+            if inflight.get("wake_seen"):
+                maybe_resume_terminal_control(
+                    page, state, inflight, chatgpt_wake_exists(page, wake)
+                )
             return
         if inflight.get("terminal_report"):
             consume_turn(state, turn_id, "ARENA final report acknowledged in CONTROL; no GitHub follow-up")
@@ -4337,6 +4724,7 @@ def process_gpt(browser, state: dict, inflight: dict) -> None:
             state["inflight"] = inflight
             save_state(state)
             log(f"GPT: wake подтверждён в control chat ({wake})")
+        maybe_resume_terminal_control(page, state, inflight, wake_exists)
         return
 
     if not wake_send_allowed(inflight):
@@ -4529,9 +4917,8 @@ def handle_signal_without_action(state: dict, signal: dict) -> bool:
 
 def watch() -> None:
     acquire_single_instance()
-    # Refuse a missing/corrupted established queue BEFORE opening Chrome.
+    # Refuse a missing/corrupted queue before even attempting Opera CDP.
     state = load_state()
-    start_service_chrome()
 
     log(f"AI Dispatcher {VERSION} запущен")
     log(f"Последний обработанный turn_id: {state['last_turn_id']}")
@@ -4543,7 +4930,7 @@ def watch() -> None:
         + (
             f"машинный чат закреплён: {control_url}"
             if control_url
-            else "машинный чат будет создан автоматически при первом target=GPT"
+            else "исходный CONTROL не закреплён; создание нового чата запрещено"
         )
     )
     log(f"Проверка GitHub каждые {CHECK_INTERVAL} сек.")
@@ -4551,18 +4938,20 @@ def watch() -> None:
 
     with sync_playwright() as p:
         browser = None
+        opera_waiting = False
 
         while True:
             try:
                 if browser is None:
-                    start_service_chrome()
+                    require_opera_cdp()
                     browser = p.chromium.connect_over_cdp(CDP)
+                    opera_waiting = False
 
-                # Feedback overlays can appear after Arena finishes even
-                # while the next target is GPT. Clear them before polling.
-                dismiss_visible_arena_feedback(browser)
+                # Never click in the user's Opera tabs while idle.
                 signal = fetch_signal()
                 inflight = state.get("inflight")
+                if inflight and str(inflight.get("target") or "").upper() == "ARENA":
+                    dismiss_visible_arena_feedback(browser)
 
                 if inflight and int(signal.get("turn_id", 0)) > int(inflight["turn_id"]):
                     if not newer_signal_supersedes_inflight(signal, inflight):
@@ -4643,7 +5032,7 @@ def watch() -> None:
                     target = str(inflight.get("target", "")).upper()
 
                     if target == "GPT":
-                        process_gpt(browser, state, inflight)
+                        process_gpt(browser, state, inflight, signal)
                     elif target == "ARENA":
                         process_arena(browser, state, inflight)
                     else:
@@ -4658,35 +5047,35 @@ def watch() -> None:
                 raise
 
             except DispatcherStateWriteError:
-                log("STATE: write failure; stopping dispatcher without CDP restart or wake replay.")
+                log("STATE: write failure; stopping dispatcher without Opera restart or wake replay.")
                 raise
 
             except GitHubNetworkError:
-                log("GITHUB: endpoint=unavailable error=GitHubNetworkError. CDP не перезапускаю.")
+                log("GITHUB: endpoint=unavailable error=GitHubNetworkError. Opera не перезапускаю.")
 
             except GitHubSignalError:
-                log("GITHUB: endpoint=signal error=GitHubSignalError. CDP не перезапускаю.")
+                log("GITHUB: endpoint=signal error=GitHubSignalError. Opera не перезапускаю.")
 
             except PlaywrightTimeoutError as exc:
                 log(
                     f"UI: Playwright timeout: {exc}. "
-                    "Это не ошибка GitHub; CDP не перезапускаю."
+                    "Это не ошибка GitHub; Opera не перезапускаю."
                 )
 
+            except RuntimeError as exc:
+                if str(exc).startswith("OPERA_CDP_REQUIRED"):
+                    if not opera_waiting:
+                        log(str(exc))
+                    opera_waiting = True
+                    browser = None
+                else:
+                    log(f"ERROR: {type(exc).__name__}: {exc}")
+                    browser = None
             except Exception as exc:
                 log(f"ERROR: {type(exc).__name__}: {exc}")
                 browser = None
-
-                try:
-                    log("CHROME: восстанавливаю CDP после не-классифицированной ошибки.")
-                    start_service_chrome(force=not cdp_http_ready())
-                    browser = p.chromium.connect_over_cdp(CDP)
-                    log("CHROME: соединение восстановлено.")
-                except Exception as chrome_exc:
-                    log(
-                        f"CHROME: восстановление не удалось: "
-                        f"{type(chrome_exc).__name__}: {chrome_exc}"
-                    )
+                # Never restart a user's Opera instance or create a new profile.
+                log("OPERA: disconnected; reattach only when Opera is ready.")
 
             time.sleep(CHECK_INTERVAL)
 
@@ -4697,7 +5086,7 @@ def watch() -> None:
 
 def manual_wake(target: str) -> None:
     acquire_single_instance()
-    start_service_chrome()
+    require_opera_cdp()
 
     target = target.upper()
     if target not in {"GPT", "ARENA"}:

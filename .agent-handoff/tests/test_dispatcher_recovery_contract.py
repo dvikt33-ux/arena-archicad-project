@@ -16,10 +16,10 @@ def function_body(name):
     return ast.get_source_segment(SOURCE, matches[0])
 
 class RecoveryContracts(unittest.TestCase):
-    def test_invalid_queue_before_starting_chrome(self):
+    def test_invalid_queue_before_connecting_opera(self):
         body = function_body("watch")
         self.assertLess(body.index("state = load_state()"),
-                        body.index("start_service_chrome()"))
+                        body.index("require_opera_cdp()"))
 
     def test_queue_write_failure_is_fatal(self):
         body = function_body("watch")
@@ -38,21 +38,33 @@ class RecoveryContracts(unittest.TestCase):
         body = function_body("watch")
         section=body[body.index("except GitHubNetworkError:"):
                      body.index("except GitHubSignalError:")]
-        self.assertNotIn("start_service_chrome",section)
+        self.assertNotIn("require_opera_cdp",section)
         self.assertNotIn("browser = None",section)
 
     def test_ui_timeout_does_not_restart_cdp(self):
         body = function_body("watch")
         section=body[body.index("except PlaywrightTimeoutError as exc:"):
-                     body.index("except Exception as exc:")]
+                     body.index("except RuntimeError as exc:")]
         self.assertNotIn("start_service_chrome",section)
         self.assertNotIn("browser = None",section)
 
-    def test_unknown_cdp_failure_recovers_with_port_probe(self):
+    def test_unknown_cdp_failure_does_not_restart_user_opera(self):
         body=function_body("watch")
         self.assertIn("browser = None",body)
-        self.assertIn("start_service_chrome(force=not cdp_http_ready())",body)
+        self.assertIn("require_opera_cdp()",body)
         self.assertIn("p.chromium.connect_over_cdp(CDP)",body)
+        self.assertNotIn("start_service_chrome",body)
+        self.assertNotIn("stop_owned_chrome",body)
+        self.assertNotIn("subprocess.Popen",body)
+        self.assertNotIn("force=",body)
+
+    def test_attach_only_probe_has_no_browser_creation(self):
+        body=function_body("require_opera_cdp")
+        self.assertIn("cdp_http_ready()",body)
+        self.assertIn("opera_owns_cdp_port()",body)
+        self.assertNotIn("subprocess.Popen",body)
+        self.assertNotIn("start_service_chrome",SOURCE)
+        self.assertNotIn("CHROME_PATH",SOURCE)
 
 if __name__ == "__main__":
     unittest.main()

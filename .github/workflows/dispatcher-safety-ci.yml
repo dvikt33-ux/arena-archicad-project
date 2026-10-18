@@ -40,17 +40,70 @@ jobs:
       - name: Windows PowerShell 5.1 syntax and encoding
         shell: powershell
         run: |
-          $script = '.agent-handoff/install-dispatcher-state-hardening.ps1'
-          $bytes = [IO.File]::ReadAllBytes((Resolve-Path $script))
-          if ($bytes | Where-Object { $_ -gt 127 }) { throw 'Installer is not ASCII' }
-          $tokens = $null
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path $script), [ref]$tokens, [ref]$parseErrors
-          ) | Out-Null
-          if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
+          $scripts = @(
+              '.agent-handoff/install-dispatcher-state-hardening.ps1',
+              '.agent-handoff/install-control-inflight-freeze.ps1',
+              '.agent-handoff/install-opera-transport.ps1',
+              '.agent-handoff/start-opera-agent-profile.ps1',
+              '.agent-handoff/recover-control-89.ps1'
+          )
+          foreach ($script in $scripts) {
+              $bytes = [IO.File]::ReadAllBytes((Resolve-Path $script))
+              if ($bytes | Where-Object { $_ -gt 127 }) { throw 'Installer is not ASCII' }
+              $tokens = $null
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  (Resolve-Path $script), [ref]$tokens, [ref]$parseErrors
+              ) | Out-Null
+              if ($parseErrors.Count -ne 0) { throw ($parseErrors | Out-String) }
+          }
       - name: Windows no-browser Python regressions
         shell: powershell
         run: |
           python -m py_compile .agent-handoff/dispatcher.py .agent-handoff/control_reply_handoff.py
           python -m unittest discover -s .agent-handoff/tests -p 'test_*.py' -v
+      - name: Test actual installer-staged offline suite
+        shell: powershell
+        run: |
+          $source = Get-Content '.agent-handoff/install-control-inflight-freeze.ps1' -Raw
+          $list = [regex]::Match($source, '(?s)\$names\s*=\s*@\((.*?)\)')
+          if (-not $list.Success) { throw 'No staged test manifest found' }
+          $files = [regex]::Matches($list.Groups[1].Value, "'([^']+)'")
+          $root = Join-Path $env:RUNNER_TEMP 'control-freeze-stage'
+          $dir = Join-Path $root '.agent-handoff'
+          $tests = Join-Path $dir 'tests'
+          New-Item -ItemType Directory -Path $tests -Force | Out-Null
+          $pattern = '\$prefix/([^"]+)"\s+-OutFile\s+\(Join-Path\s+\$stagedRoot\s+''([^'']+)''\)'
+          $rootFiles = [regex]::Matches($source, $pattern)
+          if ($rootFiles.Count -lt 2) { throw 'No root-stage installer dependencies found' }
+          foreach ($match in $rootFiles) {
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff' $match.Groups[1].Value) -Destination (Join-Path $dir $match.Groups[2].Value)
+          }
+          foreach ($match in $files) {
+            $name = $match.Groups[1].Value
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff/tests' $name) -Destination (Join-Path $tests $name)
+          }
+          python -m unittest discover -s $tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Staged installer offline tests failed' }
+
+      - name: Reproduce Opera installer-staged Python suite
+        shell: powershell
+        run: |
+          $source = Get-Content '.agent-handoff/install-opera-transport.ps1' -Raw
+          $list = [regex]::Match($source, '(?s)\$names\s*=\s*@\((.*?)\)')
+          if (-not $list.Success) { throw 'Opera staged test manifest missing' }
+          $files = [regex]::Matches($list.Groups[1].Value, "'([^']+)'")
+          if ($files.Count -lt 14) { throw 'Opera staged tests unexpectedly incomplete' }
+          $root = Join-Path $env:RUNNER_TEMP 'opera-dispatcher-stage'
+          $dest = Join-Path $root '.agent-handoff'
+          $tests = Join-Path $dest 'tests'
+          New-Item -ItemType Directory -Path $tests -Force | Out-Null
+          foreach ($name in @('dispatcher.py','dispatcher-runtime.py','control_reply_handoff.py','install-control-reply-handoff.ps1')) {
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff' $name) -Destination (Join-Path $dest $name)
+          }
+          foreach ($item in $files) {
+            $name = $item.Groups[1].Value
+            Copy-Item -LiteralPath (Join-Path '.agent-handoff/tests' $name) -Destination (Join-Path $tests $name)
+          }
+          python -m unittest discover -s $tests -p 'test_*.py' -q
+          if ($LASTEXITCODE -ne 0) { throw 'Opera staged suite failed' }

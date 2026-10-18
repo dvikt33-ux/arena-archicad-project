@@ -43,7 +43,8 @@ jobs:
           $scripts = @(
               '.agent-handoff/install-dispatcher-state-hardening.ps1',
               '.agent-handoff/install-control-inflight-freeze.ps1',
-              '.agent-handoff/install-opera-transport.ps1'
+              '.agent-handoff/install-opera-transport.ps1',
+              '.agent-handoff/start-opera-agent-profile.ps1'
           )
           foreach ($script in $scripts) {
               $bytes = [IO.File]::ReadAllBytes((Resolve-Path $script))

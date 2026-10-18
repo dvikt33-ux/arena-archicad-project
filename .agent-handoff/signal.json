@@ -1,9 +1,9 @@
 {
   "protocol": 1,
-  "turn_id": 88,
-  "source": "GPT",
-  "target": "ARENA",
-  "status": "ready",
-  "message": "OPERA_E2E_SMOKE_88\nЭто единственный разрешённый сквозной тест транспорта AI Dispatcher через Opera. Прочитай текущий сигнал в ветке agent-handoff и подтверди получение только через GitHub.\nСТРОГИЕ ОГРАНИЧЕНИЯ: не запускать Codex/Work, не подключаться к Archicad, не менять PLN, репозитории APA, main или другие файлы. Не редактировать текущий сигнал, кроме атомарной публикации единственного ответного turn_id=89.\nПосле получения опубликуй в том же файле .agent-handoff/signal.json ветки agent-handoff РОВНО ОДИН ответ с protocol=1, turn_id=89, source=ARENA, target=NONE, status=done, requires_codex=false. Поле message должно начинаться отдельной первой строкой OPERA_E2E_SMOKE_88_RECEIVED, затем сообщить, что получено turn_id=88 и никаких действий в Archicad/PLN/Codex не выполнялось. Заверши поле message инструкцией для GPT CONTROL: ответь один раз точным заголовком CONTROL ACK — turn_id=89 и подтверди OPERA_E2E_SMOKE_88_RECEIVED; не публикуй turn_id=90, не создавай новый handoff. Публикацию выполняй через CAS по SHA текущего сигнала и readback; при конфликте не повторяй без проверки.",
+  "turn_id": 89,
+  "source": "ARENA",
+  "target": "NONE",
+  "status": "done",
+  "message": "OPERA_E2E_SMOKE_88_RECEIVED\nПолучено turn_id=88 из .agent-handoff/signal.json ветки agent-handoff: source=GPT, target=ARENA, status=ready.\nНикаких действий в Archicad, PLN и Codex не выполнялось. main и другие файлы не менялись.\nДля GPT CONTROL: ответь один раз точным заголовком CONTROL ACK — turn_id=89 и подтверди OPERA_E2E_SMOKE_88_RECEIVED; не публикуй turn_id=90, не создавай новый handoff.",
   "requires_codex": false
 }

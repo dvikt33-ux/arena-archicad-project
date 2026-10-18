@@ -11,6 +11,7 @@ $signalBlob = 'c82202ac54bcd9675bd5786d5f12f784ac6a5c27'
 function Fail([string]$why) { throw "STOP: $why" }
 function FindOpera {
   $candidates = @(@(
+    (Join-Path $env:LOCALAPPDATA 'Programs\Opera\opera.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera\launcher.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera GX\launcher.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Opera Software\Opera Stable\launcher.exe'),

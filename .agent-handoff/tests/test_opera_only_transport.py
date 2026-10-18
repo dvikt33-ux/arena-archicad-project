@@ -90,6 +90,32 @@ class OperaSafety(unittest.TestCase):
         self.assertIsNone(page)
         self.assertFalse(ready)
 
+    def test_duplicate_pinned_uses_only_unique_ready_tab(self):
+        env, events = self.env()
+        good = Page(PINNED)
+        blank = Page(PINNED)
+        env["chatgpt_messages"] = lambda page: (
+            [{"role": "user", "text": "bootstrap"},
+             {"role": "assistant", "text": "CONTROL READY"}]
+            if page is good else []
+        )
+        fn = load("existing_opera_control_only", env)
+        browser = Browser([blank, good])
+        page, ready = fn(browser)
+        self.assertTrue(ready)
+        self.assertIs(page, good)
+        self.assertEqual(browser.contexts[0].created, 0)
+        self.assertTrue(any("unique_ready=1" in args[0] for _, args in events))
+
+    def test_duplicate_pinned_two_ready_fail_closed(self):
+        env, events = self.env()
+        fn = load("existing_opera_control_only", env)
+        browser = Browser([Page(PINNED), Page(PINNED)])
+        page, ready = fn(browser)
+        self.assertIsNone(page)
+        self.assertFalse(ready)
+        self.assertEqual(browser.contexts[0].created, 0)
+
     def test_no_old_restore_path_is_callable(self):
         fn=next(n for n in TREE.body if isinstance(n,ast.FunctionDef)
                 and n.name=="ensure_control_ready")

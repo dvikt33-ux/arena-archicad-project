@@ -28,6 +28,16 @@ class OperaAgentLauncher(unittest.TestCase):
         self.assertNotIn("Invoke-RestMethod -Method Put", SCRIPT)
         self.assertNotIn("git push", SCRIPT.lower())
 
+    def test_http_debugger_probe_retries_and_bypasses_proxy(self):
+        self.assertIn("$request.Proxy = $null", SCRIPT)
+        self.assertIn("$request.Timeout = 2000", SCRIPT)
+        self.assertIn("HTTP_OK_NO_VALID_BROWSER_WEBSOCKET", SCRIPT)
+        self.assertIn("OPERA_CDP_WAIT_FAILED", SCRIPT)
+        self.assertIn("OPERA_CDP_NOT_READY", SCRIPT)
+        self.assertIn("for($attempt=0; $attempt -lt 24; $attempt++)", SCRIPT)
+        self.assertIn("if ($verified) { break }", SCRIPT)
+        self.assertNotIn("Invoke-RestMethod -UseBasicParsing -TimeoutSec 3 -Uri 'http://127.0.0.1:9224/json/version'", SCRIPT)
+
     def test_original_control_and_arena_are_the_only_opened_pages(self):
         self.assertIn("6ad27341-1ea4-83eb-8238-5ce1cada094a", SCRIPT)
         self.assertIn("01a09014-9139-71e7-b51b-5b3f8a49d904", SCRIPT)
